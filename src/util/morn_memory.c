@@ -40,8 +40,8 @@ void MemCollect(int index)
             
             if(0-(*mem) >= 128)
             {
-                chain_list[n].size = 0-(*mem);
-                chain_list[n].ptr = (mem+1);
+                chain_list[n].size = sizeof(int)-(*mem);
+                chain_list[n].ptr = mem;
                 if(n==0)
                 {
                     chain_list[n].next = NULL;
@@ -105,7 +105,8 @@ void *mMemAlloc(int size)
         chain->ptr[0] = size;
         chain->ptr = chain->ptr + size/sizeof(int) +1;
         chain->size -= size+sizeof(int);
-        mem[size/sizeof(int)]=sizeof(int)-chain->size;
+        if(chain->size>0)
+            chain->ptr[0] = sizeof(int)-chain->size;
         
         if(chain->next == NULL) goto Malloc_end;
         if(chain->size > chain->next->size) goto Malloc_end;
@@ -132,10 +133,9 @@ void *mMemAlloc(int size)
         struct MemChain *chain = &(morn_mem_chain_list[i][0]);
         chain->size = 2047*sizeof(int)-size;
         chain->ptr = mem + size/sizeof(int);
-        chain->ptr[0] = 0-chain->size;
+        chain->next= NULL;
+        chain->ptr[0] = sizeof(int)-chain->size;
         morn_mem_chain[i] = chain;
-        
-        mem[size/sizeof(int)] = sizeof(int)-chain->size;
         
         goto Malloc_end;
     }
