@@ -1412,3 +1412,71 @@ unsigned short mMaxSubsetU16(unsigned short *data_in,int *index_in,int num_in,un
           char mMaxSubsetS8(           char *data_in,int *index_in,int num_in,          char *data_out,int *index_out,int num_out) MaxSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
  unsigned char mMaxSubsetU8(  unsigned char *data_in,int *index_in,int num_in, unsigned char *data_out,int *index_out,int num_out) MaxSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
 
+#define MidValue(Type,Data_in,Num_in) {\
+    mException((INVALID_POINTER(Data_in))||(Num_in<1),EXIT,"invalid input");\
+    if(Num_in<=2) return Data_in[0];\
+    \
+    int Num = Num_in;\
+    Type *buff = mMalloc(Num*sizeof(Type));\
+    memcpy(buff,Data_in,Num*sizeof(Type));\
+    Data_in = buff;\
+    \
+    int left_num = 0;\
+    int right_num = 0;\
+    while(1)\
+    {\
+        Type Thresh = Data_in[0];\
+        int I=0;int J=Num-1;\
+        while(I<J)\
+        {\
+            while(Data_in[J]>=Thresh)\
+            {\
+                if(J==I)\
+                    goto MidValue_next;\
+                J=J-1;\
+            }\
+            \
+            Data_in[I] = Data_in[J];\
+            \
+            while(Data_in[I]<=Thresh)\
+            {\
+                if(I==J)\
+                    goto MidValue_next;\
+                I=I+1;\
+            }\
+            \
+            Data_in[J] = Data_in[I];\
+        }\
+        \
+        MidValue_next:\
+        if(left_num<right_num){left_num+=I;right_num= Num_in- left_num-1;}\
+        else         {right_num+=(Num-I-1);left_num = Num_in-right_num-1;}\
+        \
+        if(left_num > right_num)\
+        {\
+            Num = I;\
+            right_num += 1;\
+        }\
+        else if(left_num < right_num)\
+        {\
+            Data_in = Data_in+I+1;\
+            Num = Num-I-1;\
+            left_num += 1;\
+        }\
+        \
+        if(ABS(left_num-right_num)<=1)\
+        {\
+            mFree(buff);\
+            return Thresh;\
+        }\
+    }\
+}
+
+        double mMidValueD64(        double *data_in,int num_in) MidValue(D64,data_in,num_in)
+         float mMidValueF32(         float *data_in,int num_in) MidValue(F32,data_in,num_in)
+           int mMidValueS32(           int *data_in,int num_in) MidValue(S32,data_in,num_in)
+  unsigned int mMidValueU32(  unsigned int *data_in,int num_in) MidValue(U32,data_in,num_in)
+         short mMidValueS16(         short *data_in,int num_in) MidValue(S16,data_in,num_in)
+unsigned short mMidValueU16(unsigned short *data_in,int num_in) MidValue(U16,data_in,num_in)
+   signed char mMidValueS8(    signed char *data_in,int num_in) MidValue(S8, data_in,num_in)
+ unsigned char mMidValueU8(  unsigned char *data_in,int num_in) MidValue(U8, data_in,num_in)
