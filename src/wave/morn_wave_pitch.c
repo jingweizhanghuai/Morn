@@ -1,24 +1,17 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "morn_Wave.h"
+#include "morn_wave.h"
 
-
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  计算波形的自相关系数
-//
-// 参数：
-//  (I)src(NO) - 待计算的波形
-//  (I)check_length(src->info.frequency/50) - 检测长度
-//  (I)check_step(1) - 检测步长
-//  (O)self_corr(NO) - 算得的各通道的相关系数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveSelfCorrelation(MWave *src,int check_length,int check_step,float **self_corr)
 {
     int size;
@@ -55,7 +48,6 @@ void mWaveSelfCorrelation(MWave *src,int check_length,int check_step,float **sel
         for(j=0;j<check_length;j++)
         {
             check = src->data[cn] + n;
-            // printf("j is %d\n",j);
             self_corr[cn][j] = 0.0;
             
             for(i=0;i<size;i++)
@@ -66,19 +58,6 @@ void mWaveSelfCorrelation(MWave *src,int check_length,int check_step,float **sel
     }
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  在功率谱上寻找基音周期
-//
-// 参数：
-//  (I)src(NO) - 待计算的波形
-//  (I)check_length(src->info.frequency/50) - 检测长度
-//  (O)pitch(NULL) - 测得的基音周期
-//  (O)correlation(NULL) - 基音周期所对应的相关系数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWavePitch(MWave *src,int check_length,int *pitch,float *correlation)
 {
     int diff;

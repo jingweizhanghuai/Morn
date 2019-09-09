@@ -1,9 +1,16 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "morn_Wave.h"
+#include "morn_wave.h"
 
 #define COMPLEXADD(re0,im0,re1,im1,re_out,im_out) {re_out = re0+re1;im_out = im0+im1;}
 #define COMPLEXSUB(re0,im0,re1,im1,re_out,im_out) {re_out = re0-re1;im_out = im0-im1;}
@@ -133,17 +140,6 @@ void mWaveFFT(MWave *src,MWave *fft)
     }    
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  快速傅里叶逆变换
-//
-// 参数：
-//  (I)fft(src) - 傅里叶变换后的频域波形
-//  (O)dst(NO) - 傅里叶逆变换得到的时域波形
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveIFFT(MWave *fft,MWave *dst)
 {    
     int i,j,k,n;
@@ -242,18 +238,6 @@ void mWaveIFFT(MWave *fft,MWave *dst)
     }
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  计算功率谱
-//
-// 参数：
-//  (I)fft(NO) - 傅里叶变换后的频域波形
-//  (O)ps(fft) - 计算得到的功率谱
-//  (I)mode(MORN_SQUAR_POWERS) - 功率谱的计算方式，可选MORN_SQUAR_POWERS（平方）、MORN_POWERS（开方）、MORN_LOG_POWERS（对数）
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWavePowerSpectrum(MWave *fft,MWave *ps,int mode)
 {
     int wav_size;
@@ -417,7 +401,6 @@ void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component
                 re = re + src->data[cn][i]*re_mat->data[j][i];
                 im = im + src->data[cn][i]*im_mat->data[j][i];
             }
-            // printf("re is %f,im is %f\n",re,im);
             component[cn][j] =re*re+im*im;
         }
     }

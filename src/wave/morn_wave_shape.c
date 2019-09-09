@@ -1,26 +1,19 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "morn_Wave.h"
+#include "morn_wave.h"
 
 #define MAX_PEAK_NUM 32
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  寻找波形上的最高峰
-//
-// 参数：
-//  (I)wavSrc(NO) - 输入的功率谱
-//  (I)peak_width(NO) - 峰的最大宽度
-//  (I)peak_height(NO) - 峰的最小高度
-//  (O)peak_locate(NO) - 计算得到的各通道的波峰的位置
-//  (O)peak_num(NO) - 计算得到的各通道的波峰的数量
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWavePeak(MWave *wavSrc,int peak_width,float peak_height,int *peak_locate[],int peak_num[])
 {
     int wav_size;
@@ -226,30 +219,14 @@ void mWaveMainFrequency(MWave *ps,int *peak_locate)
         mWaveRelease(wavSrc);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  统计波形过零率
-//
-// 参数：
-//  (I)src(NO) - 输入的待统计波形
-//  (O)zcr(NO) - 统计得到的各通道的过零率
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveZeroCrossRatio(MWave *src,float *zcr)
 {
-    int i,cn;
-    int num;
-    int *data;
-    
     mException((INVALID_WAVE(src))||(INVALID_POINTER(zcr)),EXIT,"invalid input");
     mException(INVALID_WAVE(src),EXIT,"invalid operate");
-
-    for(cn=0;cn<src->channel;cn++)
+    for(int cn=0;cn<src->channel;cn++)
     {
-        data = (int *)src->data[cn];
-        num = 0;
+        int *data = (int *)src->data[cn];
+        int num = 0;
         for(i=1;i<src->size;i++)
             num = num +(((data[i])^(data[i-1]))<0);
         

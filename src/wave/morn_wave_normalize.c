@@ -1,21 +1,16 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Wave.h"
+#include "morn_wave.h"
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  功率谱的归一化
-//
-// 参数：
-//  (I)src(NO) - 待归一化的功率谱波形
-//  (O)dst(src) - 归一化后的功率谱波形
-//  (I)norm_value(src->size) - 归一化系数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWavePSNormalize(MWave *src,MWave *dst,float norm_value)
 {
     int wav_size;
@@ -61,19 +56,6 @@ void mWavePSNormalize(MWave *src,MWave *dst,float norm_value)
     }
 }
 
-
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  波形归一化
-//
-// 参数：
-//  (I)src(NO) - 待归一化的时域波形
-//  (O)dst(src) - 归一化后的波形
-//  (I)norm_value(波形类型最大值) - 归一化系数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveNormalize(MWave *src,MWave *dst,float norm_value)
 {
     int wav_size;
