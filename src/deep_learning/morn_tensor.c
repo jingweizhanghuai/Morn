@@ -9,7 +9,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Tensor.h"
+#include "morn_tensor.h"
 
 struct HandleTensorCreate
 {

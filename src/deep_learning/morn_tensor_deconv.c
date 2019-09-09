@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <math.h>
 
 #include <cblas.h>
-#include "morn_Tensor.h"
+#include "morn_tensor.h"
 
 void DeconvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_height,int knl_width,int y_stride,int x_stride)
 {

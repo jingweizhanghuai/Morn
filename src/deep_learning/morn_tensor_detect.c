@@ -10,7 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <math.h>
 
-#include "morn_Tensor.h"
+#include "morn_tensor.h"
 #include "morn_tensor_caculate.h"
 
 float Detect(MLayer *layer,MLayer *prev,float *error)
