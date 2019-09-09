@@ -203,21 +203,17 @@ void TensorActivationSet(MLayer *layer)
     MTensor *out=layer->tns;
     
     if(layer->state != DFLT) return;
-    if(morn_network_flag == MORN_PREDICT)
-        mTensorRedefine(out,in->batch,in->channel,in->height,in->width,in->data);
-    else
+    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
+    if(morn_network_flag == MORN_TRAIN)
     {
-        mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     }
-    printf("in->data[0] is %p,out->data[0] is %p\n",in->data[0],out->data[0]);
 }
 
 
 void mTensorActivationForward(MLayer *layer)
 {
-    // printf("activationactivationactivationactivationactivation\n");
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Activation",mLayerType(layer)),EXIT,"invalid layer type");
     
@@ -227,38 +223,20 @@ void mTensorActivationForward(MLayer *layer)
     
     TensorActivationSet(layer);
     int size = in->channel*in->height*in->width;
-    // printf("in->channel is %d,in->height is %d,in->width is %d,size is %d\n",in->channel,in->height,in->width,size);
     
     for(int b=0;b<in->batch;b++)
     {
         float *in_data = in->data[b];
         float *out_data=out->data[b];
         for(int i=0;i<size;i++)
-        {
             out_data[i] = (para->func)(in_data[i],para->argv);
-            // printf("in_data[i] is %f,out_data[i] is %f\n",in_data[i],out_data[i]);
-        }
-        
-        // if((strcmp(layer->name,"activ11")==0))
-        // {
-            // printf("in_data is %p\n",in_data);
-            // printf("rf     in_data is:");for(int i=0;i<10;i++)printf("%f,",in_data[i]);printf("\n");
-            // printf("rf    out_data is:");for(int i=0;i<10;i++)printf("%f,",out_data[i]);printf("\n");
-        // }
     }
     
-    
-    
     layer->state = MORN_FORWARD;
-    // TensorImage(out,0,0,"./test44_actv0.bmp");
-    // TensorImage(out,0,1,"./test44_actv1.bmp");
-    // TensorImage(out,0,2,"./test44_actv2.bmp");
-    // printf("activationactivationactivationactivationactivation\n");
 }
 
 void mTensorActivationBackward(MLayer *layer)
 {
-    // printf("activationactivationactivationactivationactivation\n");
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Activation",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorActivationPara *para = layer->para;
@@ -276,33 +254,12 @@ void mTensorActivationBackward(MLayer *layer)
         float *out_data=out->data[bc];
         for(int i=0;i<size;i++)
         {
-            // if(mIsInf(out_data[i])) {printf("%s,%d,%d,gggggggggggg\n",layer->name,bc,i);exit(0);}
-            // if((bc==0)&&(i==249379)) printf("out_data[i] is %f,in_data[i] is %f\n",out_data[i],in_data[i]);
-            // if((bc==1)&&(i==251406)) printf("out_data[i] is %f,in_data[i] is %f\n",out_data[i],in_data[i]);
-            
             float data = out_data[i]*((para->dfunc)(in_data[i],para->argv));
             res_data[i] = (para->prev->state==MORN_FORWARD)?data:(res_data[i]+data);
-            
-            // if((bc==0)&&(i==249379)) printf("res_data[i] is %f\n",res_data[i]);
-            // if(mIsNan(res_data[i])) {printf("%d,%d,ffffffffffffff\n",bc,i);exit(0);}
-            // printf("ddata[i] is %f,sdata[i] is %f\n",ddata[i],sdata[i]);
         }
-        // for(int i=0;i<10;i++)printf("in_data is %f,out_res is %8.3f,in_res is %8.3f\n",in_data[i],out_res[i],in_res[i]);
-        
-        // if((strcmp(layer->name,"activ11")==0))
-        // {
-            // printf("in_data is %p\n",in_data);
-            // printf("r     in_data is:");for(int i=0;i<10;i++)printf("%f,",in_data[i]);printf("\n");
-            // printf("r    out_data is:");for(int i=0;i<10;i++)printf("%f,",out_data[i]);printf("\n");
-            // printf("r    res_data is:");for(int i=0;i<10;i++)printf("%f,",res_data[i]);printf("\n");
-        // }
-    
     }
     
-        
-    
     para->prev->state = MORN_BACKWARD;
-    // printf("activationactivationactivationactivationactivation\n");
 }
 
 
