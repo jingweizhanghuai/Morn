@@ -130,13 +130,15 @@ float DAbs(float in,float *argv)
 
 void mActivationRegisterAll()
 {
-    mActivationRegister("Sigmoid" ,Sigmoid ,DSigmoid );
-    mActivationRegister("Tanh"    ,Tanh    ,DTanh    );
-    mActivationRegister("ReLu"    ,ReLu    ,DReLu    );
-    mActivationRegister("PReLu"   ,PReLu   ,DPReLu   );
-    mActivationRegister("ELu"     ,ELu     ,DELu     );
-    mActivationRegister("Softplus",Softplus,DSoftplus);
-    mActivationRegister("Abs"     ,Abs     ,DAbs     );
+    mActivationRegister("Sigmoid"  ,Sigmoid  ,DSigmoid  );
+    mActivationRegister("Tanh"     ,Tanh     ,DTanh     );
+    mActivationRegister("ReLu"     ,ReLu     ,DReLu     );
+    mActivationRegister("PReLu"    ,PReLu    ,DPReLu    );
+    mActivationRegister("ELu"      ,ELu      ,DELu      );
+    mActivationRegister("Softplus" ,Softplus ,DSoftplus );
+    mActivationRegister("Abs"      ,Abs      ,DAbs      );
+    mActivationRegister("DCSigmoid",DCSigmoid,DDCSigmoid);
+    mActivationRegister("DCTanh"   ,DCTanh   ,DDCTanh   );
 }
 
 struct TensorActivationPara
