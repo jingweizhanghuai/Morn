@@ -62,15 +62,10 @@ void TensorMaxPoolSet(MLayer *layer)
     
     para->x0=(in->width -(out_width -1)*para->x_stride)/2;
     para->y0=(in->height-(out_height-1)*para->y_stride)/2;
-    printf("para->x_stride is %d,para->y_stride is %d\n",para->x_stride,para->y_stride);
-    printf("para->x0 is %d,para->y0 is %d\n",para->x0,para->y0);
     
-    if(morn_network_flag == MORN_PREDICT)
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,in->data);
-    else
+    mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
+    if(morn_network_flag == MORN_TRAIN)
     {
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
-        
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
         
@@ -142,13 +137,6 @@ void mTensorMaxPoolForward(MLayer *layer)
     }
     
     layer->state = MORN_FORWARD;
-    
-    // if(morn_network_time==0)
-    // {
-        // TensorImage(layer->tns,0,0,"test44_pool0.bmp");
-        // TensorImage(layer->tns,0,1,"test44_pool1.bmp");
-        // TensorImage(layer->tns,0,2,"test44_pool2.bmp");
-    // }
 }
 
 void mTensorMaxPoolBackward(MLayer *layer)
@@ -207,11 +195,9 @@ void TensorAvgPoolSet(MLayer *layer)
     para->x0=(in->width /2)-((out_width -1)*para->x_stride/out_width );
     para->y0=(in->height/2)-((out_height-1)*para->y_stride/out_height);
     
-    if(morn_network_flag == MORN_PREDICT)
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,in->data);
-    else
+    mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
+    if(morn_network_flag == MORN_TRAIN)
     {
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     }
@@ -337,12 +323,9 @@ void TensorRandPoolSet(MLayer *layer)
     para->x0=(in->width /2)-((out_width -1)*para->x_stride/out_width );
     para->y0=(in->height/2)-((out_height-1)*para->y_stride/out_height);
     
-    if(morn_network_flag == MORN_PREDICT)
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,in->data);
-    else
+    mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
+    if(morn_network_flag == MORN_TRAIN)
     {
-        mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
-        
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     

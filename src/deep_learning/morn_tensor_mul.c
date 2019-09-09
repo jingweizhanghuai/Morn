@@ -42,8 +42,6 @@ void TensorMulSet(MLayer *layer)
     MTensor *out= layer->tns;
     
     int batch = in1->batch;int channel = in1->channel;int height = in1->height;int width = in1->width;
-    printf("in1->height is %d,in1->width is %d\n",in1->height,in1->width);
-    printf("in2->height is %d,in2->width is %d\n",in2->height,in2->width);
     mException((height!=in2->height)||(channel!=in2->channel)||(width!=in2->width)||(batch!=in2->batch),EXIT,"invalid prev layer");
     
     mTensorRedefine(out,batch,channel,height,width,NULL);
@@ -111,7 +109,6 @@ void mTensorMulBackward(MLayer *layer)
             
         }
     }
-    // printf("%s:res1->data[0][100] is %f,res2->data[0][100] is %f\n",layer->name,res1->data[0][100],res2->data[0][100]);
    
     if(para->res_valid1==1) para->prev1->state = MORN_BACKWARD;
     if(para->res_valid2==1) para->prev2->state = MORN_BACKWARD;

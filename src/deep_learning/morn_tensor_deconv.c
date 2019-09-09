@@ -177,7 +177,6 @@ void TensorDeconvSet(MLayer *layer)
     
     int out_height= in->height*para->y_stride;
     int out_width = in->width *para->x_stride;
-    // printf("out_height is %d,out_width is %d\n",out_height,out_width);
     int mheight = (out_height*out_width);
     int mwidth = para->knl_height*para->knl_width*in->channel+1;
     int data_size = para->knl_num*mwidth;
@@ -192,9 +191,6 @@ void TensorDeconvSet(MLayer *layer)
         handle->update =mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
-    
-    // printf("mheight is %d,mwidth is %d\n",mheight,mwidth);
-    // printf("data_size is %d\n",data_size);
 
     if(handle->kernel !=NULL) mFree(handle->kernel);
     handle->kernel = mMalloc(data_size*sizeof(float));
@@ -206,16 +202,11 @@ void TensorDeconvSet(MLayer *layer)
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
             handle->kernel[i] = scale*mNormalRand(0.0f,1.0f);
-            // handle->kernel[i] = (float)mRand(-16384,16383)/16384.0f;
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     else
     {
         p_data = handle->kernel;
         mMORNRead(morn_network_parafile,name,&p_data,1,data_size*sizeof(float));
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
@@ -226,7 +217,6 @@ void TensorDeconvSet(MLayer *layer)
 
 void mTensorDeconvForward(MLayer *layer)
 {
-    // printf("deconvconvconvconvconvconvconvconvconvconvdeconv\n");
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Deconv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorDeconvPara *para = layer->para;
@@ -244,8 +234,6 @@ void mTensorDeconvForward(MLayer *layer)
     float *kernel_data= handle->kernel;
     float *in_data = handle->mat;
     
-    // printf("aaaaaaaaaaaaaaaaaaaaamheight is %d,mwidth is %d\n",mheight,mwidth);
-    
     for(int b=0;b<in->batch;b++)
     {
         DeconvTensorToMatData(in,b,in_data,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
@@ -259,25 +247,13 @@ void mTensorDeconvForward(MLayer *layer)
                     kernel_data,mwidth,
                         in_data,mwidth,
                0.0f,   out_data,mheight);
-        // TensorDeconvForward(in_data,out_data,kernel_data,para);
     }
     
     layer->state = MORN_FORWARD;
-    
-    // if(morn_network_time==0)
-    // {
-        
-        // TensorImage(layer->tns,0,0,"test44_conv0.bmp");
-        // TensorImage(layer->tns,0,1,"test44_conv1.bmp");
-        // TensorImage(layer->tns,0,2,"test44_conv2.bmp");
-    // }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void mTensorDeconvBackward(MLayer *layer)
 {
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Deconv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorDeconvPara *para = layer->para;
@@ -340,11 +316,7 @@ void mTensorDeconvBackward(MLayer *layer)
                 0.0,   res_data,mwidth);
         
         DeconvMatDataToTensor(res_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
-    
-        // for(int i=0;i<10;i++)printf("out_res is %8.3f,in_res is %8.3f\n",out_res[i],para->res->data[b][i]);
     }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 

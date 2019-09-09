@@ -103,11 +103,9 @@ void TensorBatchNormSet(MLayer *layer)
     if(handle->roll_mean!= NULL) {mFree(handle->roll_mean);} handle->roll_mean=mMalloc(in->channel*sizeof(float));
     if(handle->roll_var != NULL) {mFree(handle->roll_var );} handle->roll_var =mMalloc(in->channel*sizeof(float));
     
-    if(morn_network_flag == MORN_PREDICT)
-        mTensorRedefine(out,in->batch,in->channel,in->height,in->width,in->data);
-    else
+    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
+    if(morn_network_flag == MORN_TRAIN)
     {
-        mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,out->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
         

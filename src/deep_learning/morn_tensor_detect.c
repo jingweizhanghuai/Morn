@@ -21,34 +21,27 @@ float Detect(MLayer *layer,MLayer *prev,float *error)
     float sum=0.0;
     for(int b =0;b<in->batch;b++)
     {
-        // printf("b is %d,group is %d\n",b,group);
         float err = 0.0;
         for(int c=0;c<in->channel;c++)
         {
             int l = (c/group)*group;
             
-            
             float *ldata = true->data[b]+l*size;
             float *idata = in  ->data[b]+c*size;
             float *tdata = true->data[b]+c*size;
-            
-            // printf("c is %d,l is %d,ldata[10] is %f\n",c,l,ldata[10]);
             
             for(int i=0;i<size;i++)
                 if((c%group==0)||(ldata[i]>thresh))
                 {
                     float e = (idata[i] - tdata[i]);
                     err += e*e;
-                    // printf("l is %d,ldata[i] is %f,tdata[i] is %f,e is %f,err is %f\n",l,ldata[i],tdata[i],e*e,err);
                 }
         }
-        // printf("err is %f\n",err);    
         err = err/2.0f;
         
         sum += err;
         if(error!=NULL) error[b]=err;
     }
-    // printf("sum is %f\n",sum);
     return (sum/(float)(in->batch));
 }
 
@@ -60,9 +53,6 @@ void D_Detect(MLayer *layer,MLayer *prev)
     float thresh = atof(para->argv[1]);
     
     int size = in->height*in->width;
-    
-    // printf("in->channel is %d,in->height is %d,in->width is %d\n",in->channel,in->height,in->width);
-    // printf("in->data[0] is %p,in->data[0][10] is %f\n",in->data[0],in->data[0][10]);
     
     for(int b = 0;b<in->batch;b++)for(int c=0;c<in->channel;c++)
     {
@@ -86,6 +76,7 @@ void D_Detect(MLayer *layer,MLayer *prev)
     }
 }
 
+/*
 float Split(MLayer *layer,MLayer *prev,float *error)
 {
     MTensor *true = layer->tns;MTensor *in = prev->tns;
@@ -146,4 +137,4 @@ void D_Split(MLayer *layer,MLayer *prev)
         // printf("\n");
     }
 }
-        
+*/

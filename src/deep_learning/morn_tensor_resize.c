@@ -65,9 +65,8 @@ void TensorResizeSet(MLayer *layer)
     
     if(para->height<=0) para->height= in->height;
     if(para->width <=0) para->width = in->width;
+    
     mTensorRedefine(out,in->batch,in->channel,para->height,para->width,NULL);
-   
-    printf("%s:out->channel is %d,out->height is %d,out->width is %d\n",layer->name,out->channel,out->height,out->width);
     if(morn_network_flag==MORN_TRAIN)
     {
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
@@ -135,20 +134,11 @@ void mTensorResizeForward(MLayer *layer)
                                               +in->data[b][c*in_size+in_idx2]*w2
                                               +in->data[b][c*in_size+in_idx3]*w3
                                               +in->data[b][c*in_size+in_idx4]*w4;
-                                              
-            // if((strcmp(layer->name,"resize8")==0)&&(b==0)&&(out->data[b][c*out_size+out_idx]>10))
-                // printf("sssssssssssssssssssss %d\n",c*out_size+out_idx);
         }
         
         
         
     }
-    
-    // if((strcmp(layer->name,"resize8")==0))
-    // {
-        // printf("sf     in_data is:");for(int i=88820/4;i<88830/4;i++)printf("%f,", in->data[0][i]);printf("\n");
-        // printf("sf    out_data is:");for(int i=88820;i<88830;i++)printf("%f,",out->data[0][i]);printf("\n");
-    // }
     
     layer->state = MORN_FORWARD;
 }
@@ -195,11 +185,5 @@ void mTensorResizeBackward(MLayer *layer)
             res->data[b][c*in_size+in_idx4] += out->data[b][c*out_size+out_idx]*w4;
         }
     }
-    
-    // if((strcmp(layer->name,"resize8")==0))
-    // {
-        // printf("s    out_data is:");for(int i=88820;i<88830;i++)printf("%f,",out->data[0][i]);printf("\n");
-        // printf("s    res_data is:");for(int i=88820/4;i<88830/4;i++)printf("%f,",res->data[0][i]);printf("\n");
-    // }
 }
 

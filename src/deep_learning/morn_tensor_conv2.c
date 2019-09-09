@@ -119,13 +119,10 @@ void TensorSampleConvSet(MLayer *layer)
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
-    // printf("out_height is %d,out_width is %d\n",out_height,out_width);
     int mheight = (out_height*out_width);
     int mwidth = (para->knl_height*para->knl_width*in->channel)*para->sample_ratio;
     
     int data_size = para->knl_num*(mwidth+1);
-    printf("%s:in->height is %d,in->width is %d\n",layer->name,in->height,in->width);
-    printf("%s:out_height is %d,out_width is %d\n",layer->name,out_height,out_width);
     
     mTensorRedefine(out,in->batch,para->knl_num,out_height,out_width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -136,32 +133,20 @@ void TensorSampleConvSet(MLayer *layer)
         if(handle->update != NULL) mFree(handle->update);
         handle->update =mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
-        
-        // if(handle->mean != NULL) mFree(handle->mean);
-        // handle->mean = mMalloc(para->knl_num*sizeof(float));
-        
-        // if(handle->delta!= NULL) mFree(handle->delta);
-        // handle->delta= mMalloc(para->knl_num*sizeof(float));
     }
     
     if(handle->kernel !=NULL) mFree(handle->kernel);
     handle->kernel = mMalloc(data_size*sizeof(float));
     
-    // char name[64];sprintf(name,"%s_kernel",layer->name);
     if(morn_network_parafile==NULL)
     {
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
             handle->kernel[i] = mNormalRand(0.0f,1.0f)*scale;
-        printf("data_size is %d\n",data_size);
-        printf("a handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("a handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     else
     {
         mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     
     int matwidth = para->knl_height*para->knl_width*in->channel+1;
@@ -191,8 +176,6 @@ void TensorSampleConvSet(MLayer *layer)
             mAscSortS32(locate,NULL,locate,NULL,mwidth);
         }
         mFree(flag);
-        
-        
     }
     else
     {
@@ -204,7 +187,6 @@ void TensorSampleConvSet(MLayer *layer)
 
 void mTensorSampleConvForward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("SampleConv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorSampleConvPara *para = layer->para;
@@ -223,8 +205,6 @@ void mTensorSampleConvForward(MLayer *layer)
     
     float *mat_data = handle->mat;
     float *in_data = handle->data;
-    
-    // printf("aaaaaaaaaaaaaaaaaaaaamheight is %d,mwidth is %d\n",mheight,mwidth);
     
     for(int b=0;b<in->batch;b++)
     {
@@ -251,14 +231,10 @@ void mTensorSampleConvForward(MLayer *layer)
     }
     
     layer->state = MORN_FORWARD;
-    return;
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void mTensorSampleConvBackward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("SampleConv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorSampleConvPara *para = layer->para;
@@ -277,11 +253,6 @@ void mTensorSampleConvBackward(MLayer *layer)
     float *mat_data = handle->mat;
     float *in_data  = handle->data;
     float *res_data = handle->data;
-    
-    // float *kernel_data= handle->kernel;
-    // float *update_data= handle->update;
-    // float *    in_data= handle->mat;
-    // float *   res_data= handle->mat;
     
     mNetworkParaWrite(layer,"locate",handle->locate,mwidth*para->knl_num*sizeof(int));
     mNetworkParaWrite(layer,"kernel",handle->kernel,para->knl_num*mwidth*sizeof(float));
@@ -351,8 +322,6 @@ void mTensorSampleConvBackward(MLayer *layer)
         
         ConvMatDataToTensor(mat_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
     }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void DirConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_r,int knl_dir,int y_stride,int x_stride)
@@ -539,12 +508,9 @@ void TensorDirConvSet(MLayer *layer)
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
-    // printf("out_height is %d,out_width is %d\n",out_height,out_width);
     int mheight = (out_height*out_width);
     int mwidth = (para->knl_r+para->knl_r+1)*in->channel+1;
     int data_size = para->knl_num*mwidth;
-    printf("%s:in->height is %d,in->width is %d\n",layer->name,in->height,in->width);
-    printf("%s:out_height is %d,out_width is %d\n",layer->name,out_height,out_width);
     
     mTensorRedefine(out,in->batch,para->knl_num,out_height,out_width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -565,15 +531,10 @@ void TensorDirConvSet(MLayer *layer)
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
             handle->kernel[i] = mNormalRand(0.0f,1.0f)*scale;
-        printf("data_size is %d\n",data_size);
-        printf("a handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("a handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     else
     {
         mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
@@ -584,7 +545,6 @@ void TensorDirConvSet(MLayer *layer)
 
 void mTensorDirConvForward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("DirConv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorDirConvPara *para = layer->para;
@@ -603,8 +563,6 @@ void mTensorDirConvForward(MLayer *layer)
     float *kernel_data= handle->kernel;
     float *in_data = handle->mat;
     
-    // printf("aaaaaaaaaaaaaaaaaaaaamheight is %d,mwidth is %d\n",mheight,mwidth);
-    
     for(int b=0;b<in->batch;b++)
     {
         DirConvTensorToMatData(in,b,in_data,para->knl_r,para->dir,para->y_stride,para->x_stride);
@@ -619,14 +577,10 @@ void mTensorDirConvForward(MLayer *layer)
     }
     
     layer->state = MORN_FORWARD;
-    return;
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void mTensorDirConvBackward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("DirConv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorDirConvPara *para = layer->para;
@@ -646,22 +600,12 @@ void mTensorDirConvBackward(MLayer *layer)
     float *    in_data= handle->mat;
     float *   res_data= handle->mat;
     
-    // if(strcmp(layer->name,"conv1")==0)
-    // {
-        // printf("\nb1 kernel is ");for(int i=0;i<10;i++) printf("%f,",kernel_data[i]);printf("\n");
-    // }
-    
     mNetworkParaWrite(layer,"kernel",kernel_data,para->knl_num*mwidth*sizeof(float));
     
     for(int b=0;b<out->batch;b++)
     {
         DirConvTensorToMatData(in,b,in_data,para->knl_r,para->dir,para->y_stride,para->x_stride);
         float *out_data = out->data[b];
-        
-        // for(int i=0;i<para->knl_num*mheight;i++)
-        // {
-            // if(mIsInf(out_data[i])) {printf("%d,%d,eeeeeeeeee\n",b,i);exit(0);}
-        // }
         
         cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,
                     para->knl_num,mwidth,mheight,
@@ -670,13 +614,6 @@ void mTensorDirConvBackward(MLayer *layer)
                         in_data,mwidth,
                     (b==0)?para->momentum:1.0f,
                     update_data,mwidth);
-                    
-        // if((strcmp(layer->name,"conv100")==0))
-        // {
-            // printf("b update_data is:");for(int i=0;i<10;i++)printf("%f,",update_data[i]);printf("\n");
-            // printf("b     in_data is:");for(int i=0;i<10;i++)printf("%f,",in_data[i]);printf("\n");
-            // printf("b    out_data is:");for(int i=0;i<10;i++)printf("%f,",out_data[i]);printf("\n");
-        // }
     }
     
     cblas_saxpby(para->knl_num*mwidth,
@@ -705,8 +642,6 @@ void mTensorDirConvBackward(MLayer *layer)
         
         DirConvMatDataToTensor(res_data,res,b,para->knl_r,para->dir,para->y_stride,para->x_stride);
     }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 

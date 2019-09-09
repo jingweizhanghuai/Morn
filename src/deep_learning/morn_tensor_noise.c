@@ -35,7 +35,7 @@ void TensorDropoutSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,in->data);
+    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
     if(morn_network_flag == MORN_TRAIN)
     {
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
@@ -143,7 +143,7 @@ void TensorJitterSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,in->data);
+    mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
     if(morn_network_flag == MORN_TRAIN)
     {
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);

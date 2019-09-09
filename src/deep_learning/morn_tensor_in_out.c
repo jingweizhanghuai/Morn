@@ -37,8 +37,6 @@ void mTensorInputForward(MLayer *layer)
     if(para->width  != DFLT) mException((out->width  !=para->width  ),EXIT,"invalid para width");
        
     layer->state = MORN_FORWARD;
-    
-    // if(morn_network_time==1)TensorImage(out,0,0,"test44_input.bmp");
 }
 
 void mTensorInputBackward(MLayer *layer)
@@ -50,19 +48,6 @@ void mTensorInputBackward(MLayer *layer)
     }
 }
 
-// struct TensorOutputPara
-// {
-    // MLayer *prev;
-   
-    // int height;
-    // int width;
-    // int channel;
-    
-    // float (*loss)(MLayer *,MLayer *,float *);
-    // void (*dloss)(MLayer *,MLayer *);
-    
-    // char argv[4][128];
-// };
 void *mTensorOutputPara(MFile *ini,char *name)
 {
     struct TensorOutputPara *para = mMalloc(sizeof(struct TensorOutputPara));
@@ -80,8 +65,7 @@ void *mTensorOutputPara(MFile *ini,char *name)
     value = mINIRead(ini,name,"loss");
     if(value == NULL) value = mINIRead(ini,"para","loss");
     mException((value == NULL),EXIT,"layer %s no loss function defined",name);
-    printf("loss is %s\n",value);
-    printf("morn_loss_register_num is %d\n",morn_loss_register_num);
+  
     int i;for(i=0;i<morn_loss_register_num;i++)
     {
         if(strcmp(value,morn_loss_register[i].name)==0)
@@ -179,7 +163,6 @@ void mTensorOutputForward(MLayer *layer)
     layer->state = MORN_FORWARD;
 }
 
-
 void mTensorOutputBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
@@ -187,39 +170,13 @@ void mTensorOutputBackward(MLayer *layer)
     
     struct TensorOutputPara *para = layer->para;
     MTensor *in = para->prev->tns;
-    // MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
     
     morn_network_error = 0.0f;
     
-    // printf("para->channel is %d,in->channel is %d\n",para->channel,in->channel);
     if(para->channel!= DFLT) mException((para->channel!=in->channel),EXIT,"invalid output");
     if(para->height != DFLT) mException((para->height !=in->height ),EXIT,"invalid output");
     if(para->width  != DFLT) mException((para->width  !=in->width  ),EXIT,"invalid output");
-    
-    /*
-    int sssum=0;
-    for(int i=0;i<in->batch;i++)
-    {
-        int max_in=0;
-        for(int j=1;j<10;j++)
-            if(in->data[i][j]>in->data[i][max_in]) max_in=j;
-        if(out->data[i][max_in]==1.0f) sssum+=1;
-        // printf("idx is %d,out->data[i] is %p\n",idx,out->data[i]);
-    
-        // printf("in is %f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n"
-        // ,in->data[i][0],in->data[i][1],in->data[i][2],in->data[i][3],in->data[i][4]
-        // ,in->data[i][5],in->data[i][6],in->data[i][7],in->data[i][8],in->data[i][9]);
-        // printf("out is %f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n"
-        // ,out->data[i][0],out->data[i][1],out->data[i][2],out->data[i][3],out->data[i][4]
-        // ,out->data[i][5],out->data[i][6],out->data[i][7],out->data[i][8],out->data[i][9]);
-    }
-    float ssscore = (float)sssum/(float)(in->batch);
-    printf("ssscore is %f\t",ssscore);
-    */
-        
-    // printf("in size is %d,%d,%d,%d\n",in->batch,in->height,in->width,in->channel);
-    // printf("out size is %d,%d,%d,%d\n",out->batch,out->height,out->width,out->channel);
     
     float network_error = para->loss(layer,para->prev,NULL);
     
@@ -241,15 +198,12 @@ void mTensorOutputBackward(MLayer *layer)
         handle->idx = 0;
     }
     morn_network_error = handle->sum/32.0f;
-    printf("network_error is %f\t",network_error);
+    // printf("network_error is %f\t",network_error);
 
     if(para->dloss != NULL)
     {
         para->dloss(layer,para->prev);
     }
-    
-    // for(int i=0;i<10;i++)
-        // printf("in is %f,out is %f,res is %f\n",in->data[0][i],out->data[0][i],res->data[0][i]);
     
     if(PARA_SAVE)
     {
