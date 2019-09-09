@@ -18,8 +18,6 @@ extern "C"
 {
 #endif
 
-
-
 #define MORN_DEFAULT -1
 #define MORN_DFLT -1
 #define DFLT -1
