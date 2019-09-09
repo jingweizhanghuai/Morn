@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -117,14 +124,10 @@ void TensorConnectSet(MLayer *layer)
         float scale = sqrt(2.0f/weight_width);
         for(int i=0;i<data_size;i++)
             handle->weight[i] = scale*mNormalRand(0.0f,1.0f);//((float)mRand(-16384,16383))/16384.0f;
-        printf("handle->weight[0] is %f\n",handle->weight[0]);
-        printf("handle->weight[5] is %f\n",handle->weight[5]);
     }
     else
     {
         mNetworkParaRead(layer,"weight",handle->weight,data_size*sizeof(float));
-        printf("handle->weight[0] is %f\n",handle->weight[0]);
-        printf("handle->weight[5] is %f\n",handle->weight[5]);
     }
     
     hdl->valid = 1;
@@ -184,7 +187,6 @@ void mTensorConnectBackward(MLayer *layer)
     float *weight_data = handle->weight;
     float *update_data = handle->update;
     
-    // printf("weight_data is %p,weight size is %d,%d\n",weight_data,weight_height,weight_width);
     mNetworkParaWrite(layer,"weight",weight_data,weight_height*weight_width*sizeof(float));
     
     for(int b=0;b<in->batch;b++)

@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -5,6 +12,7 @@
 
 #include "morn_Tensor.h"
 
+/*
 void mTrainDataGenerate(void *in ,void  (*in_func)(void *,MTensor **,void *),void *in_para ,int in_num,
                         void *out,void (*out_func)(void *,MTensor **,void *),void *out_para,int out_num,
                         char *filename)
@@ -40,6 +48,7 @@ void mTrainDataGenerate(void *in ,void  (*in_func)(void *,MTensor **,void *),voi
     mFree(tns_out);
     mFileRelease(file);
 }
+*/
 
 struct HandleTrainData
 {
@@ -156,7 +165,6 @@ void mTrainData(MFile *ini)
             void *p_data = tns->data[b];
             int size = tns->channel*tns->height*tns->width;
             mMORNRead(file,layer->name,&p_data,1,size*sizeof(float));
-            // printf("%s:size is %d\n",layer->name,size);
         }
         
         mFileRelease(file);
@@ -175,9 +183,6 @@ void mTrainData(MFile *ini)
             float *buff = tns->data[b];
             tns->data[b] = tns->data[n];
             tns->data[n] = buff;
-            
-            // if((b==2)&&(i==handle->net->num-1))
-                // printf("%s:data is %p\n",layer->name,tns->data[2]);
         }
     }
 }
@@ -266,13 +271,6 @@ void mTrainData(MFile *ini,char *name[],MTensor *tns[])
 }
 */
 
-
-
-
-
-
-
-
 struct HandleNetworkTensor
 {
     MList *net;
@@ -341,7 +339,6 @@ void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
                 mException((handle->batch!=tns[j]->batch)||(layer->tns->channel!=tns[j]->channel)||
                        (layer->tns->width!=tns[j]->width)||(layer->tns->height !=tns[j]->height ),EXIT,"invalid input");
                 mTensorRedefine(layer->tns,handle->batch,DFLT,DFLT,DFLT,tns[j]->data);
-                // printf("aaa layer->tns->data[0] is %p\n",layer->tns->data[0]);
                 break;
             }
         }

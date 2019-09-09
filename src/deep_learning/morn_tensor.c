@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,6 +150,7 @@ void mTensorCopy(MTensor *src,MTensor *dst)
         memcpy(dst->data[i],src->data[i],size*sizeof(float));
 }
 
+/*
 void mTensorAdd(MTensor *src1,MTensor *src2,MTensor *dst)
 {
     int i;
@@ -266,6 +274,7 @@ void mTensorScalarDiv(MTensor *src1,MTensor *src2,MTensor *dst)
             data[i] = data1[i]/data2[i];
     }
 }
+*/
 
 void mTensorOperate(MTensor *src,MTensor *dst, float (*func)(float))
 {
@@ -285,10 +294,10 @@ void mTensorOperate(MTensor *src,MTensor *dst, float (*func)(float))
     }
 }
 
+/*
 #include "morn_Image.h"
 void TensorImage(MTensor *tns,int batch,int channel,char *filename)
 {
-    // printf("tns->height is %d,tns->width is %d\n",tns->height,tns->width);
     MImage *img = mImageCreate(1,tns->height,tns->width,NULL);
     
     int size = tns->height*tns->width;
@@ -305,11 +314,9 @@ void TensorImage(MTensor *tns,int batch,int channel,char *filename)
         }
     }
     
-    // printf("size is %d\n",size);
     mBMPSave(img,filename);
-    // printf("size is %d\n",size);
     mImageRelease(img);
 }
-            
+*/
 
 

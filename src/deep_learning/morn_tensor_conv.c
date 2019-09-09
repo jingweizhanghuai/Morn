@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -33,16 +40,11 @@ void ConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_height,int knl
             int h= i/(knl_width*channel)         +n;if(h<0)h=0;else if(h>=height)h=height-1;
             int w=(i%(knl_width*channel))/channel+m;if(w<0)w=0;else if(w>= width)w= width-1;
             for(c=0;c<channel;c++)
-            {
                 mdata[(j*mwidth)+i+c]=tdata[c*tsize+h*width+w];
-                // if((i==0)&&(j==0)&&(c==0))
-                    // printf("wwwwwwwwwwwww h is %d,w is %d,idx is %d,tns is %f\n"
-                           // ,h,w,c*tsize+h*width+w,tdata[c*tsize+h*width+w]);
-            }
         }
         mdata[(j*mwidth)+mwidth-1]=1.0f;
     }
-    // printf("wwwwwwwwwwwwwww mwidth is %d,mdata[0] is %f\n",mwidth,mdata[0]);
+
     for(j=out_width;j<mheight;j++)
     {
         int num=MAX(0,(knl_height-y_stride))*knl_width*channel;
@@ -71,8 +73,6 @@ void ConvMatDataToTensor(float *mdata,MTensor *tns,int bc,int knl_height,int knl
     int out_height=height/y_stride;
     int mwidth = knl_height*knl_width*channel+1;
     int mheight= out_height*out_width;
-    
-    // printf("wwwwwwwwwwwwwwwwww mwidth is %d\n",mwidth);
     
     int x0=(width -(out_width -1)*x_stride)/2;
     int y0=(height-(out_height-1)*y_stride)/2;
@@ -196,12 +196,9 @@ void TensorConvSet(MLayer *layer)
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
-    // printf("out_height is %d,out_width is %d\n",out_height,out_width);
     int mheight = (out_height*out_width);
     int mwidth = para->knl_height*para->knl_width*in->channel+1;
     int data_size = para->knl_num*mwidth;
-    printf("%s:in->height is %d,in->width is %d\n",layer->name,in->height,in->width);
-    printf("%s:out_height is %d,out_width is %d\n",layer->name,out_height,out_width);
     
     mTensorRedefine(out,in->batch,para->knl_num,out_height,out_width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -222,15 +219,10 @@ void TensorConvSet(MLayer *layer)
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
             handle->kernel[i] = mNormalRand(0.0f,1.0f)*scale;
-        printf("data_size is %d\n",data_size);
-        printf("a handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("a handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     else
     {
         mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
@@ -241,7 +233,6 @@ void TensorConvSet(MLayer *layer)
 
 void mTensorConvForward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorConvPara *para = layer->para;
@@ -260,8 +251,6 @@ void mTensorConvForward(MLayer *layer)
     float *kernel_data= handle->kernel;
     float *in_data = handle->mat;
     
-    // printf("aaaaaaaaaaaaaaaaaaaaamheight is %d,mwidth is %d\n",mheight,mwidth);
-    
     for(int b=0;b<in->batch;b++)
     {
         ConvTensorToMatData(in,b,in_data,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
@@ -276,14 +265,10 @@ void mTensorConvForward(MLayer *layer)
     }
     
     layer->state = MORN_FORWARD;
-    return;
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void mTensorConvBackward(MLayer *layer)
 {
-    // printf("%s\n",layer->name);
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorConvPara *para = layer->para;
@@ -303,22 +288,12 @@ void mTensorConvBackward(MLayer *layer)
     float *    in_data= handle->mat;
     float *   res_data= handle->mat;
     
-    // if(strcmp(layer->name,"conv1")==0)
-    // {
-        // printf("\nb1 kernel is ");for(int i=0;i<10;i++) printf("%f,",kernel_data[i]);printf("\n");
-    // }
-    
     mNetworkParaWrite(layer,"kernel",kernel_data,para->knl_num*mwidth*sizeof(float));
     
     for(int b=0;b<out->batch;b++)
     {
         ConvTensorToMatData(in,b,in_data,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
         float *out_data = out->data[b];
-        
-        // for(int i=0;i<para->knl_num*mheight;i++)
-        // {
-            // if(mIsInf(out_data[i])) {printf("%d,%d,eeeeeeeeee\n",b,i);exit(0);}
-        // }
         
         cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,
                     para->knl_num,mwidth,mheight,
@@ -327,13 +302,6 @@ void mTensorConvBackward(MLayer *layer)
                         in_data,mwidth,
                     (b==0)?para->momentum:1.0f,
                     update_data,mwidth);
-                    
-        // if((strcmp(layer->name,"conv100")==0))
-        // {
-            // printf("b update_data is:");for(int i=0;i<10;i++)printf("%f,",update_data[i]);printf("\n");
-            // printf("b     in_data is:");for(int i=0;i<10;i++)printf("%f,",in_data[i]);printf("\n");
-            // printf("b    out_data is:");for(int i=0;i<10;i++)printf("%f,",out_data[i]);printf("\n");
-        // }
     }
     
     cblas_saxpby(para->knl_num*mwidth,
@@ -362,8 +330,6 @@ void mTensorConvBackward(MLayer *layer)
         
         ConvMatDataToTensor(res_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
     }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
 
 void GroupConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_channel,int knl_height,int knl_width,int c_stride,int y_stride,int x_stride)
@@ -569,7 +535,7 @@ void TensorGroupConvSet(MLayer *layer)
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
     int out_channel=(in->channel-para->knl_channel/2+1)/para->c_stride;
-    // printf("out_height is %d,out_width is %d\n",out_height,out_width);
+
     int mheight = (out_height*out_width*out_channel);
     int mwidth = para->knl_height*para->knl_width*para->knl_channel+1;
     int data_size = para->knl_num*mwidth;
@@ -593,14 +559,10 @@ void TensorGroupConvSet(MLayer *layer)
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
             handle->kernel[i] = scale*mNormalRand(0.0f,1.0f);
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     else
     {
         mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
-        printf("handle->kernel[0] is %f\n",handle->kernel[0]);
-        printf("handle->kernel[5] is %f\n",handle->kernel[5]);
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
@@ -632,8 +594,6 @@ void mTensorGroupConvForward(MLayer *layer)
     float *kernel_data= handle->kernel;
     float *in_data = handle->mat;
     
-    // printf("aaaaaaaaaaaaaaaaaaaaamheight is %d,mwidth is %d\n",mheight,mwidth);
-    
     for(int b=0;b<in->batch;b++)
     {
         GroupConvTensorToMatData(in,b,in_data,para->knl_channel,para->knl_height,para->knl_width,para->c_stride,para->y_stride,para->x_stride);
@@ -647,17 +607,9 @@ void mTensorGroupConvForward(MLayer *layer)
                     kernel_data,mwidth,
                         in_data,mwidth,
                0.0f,   out_data,mheight);
-        // TensorConvForward(in_data,out_data,kernel_data,para);
     }
     
     layer->state = MORN_FORWARD;
-    
-    // if(morn_network_time==0)
-    // {
-        // TensorImage(layer->tns,0,0,"test44_conv0.bmp");
-        // TensorImage(layer->tns,0,1,"test44_conv1.bmp");
-        // TensorImage(layer->tns,0,2,"test44_conv2.bmp");
-    // }
 }
 
 void mTensorGroupConvBackward(MLayer *layer)
@@ -727,23 +679,5 @@ void mTensorGroupConvBackward(MLayer *layer)
                 0.0,   res_data,mwidth);
         
         GroupConvMatDataToTensor(res_data,res,b,para->knl_channel,para->knl_height,para->knl_width,para->c_stride,para->y_stride,para->x_stride);
-    
-        // for(int i=0;i<10;i++)printf("out_res is %8.3f,in_res is %8.3f\n",out_res[i],para->res->data[b][i]);
     }
-    
-    // printf("convconvconvconvconvconvconvconvconvconvconv\n");
 }
-
-
-
-                
-  
-
-
-
-
-
-
-
-
-    

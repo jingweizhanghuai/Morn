@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+ 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,11 +20,7 @@ void TensorSub(MTensor *in,MTensor *true,MTensor *res,int state)
         for(int i=0;i<size;i++)
         {
             register float data = (in->data[b][i]-true->data[b][i]);
-            if((b==0)&&(i==25728))
-                printf("\nccc true is %f,in is %f,res is %f,",true->data[b][i],in->data[b][i],data);
-            // if(data>1.0f) data=1.0f; else if(data<-1.0f) data=-1.0f;
             res->data[b][i] = (state==MORN_FORWARD)?data:(res->data[b][i]+data);
-            
         }
     }
 }
@@ -38,18 +41,12 @@ float MSE(MLayer *layer,MLayer *prev,float *error)
         float *idata = in  ->data[b];
         float *tdata = true->data[b];
         
-        // printf("idata is %f,%f,%f,%f\n",idata[0],idata[1],idata[2],idata[3]);
-        // printf("tdata is %f,%f,%f,%f\n",tdata[0],tdata[1],tdata[2],tdata[3]);
-        
         float err = 0.0;
         
-        // #pragma omp parallel for
+        #pragma omp parallel for
         for(i=0;i<size;i++)
-        {
-            float e = (idata[i] - tdata[i]);
-            // printf("e is %f,e*e is %f\n",e,e*e);
-            err += e*e;
-        }
+            err += (idata[i] - tdata[i])*(idata[i] - tdata[i]);
+        
         err = err/2.0f;
         sum += err;
         if(error!=NULL) error[b]=err;
@@ -62,7 +59,6 @@ void D_MSE(MLayer *layer,MLayer *prev)
     MTensor *true = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
     int state = prev->state;
     TensorSub(in,true,res,state);
-    // printf("bbb true is %f,in is %f,res is %f\n",true->data[0][1000],in->data[0][1000],res->data[0][1000]);
 }
 
 float MAE(MLayer *layer,MLayer *prev,float *error)
@@ -125,8 +121,6 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
     
     float sum = 0.0;
     
-    // printf("size is %d\n",size);
-    // float *e = mMalloc(size*sizeof(float));
     for(int b=0;b<in->batch;b++)
     {
         float *idata = in  ->data[b];
@@ -142,8 +136,6 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
         // #pragma omp parallel for
         for(i=0;i<size;i++)
         {
-            // if(b==2) printf("idata[i] is %f\n",idata[i]);
-            
             idata[i] = exp((idata[i]-max)/100.0f);
             e_sum += idata[i];
         }
@@ -151,22 +143,11 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
         for(i=0;i<size;i++)
         {
             idata[i] = idata[i]/e_sum;
-            
-            // if((morn_network_time%1 == 0)&&(b == 0))
-                // printf("idata[%d] is %f,e[i] is %f,e_sum is %f\n",i,idata[i],e[i],e_sum);
-            
-            if(tdata[i]==0.0f) continue;
-            
-            // if((morn_network_time%1 == 0)&&(b==0))
-                // printf("aaaaaaaaaaa true is %d\n",i);
-            
-            err -= tdata[i]*log(idata[i]);
+            if(tdata[i]!=0.0f) err -= tdata[i]*log(idata[i]);
         }
-        // printf("error[b] is %f\n",error[b]);
         sum += err;
         if(error!=NULL) error[b] = err;
     }
-    // mFree(e);
     return (sum/(float)(in->batch));
 }
 

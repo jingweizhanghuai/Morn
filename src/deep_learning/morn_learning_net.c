@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  Jing Lee
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+ 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -78,14 +85,12 @@ void NetworkPara(MFile *ini)
     
     morn_network_para_dir = mINIRead(ini,"para","para_dir");
     mException((morn_network_para_dir==NULL),EXIT,"no parameter dir");
-    printf("morn_network_para_dir is %s\n",morn_network_para_dir);
     
     value = mINIRead(ini,"para","para_file");
     mException((value==NULL)&&(morn_network_flag==MORN_PREDICT),EXIT,"no parameter file");
     if(value!=NULL)
     {
         sprintf(morn_network_para_filename,"%s/%s",morn_network_para_dir,value);
-        printf("filename is %s\n",morn_network_para_filename);
         morn_network_parafile = mFileCreate(morn_network_para_filename);
     }
     
@@ -93,15 +98,12 @@ void NetworkPara(MFile *ini)
     
     value = mINIRead(ini,"para","time_max");
     if(value != NULL) morn_network_time_max= atoi(value);
-    printf("morn_network_time_max is %d\n",morn_network_time_max);
     
     value = mINIRead(ini,"para","time_save");
     if(value != NULL) morn_network_save = atoi(value);
-    printf("morn_network_save is %d\n",morn_network_save);
     
     value = mINIRead(ini,"para","error_thresh");
     if(value != NULL) morn_network_error_thresh = atof(value);
-    printf("morn_network_error_thresh is %f\n",morn_network_error_thresh);
 }
 
 struct HandleNetworkGenerate
@@ -158,7 +160,6 @@ MList *mNetworkGenerate(MFile *ini)
         layer->tns = mTensorCreate(DFLT,DFLT,DFLT,DFLT,NULL);
         layer->res = mTensorCreate(DFLT,DFLT,DFLT,DFLT,NULL);
         
-        printf("layer->name is %s,type_index is %d\n",layer->name,layer->type_index);
         mListWrite(handle->net,DFLT,layer,sizeof(MLayer));
     }
     hdl->valid =1;
@@ -192,7 +193,6 @@ void mNetworkForward(MList *net)
     MLayer **layer = (MLayer **)(net->data);
     for(int i=0;i<net->num;i++)
     {
-        // printf("layer[%d]->name is %s\n",i,layer[i]->name);
         (morn_tensor_register[layer[i]->type_index].forward)(layer[i]);
     }
 }
@@ -203,9 +203,7 @@ void mNetworkBackward(MList *net)
     
     for(int i=net->num-1;i>=0;i--)
     {
-        // printf("layer[%d]->name is %s\n",i,layer[i]->name);
         (morn_tensor_register[layer[i]->type_index].backward)(layer[i]);
-        // LayerState(layer[i]);
     }
 }
 
@@ -221,7 +219,7 @@ void NetworkTrain(MFile *ini)
         mTrainData(ini);
         mNetworkForward(net);
         mNetworkBackward(net);
-        printf("%05d:error is %f\n",morn_network_time,morn_network_error);
+        mLog("%05d:error is %f\n",morn_network_time,morn_network_error);
         if(morn_network_error <= morn_network_error_thresh)
             return;
     }
