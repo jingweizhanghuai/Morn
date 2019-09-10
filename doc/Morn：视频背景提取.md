@@ -50,10 +50,10 @@ int main()
 
 这里，我们输入的是视频帧：
 
-![background_in](..\doc\background_in.gif)
+![background_in](./background_in.gif)
 
-我们得到的视频帧是：
+得到的视频帧是：
 
-![background_in](..\doc\background_out.gif)
+![background_in](./background_out.gif)
 
 可以看到，所得到的背景中，前景物体是逐渐被”擦除“的，在前n帧内所得并非完整的背景图片。
