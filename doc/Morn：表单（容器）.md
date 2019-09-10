@@ -1,4 +1,4 @@
-## Morn：MList表单（一维容器）
+## Morn：容器MList
 
 Morn里面的容器是表（MSheet）和单（MList）。表就是表格，有行有列，是一个二维容器。单就是清单，是一个一维容器。其中，一维的MList又比二维的MSheet用得更普遍，所以这里重点讲MList。
 
@@ -63,7 +63,7 @@ void mListPlace(MList *list,int num,int size);
 void mListAppend(MList *list,int num);
 ```
 
-假设原来list的容量为N（list->num==N)，则扩容后list的容量为N+num（list->num==N+num)。num的默认值为1。
+num是扩容后的容器的容量，默认值为（list->num+1），也就是说默认扩容一个元素。
 
 
 

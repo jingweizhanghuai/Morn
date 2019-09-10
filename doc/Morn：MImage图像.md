@@ -6,7 +6,7 @@
 
 ```c
 typedef struct MImage {
-    int cn;
+    int channel;
     int height;
     int width;
     unsigned char **data[MORN_MAX_IMAGE_CN];
@@ -19,7 +19,7 @@ typedef struct MImage {
 }MImage;
 ```
 
-这其中，cn就是图像的通道数，通道数最小是1，最大是4（也就是MORN_MAX_IMAGE_CN），这里面，cn=1（二值图像、灰度图像）和cn=3（RGB图像、YUV图像）最为常用。
+这其中，channel就是图像的通道数，通道数最小是1，最大是4（也就是MORN_MAX_IMAGE_CN），这里面，channel=1（二值图像、灰度图像）和channel=3（RGB图像、YUV图像）最为常用。
 
 height和width是图像的分辨率，即图像的高和宽。
 
@@ -38,10 +38,10 @@ handle、info、reserve是Morn结构体所公用的，不赘述。
 ##### MImage的创建
 
 ```c
-MImage *mImageCreate(int cn,int height,int width,unsigned char **data[]);
+MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
 ```
 
-这是典型Morn风格的Create函数，其中cn是所创建的通道数，height是所创建的图像高度，width是所创建的图像宽度。cn、height、width都可以取默认值DFLT，它们的默认值都是0，这时，只是创建了一个MImage结构体，不会为图像数据分配内存空间。
+这是典型Morn风格的Create函数，其中channel是所创建的通道数，height是所创建的图像高度，width是所创建的图像宽度。channel、height、width都可以取默认值DFLT，它们的默认值都是0，这时，只是创建了一个MImage结构体，不会为图像数据分配内存空间。
 
 data是图像像素的索引，如果创建时尚没有数据，就把它设置为NULL（通常都是把它设置为NULL）。
 
@@ -56,12 +56,12 @@ void mImageRelease(MImage *img);
 ##### MImage重定义
 
 ```c
-void mImageRedefine(MImage *img,int cn,int height,int width);
+void mImageRedefine(MImage *img,int channel,int height,int width);
 ```
 
 这也是一个典型Morn风格的Redefine函数。当你需要改变MImage的通道数或者高度或者宽度的时候，你就需要使用此函数。（强烈不建议对img->cn、img->height、img->width直接赋值，尤其是如果你对MImage的实现细节不是非常非常清楚的话）。
 
-img是需要重定义的图像，cn、height、width是重新定义后的通道数、高度和宽度。
+img是需要重定义的图像，channel、height、width是重新定义后的通道数、高度和宽度。
 
 ##### MImage拷贝
 
@@ -101,13 +101,13 @@ void mImageDiff   (MImage *src1,MImage *src2,MImage *dst)；
 
 特别说明，这里会出现两种情况：第一种，src1和src2的通道数相同，这个好理解，就是各个相对应的通道分别运算。第二种，src1是多通道的，src2是单通道的，这种也是允许的，这时src1的各个通道会分别和src2的第0通道进行运算。除此以外（src1单通道src2多通道，或者src1和src2都是多通道，但是通道数不相同）都是不允许的，会报错的。
 
-##### MImage插值绝对值
+##### MImage差值绝对值
 
 ```c
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 ```
 
-插值绝对值常常被用来计算两张图像的差异。
+差值绝对值常常被用来计算两张图像的差异。
 
 这里面src1、src2是输入，dst是输出。要求src1和src2的通道数、高度和宽度都相同。dst的默认值是src1。
 
@@ -123,7 +123,7 @@ void mImageInvert(MImage *src,MImage *dst);
 
 dst的默认值是src。
 
-##### MImage像素值线性拉伸
+##### MImage对比度线性拉伸
 
 ```c
 void mImageLinearMap(MImage *src,MImage *dst,float k,float b);
