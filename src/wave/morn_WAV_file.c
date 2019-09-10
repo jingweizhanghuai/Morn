@@ -45,16 +45,13 @@ void WAVInfo(struct MWAVInfo *info)
     info->data_num = 0;
     
     fread(name,4,1,info->f);
-    // printf("%s\n",name);
     mException((memcmp(name,"RIFF",4)!=0),EXIT,"RIFF error!");
     
     int riff_size;
     fread(&riff_size,4,1,info->f);
-    // printf("filesize is %d\n",riff_size);
     riff_size = riff_size + 8;
 
     fread(name,4,1,info->f);
-    // printf("%s\n",name);
     mException((memcmp(name,"WAVE",4)!=0),EXIT,"WAVE error!");
         
     int locate = ftell(info->f);
@@ -63,10 +60,8 @@ void WAVInfo(struct MWAVInfo *info)
     while(1)
     {
         fread(name,4,1,info->f);
-        // printf("%s\n",name);
         int block_size; 
         fread(&block_size,4,1,info->f);
-        // printf("block size is %d\n",block_size);
         
         locate = locate + 8;
         mException((riff_size-locate<block_size),EXIT,"file error");
@@ -362,53 +357,6 @@ int mWAVWrite(MObject *file,MWave *src)
     handle->data_num+=src->size;
     return MORN_SUCCESS;
 }
-    
-
-
-// void mWAVSave(MObject *file,MWave *src)
-// {
-    // struct MWAVHeader fmt;
-    // int datasize;
-    // short *buff;
-    
-    // datasize = src->size*2*src->channel;
-    
-    // fmt.type = 1;
-    // fmt.channel = src->channel;
-    // fmt.frequency = src->info.frequency;
-    // fmt.bps = (src->info.frequency*(src->channel))<<1;
-    // fmt.datanum = (src->channel)<<1;
-    // fmt.databits = 16;
-    
-    // fwrite("RIFF",1,4,f);
-    // data = datasize+36;
-    // fwrite(&data,4,1,f);
-    // fwrite("WAVE",1,4,f);
-    // fwrite("fmt ",1,4,f);
-    // data = sizeof(struct MWAVHeader);
-    // fwrite(&data,4,1,f);
-    // fwrite(&fmt,sizeof(struct MWAVHeader),1,f);
-    // fwrite("data",1,4,f);
-    // fwrite(&datasize,4,1,f);
-    
-    // buff = (short *)mMalloc(sizeof(short)*src->channel*src->size);
-    
-    // if(src->channel == 1)
-    // {
-        // for(i=0;i<src->size;i++)
-            // GET_SHORT(src->data[0][i],buff[i]);
-    // }
-    // else
-    // {
-        // for(i=0,n=0;i<src->size;i++,n=n+2)
-        // {
-            // GET_SHORT(src->data[0][i],buff[n]);
-            // GET_SHORT(src->data[1][i],buff[n+1]);
-        // }
-    // }
-    // fwrite(buff,sizeof(short),src->channel*src->size,file->pf);
-    // mFree(buff);
-// }
 
 
 
