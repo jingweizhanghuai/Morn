@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
-#include "morn_image_caculate.h"
+#include "morn_Image.h"
+#include "morn_ImageCaculate.h"
 
 #define GRADIENT1(X,Y) ABS((sdata[CN][Y-r][X  -1]-sdata[CN][Y+r][X  -1])*2+(sdata[CN][Y-r][X  ]-sdata[CN][Y+r][X  ])*3+(sdata[CN][Y-r  ][X+1]-sdata[CN][Y+r  ][X+1])*2)
 #define GRADIENT2(X,Y) ABS((sdata[CN][Y-r][X+r-1]-sdata[CN][Y+r][X-r+1])*2+(sdata[CN][Y-r][X+r]-sdata[CN][Y+r][X-r])*3+(sdata[CN][Y-r+1][X+r]-sdata[CN][Y+r-1][X-r])*2)
@@ -20,7 +20,7 @@ void mImageDirection(MImage *src,MImage *dst,int r,int thresh)
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
     
     thresh=thresh*7;
 
@@ -30,7 +30,7 @@ void mImageDirection(MImage *src,MImage *dst,int r,int thresh)
         register int Diff;\
         int Max = 0;\
         int Dir = 0;\
-        for(int CN=0;CN<src->cn;CN++)\
+        for(int CN=0;CN<src->channel;CN++)\
         {\
             Diff = GRADIENT1(X,Y); if(Diff > thresh) {if(Diff>Max) {Max = Diff;  Dir = 1;}}\
             Diff = GRADIENT2(X,Y); if(Diff > thresh) {if(Diff>Max) {Max = Diff;  Dir = 2;}}\
@@ -55,11 +55,11 @@ void mImageDirectionGradient(MImage *src,MImage *dst,int direction,int r,int thr
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
     
     thresh=thresh*7;
   
-    int src_cn = src->cn;
+    int src_cn = src->channel;
     unsigned char ***sdata = src->data;
     
     #define ImageDirectionGradient(X,Y) {\
@@ -87,11 +87,11 @@ void mImageGradientValue(MImage *src,MImage *dst,int r,int thresh)
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
     
     thresh=thresh*7;
     
-    int src_cn = src->cn;
+    int src_cn = src->channel;
     unsigned char ***sdata = src->data;
     
     #define ImageGradientValue(X,Y) {\
@@ -122,11 +122,11 @@ void mImageGradientCheck(MImage *src,MImage *dst,int r,int thresh)
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
     
     thresh=thresh*7;
 
-    int src_cn = src->cn;
+    int src_cn = src->channel;
     unsigned char ***sdata = src->data;
                 
     #define ImageGradientCheck(X,Y) {\
@@ -156,7 +156,7 @@ void mImageGradientAdaptCheck(MImage *src,MImage *dst,int r,float thresh)
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
     
     unsigned char t[256];
     for(int i=0;i<256;i++)
@@ -165,7 +165,7 @@ void mImageGradientAdaptCheck(MImage *src,MImage *dst,int r,float thresh)
         if(t[i]<5) t[i] = 5;
     }
     
-    int src_cn = src->cn;
+    int src_cn = src->channel;
     unsigned char ***sdata = src->data;
     
     #define ImageGradientAdaptCheck(X,Y) {\
@@ -207,17 +207,17 @@ void mImageGradient(MImage *src,MImage *direction,MImage *value,int r,int thresh
     if((INVALID_POINTER(direction))||(direction==src))
         direction = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(direction,1,src->height,src->width);
+        mImageRedefine(direction,1,src->height,src->width,direction->data);
     
     MImage *p_value = value;
     if((INVALID_POINTER(value))||(value==src))
         value = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(value,1,src->height,src->width);
+        mImageRedefine(value,1,src->height,src->width,value->data);
     
     thresh=thresh+thresh+thresh;
     
-    int src_cn = src->cn;
+    int src_cn = src->channel;
     unsigned char ***sdata = src->data;
     
     #define ImageGradient(X,Y) {\
@@ -253,14 +253,15 @@ void mImageGradientFilter(MImage *dir,MImage *value,MImage *ddst,MImage *vdst,in
     if((INVALID_POINTER(ddst))||(ddst==dir))
         ddst = mImageCreate(1,dir->height,dir->width,NULL);
     else
-        mImageRedefine(ddst,1,dir->height,dir->width);
+        mImageRedefine(ddst,1,dir->height,dir->width,ddst->data);
     
     MImage *p_value = vdst;
     if((INVALID_POINTER(vdst))||(vdst==value))
         vdst = mImageCreate(1,value->height,value->width,NULL);
     else
-        mImageRedefine(vdst,1,value->height,value->width);
+        mImageRedefine(vdst,1,value->height,value->width,vdst->data);
     
+    int src_cn = dir->channel;
     unsigned char **ddata = dir->data[0];
     unsigned char **vdata = value->data[0];
     
@@ -298,8 +299,9 @@ void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r)
     if((INVALID_POINTER(dst))||(dst==value))
         dst = mImageCreate(1,value->height,value->width,NULL);
     else
-        mImageRedefine(dst,1,value->height,value->width);
+        mImageRedefine(dst,1,value->height,value->width,dst->data);
     
+    int src_cn = dir->channel;
     unsigned char **ddata = dir->data[0];
     unsigned char **vdata = value->data[0];
     unsigned char **dst_data = dst->data[0];
@@ -311,7 +313,7 @@ void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r)
             continue;\
         }\
         register int Data = vdata[Y][X];\
-        int N=0;\
+        int N;\
         if(ddata[Y][X] == 1)\
             for(N=1;N<r+1;N++)\
             {\
@@ -339,7 +341,7 @@ void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r)
         \
         dst_data[Y][X] = (N==r+1)?255:0;\
     }
-             
+              
     mImageRegion(value,r,ImageGradientSuppression);
     
     if(p!=dst) { mImageExchange(value,dst); mImageRelease(dst);}
@@ -373,12 +375,12 @@ void mImageCanny(MImage *src,MImage *dst,int r,int thresh)
                                                     // ,gdt->data[0][821][1025]
                                                     // ,gdt->data[0][822][1026]);
    
-    // gdt->cn = 1;
+    // gdt->channel = 1;
     // gdt->info.image_type = MORN_IMAGE_GRAY;
     // BMPSave(gdt,"./test13_out2.bmp");
-    // gdt->cn = 2;
+    // gdt->channel = 2;
     
-    mImageRedefine(dst,1,height,width);
+    mImageRedefine(dst,1,height,width,dst->data);
     mImageGradientSuppression(dir,value,dst,r);
     
     // printf("dst->data[819][1023] is %d\n",dst->data[0][819][1023]);

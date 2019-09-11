@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "morn_image.h"
-#include "morn_image_caculate.h"
-
+#include "morn_Image.h"
+#include "morn_ImageCaculate.h"
+ 
 void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
 {
     int i,j,k,n;
@@ -129,32 +129,38 @@ void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
     *num = k;
 }
 
-void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect)
+void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
 {
+    
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
-    mException((src->cn!=1),EXIT,"invalid input image");
-    mException((edge==NULL)&&(rect==NULL),EXIT,"invalid input");
+    mException((edge==NULL)&&(edge_rect==NULL),EXIT,"invalid input");
+    
+    mImageExpand(src,2,MORN_BORDER_BLACK);
     
     MImagePoint point;
     unsigned char **data = src->data[0];
     
-    MImageRect rect_buff;
     MSheet *edge_buff = edge;
-    if(edge == NULL) edge_buff = mSheetCreate(DFLT,NULL,NULL);
+    if(edge == NULL)
+        edge_buff = mSheetCreate(1,NULL,NULL);
     
     int k = 0;
     for(int j=0;j<src->height;j++)
         for(int i=0;i<src->width;i++)
         {
-            if(data[j][i]==0)                      continue;
+            if(data[j][i]==0)  continue;
             if(data[j][i]!=255) {data[j][i] = 255; continue;}
-            if(data[j][i-1]!=0)                    continue;
-            if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<255*2) continue;
+            if((data[j][i-1]!=0)&&(data[j-1][i]!=0)) continue;
+            if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<=255) continue;
+            // printf("i is %d,j is %d\n",i,j);
             
             int row = (edge==NULL)?0:k;
             
-            rect_buff.x1 = i; rect_buff.x2 = i;
-            rect_buff.y1 = j; rect_buff.y2 = j;
+            MImageRect rect;
+            rect.x1 = i; rect.x2 = i;
+            rect.y1 = j; rect.y2 = j;
+            
+            // printf("i is %d,j is %d\n",i,j);
             
             point.x = i; point.y = j;
             mSheetWrite(edge_buff,row,0,&point,sizeof(MImagePoint));
@@ -162,34 +168,42 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect)
             
             int order = 1;
             
+            // printf("dddddddddddddddddd(%d,%d) row is %d\n",i,j,row);
+            
             int x = i; int y = j;
             while(1)
             {
+                // printf("x is %d,y is %d\n",x,y);
                 #define SET_EDGE(X,Y) {\
-                    point.x = X;point.y = Y;\
-                    if(X<rect_buff.x1) rect_buff.x1 = X; else if(X+1>rect_buff.x2) rect_buff.x2 = X+1;\
-                    if(Y<rect_buff.y1) rect_buff.y1 = Y; else if(Y+1>rect_buff.y2) rect_buff.y2 = Y+1;\
+                    point.x = X;\
+                    point.y = Y;\
+                    if(X<rect.x1) rect.x1 = X; else if(X+1>rect.x2) rect.x2 = X+1;\
+                    if(Y<rect.y1) rect.y1 = Y; else if(Y+1>rect.y2) rect.y2 = Y+1;\
                     mSheetWrite(edge_buff,row,order,&point,sizeof(MImagePoint));\
                     order += 1;\
                     \
                     data[Y][X] = 254;\
-                    x = X;y = Y;\
+                    x = X;\
+                    y = Y;\
                     \
                     flag = 1;\
                 }
+                
                 int flag = 0;
-                     if((data[y  ][x-1] == 255)&&((data[y-1][x-1] == 0)||(data[y+1][x-1] == 0))) SET_EDGE(x-1,y  )
-                else if((data[y-1][x-1] == 255)&&((data[y-1][x  ] == 0)||(data[y  ][x-1] == 0))) SET_EDGE(x-1,y-1)
-                else if((data[y-1][x  ] == 255)&&((data[y-1][x+1] == 0)||(data[y-1][x-1] == 0))) SET_EDGE(x  ,y-1)
-                else if((data[y-1][x+1] == 255)&&((data[y  ][x+1] == 0)||(data[y-1][x  ] == 0))) SET_EDGE(x+1,y-1)
-                else if((data[y  ][x+1] == 255)&&((data[y+1][x+1] == 0)||(data[y-1][x+1] == 0))) SET_EDGE(x+1,y  )
-                else if((data[y+1][x+1] == 255)&&((data[y+1][x  ] == 0)||(data[y  ][x+1] == 0))) SET_EDGE(x+1,y+1)
-                else if((data[y+1][x  ] == 255)&&((data[y+1][x-1] == 0)||(data[y+1][x+1] == 0))) SET_EDGE(x  ,y+1)
-                else if((data[y+1][x-1] == 255)&&((data[y  ][x-1] == 0)||(data[y+1][x  ] == 0))) SET_EDGE(x-1,y+1)
-                    
+                     if((data[y  ][x-1]==255)&&((data[y-1][x-1]==0)||(data[y+1][x-1]==0))) SET_EDGE(x-1,y  )
+                else if((data[y-1][x-1]==255)&&((data[y-1][x  ]==0)||(data[y  ][x-1]==0))) SET_EDGE(x-1,y-1)
+                else if((data[y-1][x  ]==255)&&((data[y-1][x+1]==0)||(data[y-1][x-1]==0))) SET_EDGE(x  ,y-1)
+                else if((data[y-1][x+1]==255)&&((data[y  ][x+1]==0)||(data[y-1][x  ]==0))) SET_EDGE(x+1,y-1)
+                else if((data[y  ][x+1]==255)&&((data[y+1][x+1]==0)||(data[y-1][x+1]==0))) SET_EDGE(x+1,y  )
+                else if((data[y+1][x+1]==255)&&((data[y+1][x  ]==0)||(data[y  ][x+1]==0))) SET_EDGE(x+1,y+1)
+                else if((data[y+1][x  ]==255)&&((data[y+1][x-1]==0)||(data[y+1][x+1]==0))) SET_EDGE(x  ,y+1)
+                else if((data[y+1][x-1]==255)&&((data[y  ][x-1]==0)||(data[y+1][x  ]==0))) SET_EDGE(x-1,y+1)
+                
                 if(flag==0)
                 {
-                    order -= 1;if(order <= 1) break;
+                    order -= 1;
+                    if(order <= 1)
+                        break;
                     x = ((MImagePoint *)(edge_buff->data[row][order]))->x;
                     y = ((MImagePoint *)(edge_buff->data[row][order]))->y;
                 }
@@ -198,18 +212,22 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect)
                     break;
             }
             
+            // printf("dddddddddddddddddd\n");
+            
             data[j][i] = 255;
             
             if(order>1)
             {
-                if(rect != NULL) mListWrite(rect,k,&rect_buff,sizeof(MImageRect));
+                if(edge_rect!=NULL) mListWrite(edge_rect,k,&rect,sizeof(MImageRect));
                 edge_buff->col[row] = order;
                 k = k+1;
             }
         }
-    if(rect != NULL) rect->num = k;
-    if(edge != NULL) edge->row = k;
-    if(edge == NULL) mSheetRelease(edge_buff);
+    
+    edge_buff->row=k;
+    if(edge==NULL) mSheetRelease(edge_buff);
+    
+    if(edge_rect!=NULL) edge_rect->num=k;
 }
 
 void mImageBinaryFilter(MImage *src,MImage *dst,int r,int thresh)
@@ -221,7 +239,7 @@ void mImageBinaryFilter(MImage *src,MImage *dst,int r,int thresh)
     if((INVALID_POINTER(dst))||(dst==src))
         dst = mImageCreate(1,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,1,src->height,src->width);
+        mImageRedefine(dst,1,src->height,src->width,dst->data);
 
     unsigned char **sdata = src->data[0];
     unsigned char **ddata = dst->data[0];

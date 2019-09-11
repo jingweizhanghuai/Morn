@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 #if defined _MSC_VER
 #define mPragma(InFo) __pragma(InFo)
@@ -39,7 +39,7 @@
     mException(INVALID_IMAGE(img),EXIT,"invalid input image");\
     int height = img->height;\
     int width = img->width;\
-    int cn = img->cn;\
+    int cn = img->channel;\
     \
     int h,w,c;\
     \
@@ -94,7 +94,7 @@ void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*
     mException(INVALID_IMAGE(img),EXIT,"invalid input image");\
     int height = img->height;\
     int width = img->width;\
-    int cn = img->cn;\
+    int cn = img->channel;\
     \
     int h,w,c;\
     \
@@ -114,10 +114,10 @@ void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*
         mException(1,EXIT,"invalid operate");\
 }
 
-void mImageDataOutputU8( MImage *img,U8  *stream,int stream_type,unsigned char (*func)(U8 ,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputS8( MImage *img,S8  *stream,int stream_type,unsigned char (*func)(S8 ,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,unsigned char (*func)(U16,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,unsigned char (*func)(S16,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,unsigned char (*func)(S32,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,unsigned char (*func)(F32,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
-void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*func)(D64,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputU8( MImage *img,U8  *stream,int stream_type,U8  (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputS8( MImage *img,S8  *stream,int stream_type,S8  (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,U16 (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,S16 (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,S32 (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,F32 (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}
+void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,D64 (*func)(unsigned char,void *),void *para) {ImageDataOutput(img,stream,stream_type,func,para);}

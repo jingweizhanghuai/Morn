@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
-#include "morn_image_caculate.h"
+#include "morn_Image.h"
+#include "morn_ImageCaculate.h"
 
 void mImageMeanFilter(MImage *src,MImage *dst,int r)
 {
@@ -11,15 +11,15 @@ void mImageMeanFilter(MImage *src,MImage *dst,int r)
     
     MImage *p = dst;
     if((INVALID_POINTER(dst))||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
     mImageExpand(src,r,MORN_BORDER_REFLECT);
     
     int area = (r+1+r)*(r+1+r);
     
-    for(int cn=0;cn<src->cn;cn++)
+    for(int cn=0;cn<src->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -37,18 +37,18 @@ void mImageMeanFilter(MImage *src,MImage *dst,int r)
     
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }
-    
+
 void mImageMidValueFilter(MImage *src,MImage *dst)
 {
     MImage *p = dst;
     if((INVALID_POINTER(dst))||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
-    mImageExpand(src,1,MORN_BORDER_REFLECT);
-
-    for(int cn=0;cn<src->cn;cn++)
+    mImageExpand(src,1,MORN_BORDER_REPLICATE);
+    
+    for(int cn=0;cn<src->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -73,13 +73,13 @@ void mImageMidValueFilter2(MImage *src,MImage *dst,int r)
 {
     MImage *p = dst;
     if((INVALID_POINTER(dst))||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
     mImageExpand(src,r,MORN_BORDER_REFLECT);
 
-    for(int cn=0;cn<src->cn;cn++)
+    for(int cn=0;cn<src->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -99,3 +99,39 @@ void mImageMidValueFilter2(MImage *src,MImage *dst,int r)
     
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }
+
+void mImageConverlotion(MImage *src,MImage *dst,float *kernel,int r)
+{
+     mException((r>7),EXIT,"invalid region size");
+    
+    MImage *p = dst;
+    if((INVALID_POINTER(dst))||(dst==src))
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
+    else
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
+    
+    float *knl[15];for(int i=0;i<r+r+1;i++) knl[i]=kernel+i*(r+r+1);
+    
+    mImageExpand(src,r,MORN_BORDER_REFLECT);
+    for(int cn=0;cn<src->channel;cn++)
+    {
+        unsigned char **sdata = src->data[cn];
+        unsigned char **ddata = dst->data[cn];
+        
+        #define Converlotion(X,Y) {\
+            int Sum = 0;\
+            for(int M=0-r;M<=r;M++)\
+                for(int N=0-r;N<=r;N++)\
+                    Sum += sdata[Y+M][X+N]*knl[r+M][r+N];\
+                   if(Sum<0) ddata[Y][X]=0;\
+            else if(Sum>255) ddata[Y][X]=255;\
+            else             ddata[Y][X]=Sum;\
+        }
+        
+        mImageRegion(src,r,Converlotion);
+    }
+    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    
+    if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
+}
+    

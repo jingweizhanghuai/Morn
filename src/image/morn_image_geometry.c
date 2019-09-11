@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 void mImagePolygonBorder(MList *polygon,MImageBorder *border)
 {
@@ -164,7 +164,27 @@ void mImageBorderRelease(MImageBorder *border)
     mFree(border);
 }
 
-void mLine(MList *line,float x1,float y1,float x2,float y2)
+MImagePoint *mImagePointCreate(float x,float y)
+{
+    MImagePoint *point;
+    point = (MImagePoint *)mMalloc(sizeof(MImagePoint));
+    point->x = x;
+    point->y = y;
+    return point;
+}
+
+MImageRect *mImageRectCreate(int x1,int y1,int x2,int y2)
+{
+    MImageRect *rect;
+    rect = (MImageRect *)mMalloc(sizeof(MImageRect));
+    rect->x1 = x1;
+    rect->x2 = x2;
+    rect->y1 = y1;
+    rect->y2 = y2;
+    return rect;
+}
+
+void mLineSetup(MList *line,float x1,float y1,float x2,float y2)
 {
     mException(INVALID_POINTER(line),EXIT,"invalid input");
     
@@ -177,7 +197,7 @@ void mLine(MList *line,float x1,float y1,float x2,float y2)
     point[1]->y = y2;
 }
 
-void mTriangle(MList *triangle,float x1,float y1,float x2,float y2,float x3,float y3)
+void mTriangleSet(MList *triangle,float x1,float y1,float x2,float y2,float x3,float y3)
 {
     mException(INVALID_POINTER(triangle),EXIT,"invalid input");
     
@@ -192,7 +212,7 @@ void mTriangle(MList *triangle,float x1,float y1,float x2,float y2,float x3,floa
     point[2]->y = y3;
 }
 
-void mQuadrangle(MList *quadrangle,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4)
+void mQuadrangleSet(MList *quadrangle,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4)
 {
     mException(INVALID_POINTER(quadrangle),EXIT,"invalid input");
     
@@ -209,10 +229,89 @@ void mQuadrangle(MList *quadrangle,float x1,float y1,float x2,float y2,float x3,
     point[3]->y = y4;
 }
 
+void mShapeSetup(MList *polygon,int num,...)
+{
+    mException(INVALID_POINTER(polygon),EXIT,"invalid input");
+    
+    if(num<0)
+        num = polygon->num;
+    mException((num<1),EXIT,"invalid input");
+    
+    mListPlace(polygon,num,sizeof(MImagePoint));
+
+    MImagePoint **point = (MImagePoint **)(polygon->data);
+
+    va_list para;
+    va_start(para,num);
+    for(int i=0;i<num;i++)
+    {
+        point[i]->x = (float)va_arg(para,double);
+        point[i]->y = (float)va_arg(para,double);
+    }
+    va_end(para);
+}
+
+
+
+
+
+
 /*
+MImageLine *mImageLineCreate(int x1,int y1,int x2,int y2)
+{
+    MImageLine *line;
+    line = (MImageLine *)mMalloc(sizeof(MImageLine));
+    line->handle = NULL;
+    mLineSetup(line,x1,y1,x2,y2);
+    return line;
+}
+
+void mImageLineRelease(MImageLine *line)
+{
+    if(!INVALID_POINTER(line->handle))
+        HandleRelease(line->handle);
+    
+    mFree(line);
+}
 
 
 
+void mPolygonSetup(MPolygon *polygon,int num,int x1,int y1,...)
+{
+    int i;
+    va_list para;
+    
+    mException((num<3),"invalid input",EXIT);
+    
+    if((polygon->n<num)&&(polygon->vertex == NULL))
+        mFree(polygon->vertex);
+    
+    polygon->n = num;
+    
+    polygon->vertex = (MImagePoint *)mMalloc(num*sizeof(MImagePoint));
+    polygon->vertex[0].x = x1;
+    polygon->vertex[0].y = y1;
+    
+    va_start(para,y1);
+    for(i=1;i<num;i++)
+    {
+        polygon->vertex[0].x = va_arg(para,int);
+        polygon->vertex[0].y = va_arg(para,int);
+    }
+    va_end(para);
+}    
+
+
+
+void mPolygonRelease(MPolygon *polygon)
+{
+    mException(INVALID_POINTER(polygon),"invalid input",EXIT);
+    
+    if(!INVALID_POINTER(polygon->vertex))
+        mFree(polygon->vertex);
+    
+    mFree(polygon);
+}
 
 void mPolygonDeleteVertex(MPolygon *src,MPolygon *dst,int locate)
 {

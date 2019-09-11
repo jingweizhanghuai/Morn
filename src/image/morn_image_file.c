@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
+#define fwrite(Data,Size,Num,Fl) mException((fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
 
 struct BMPHeader
 {
@@ -35,33 +36,23 @@ struct colorlist
 
 void BMPGraySave(MImage *src,const char *filename)
 {
-    FILE *f;
-    
-    int img_width;
-    int img_height;
-    int data_width;
-    int img_size;
-    
     int i;
     
-    short bmptype = 0x4d42;
     int data0 = 0;
-    
-    
     
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
     int image_type = (int)mInfoGet(&(src->info),"image_type");
     mException((image_type != MORN_IMAGE_GRAY),EXIT,"invlid input");
     
-    f = fopen(filename,"wb");
+    FILE *f = fopen(filename,"wb");
+    // printf("src is %p,f is %p,&bmptype is %p\n",src,f,&bmptype);
     mException((f == NULL),EXIT,"cannot open file");
+    short bmptype = 0x4d42;fwrite(&bmptype,1,2,f);
     
-    img_width = src->width;
-    img_height = src->height;
-    data_width = ((img_width-1)&0xFFFFFFFC)+4;
-    img_size = img_height*data_width;
-    
-    fwrite(&bmptype,1,2,f);
+    int img_width = src->width;
+    int img_height = src->height;
+    int data_width = ((img_width-1)&0xFFFFFFFC)+4;
+    int img_size = img_height*data_width;
     
     struct BMPHeader my_bmp;
     my_bmp.bmpsize = 1078 + img_size;
@@ -110,22 +101,19 @@ void BMPGraySave(MImage *src,const char *filename)
 
 void BMPRGBSave(MImage *src,const char *filename)
 {
-    
     int i,j;
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
     int image_type = (int)mInfoGet(&(src->info),"image_type");
-    mException((image_type != MORN_IMAGE_RGB)||(src->cn<3),EXIT,"invlid input");
+    mException((image_type != MORN_IMAGE_RGB)||(src->channel<3),EXIT,"invlid input");
     
     FILE *f = fopen(filename,"wb");
     mException((f == NULL),EXIT,"cannot open file");
+    short bmptype = 0x4d42;fwrite(&bmptype,1,2,f);
     
     int img_width = src->width;
     int img_height = src->height;
-    
     int data_width = ((img_width*3+3)>>2)<<2;
     int data_size = data_width * img_height;
-
-    short bmptype = 0x4d42;fwrite(&bmptype,1,2,f);
     
     struct BMPHeader my_bmp;
     my_bmp.bmpsize = 54 + data_size;
@@ -190,7 +178,7 @@ void BMPRGBASave(MImage *src,const char *filename)
     
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
     int image_type = (int)mInfoGet(&(src->info),"image_type");
-    mException((image_type != MORN_IMAGE_RGBA)||(src->cn<4),EXIT,"invlid input");
+    mException((image_type != MORN_IMAGE_RGBA)||(src->channel<4),EXIT,"invlid input");
     
     f = fopen(filename,"wb");
     mException((f == NULL),EXIT,"cannot open file");
@@ -253,16 +241,15 @@ struct HandleImageLoad
     FILE *f;
 };
 #define HASH_ImageLoad 0x5c139120
-void endImageLoad(void *info);
-
+void endImageLoad(void *info) {NULL;}
 void mBMPLoad(const char *filename,MImage *dst)
 {
     int i,j;
     mException(INVALID_POINTER(dst),EXIT,"invalid input");
     
+    FILE *pf=NULL; FILE *f;
     MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
     struct HandleImageLoad *handle = hdl->handle;
-    FILE *pf=NULL; FILE *f=NULL;
     if(handle->f!=NULL) f=handle->f;
     else
     {
@@ -282,7 +269,7 @@ void mBMPLoad(const char *filename,MImage *dst)
     int img_height = my_bmp.imgheight;
     int cn = my_bmp.imgbitcount>>3;
     
-    mImageRedefine(dst,cn,img_height,img_width);
+    mImageRedefine(dst,cn,img_height,img_width,dst->data);
     
     int data_width = ((img_width*cn-1)&0xFFFFFFFC)+4;
     

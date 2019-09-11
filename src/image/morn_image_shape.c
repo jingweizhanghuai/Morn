@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 struct HoughLineInfo
 {
@@ -59,7 +59,7 @@ void mImageHoughLine(MImage *src,MList *list,int thresh1,int thresh2,int thresh)
     if(hdl->valid==0)
     {
         if(handle->tab==NULL) handle->tab = mTableCreate(range*2,362,U16,NULL);
-        else                  mTableRedefine(handle->tab,range*2,362,U16);
+        else                  mTableRedefine(handle->tab,range*2,362,U16,NULL);
         
         for(int i=0;i<362;i++)
         {
@@ -484,7 +484,7 @@ void mImageHoughLine(MImage *src,MList *list,int count_thresh,int gap_thresh)
 
 void ImageHoughLineDrawImage(MImage *src,MList *list,char *filename)
 {
-    MImage *dst = mImageCreate(src->cn,src->height,src->width,NULL);
+    MImage *dst = mImageCreate(src->channel,src->height,src->width,NULL);
     mImageCopy(src,dst);
     unsigned char color[3] = {128,255,0};
     

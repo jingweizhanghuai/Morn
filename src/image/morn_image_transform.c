@@ -3,18 +3,18 @@
 #include <string.h>
 #include <math.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 #define SRC(CN,X,Y) ((src)->data[CN][Y][X])
 
 void TransformGrid(MImage *src,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para,MTable *gridx,MTable *gridy,MTable *w)
 {
-    int j;
+    int i, j;
     int dst_height = w->row;
     int dst_width = w->col;
     
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=0;j<dst_height;j++)
-        for(int i=0;i<dst_width;i++)
+        for(i=0;i<dst_width;i++)
         {
             float ly = y_func(i,j,para);
             float lx = x_func(i,j,para);
@@ -29,41 +29,42 @@ void TransformGrid(MImage *src,float (*x_func)(int,int,void *),float (*y_func)(i
             {
                 gridx->dataS16[j][i] = DFLT;
                 gridy->dataS16[j][i] = DFLT;
-                
+                continue;
             }
-            else
-            {
-                gridx->dataS16[j][i] = x_locate;
-                gridy->dataS16[j][i] = y_locate;
 
-                x_locate = 15-(short)((lx-(float)x_locate)*15.0f+0.5f);
-                y_locate = 15-(short)((ly-(float)y_locate)*15.0f+0.5f);
+            gridx->dataS16[j][i] = x_locate;
+            gridy->dataS16[j][i] = y_locate;
 
-                w->dataU8[j][i] = (x_locate<<4)+y_locate;
-            }
+            x_locate = 15-(short)((lx-(float)x_locate)*15.0f+0.5f);
+            y_locate = 15-(short)((ly-(float)y_locate)*15.0f+0.5f);
+
+            w->dataU8[j][i] = (x_locate<<4)+y_locate;
         }
 }
 
 void GridInterpolation(MImage *src,MImage *dst,MTable *gridx,MTable *gridy,MTable *w)
 {
-    int j;
+	int i, j;
     int height = dst->height;
     int width = dst->width;
     
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=0;j<height;j++)
     {
-        for(int i=0;i<width;i++)
+        for(i=0;i<width;i++)
         {
             int x = gridx->dataS16[j][i];
-            if((x<0)||(x>=src->width-1)) {for(int cn=0;cn<src->cn;cn++) dst->data[cn][j][i] = 0; continue;}
+            if((x<0)||(x>=src->width -1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
             int y = gridy->dataS16[j][i];
-            if((y<0)||(y>=src->height-1)) {for(int cn=0;cn<src->cn;cn++) dst->data[cn][j][i] = 0; continue;}
+            if((y<0)||(y>=src->height-1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
             
             int wx = (w->dataU8[j][i]&0xF0)>>4;
             int wy = (w->dataU8[j][i]&0x0F);
-
-            for(int cn=0;cn<src->cn;cn++)
+            
+            // if((i==49)&&(j==17))
+                // printf("x is %d,y is %d,wx is %d,wy is %d\n",x,y,wx,wy);
+            
+            for(int cn=0;cn<src->channel;cn++)
             {
                 register int data =((src->data[cn][y  ][x  ]*wx + src->data[cn][y  ][x+1]*(15-wx))*wy
                                    +(src->data[cn][y+1][x  ]*wx + src->data[cn][y+1][x+1]*(15-wx))*(15-wy) + 112)/225;
@@ -91,7 +92,7 @@ void endImageCoordinateTransform(void *handle)
     info = (struct HandleImageCoordinateTransform *)handle;
 
     if(info->lx != NULL) mTableRelease(info->lx);
-    if(info->ly != NULL) mTableRelease(info->ly);
+    if(info->lx != NULL) mTableRelease(info->ly);
     if(info->w  != NULL) mTableRelease(info->w );
 }
 
@@ -103,10 +104,10 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
     
     MImage *p=dst;
     if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     int width;  if(dst->width <=0) width = src->width;  else width = dst->width;
     int height; if(dst->height<=0) height= src->height; else height= dst->height;
-    mImageRedefine(dst,src->cn,height,width);
+    mImageRedefine(dst,src->channel,height,width,dst->data);
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
 
@@ -118,13 +119,13 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
         handle->width = width;
         handle->x_func = x_func;
         handle->y_func = y_func;
-
-        if(handle->lx == NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->lx,height,width,S16);
-        if(handle->ly == NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->ly,height,width,S16);
-        if(handle->w  == NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                   mTableRedefine(handle->w ,height,width,U8 );
+        
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->lx,height,width,S16,NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->ly,height,width,S16,NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
+        else               mTableRedefine(handle->w ,height,width, U8,NULL);
         
         TransformGrid(src,x_func,y_func,para,handle->lx,handle->ly,handle->w);
 
@@ -182,26 +183,29 @@ struct HandleImagePerspectiveCorrection
     MTable *ly;
     MTable *w;
 };
+
 void endImagePerspectiveCorrection(void *handle)
 {
     struct HandleImagePerspectiveCorrection *info = (struct HandleImagePerspectiveCorrection *)handle;
 
     if(info->lx != NULL) mTableRelease(info->lx);
-    if(info->ly != NULL) mTableRelease(info->ly);
+    if(info->lx != NULL) mTableRelease(info->ly);
     if(info->w  != NULL) mTableRelease(info->w );
 }
+
 #define HASH_ImagePerspectiveCorrection 0xdd819d48
+
 void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     
     MImage *p = dst;
     if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else if((dst->height<=0)||(dst->width<=0))
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     else
-        mImageRedefine(dst,src->cn,DFLT,DFLT);
+        mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
@@ -210,13 +214,12 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
     
     MHandle *hdl; ObjectHandle(src,ImagePerspectiveCorrection,hdl);
     struct HandleImagePerspectiveCorrection *handle = hdl->handle;
-    if((ps!=NULL)&&(hdl->valid==1)) hdl->valid=(memcmp(ps,handle->ps,4*sizeof(MImagePoint))==0);
-    if((pd!=NULL)&&(hdl->valid==1)) hdl->valid=(memcmp(pd,handle->pd,4*sizeof(MImagePoint))==0);
     if((hdl->valid == 0)
+     ||(memcmp(ps,handle->ps,4*sizeof(MImagePoint))!=0)
+     ||(memcmp(pd,handle->pd,4*sizeof(MImagePoint))!=0)
      ||(handle->height != height)
      ||(handle->width  != width))
     {
-        mException((ps==NULL)||(pd==NULL),EXIT,"invalid source image point");
         float para[8];
         PerspectivePara(ps,pd,para);
         
@@ -235,12 +238,13 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         // }
         // mLinearEquation(mat,para);
         // mMatrixRelease(mat);
-        if(handle->lx==NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                 mTableRedefine(handle->lx,height,width,S16);
-        if(handle->ly==NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                 mTableRedefine(handle->ly,height,width,S16);
-        if(handle->w ==NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                 mTableRedefine(handle->w ,height,width,U8 );
+        
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->lx,height,width,S16,NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->ly,height,width,S16,NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
+        else               mTableRedefine(handle->w ,height,width, U8,NULL);
         
         TransformGrid(src,Perspective_x,Perspective_y,para,handle->lx,handle->ly,handle->w);
 
@@ -284,26 +288,30 @@ struct HandleImageAffineCorrection
     MTable *ly;
     MTable *w;
 };
-void endImageAffineCorrection(void *info)
-{
-    struct HandleImageAffineCorrection *handle = (struct HandleImageAffineCorrection *)info;
 
-    if(handle->lx != NULL) mTableRelease(handle->lx);
-    if(handle->ly != NULL) mTableRelease(handle->ly);
-    if(handle->w  != NULL) mTableRelease(handle->w );
+void endImageAffineCorrection(void *handle)
+{
+    struct HandleImageAffineCorrection *info = (struct HandleImageAffineCorrection *)handle;
+
+    if(info->lx != NULL) mTableRelease(info->lx);
+    if(info->lx != NULL) mTableRelease(info->ly);
+    if(info->w  != NULL) mTableRelease(info->w );
 }
+
 #define HASH_ImageAffineCorrection 0x1670806b
+
 void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     
+    
     MImage *p = dst;
     if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else if((dst->height<=0)||(dst->width<=0))
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     else
-        mImageRedefine(dst,src->cn,DFLT,DFLT);
+        mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
@@ -312,10 +320,9 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
     
     MHandle *hdl; ObjectHandle(src,ImageAffineCorrection,hdl);
     struct HandleImageAffineCorrection *handle = hdl->handle;
-    if((ps!=NULL)&&(hdl->valid==1)) hdl->valid=(memcmp(ps,handle->ps,3*sizeof(MImagePoint))==0);
-    if((pd!=NULL)&&(hdl->valid==1)) hdl->valid=(memcmp(pd,handle->pd,3*sizeof(MImagePoint))==0);
-
     if((hdl->valid == 0)
+     ||(memcmp(ps,handle->ps,3*sizeof(MImagePoint))!=0)
+     ||(memcmp(pd,handle->pd,3*sizeof(MImagePoint))!=0)
      ||(handle->height != height)
      ||(handle->width  != width))
     {
@@ -341,12 +348,12 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
         para[4] = (c2*a1 - c1*a2)/c;
         para[5] = ps[0].y - (para[3]*pd[0].x + para[4]*pd[0].y);
         
-        if(handle->lx==NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                 mTableRedefine(handle->lx,height,width,S16);
-        if(handle->ly==NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                 mTableRedefine(handle->ly,height,width,S16);
-        if(handle->w ==NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                 mTableRedefine(handle->w ,height,width,U8 );
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
+        else mTableRedefine(handle->lx,height,width,S16,NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
+        else  mTableRedefine(handle->ly,height,width,S16,NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width,U8 ,NULL);
+        else  mTableRedefine(handle->w ,height,width, U8,NULL);
         
         TransformGrid(src,Affine_x,Affine_y,para,handle->lx,handle->ly,handle->w);
 
@@ -357,7 +364,6 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
         
         hdl->valid = 1;
     }
-    
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
     
     
@@ -371,10 +377,10 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
 void ImageRotate90(MImage *src,MImage *dst)
 {
     int i,j,cn;
-    mImageRedefine(dst,src->cn,src->width,src->height);
+    mImageRedefine(dst,src->channel,src->width,src->height,dst->data);
     int height = dst->height-1;
     int width = dst->width-1;
-    for(cn=0;cn<dst->cn;cn++)
+    for(cn=0;cn<dst->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -386,10 +392,10 @@ void ImageRotate90(MImage *src,MImage *dst)
 void ImageRotate180(MImage *src,MImage *dst)
 {
     int i,j,cn;
-    mImageRedefine(dst,src->cn,src->height,src->width);
+    mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     int height = dst->height-1;
     int width = dst->width-1;
-    for(cn=0;cn<dst->cn;cn++)
+    for(cn=0;cn<dst->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -401,10 +407,10 @@ void ImageRotate180(MImage *src,MImage *dst)
 void ImageRotate270(MImage *src,MImage *dst)
 {
     int i,j,cn;
-    mImageRedefine(dst,src->cn,src->width,src->height);
+    mImageRedefine(dst,src->channel,src->width,src->height,dst->data);
     int height = dst->height-1;
     int width = dst->width-1;
-    for(cn=0;cn<dst->cn;cn++)
+    for(cn=0;cn<dst->channel;cn++)
     {
         unsigned char **sdata = src->data[cn];
         unsigned char **ddata = dst->data[cn];
@@ -433,7 +439,7 @@ void endImageRotate(void *handle)
     struct HandleImageRotate *info = (struct HandleImageRotate *)handle;
 
     if(info->lx != NULL) mTableRelease(info->lx);
-    if(info->ly != NULL) mTableRelease(info->ly);
+    if(info->lx != NULL) mTableRelease(info->ly);
     if(info->w  != NULL) mTableRelease(info->w );
 }
 
@@ -463,7 +469,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
             width = width + (int)(x - dst_hold->x);
             height= height+ (int)(y + dst_hold->y);
         }
-        dst = mImageCreate(src->cn,height,width,NULL);
+        dst = mImageCreate(src->channel,height,width,NULL);
     }
     else if((dst->height<=0)||(dst->width<=0))
     {
@@ -477,10 +483,10 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
             width = width + (int)(x - dst_hold->x);
             height= height+ (int)(y + dst_hold->y);
         }
-        mImageRedefine(dst,src->cn,height,width);
+        mImageRedefine(dst,src->channel,height,width,dst->data);
     }
     else
-        mImageRedefine(dst,src->cn,DFLT,DFLT);
+        mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
     mException(INVALID_IMAGE(dst),EXIT,"invalid error");
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
@@ -522,12 +528,12 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         para[4] = cs;
         para[5] = scy + dcx*sn - dcy*cs;
 
-        if(handle->lx == NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->lx,height,width,S16);
-        if(handle->ly == NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->ly,height,width,S16);
-        if(handle->w  == NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                   mTableRedefine(handle->w ,height,width,U8 );
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->lx,height,width,S16,NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
+        else               mTableRedefine(handle->ly,height,width,S16,NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
+        else               mTableRedefine(handle->w ,height,width, U8,NULL);
         
         TransformGrid(src,Affine_x,Affine_y,para,handle->lx,handle->ly,handle->w);
 
@@ -557,7 +563,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
     \
     if((Sx<0)||(Sy<0)||(Sx>Src->width-1)||(Sy>Src->height-1))\
     {\
-        for(Cn=0;Cn<dst->cn;Cn++)\
+        for(Cn=0;Cn<dst->channel;Cn++)\
             Dst->data[Cn][Dy][Dx] = 0;\
     }\
     else\
@@ -575,7 +581,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         W21 = Wx-W22;\
         W12 = Wy-W22;\
         \
-        for(Cn=0;Cn<dst->cn;Cn++)\
+        for(Cn=0;Cn<dst->channel;Cn++)\
             Dst->data[Cn][Dy][Dx] = Src->data[Cn][Y1][X1]*W11+Src->data[Cn][Y1][X2]*W21+Src->data[Cn][Y2][X1]*W12+Src->data[Cn][Y2][X2]*W22;\
     }\
 }
@@ -597,11 +603,11 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int),
     
     p=dst;
     if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else
     {
         mException(INVALID_IMAGE(dst),"invalid input",EXIT);
-        mException((src->cn != dst->cn),"invalid input",EXIT);
+        mException((src->channel != dst->channel),"invalid input",EXIT);
     }
     
     for(j=0;j<dst->height;j++)
@@ -623,7 +629,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int),
             w21 = wx-w22;
             w12 = wy-w22;
             
-            for(cn=0;cn<dst->cn;cn++)
+            for(cn=0;cn<dst->channel;cn++)
                 dst->data[cn][j][i] = SRC(cn,x1,y1)*w11+SRC(cn,x2,y1)*w21+SRC(cn,x1,y2)*w12+SRC(cn,x2,y2)*w22;
         }
         
@@ -690,16 +696,16 @@ void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *templa
     if(INVALID_POINTER(dst)||(dst==src))
     {
         dst = src;
-        src = mImageCreate(dst->cn,dst->height,dst->width,NULL);
-        for(cn=0;cn<dst->cn;cn++)
+        src = mImageCreate(dst->channel,dst->height,dst->width,NULL);
+        for(cn=0;cn<dst->channel;cn++)
             for(j=sj;(j<dst->height)&&(n<tx->row);j++,n++)
                 memcpy(src->data[cn][j]+si,dst->data[cn][j]+si,(ei-si)*sizeof(unsigned char));
     }
     else
     {
         mException(INVALID_IMAGE(dst),EXIT,"invalid input");
-        mException((src->cn != dst->cn)||(src->height!=dst->height)||(src->width!=dst->width),EXIT,"invalid input");
-        for(cn=0;cn<dst->cn;cn++)
+        mException((src->channel != dst->channel)||(src->height!=dst->height)||(src->width!=dst->width),EXIT,"invalid input");
+        for(cn=0;cn<dst->channel;cn++)
             for(j=0;j<dst->height;j++)
                 memcpy(dst->data[cn][j],src->data[cn][j],src->width*sizeof(unsigned char));
     }
@@ -726,7 +732,7 @@ void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *templa
             w21 = wx-w22;
             w12 = wy-w22;
             
-            for(cn=0;cn<dst->cn;cn++)
+            for(cn=0;cn<dst->channel;cn++)
                 dst->data[cn][j][i] = (unsigned char)(SRC(cn,x1,y1)*w11+SRC(cn,x2,y1)*w21+SRC(cn,x1,y2)*w12+SRC(cn,x2,y2)*w22);
         }
         
@@ -737,7 +743,75 @@ void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *templa
     }
 }
 
-
+void TemplateCacuate(int x_in,int y_in,int R,float k,float cx,float cy,int *x_out,int *y_out)
+{
+    float l;
+    float d_x,d_y;
+    float d;
+        
+    d_x = (x_in-cx);
+    d_y = (y_in-cy);
+    d = d_x*d_x+d_y*d_y;
+    if(d>=(float)(R*R))
+    {
+        *x_out = DFLT;
+        *y_out = DFLT;
+        return;
+    }
+    
+    d = (float)sqrt(d);
+    
+    l = (1.0f-(d/((float)R)));
+    l = l*l;
+    l =(k-1.0f)*l + 1.0f;
+    
+    *x_out = (int)(cx + d_x*l);
+    *y_out = (int)(cy + d_y*l);
+}
+/*
+int GrtTemplate(struct DeformationTemplate *tep,MList *curve,int R,float k)
+{
+    int height;
+    int width;
+    
+    int i,j;
+    int x0,y0,x1,y1;
+    
+    int n;
+    
+    MImagePoint **point;
+    
+    height = tep->x->row;
+    width  = tep->x->col;
+    
+    point = curve->data;
+    
+    d1 = (point[0]->x)*(point[0]->x)+(point[0]->y)*(point[0]->y);
+    d2 = (point[1]->x)*(point[1]->x)+(point[1]->y)*(point[1]->y);
+    min = d1+d2;
+    min_index=0;
+    n=1;
+    while(n+1<curve->num)
+    {
+        d1 = d2;
+        d2 = (point[n+1]->x)*(point[n+1]->x)+(point[n+1]->y)*(point[n+1]->y);
+        if(d1+d2<min)
+        {
+            min = d1+d2;
+            min_index = n;
+        }
+        n=n+1;
+    }
+    TemplateCacuate(0,0,R,k,point[min_index]->x,point[min_index]->y,point[min_index+1]->x,point[min_index+1]->y,tep->x->data[0][0],tep->y->data[0][0]);
+    
+    for(j=0;j<height;j=j+2)
+    {
+        for(i=0;i<width;i++)
+        {
+            while((n>0)&&(n<curve->num))
+            {
+                d1 = 
+*/
 
 void mImageReshapeTemplate(MList *src,MList *dst,MTable *lx,MTable *ly,MTable *w)
 {
@@ -830,7 +904,7 @@ void endImageReshape(void *info)
     struct HandleImageReshape *handle = info;
 
     if(handle->lx != NULL) mTableRelease(handle->lx);
-    if(handle->ly != NULL) mTableRelease(handle->ly);
+    if(handle->lx != NULL) mTableRelease(handle->ly);
     if(handle->w  != NULL) mTableRelease(handle->w );
 }
 #define HASH_ImageReshape 0xe21f102e
@@ -840,29 +914,26 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
     
     MImage *p = dst;
     if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
+        dst = mImageCreate(src->channel,src->height,src->width,NULL);
     else if((dst->height<=0)||(dst->width<=0))
-        mImageRedefine(dst,src->cn,src->height,src->width);
+        mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     else
-        mImageRedefine(dst,src->cn,DFLT,DFLT);
-    
+        mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
+     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     MHandle *hdl; ObjectHandle(dst,ImageReshape,hdl);
     struct HandleImageReshape *handle = hdl->handle;
     {
-        if(handle->lx == NULL) handle->lx = mTableCreate(dst->height,dst->width,S16,NULL);
-        else                   mTableRedefine(handle->lx,dst->height,dst->width,S16);
-        
-        if(handle->ly == NULL) handle->ly = mTableCreate(dst->height,dst->width,S16,NULL);
-        else                   mTableRedefine(handle->ly,dst->height,dst->width,S16);
-        
-        if(handle->w == NULL) handle->w = mTableCreate(dst->height,dst->width,U8,NULL);
-        else                  mTableRedefine(handle->w,dst->height,dst->width,U8);
+        if(handle->lx == NULL) handle->lx= mTableCreate(dst->height,dst->width,S16,NULL);
+        else                  mTableRedefine(handle->lx,dst->height,dst->width,S16,NULL);
+        if(handle->ly == NULL) handle->ly= mTableCreate(dst->height,dst->width,S16,NULL);
+        else                  mTableRedefine(handle->ly,dst->height,dst->width,S16,NULL);
+        if(handle-> w == NULL) handle->w = mTableCreate(dst->height,dst->width, U8,NULL);
+        else                  mTableRedefine(handle->w ,dst->height,dst->width, U8,NULL);
         
         hdl->valid = 1;
     }
-    
     
     mImageReshapeTemplate(src_point,dst_point,handle->lx,handle->ly,handle->w);
     
@@ -875,164 +946,23 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
     }
 }
 
-float Reshape_x(int u,int v,void *para)
-{
-    float *p = (float *)para+1;
-    int num = p[-1];
-    
-    float result = p[0];
-    
-    int n=1;int m=1;int i;
-    while(1)
-    {
-        for(i=n;i<MIN(n+m,num);i++)
-            result += p[i]*u;
-        if(i==num) return result;
-        m=m+1;
-        result += p[i]*v;
-        if(i+1==num) return result;
-        n=n+m;
-    }
-}
-float Reshape_y(int u,int v,void *para) 
-{
-    float *p = (float *)para+1;
-    int num = p[-1];
-    return Reshape_x(u,v,p+num+1);
-}
-struct HandleImageReshape2
-{
-    int height;
-    int width;
-    
-    int point_num;
-    MImagePoint *point;
-    
-    MTable *lx;
-    MTable *ly;
-    MTable *w;
-    
-    MMatrix *mat;
-    float *para;
-};
-void endImageReshape2(void *info)
-{
-    struct HandleImageReshape2 *handle = info;
 
-    if(handle->point != NULL) mFree(handle->point);
-    if(handle->lx != NULL) mTableRelease(handle->lx);
-    if(handle->ly != NULL) mTableRelease(handle->ly);
-    if(handle->w  != NULL) mTableRelease(handle->w );
-    if(handle->mat!= NULL) mMatrixRelease(handle->mat);
-    if(handle->para!=NULL) mFree(handle->para);
-}
-#define HASH_ImageReshape2 0xe21f102e
-void mImageReshape2(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
-{
-    int i,j;
-    mException(INVALID_IMAGE(src),EXIT,"invalid source image");
-    mException(INVALID_POINTER(src_point)||INVALID_POINTER(dst_point),EXIT,"invalid input");
-    
-    MImage *p = dst;
-    if(INVALID_POINTER(dst)||(dst==src))
-        dst = mImageCreate(src->cn,src->height,src->width,NULL);
-    else if((dst->height<=0)||(dst->width<=0))
-        mImageRedefine(dst,src->cn,src->height,src->width);
-    else
-        mImageRedefine(dst,src->cn,DFLT,DFLT);
-    
-    int height = dst->height;int width = dst->width;
-    
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
-    
-    int point_num = src_point->num;
-    mException((point_num<3)||(dst_point->num!=point_num),EXIT,"invalid input point");
-    MImagePoint **sp = (MImagePoint **)src->data;
-    MImagePoint **dp = (MImagePoint **)dst->data;
-    
-    MHandle *hdl; ObjectHandle(src,ImageReshape2,hdl);
-    struct HandleImageReshape2 *handle = hdl->handle;
-    if((handle->height != height)||(handle->width != width)) hdl->valid = 0;
-    else if(handle->point_num != point_num) hdl->valid = 0;
-    else if(handle->point!=NULL)
-    {
-        for(i=0;i<point_num;i++)
-        {
-            if((handle->point[i          ].x != sp[i]->x)||(handle->point[i          ].y != sp[i]->y))
-                {hdl->valid = 0;break;}
-            if((handle->point[i+point_num].x != dp[i]->x)||(handle->point[i+point_num].y != dp[i]->y))
-                {hdl->valid = 0;break;}
-        }
-    }
-    
-    if(hdl->valid == 0)
-    {
-        handle->height = height;
-        handle->width  = width;
-        
-        if(point_num >handle->point_num) if(handle->point != NULL) 
-        {mFree(handle->point);handle->point=NULL;mFree(handle->para);handle->para=NULL;}
-        if(handle->point==NULL) handle->point = mMalloc(point_num*2*sizeof(MImagePoint));
-        if(handle->para ==NULL) handle->para  = mMalloc((point_num+1)*2*sizeof(float));
-        handle->point_num = point_num;
-        
-        for(i=0;i<point_num;i++)
-        {
-            handle->point[i          ].x = sp[i]->x;
-            handle->point[i          ].y = sp[i]->y;
-            handle->point[i+point_num].x = dp[i]->x;
-            handle->point[i+point_num].y = dp[i]->y;
-        }
-        
-        if(handle->lx == NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->lx,height,width,S16);
-        if(handle->ly == NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->ly,height,width,S16);
-        if(handle->w  == NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                   mTableRedefine(handle->w ,height,width,U8 );
-            
-        if(handle->mat== NULL) handle->mat = mMatrixCreate(point_num,point_num+1,NULL);
-        else                   mMatrixRedefine(handle->mat,point_num,point_num+1);
-    
-        float *xpara = handle->para;
-        float *ypara = xpara + point_num+1;
-        float **a = handle->mat->data;
-        
-        for(j=0;j<point_num;j++)
-        {
-            int n=1;int m=1;
-            while(1)
-            {
-                for(i=n;i<MIN(n+m,point_num);i++)
-                    a[j][i] = a[j][i-m]*sp[j]->x;
-                if(i==point_num) break;
-                m=m+1;
-                a[j][i] = a[j][i-m]*sp[j]->y;
-                if(i+1==point_num) break;
-                n=n+m;
-            }
-        }
-        
-        for(int j=0;j<point_num;j++)
-            a[j][point_num] = 0.0f-dp[j]->x;
-        xpara[0] = point_num;
-        mLinearEquation(handle->mat,xpara+1);
-        
-        for(int j=0;j<point_num;j++)
-            a[j][point_num] = 0.0f-dp[j]->y;
-        ypara[0] = point_num;
-        mLinearEquation(handle->mat,ypara+1);
-        
-        TransformGrid(src,Reshape_x,Reshape_x,handle->para,handle->lx,handle->ly,handle->w);
-        hdl->valid = 1;
-    }
-    
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
-    
-    if(p!=dst)
-    {
-        mImageExchange(src,dst);
-        mImageRelease(dst);
-    }
-}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    

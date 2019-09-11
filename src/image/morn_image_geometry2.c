@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 // #define PointLineCheck(px,py,lx1,ly1,lx2,ly2) ((lx1 - lx2)*(py-ly2)-(ly1 - ly2)*(px-lx2))
 int mLinePointCheck(MList *line,MImagePoint *point)
@@ -37,17 +37,18 @@ int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
 
 int mLineCrossCheck(MList *line1,MList *line2)
 {
+    MImagePoint **point1,**point2;
     mException((line1->num !=2)||(line2->num!=2),EXIT,"invalid line");
-    MImagePoint **point1= (MImagePoint **)(line1->data);
-    MImagePoint **point2= (MImagePoint **)(line2->data);
+    point1= (MImagePoint **)(line1->data);
+    point2= (MImagePoint **)(line2->data);
     return LineCrossCheck(point1[0]->x,point1[0]->y,point1[1]->x,point1[1]->y,
                           point2[0]->x,point2[0]->y,point2[1]->x,point2[1]->y);
 }
 
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py)
 {
-    // printf("l1 is %f,%f   %f,%f\n",l1x1,l1y1,l1x2,l1y2);
-    // printf("l2 is %f,%f   %f,%f\n",l2x1,l2y1,l2x2,l2y2);
+    // printf("l1 is %25.20f,%25.20f   %25.20f,%25.20f\n",l1x1,l1y1,l1x2,l1y2);
+    // printf("l2 is %25.20f,%25.20f   %25.20f,%25.20f\n",l2x1,l2y1,l2x2,l2y2);
     double k1,k2,b1,b2;
     if((l1x1==l1x2)&&(l2x1==l2x2))
     {
@@ -55,14 +56,11 @@ int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
     }
     k1 = (l1y1-l1y2)/(l1x1-l1x2);b1 = l1y1-k1*l1x1;
     k2 = (l2y1-l2y2)/(l2x1-l2x2);b2 = l2y1-k2*l2x1;
-    if((isinf(k1))&&(isinf(k2)))
+    // printf("k1 is %f,k2 is %f\n",k1,k2);
+    if(((isinf(k1))&&(isinf(k2)))||(k1==k2))
     {
         // if(l1x1==l2x1) {*px=l1x1;*py=l1y1; return 1;}
-        return 0;
-    }
-    if(k1==k2)
-    {
-        // if(ABS(l1x1*k2+b1-l1y1)<0.0001) {*px=l1x1;*py=l1y1; return 1;}
+        *px=mNan();*py=mNan();
         return 0;
     }
     
@@ -71,8 +69,10 @@ int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
     else if(isinf(k2)) {x=l2x1;y=k1*x+b1;}
     else {x = (b1-b2)/(k2-k1);y = ((k1+k2)*x+b1+b2)/2.0f;}
     
-    if((((l1x1>x)==(x>=l1x2))&&((l1y1>y)==(y>=l1y2))&&((l2x1>x)==(x>=l2x2))&&((l2y1>y)==(y>=l2y2))))
-        {*px = x; *py = y;return 1;}
+    // printf("x is %25.20f,y is %25.20f\n",x,y);
+    *px = x; *py = y;
+    if((((l1x1>x)==(x>=l1x2))&&((l1y1>y)==(y>=l1y2)))&&(((l2x1>x)==(x>=l2x2))&&((l2y1>y)==(y>=l2y2))))
+        return 1;
     return 0;
 }
 
@@ -88,7 +88,7 @@ void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePo
         step = (p1->y-p2->y)/(p1->x-p2->x);step = step*stride;
         num = (x_max-x_min)/stride;
         #pragma omp parallel for
-        for(i=0;i<=num;i++)
+        for(i=0;i<num;i++)
         {
             MImagePoint point; 
             point.x = x_min + i*stride;
@@ -104,7 +104,7 @@ void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePo
         step = (p1->x-p2->x)/(p1->y-p2->y);step = step*stride;
         num = (y_max-y_min)/stride;
         #pragma omp parallel for
-        for(i=0;i<=num;i++)
+        for(i=0;i<num;i++)
         {
             MImagePoint point; 
             point.x = x_min + i*step;
@@ -199,8 +199,8 @@ double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx
     double v_x = (c*a+b*d)/buff;
     double v_y = (a*v_x-c)/b;
     
-    if(vx!=NULL) *vx = (float)v_x;
-    if(vy!=NULL) *vy = (float)v_y;
+    if(vx!=NULL) *vx = v_x;
+    if(vy!=NULL) *vy = v_y;
     
     return sqrt((px-v_x)*(px-v_x)+(py-v_y)*(py-v_y));
 }
@@ -215,6 +215,24 @@ float mPointVerticalDistance(MImagePoint *point,MList *line,MImagePoint *pedal)
         return PointVerticalDistance(point->x,point->y,line_point[0]->x,line_point[0]->y,line_point[1]->x,line_point[1]->y,&(pedal->x),&(pedal->y));
 }
 
+float LineAngle(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2)
+{
+    float px,py;
+    LineCrossPoint(l1x1,l1y1,l1x2,l1y2,l2x1,l2y1,l2x2,l2y2,&px,&py);
+    if(mIsNan(px)) return 0.0f;
+    
+    float l,d;
+    d=PointVerticalDistance(l1x2,l1y2,l2x1,l2y1,l2x2,l2y2,NULL,NULL);
+    if(d<=0.0f)
+    {
+        d=PointVerticalDistance(l1x1,l1y1,l2x1,l2y1,l2x2,l2y2,NULL,NULL);
+        l=sqrt((px-l1x1)*(px-l1x1)+(py-l1y1)*(py-l1y1));
+    }
+    else
+        l=sqrt((px-l1x2)*(px-l1x2)+(py-l1y2)*(py-l1y2));
+        
+    return asin(d/l)*180/MORN_PI;
+}
 // #define mPointInRect(Point,Rect) (((Point)->x>(Rect)->x1)&&((Point)->x<(Rect)->x2)&&((Point)->y>(Rect)->y1)&&((Point)->y<(Rect)->y2))
 
 int PointInPolygon(double x,double y,MList *polygon)
@@ -315,6 +333,28 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
 }
 */
 
+float mCircleIntersetArea(MImageCircle *circle1,MImageCircle *circle2)
+{
+    float c1_area = mCircleArea(circle1);
+    float c2_area = mCircleArea(circle2);
+    float u=mPointDistance(&(circle1->center),&(circle2->center));
+    if(u>=circle1->r+circle2->r) return 0.0f;
+    if(u<=circle1->r-circle2->r) return c2_area;
+    if(u<=circle2->r-circle1->r) return c1_area;
+    
+    float d=((circle1->r*circle1->r)-(circle2->r*circle2->r))/u;
+    float r1=(u+d)/2.0f; float r2=(u-d)/2.0f;
+    
+    float a1=acos(r1/circle1->r);
+    float a2=acos(r2/circle2->r);
+    
+    float l=sqrt(circle1->r*circle1->r-r1*r1);
+    float area1 = c1_area*a1/(MORN_PI)-(l*r1);
+    float area2 = c2_area*a2/(MORN_PI)-(l*r2);
+    
+    return (area1+area2);
+}
+
 float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
 {
     int i,j;
@@ -353,9 +393,10 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         for(j=0;j<n2;j++)
         {
             valid = CLOSS_POINT(i,j);
+            
             if(valid==1) 
             {
-                // printf("i is %d,j is %d\n",i,n1+j);
+                // printf("aa i is %d,j is %d,point is %f,%f\n",i,n1+j,point.x,point.y);
                 x_mat->data[i][n1+j]=point.x;x_mat->data[n1+j][i]=point.x;
                 y_mat->data[i][n1+j]=point.y;y_mat->data[n1+j][i]=point.y;
                 num1[i]+=1;num2[j]+=1;
@@ -371,7 +412,7 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         if(valid==1)
         {
             j=i-1;if(j<0)j=n1-1;
-            // printf("i is %d,j is %d\n",i,j);
+            // printf("bb i is %d,j is %d,point is %f,%f\n",i,j,v1[i]->x,v1[i]->y);
             x_mat->data[i][j]=v1[i]->x;x_mat->data[j][i]=v1[i]->x;
             y_mat->data[i][j]=v1[i]->y;y_mat->data[j][i]=v1[i]->y;
         }
@@ -385,7 +426,7 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         if(valid==1)
         {
             i=j-1;if(i<0)i=n2-1;
-            // printf("i is %d,j is %d\n",n1+i,n1+j);
+            // printf("bb i is %d,j is %d,point is %f,%f\n",n1+i,n1+j,v2[j]->x,v2[j]->y);
             x_mat->data[n1+i][n1+j]=v2[j]->x;x_mat->data[n1+j][n1+i]=v2[j]->x;
             y_mat->data[n1+i][n1+j]=v2[j]->y;y_mat->data[n1+j][n1+i]=v2[j]->y;
         }
@@ -605,14 +646,8 @@ void mShapeBounding(MList *shape,MList *bounding)
         {
             float l1 = (point[j]->y)*cs1-(point[j]->x)*sn1;
             float l2 = (point[j]->y)*cs2-(point[j]->x)*sn2;
-            {
-                     if(l1<min1) {min1 = l1; min1_index = j;}
-                else if(l1>max1) {max1 = l1; max1_index = j;}
-            }
-            {
-                     if(l2<min2) {min2 = l2; min2_index = j;}
-                else if(l2>max2) {max2 = l2; max2_index = j;}
-            }
+            if(l1<min1) {min1 = l1; min1_index = j;}else if(l1>max1) {max1 = l1; max1_index = j;}
+            if(l2<min2) {min2 = l2; min2_index = j;}else if(l2>max2) {max2 = l2; max2_index = j;}
         }
         
         float area = (max1-min1)*(max2-min2);
@@ -627,15 +662,21 @@ void mShapeBounding(MList *shape,MList *bounding)
         }
     }
     
+    // printf("point_max2 is %d\n",point_max2);
+    // printf("point[point_min1] is %f,%f\n",point[point_min1]->x,point[point_min1]->y);
+    // printf("point[point_max1] is %f,%f\n",point[point_max1]->x,point[point_max1]->y);
+    // printf("point[point_min2] is %f,%f\n",point[point_min2]->x,point[point_min2]->y);
+    // printf("point[point_max2] is %f,%f\n",point[point_max2]->x,point[point_max2]->y);
+    
     MImagePoint rst[4];
     if(bounding == NULL) bounding = shape;
     
     if(a==0.0f)
     {
-        rst[0].x=point[point_min1]->x;rst[0].y=point[point_min2]->y;
-        rst[1].x=point[point_min1]->x;rst[1].y=point[point_max2]->y;
-        rst[2].x=point[point_max1]->x;rst[2].y=point[point_max2]->y;
-        rst[3].x=point[point_max1]->x;rst[3].y=point[point_min2]->y;
+        rst[0].x = point[point_min2]->x;rst[0].y = point[point_min1]->y;
+        rst[1].x = point[point_min2]->x;rst[1].y = point[point_max1]->y;
+        rst[2].x = point[point_max2]->x;rst[2].y = point[point_max1]->y;
+        rst[3].x = point[point_max2]->x;rst[3].y = point[point_min1]->y;
         goto ShapeBoundingNext;
     }
     
@@ -646,24 +687,45 @@ void mShapeBounding(MList *shape,MList *bounding)
             
     float k1 = sn1/cs1;
     float k2 = sn2/cs2;
+    
+    // printf("a is %f\n",a);
+    // printf("sn1 is %f,cs1 is %f\n",sn1,cs1);
+    // printf("k1 is %f,k2 is %f\n",k1,k2);
+    
     float b1,b2;
     
     b1 = point[point_min1]->y - k1*point[point_min1]->x;
     b2 = point[point_min2]->y - k2*point[point_min2]->x;
+    
+    // printf("b1 is %f,b2 is %f\n",b1,b2);
+    
     rst[0].x = (b1-b2)/(k2-k1);
     rst[0].y = ((k1+k2)*rst[0].x +b1 +b2)/2.0;
+    // printf("rst[0] is %f,%f\n",rst[0].x,rst[0].y);
+    // printf("aaaa point[point_max2] is %f,%f\n",point[point_max2]->x,point[point_max2]->y);
     
+    
+    // printf("aaaaaaaaa point[point_max2] is %f,%f\n",point[point_max2]->x,point[point_max2]->y);
     b2 = point[point_max2]->y - k2*point[point_max2]->x;
+    // printf("b1 is %f,b2 is %f\n",b1,b2);
+
     rst[1].x = (b1-b2)/(k2-k1);
     rst[1].y = ((k1+k2)*rst[1].x +b1 +b2)/2.0;
+    // printf("rst[1] is %f,%f\n",rst[1].x,rst[1].y);
+    
     
     b1 = point[point_max1]->y - k1*point[point_max1]->x;
+
     rst[2].x = (b1-b2)/(k2-k1);
     rst[2].y = ((k1+k2)*rst[2].x +b1 +b2)/2.0;
+    // printf("rst[2] is %f,%f\n",rst[2].x,rst[2].y);
+    
 
     b2 = point[point_min2]->y - k2*point[point_min2]->x;
+    
     rst[3].x = (b1-b2)/(k2-k1);
     rst[3].y = ((k1+k2)*rst[3].x +b1 +b2)/2.0;
+    // printf("rst[3] is %f,%f\n",rst[3].x,rst[3].y);
     
     ShapeBoundingNext:
     mListWrite(bounding,0,&rst[0],sizeof(MImagePoint));
@@ -673,6 +735,7 @@ void mShapeBounding(MList *shape,MList *bounding)
     
     bounding->num = 4;
 }
+
 
 void ConvexHull(MList *point,MChain *chain,MChainNode *node)
 {
@@ -726,24 +789,18 @@ void mConvexHull(MList *point,MList *polygon)
     int i1=0;int i2=0;int i3=0;int i4=0;
     for(i=1;i<point->num;i++)
     {
-        {
-                 if(p[i]->x > x_max) {x_max = p[i]->x;i1=i;}
-            else if(p[i]->x < x_min) {x_min = p[i]->x;i3=i;}
-        }
-        {
-                 if(p[i]->y > y_max) {y_max = p[i]->y;i2=i;}
-            else if(p[i]->y < y_min) {y_min = p[i]->y;i4=i;}
-        }
+        if(p[i]->x > x_max) {x_max = p[i]->x;i1=i;}else if(p[i]->x < x_min) {x_min = p[i]->x;i3=i;}
+        if(p[i]->y > y_max) {y_max = p[i]->y;i2=i;}else if(p[i]->y < y_min) {y_min = p[i]->y;i4=i;}
     }
-   
+  
     // printf("i1 is %d,p[i1]->x is %f,p[i1]->y is %f\n",i1,p[i1]->x,p[i1]->y);
     // printf("i2 is %d,p[i2]->x is %f,p[i2]->y is %f\n",i2,p[i2]->x,p[i2]->y);
     // printf("i3 is %d,p[i3]->x is %f,p[i3]->y is %f\n",i3,p[i3]->x,p[i3]->y);
     // printf("i4 is %d,p[i4]->x is %f,p[i4]->y is %f\n",i4,p[i4]->x,p[i4]->y);
-    float kx1=0.0f,ky1=0.0f,b1=0.0f; if(i1 != i2) {ky1=p[i1]->x - p[i2]->x;kx1=p[i1]->y - p[i2]->y; b1=kx1*p[i1]->x - ky1*p[i1]->y;}
-    float kx2=0.0f,ky2=0.0f,b2=0.0f; if(i2 != i3) {ky2=p[i2]->x - p[i3]->x;kx2=p[i2]->y - p[i3]->y; b2=kx2*p[i2]->x - ky2*p[i2]->y;}
-    float kx3=0.0f,ky3=0.0f,b3=0.0f; if(i3 != i4) {ky3=p[i3]->x - p[i4]->x;kx3=p[i3]->y - p[i4]->y; b3=kx3*p[i3]->x - ky3*p[i3]->y;}
-    float kx4=0.0f,ky4=0.0f,b4=0.0f; if(i4 != i1) {ky4=p[i4]->x - p[i1]->x;kx4=p[i4]->y - p[i1]->y; b4=kx4*p[i4]->x - ky4*p[i4]->y;}
+    float kx1=0,ky1=0,b1=0; if(i1 != i2) {ky1=p[i1]->x - p[i2]->x;kx1=p[i1]->y - p[i2]->y; b1=kx1*p[i1]->x - ky1*p[i1]->y;}
+    float kx2=0,ky2=0,b2=0; if(i2 != i3) {ky2=p[i2]->x - p[i3]->x;kx2=p[i2]->y - p[i3]->y; b2=kx2*p[i2]->x - ky2*p[i2]->y;}
+    float kx3=0,ky3=0,b3=0; if(i3 != i4) {ky3=p[i3]->x - p[i4]->x;kx3=p[i3]->y - p[i4]->y; b3=kx3*p[i3]->x - ky3*p[i3]->y;}
+    float kx4=0,ky4=0,b4=0; if(i4 != i1) {ky4=p[i4]->x - p[i1]->x;kx4=p[i4]->y - p[i1]->y; b4=kx4*p[i4]->x - ky4*p[i4]->y;}
    
     MList *list1 = mListCreate(point->num,NULL); int n1=0;
     MList *list2 = mListCreate(point->num,NULL); int n2=0;
@@ -801,7 +858,7 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
     
     MImagePoint **p = (MImagePoint **)(edge->data);
     
-    if(polygon!=edge) mListAppend(polygon,edge->num-polygon->num);
+    if(polygon!=edge) mListAppend(polygon,edge->num);
     
     float kx,ky,b,t,v;
     
@@ -883,6 +940,31 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
         for(i=0;i<polygon->num;i++)
             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
 }
+
+// void mEdgeReshape(MList *edge_in,MList *edge_out,int thresh1,int thresh2)
+// {
+    // MImagePoint **p = (MImagePoint **)(edge_in->data);
+    // int point_num = edge_in->num;
+    
+    // mListClear(edge_out);
+    // for(int i=0;i<point_num;i++)
+    // {
+        // int j=i+thresh1;if(j>=edge_in->num) j=j-edge_in->num;
+        // int k=j+1;      if(k>=edge_in->num) k=0;
+        
+        // mPointDistance(p[i],p[j])
+        
+    // }
+    
+    
+        
+    
+    
+// }
+
+
+
+
 
     
 /*

@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 #define MID(X1,X2,X3) (((X1>X2)==(X2>=X3))?X2:(((X1>X2)==(X3>=X1))?X1:X3))
 #define MID_FILTER(j,i)\
 {\
     int j1=j-dy;int j2=j+dy;if(j1<0)j1=j2;else if(j2>=height)j2=j1;\
     int i1=i-dx;int i2=i+dx;if(i1<0)i1=i2;else if(i2>=width )i2=i1;\
-    for(int cn=0;cn<src->cn;cn++)\
+    for(int cn=0;cn<src->channel;cn++)\
     {\
         data1 = data[cn][j1][i1];\
         data2 = data[cn][j ][i2];\
@@ -50,29 +50,17 @@ void SeperateImage(MImage *src,MImage *img,MImagePoint *point)
     MID_FILTER(j,i);
 }
 
-/*
 #define DIFF(data1,M1,N1,data2,M2,N2,Diff)\
 {\
     int B1=data1[0][N1][M1];int B2=data2[0][N2][M2];int Diff0 = ABS(B1-B2);\
-    Diff = Diff0;if((Diff<thresh)&&(img->cn>1)){\
+    Diff = Diff0;if((Diff<thresh)&&(img->channel>1)){\
     int G1=data1[1][N1][M1];int G2=data2[1][N2][M2];int Diff1 = ABS(G1-G2);\
     float K1=(float)(B1*G2)/(float)(B2*G1);K1=MAX(K1,1.0f/K1);\
-    Diff = MAX(Diff0,Diff1)*K1;if((Diff<thresh)&&(img->cn>2)){\
+    Diff = MAX(Diff0,Diff1)*K1;if((Diff<thresh)&&(img->channel>2)){\
     int R1=data1[2][N1][M1];int R2=data2[2][N2][M2];int Diff2 = ABS(R1-R2);\
     float K2=(float)(R1*G2)/(float)(R2*G1);K2=MAX(K2,1.0f/K2);\
     float K3=(float)(R1*B2)/(float)(R2*B1);K3=MAX(K3,1.0f/K3);\
     Diff = MAX(MAX(Diff0,Diff1),Diff2)*MAX(MAX(K1,K2),K3);}}\
-}
-*/
-
-#define DIFF(data1,M1,N1,data2,M2,N2,Diff)\
-{\
-    int D;          D = data1[0][N1][M1]-data2[0][N2][M2];Diff = D;\
-    if(img->cn==1) {                                      Diff = ABS(D);}\
-    if(img->cn >1) {                                      Diff = D*D; \
-                    D = data1[1][N1][M1]-data2[1][N2][M2];Diff+= D*D;}\
-    if(img->cn >2) {D = data1[2][N1][M1]-data2[2][N2][M2];Diff+= D*D;}\
-    if(img->cn >3) {D = data1[3][N1][M1]-data2[3][N2][M2];Diff+= D*D;}\
 }
 
 #define IMG_CHECK(M1,N1,M2,N2,Flag) {\
@@ -99,7 +87,7 @@ void SeperateImage(MImage *src,MImage *img,MImagePoint *point)
         if(tab[N][M]==1)\
         {\
             Flag = 1;\
-            for(int cn=0;cn<img->cn;cn++)\
+            for(int cn=0;cn<img->channel;cn++)\
             {\
                 if(ABS(src->data[cn][Y][X] - img->data[cn][N][M])>thresh*2)\
                     {Flag = 0;break;}\
@@ -120,19 +108,13 @@ void endImageSeperate(void *info)
 #define HASH_ImageSeperate 0x50c2063
 int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
 {
-    mException(INVALID_IMAGE(src),EXIT,"invalid input image");
-    if(INVALID_POINTER(dst)) dst = src;
-    MImagePoint center;
-    if(point==NULL)
-    {
-        center.x = src->width/2;
-        center.y = src->height/2;
-        point = &center;
-    }
-    if(thresh <= 0) thresh = 32;
+    int i,j,cn;
+    int flag,valid;
     
     int height = src->height;
     int width = src->width;
+    int channel=src->channel;
+    unsigned char ***data = src->data;
     
     int tab[32][32];
     memset(tab,0,1024*sizeof(int));
@@ -141,7 +123,7 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     struct HandleImageSeperate *handle = hdl->handle;
     if(hdl->valid == 0)
     {
-        handle->img = mImageCreate(src->cn,32,32,NULL);
+        handle->img = mImageCreate(src->channel,32,32,NULL);
         SeperateImage(src,handle->img,point);
         mImageMidValueFilter(handle->img,handle->img);
         // mImageSave(handle->img,"./test_ImageSeperate1.bmp");
@@ -152,15 +134,15 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     int x_step = (width-1)/31;
     int y_step = (height-1)/31;
     
-    int m = (int)(point->x/(float)x_step+0.5);
-    int n = (int)(point->y/(float)y_step+0.5);
+    int x0 = (int)(point->x);int m = (int)(point->x/(float)x_step+0.5);
+    int y0 = (int)(point->y);int n = (int)(point->y/(float)y_step+0.5);
     tab[n][m] = 1;
     // printf("m is %d,n is %d\n",m,n);
     
-    int thresh2=thresh;
-    if(src->cn>1) thresh = thresh*thresh;
+    int x,y;
     
-    int flag;int valid = 0;
+    valid = 0;
+    
     IMG_CHECK(m-1,n-1,m,n,flag);if(flag>0){tab[n-1][m-1]=1;valid=1;}
     IMG_CHECK(m  ,n-1,m,n,flag);if(flag>0){tab[n-1][m  ]=1;valid=1;}
     IMG_CHECK(m+1,n-1,m,n,flag);if(flag>0){tab[n-1][m+1]=1;valid=1;}
@@ -173,8 +155,7 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     int sum1,sum2;
     for(int time=0;time<10;time++)
     {
-        if(valid == 0) break;
-        valid = 0;
+        if(valid == 0) break;valid = 0;
         for(n=0;n<32;n++)
             for(m=0;m<32;m++)
             {
@@ -198,8 +179,7 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
                         tab[n][m]=1;
             }
         
-        if(valid == 0) break;
-        valid = 0;
+        if(valid == 0) break;valid = 0;
         for(n=31;n>=0;n--)
             for(m=31;m>=0;m--)
             {
@@ -224,8 +204,6 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
             }
     }
     
-    if(src->cn>1) thresh = thresh2;
-    
     // for(n=1;n<31;n++)for(m=1;m<31;m++)
     // {
         // if(tab[n][m]!=1)
@@ -236,7 +214,6 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     // }
     
     int count=0;
-    int i,j;
     for(j=0;j<height;j++)
     {
         n = j/y_step;if(n>31) n=31;
@@ -269,27 +246,51 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
 }
 
 
-/*
 
-#define SIMILAR_CHECK(x1,y1,x2,y2,flag) {\
-    flag = 1;\
-    for(cn=0;cn<channel;cn++)\
+
+#define SIMILAR_CHECK(x1,y1,x2,y2,Flag) {\
+    int M=(x2)/x_step;int N=(y2)/y_step;\
+    Flag = 0;\
+    if((M>=0)&&(N>=0)&&(M<32)&&(N<32))\
     {\
-        if(ABS(data[cn][y1][x1] - data[cn][y2][x2])>thresh)\
-            {flag = 0;break;}\
+        if(tab[N][M]==1)\
+        {\
+            Flag = 1;\
+            for(cn=0;cn<channel;cn++)\
+            {\
+                if(ABS(data[cn][y1][x1] - data[cn][y2][x2])>thresh)\
+                    {Flag = 0;break;}\
+            }\
+        }\
+    }\
+}
+
+#define DIFFERENT_CHECK(x1,y1,x2,y2,Flag) {\
+    int M=(x2)/x_step;int N=(y2)/y_step;\
+    Flag = 0;\
+    if((M>=0)&&(N>=0)&&(M<32)&&(N<32))\
+    {\
+        if(tab[N][M]==1)\
+        {\
+            for(cn=0;cn<channel;cn++)\
+            {\
+                if(ABS(data[cn][y1][x1] - data[cn][y2][x2])>thresh)\
+                    {Flag = 1;break;}\
+            }\
+        }\
     }\
 }
 
 
 
-int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
+int mImageSeperate0(MImage *src,MImage *dst,MImagePoint *point,int thresh)
 {
     int i,j,cn;
     int flag,valid;
     
     int height = src->height;
     int width = src->width;
-    int channel=src->cn;
+    int channel=src->channel;
     
     unsigned char ***data = src->data;
     
@@ -302,66 +303,83 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     int x0 = (int)(point->x);//x_step;
     int y0 = (int)(point->y);
     
-    int m = x0/x_step; int n = y0/y_step;
+    int m = x0/x_step; int n = y0/y_step;tab[n][m] = 1;
     int x,y;
     
-    // printf("x_step is %d,y_step is %d\n",x_step,y_step);
-    // printf("x0 is %d,y0 is %d\n",x0,y0);
     valid = 0;
-    x = m*x_step; y = n*y_step;
-    SIMILAR_CHECK(x,y,x0,y0,flag);if(flag == 1){tab[n  ][m  ] = 1;valid = 1;}
-    x = (m+1)*x_step;
-    SIMILAR_CHECK(x,y,x0,y0,flag);if(flag == 1){tab[n  ][m+1] = 1;valid = 1;}
-    y = (n+1)*y_step;
-    SIMILAR_CHECK(x,y,x0,y0,flag);if(flag == 1){tab[n+1][m+1] = 1;valid = 1;}
-    x = m*x_step;
-    SIMILAR_CHECK(x,y,x0,y0,flag);if(flag == 1){tab[n+1][m  ] = 1;valid = 1;}
     
-    // printf("tab c is %d,%d,%d,%d\n",tab[n  ][m  ],tab[n  ][m+1],tab[n+1][m+1],tab[n+1][m  ]);
+    x=(m+1)*x_step;y=n*y_step;SIMILAR_CHECK(x,y,x0,y0,flag);if(flag==1){tab[n  ][m+1]=1;valid=1;}
+    y=(n+1)*y_step;           SIMILAR_CHECK(x,y,x0,y0,flag);if(flag==1){tab[n+1][m+1]=1;valid=1;}
+    x=m*x_step;               SIMILAR_CHECK(x,y,x0,y0,flag);if(flag==1){tab[n+1][m  ]=1;valid=1;}
+    y = n*y_step;             SIMILAR_CHECK(x,y,x0,y0,flag);if(flag==1){tab[n  ][m  ]=1;valid=1;}else tab[n][m]=0;
+    
+    int sum;
+    printf("tab c is %d,%d,%d,%d\n",tab[n  ][m  ],tab[n  ][m+1],tab[n+1][m+1],tab[n+1][m  ]);
+    printf("m is %d,n is %d\n",m,n);
     
     for(int time=0;time<5;time++)
     {
-        #define VALID_LOCATE(N,M) (((M<0)||(N<0)||(M>31)||(N>31))?0:tab[N][M])
+        // #define VALID_LOCATE(N,M) (((M<0)||(N<0)||(M>31)||(N>31))?0:tab[N][M])
         
         if(valid == 0) break;valid = 0;
         for(j=0,n=0;n<32;j+=y_step,n++)
             for(i=0,m=0;m<32;i+=x_step,m++)
             {
                 if(tab[n][m] == 1) continue;
-                int sum = 0;
-                if(VALID_LOCATE(n+1,m+1)){SIMILAR_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n  ,m+1)){SIMILAR_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m+1)){SIMILAR_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
-                if(VALID_LOCATE(n+1,m  )){SIMILAR_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m  )){SIMILAR_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
-                if(VALID_LOCATE(n+1,m-1)){SIMILAR_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n  ,m-1)){SIMILAR_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m-1)){SIMILAR_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                
+                sum = 0;
+                DIFFERENT_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;
+                DIFFERENT_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;
+                
+                // if((m==17)&&(n==15))
+                // {
+                    // printf("tab[%d][%d] is %d\n",n,m,tab[n][m]);
+                    // printf("sum is %d\n",sum);
+                    // return 0;
+                // }
+                
+                DIFFERENT_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;if(sum >= 2) continue;
+                
+                DIFFERENT_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;if(sum >= 2) continue;
+                DIFFERENT_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;if(sum >= 2) continue;
+                sum = 0;
+                SIMILAR_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                SIMILAR_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                SIMILAR_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
             }
         
         if(valid == 0) break;valid = 0;
         for(j=31*y_step,n=31;j>=0;j-=y_step,n--)
-        {
             for(i=31*x_step,m=31;i>=0;i-=x_step,m--)
             {
                 if(tab[n][m] == 1) continue;
-                int sum = 0;
-                if(VALID_LOCATE(n+1,m-1)){SIMILAR_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n  ,m-1)){SIMILAR_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m-1)){SIMILAR_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
-                if(VALID_LOCATE(n+1,m  )){SIMILAR_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m  )){SIMILAR_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
-                if(VALID_LOCATE(n+1,m+1)){SIMILAR_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;}
-                if(VALID_LOCATE(n  ,m+1)){SIMILAR_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;}
-                if(VALID_LOCATE(n-1,m+1)){SIMILAR_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;}
-                if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                sum = 0;
+                DIFFERENT_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;
+                DIFFERENT_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;
+                DIFFERENT_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;if(sum >= 2) continue;
+                DIFFERENT_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;if(sum >= 2) continue;
+                DIFFERENT_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;             
+                DIFFERENT_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;if(sum >= 2) continue;
+                sum = 0;
+                SIMILAR_CHECK(i,j,i-x_step,j-y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i-x_step,j       ,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i-x_step,j+y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                SIMILAR_CHECK(i,j,i       ,j-y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i       ,j+y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
+                SIMILAR_CHECK(i,j,i+x_step,j-y_step,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i+x_step,j       ,flag);sum+=flag;
+                SIMILAR_CHECK(i,j,i+x_step,j+y_step,flag);sum+=flag;if(sum >= 2){tab[n][m] = 1;valid = 1;continue;}
             }
-        }
     }
     
     int count;
@@ -371,6 +389,7 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
         for(i=0;i<width;i++)
         {
             m = i/x_step;if(m>31) m=31;
+            
             int sum = VALID_LOCATE(n,m)+VALID_LOCATE(n,m+1)+VALID_LOCATE(n+1,m)+VALID_LOCATE(n+1,m+1);
             if(sum == 4)
                 dst->data[0][j][i] = 255;
@@ -379,35 +398,28 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
             else
             {
                 x = m*x_step; y = n*y_step;
-                if((i==1055)&&(j==1000))
-                {
-                    printf("(%d,%d)%d,(%d,%d)%d,(%d,%d)%d,(%d,%d)%d\n",
-                    x,y,VALID_LOCATE(n,m),
-                    x+x_step,y,VALID_LOCATE(n,m+1),
-                    x,y+y_step,VALID_LOCATE(n+1,m),
-                    x+x_step,y+y_step,VALID_LOCATE(n+1,m+1));
-                }
+                // if((i==1055)&&(j==1000))
+                // {
+                    // printf("(%d,%d)%d,(%d,%d)%d,(%d,%d)%d,(%d,%d)%d\n",
+                    // x,y,VALID_LOCATE(n,m),
+                    // x+x_step,y,VALID_LOCATE(n,m+1),
+                    // x,y+y_step,VALID_LOCATE(n+1,m),
+                    // x+x_step,y+y_step,VALID_LOCATE(n+1,m+1));
+                // }
                 
-                if(VALID_LOCATE(n,m) == 1)
-                {
-                    SIMILAR_CHECK(i,j,x,y,flag);
-                    if(flag == 1) {dst->data[0][j][i] = 255;continue;}
-                }
-                if(VALID_LOCATE(n,m+1) == 1)
-                {
-                    SIMILAR_CHECK(i,j,x+x_step,y,flag);
-                    if(flag == 1) {dst->data[0][j][i] = 255;continue;}
-                }
-                if(VALID_LOCATE(n+1,m) == 1)
-                {
-                    SIMILAR_CHECK(i,j,x,y+y_step,flag);
-                    if(flag == 1) {dst->data[0][j][i] = 255;continue;}
-                }
-                if(VALID_LOCATE(n+1,m+1) == 1)
-                {
-                    SIMILAR_CHECK(i,j,x+x_step,y+y_step,flag);
-                    if(flag == 1) {dst->data[0][j][i] = 255;continue;}
-                }
+                
+                SIMILAR_CHECK(i,j,x,y,flag);
+                if(flag == 1) {dst->data[0][j][i] = 255;continue;}
+                
+                SIMILAR_CHECK(i,j,x+x_step,y,flag);
+                if(flag == 1) {dst->data[0][j][i] = 255;continue;}
+            
+                SIMILAR_CHECK(i,j,x,y+y_step,flag);
+                if(flag == 1) {dst->data[0][j][i] = 255;continue;}
+            
+                SIMILAR_CHECK(i,j,x+x_step,y+y_step,flag);
+                if(flag == 1) {dst->data[0][j][i] = 255;continue;}
+                
                 dst->data[0][j][i] = 0;
             }
             
@@ -417,4 +429,3 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     
     return count;
 }
-*/

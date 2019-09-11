@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 void ImageIntegration(MImage *src,MTable **dst)
 {
@@ -14,10 +14,10 @@ void ImageIntegration(MImage *src,MTable **dst)
     
     height = src->height;
     width = src->width;
-    for(cn=0;cn<src->cn;cn++)
+    for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(dst[cn]),EXIT,"invalid input");
-        mTableRedefine(dst[cn],height+1,width+1,S32);
+        mTableRedefine(dst[cn],height+1,width+1,S32,dst[cn]->data);
         memset(dst[cn]->dataS32[0],0,(width+1)*sizeof(float));
         
         for(j=ImageY1(src);j<ImageY2(src);j++)
@@ -44,10 +44,10 @@ void ImageIntegration2(MImage *src,MTable **dst)
     
     height = src->height;
     width = src->width;
-    for(cn=0;cn<src->cn;cn++)
+    for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(dst[cn]),EXIT,"invalid input");
-        mTableRedefine(dst[cn],height+1,width+1,S32);
+        mTableRedefine(dst[cn],height+1,width+1,S32,dst[cn]->data);
         
         memset(dst[cn]->dataS32[0],0,(width+1)*sizeof(float));
         for(j=ImageY1(src);j<ImageY2(src);j++)
@@ -85,11 +85,11 @@ void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum)
     
     height = src->height;
     width = src->width;
-    for(cn=0;cn<src->cn;cn++)
+    for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(sum[cn])||INVALID_POINTER(sqsum[cn]),EXIT,"invalid input");
-        mTableRedefine(sum[cn],height+1,width+1,S32);
-        mTableRedefine(sqsum[cn],height+1,width+1,S32);
+        mTableRedefine(sum[cn]  ,height+1,width+1,S32,  sum[cn]->data);
+        mTableRedefine(sqsum[cn],height+1,width+1,S32,sqsum[cn]->data);
         
         memset(sum[cn]->data[0],0,(width+1)*sizeof(float));
         memset(sqsum[cn]->data[0],0,(width+1)*sizeof(float));
@@ -119,10 +119,10 @@ void mImageColSum(MImage *src,int **sum,int **sum2)
     
     height = src->height;
     width = src->width;
-   
+    
     if((sum!=NULL)&&(sum2!=NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
         {
             s = sum[cn];
             s2= sum2[cn];
@@ -140,7 +140,7 @@ void mImageColSum(MImage *src,int **sum,int **sum2)
     }
     else if((sum!=NULL)&&(sum2==NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
         {
             s = sum[cn];
             data = src->data[cn];
@@ -153,7 +153,7 @@ void mImageColSum(MImage *src,int **sum,int **sum2)
     }
     else if((sum==NULL)&&(sum2!=NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
         {
             s2= sum2[cn];
             data = src->data[cn];
@@ -182,7 +182,7 @@ void mImageRowSum(MImage *src,int **sum,int **sum2)
     
     if((sum!=NULL)&&(sum2!=NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
             for(j=0;j<height;j++)
             {
                 s = 0;
@@ -199,7 +199,7 @@ void mImageRowSum(MImage *src,int **sum,int **sum2)
     }
     else if((sum!=NULL)&&(sum2==NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
             for(j=0;j<height;j++)
             {
                 s = 0;
@@ -211,7 +211,7 @@ void mImageRowSum(MImage *src,int **sum,int **sum2)
     }
     else if((sum!=NULL)&&(sum2!=NULL))
     {
-        for(cn=0;cn<src->cn;cn++)
+        for(cn=0;cn<src->channel;cn++)
             for(j=0;j<height;j++)
             {
                 s2 = 0;
