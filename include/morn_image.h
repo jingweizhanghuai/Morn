@@ -42,7 +42,7 @@ typedef struct MImageBorder
 }MImageBorder;
 
 typedef struct MImage {
-    int cn;                         // ?????
+    int channel;
     int height;
     int width;
     
@@ -52,32 +52,22 @@ typedef struct MImage {
     
     MImageBorder *border;
     
-    // struct
-    // {
-        // int image_type;
-        // int border_type;
-    // }info;
     MInfo info;
     void *reserve;
 }MImage;
 
 #define INVALID_IMAGE(Img) ((((Img) ==NULL)||((intptr_t)(Img) == DFLT))?1:(((Img)->data == NULL)||((intptr_t)((Img)->data) == DFLT)\
-                                                                    ||((Img)->cn <= 0)\
+                                                                    ||((Img)->channel <= 0)\
                                                                     ||((Img)->height <= 0)||((Img)->width <= 0)\
                                                                     ||((Img)->handle == NULL)))
 
-MImage *mImageCreate(int cn,int height,int width,unsigned char **data[]);
-void mImageRedefine(MImage *img,int cn,int height,int width);
+MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
+void mImageRedefine(MImage *img,int channel,int height,int width,unsigned char **data[]);
 void mImageRelease(MImage *img);
-#define mImageSet(Img,Cn,Height,Width) {\
-    if(Img == NULL)\
-        Img = mImageCreate(Cn,Height,Width,NULL);\
-    else\
-        mImageRedefine(Img,Cn,Height,Width);\
-}
 
 void mImageExpand(MImage *img,int r,int border_type);
 void mImageCopy(MImage *src,MImage *dst);
+MImage *mImageChannelSplit(MImage *src,int channel);
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
@@ -98,16 +88,16 @@ void mImageDataInputS16(MImage *img,S16 *stream,int stream_type,unsigned char (*
 void mImageDataInputS32(MImage *img,S32 *stream,int stream_type,unsigned char (*func)(S32,void *),void *para);
 void mImageDataInputF32(MImage *img,F32 *stream,int stream_type,unsigned char (*func)(F32,void *),void *para);
 void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*func)(D64,void *),void *para);
-#define mImageDataInput(Type,Img,Stream,Stream_type,Func,Para) mImageDataInput##Type(Img,Stream,Stream_type,Func,Para)
+#define mImageDataInput(Img,Stream,Stream_type,Type,Func,Para) mImageDataInput##Type(Img,Stream,Stream_type,Func,Para)
 
-void mImageDataOutputU8( MImage *img,U8  *stream,int stream_type,unsigned char (*func)(U8 ,void *),void *para);
-void mImageDataOutputS8( MImage *img,S8  *stream,int stream_type,unsigned char (*func)(S8 ,void *),void *para);
-void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,unsigned char (*func)(U16,void *),void *para);
-void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,unsigned char (*func)(S16,void *),void *para);
-void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,unsigned char (*func)(S32,void *),void *para);
-void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,unsigned char (*func)(F32,void *),void *para);
-void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*func)(D64,void *),void *para);
-#define mImageDataOutput(Type,Img,Stream,Stream_type,Func,Para) mImageDataOutput##Type(Img,Stream,Stream_type,Func,Para)
+void mImageDataOutputU8( MImage *img,U8  *stream,int stream_type,U8  (*func)(unsigned char,void *),void *para);
+void mImageDataOutputS8( MImage *img,S8  *stream,int stream_type,S8  (*func)(unsigned char,void *),void *para);
+void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,U16 (*func)(unsigned char,void *),void *para);
+void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,S16 (*func)(unsigned char,void *),void *para);
+void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,S32 (*func)(unsigned char,void *),void *para);
+void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,F32 (*func)(unsigned char,void *),void *para);
+void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,D64 (*func)(unsigned char,void *),void *para);
+#define mImageDataOutput(Img,Stream,Stream_type,Type,Func,Para) mImageDataOutput##Type(Img,Stream,Stream_type,Func,Para)
 
 void mImageToGray(MImage *src,MImage *dst); 
 
@@ -131,7 +121,7 @@ typedef struct MImageRect
     int x2;
     int y2;
 }MImageRect;
-#define mRect(Rect,X1,Y1,X2,Y2) {(Rect)->x1=X1;(Rect)->y1=Y1;(Rect)->x2=X2;(Rect)->y2=Y2;}
+#define mImageRectSetup(Rect,X1,Y1,X2,Y2) do{(Rect)->x1=X1;(Rect)->y1=Y1;(Rect)->x2=X2;(Rect)->y2=Y2;}while(0)
 #define mRectHeight(Rect) ((Rect)->y2-(Rect)->y1)
 #define mRectWidth(Rect)  ((Rect)->x2-(Rect)->x1)
 
@@ -140,9 +130,15 @@ typedef struct MImagePoint
     float x;
     float y;
 }MImagePoint;
-#define mPoint(Point,X,Y) {(Point)->x=X; (Point)->y=Y;}
-MImagePoint *mImagePointCreate(float x1,float y1);
+#define mImagePointSetup(Point,X,Y) do{(Point)->x=X; (Point)->y=Y;}while(0)
 
+typedef struct MImageCircle
+{
+    MImagePoint center;
+    float r;
+}MImageCircle;
+#define mImageCircleSetup(Circle,Cx,Cy,R) do{(Circle)->center.x=Cx;(Circle)->center.y=Cy;(Circle)->r=R;}while(0)
+    
 void mBMPSave(MImage *src,const char *filename);
 void mBMPLoad(const char *filename,MImage *dst);
 void mJPGSave(MImage *src,const char *filename);
@@ -154,20 +150,19 @@ void mImageSave(MImage *img,const char *filename);
 
 void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle);
 
-#define MORN_RESIZE_UNUNIFORM  0
-#define MORN_RESIZE_MINUNIFORM 1
-#define MORN_RESIZE_MAXUNIFORM 2
-#define MORN_RESIZE_LINEAR     0x00
-#define MORN_RESIZE_NEAREST    0x10
+#define MORN_RESIZE_UNUNIFORM  DFLT
+#define MORN_RESIZE_MINUNIFORM 0xFE
+#define MORN_RESIZE_MAXUNIFORM 0xFD
+#define MORN_INTERPOLATE       DFLT
+#define MORN_NEAREST           0xEF
 void mImageResize(MImage *src,MImage *dst,int height,int width,int type);
 
-extern unsigned char morn_default_color[4];
+extern unsigned char morn_default_color[3];
 void mImageDrawPoint(MImage *src,MImage *dst,MImagePoint *point,unsigned char *color,int width);
 void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *color,int width);
 void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width);
 void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width);
-void mImageDrawCircle(MImage *src,MImage *dst,MImagePoint *center,float r,unsigned char *color,int thick);
-void mImageDrawCurve(MImage *src,MImage *dst,float (*func)(float,void *),void *para,unsigned char *color,int thick);
+void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char *color,int width);
 
 void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mLineTravel(MList *line,int stride,void (*func)(MImagePoint *,void *),void *para);
@@ -179,9 +174,11 @@ int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
 int mLineCrossCheck(MList *line1,MList *line2);
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py);
 void mPolygon(MList *polygon,int num,...);
+#define mRectArea(Rect) ((Rect->x2-Rect->x1)*(Rect->y2-Rect->y1))
 float mPolygonArea(MList *polygon);
 float TriangleArea(float x1,float y1,float x2,float y2,float x3,float y3);
 float mTriangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3);
+#define mCircleArea(Circle) ((Circle)->r*(Circle)->r*MORN_PI)
 float QuadrangleArea(float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4);
 float mQuadrangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3,MImagePoint *p4);
 #define PointDistance(X1,Y1,X2,Y2) ((float)sqrt(((X1)-(X2))*((X1)-(X2))+((Y1)-(Y2))*((Y1)-(Y2))))
@@ -191,11 +188,15 @@ float mPointVerticalDistance(MImagePoint *point,MList *line,MImagePoint *pedal);
 #define mPointInRect(Point,Rect) (((Point)->x>(Rect)->x1)&&((Point)->x<(Rect)->x2)&&((Point)->y>(Rect)->y1)&&((Point)->y<(Rect)->y2));
 int PointInPolygon(double x,double y,MList *polygon);
 int mPointInPolygon(MImagePoint *point,MList *polygon);
+float mRectUnionsetArea(MImageRect *rect1,MImageRect *rect2);
+float mRectIntersetArea(MImageRect *rect1,MImageRect *rect2);
+float mCircleIntersetArea(MImageCircle *circle1,MImageCircle *circle2);
 float mPolygonIntersetArea(MList *polygon1,MList *polygon2);
 int PolygonCross(MList *polygon1,MList *polygon2);
 int mPolygonCross(MList *polygon1,MList *polygon2);
 int mPolygonConcaveCheck(MList *polygon);
 void mShapeBounding(MList *shape,MList *bounding);
+
 
 void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh);
 
@@ -212,13 +213,7 @@ void mImageGradientFilter(MImage *dir,MImage *value,MImage *ddst,MImage *vdst,in
 void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r);
 void mImageCanny(MImage *src,MImage *dst,int r,int thresh);
 
-int mColorCluster(MImage *src,MImage *dst,MSheet *color,MList *list,int r,int thresh);
-
-
-void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para);
-void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle);
-void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd);
-void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd);
+int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh);
 
 
 #ifdef __cplusplus

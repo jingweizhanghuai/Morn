@@ -1,8 +1,15 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Image.h"
+#include "morn_image.h"
 
 extern unsigned char r_to_y[256];
 extern unsigned char g_to_y[256];
@@ -13,59 +20,7 @@ struct HandleSimilarityFeature
 };
 void endSimilarityFeature(void *info) {NULL;}
 #define HASH_SimilarityFeature 0xae6941e4
-/*
-int *mImageSimilarityFeature(MImage *src)
-{
-    MHandle *hdl; ObjectHandle(src,ImageSimilarityFeature,hdl);
-    struct HandleSimilarityFeature *handle = hdl->handle;
-    if(hdl->valid == 1) return handle->feature;
-    hdl->valid =1;
-    int mean[8][8];
-    
-    float x_step = src->width/8;
-    float y_step = src->height/8;
-    for(int y=0;y<8;y++)
-        for(int x=0;x<8;x++)
-        {
-            int y1=y*y_step;int y2=y1+y_step;
-            int x1=x*x_step;int x2=x1+x_step;
-            mean[y][x] = 0;
-            for(int j=y1;j<y2;j++)
-                for(int i=x1;i<x2;i++)
-                {
-                    int data;
-                    if(src->channel==MORN_IMAGE_RGB)
-                    {
-                        r = src->data[2][j][i];
-                        g = src->data[1][j][i];
-                        b = src->data[0][j][i];
-                        data = y = r_to_y[r] + g_to_y[g] + b_to_y[b];
-                    }
-                    else data = src->data[0][j][i];
-                    mean[y][x] += data;
-                }
-            mean[y][x] = mean[y][x]/(int)(x_step*y_step);
-        }
-        
-    char feature[2016];
-    int n=0;
-    for(int j=1;j<64;j++)
-        for(int i=0;i<j;i++)
-        {
-            feature[n] = (ABS(mean[j]-mean[i])>32);
-            n=n+1;
-        }
-    n=0;
-    for(int i=0;i<2016;i+=32)
-    {
-        handle->feature[n] = 0;
-        for(int j=31;j>=0;j--)
-            handle->feature[n]+=(feature[i]<<j);
-        n=n+1;
-    }
-    return handle->feature;
-}
-*/
+
 uint32_t *mImageSimilarityFeature(MImage *src)
 {
     MHandle *hdl; ObjectHandle(src,SimilarityFeature,hdl);

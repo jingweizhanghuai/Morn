@@ -87,7 +87,7 @@ void NetworkTrain(MFile *ini);
 ```c
 int main()
 {
-    MFile *ini = mFileCreate("./test67.ini");
+    MFile *ini = mFileCreate("./test.ini");
     NetworkTrain(ini);
     mFileRelease(ini);
     return 0;
@@ -99,6 +99,42 @@ int main()
 把大象装进冰箱需要几步？答案是三步：①打开冰箱门，②把大象放进去，③把冰箱门关上。
 
 训练一个深度学习模型需要几步？答案也是三步，①创建一个MFile文件，②训练，③把MFile文件释放掉。
+
+下面，以MNIST数据集（就是那个手写数字的数据集）为例，说一下：
+
+首先，你需要准备数据，下载数据的时候网页上已经写明了数据的格式（或者你百度一下它的格式），所以，按照它的格式，把数据提取出来，然后保存成Morn所支持的.morn格式
+
+```c
+int main()
+{
+    FILE *f_label= fopen("E:/minist/train-labels.idx1-ubyte","rb");
+    FILE *f_data = fopen("E:/minist/train-images.idx3-ubyte","rb");
+    MTensor *in = mTensorCreate(1,1,28,28,NULL);
+    MTensor *out= mTensorCreate(1,1, 1,10,NULL);
+    unsigned char label;
+    unsigned char data[28*28];
+    fseek(f_label,8,SEEK_SET);
+    fseek(f_data,16,SEEK_SET);
+    char mornname[256];
+    for(int n=0;n<60000;n++)
+    {
+        fread(&label,1,1,f_label);
+        fread(data,1,28*28,f_data);
+        memset(out->data[0],0,10);out->data[0][label]=1;
+        for(int i=0;i<28*28;i++) in->data[0][i]=data[i]/256;
+        sprintf(mornname,"E:/minist/train_data/train%05d.morn",n);
+        MFile *morn = mFileCreate(mornname);
+        mMORNWrite(morn, "input",(void **)( in->data),1,28*28*sizeof(float));
+        mMORNWrite(morn,"output",(void **)(out->data),1,   10*sizeof(float));
+        mFileRelease(morn);
+    }
+    mTensorRelease(in);
+    mTensorRelease(out);
+    fclose(f_label);
+    fclose(f_data);
+    return 0;
+}
+```
 
 
 

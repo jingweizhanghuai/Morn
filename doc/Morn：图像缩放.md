@@ -21,7 +21,7 @@ mImageResize(src,dst,256,256,DFLT);
 
 type是缩放方法：
 
-其一，可以指定缩放的插值方法：线性插值（MORN_RESIZE_LINEAR）或者取临近点（MORN_RESIZE_NEAREST），两种方法必须选其一，默认值是线性插值。
+其一，可以指定缩放的插值方法：线性插值（MORN_INTERPOLATE）或者取临近点（MORN_NEAREST），两种方法必须选其一，默认值是线性插值。
 
 其二，可以选择缩放的比例：不按比例缩放（MORN_RESIZE_UNUNIFORM）或者按照最小等比例缩放（MORN_RESIZE_MINUNIFORM）再或者按照最大等比例缩放（MORN_RESIZE_MAXUNIFORM）。默认值是不按比例缩放。
 
@@ -37,26 +37,26 @@ mImageResize(src,dst,DFLT,DFLT,MORN_RESIZE_MAXUNIFORM);
 //取临近点、不按比例缩放
 mImageResize(src,dst,DFLT,DFLT,MORN_RESIZE_NEAREST);
 //取临近点、最小等比例缩放
-mImageResize(src,dst,DFLT,DFLT,MORN_RESIZE_NEAREST|MORN_RESIZE_MINUNIFORM);
+mImageResize(src,dst,DFLT,DFLT,MORN_NEAREST&MORN_RESIZE_MINUNIFORM);
 //取临近点、最大等比例缩放
-mImageResize(src,dst,DFLT,DFLT,MORN_RESIZE_NEAREST|MORN_RESIZE_MAXUNIFORM);
+mImageResize(src,dst,DFLT,DFLT,MORN_NEAREST&MORN_RESIZE_MAXUNIFORM);
 ```
 
 原图：
 
-![](E:\morn\doc\test.jpg)
+![](./test.jpg)
 
 不按比例缩放：
 
-![](E:\morn\doc\test_resize1.jpg)
+![](./test_resize1.jpg)
 
 最小等比例缩放：
 
-![](E:\morn\doc\test_resize2.jpg)
+![](./test_resize2.jpg)
 
 最大等比例缩放：
 
-![](E:\morn\doc\test_resize3.jpg)
+![](./test_resize3.jpg)
 
 #### 性能
 
@@ -110,6 +110,6 @@ int main()
 
 这个就是把一张图像，缩放到256*256大小，方法都是采用双线性插值和非等比例缩放，测试了10次用以统计程序执行时间。结果如下：
 
-![](E:\morn\doc\图片缩放.PNG)
+![](./图片缩放.PNG)
 
 我听说OpenCV做图像缩放很慢，测了以后发现它真的很慢，OpenCV在做图像缩放的时候到底在干什么？
