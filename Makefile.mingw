@@ -1,0 +1,49 @@
+OPENMP=1
+JPG_PNG=1
+DEBUG=0
+
+CC = gcc
+LIB = ar
+LIBDIR = ./lib/mingw
+REMOVE = rm -rf
+
+CCFLAGS = -O2 -fPIC -Wall
+ifeq ($(OPENMP), 1) 
+CCFLAGS += -fopenmp
+endif
+ifeq ($(DEBUG), 1) 
+CCFLAGS += -DDEBUG
+endif
+
+STATICLIB = $(LIBDIR)/libmorn.a
+SHAREDLIB = $(LIBDIR)/libmorn.dll
+OUTPUT = $(STATICLIB) $(SHAREDLIB)
+
+CSOURCES  = $(wildcard ./src/util/*.c)
+CSOURCES += $(wildcard ./src/math/*.c)
+CSOURCES += $(wildcard ./src/wave/*.c)
+CSOURCES += $(wildcard ./src/image/*.c)
+# CSOURCES += $(wildcard ./src/machine_learning/*.c)
+CSOURCES += $(wildcard ./src/deep_learning/*.c)
+ifeq ($(JPG_PNG), 1) 
+CSOURCES += $(wildcard ./src/wrap/*.c)
+endif
+
+OBJS = $(patsubst %.c,%.ob,$(CSOURCES))
+
+DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
+
+INCLUDEDIR = -I ./include -I ./lib/include
+
+$(OUTPUT):$(OBJS)
+	$(LIB) -rc $(STATICLIB) $(OBJS)
+	$(CC) $(CCFLAGS) -shared $(OBJS) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
+
+%.ob:%.c
+	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -o $@
+
+clean:
+	$(REMOVE) $(OBJS)
+	$(REMOVE) $(OUTPUT)
+
+

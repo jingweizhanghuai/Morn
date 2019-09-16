@@ -227,7 +227,7 @@ void mWaveZeroCrossRatio(MWave *src,float *zcr)
     {
         int *data = (int *)src->data[cn];
         int num = 0;
-        for(i=1;i<src->size;i++)
+        for(int i=1;i<src->size;i++)
             num = num +(((data[i])^(data[i-1]))<0);
         
         zcr[cn] = ((float)num)/((float)src->size);

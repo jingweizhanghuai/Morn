@@ -106,7 +106,7 @@ void mWaveIntegerResample(MWave *src,MWave *dst,int n)
         
         for(i=3;i<dst_size-3;i++)
         {
-            double locate = n*i;
+            int locate = n*i;
             
             float result = src->data[cn][locate];
             for(j=1;j<=10;j++)

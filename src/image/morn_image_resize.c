@@ -12,6 +12,114 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_image.h"
 
+struct HandleBinaryImageResize
+{
+    int height;
+    int width;
+    int type;
+    
+    int *lx;
+    int *ly;
+};
+#define HASH_BinaryImageResize 0x3b7f3813
+void endBinaryImageResize(void *info)
+{
+    struct HandleBinaryImageResize *handle = info;
+    if(handle->lx != NULL) mFree(handle->lx);
+    if(handle->ly != NULL) mFree(handle->ly);
+}
+void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
+{
+    mException(INVALID_IMAGE(src),EXIT,"invalid input");
+    type = type|0xFC;
+    
+    MImage *p=dst;
+    if(INVALID_POINTER(dst)||(dst==src))
+    {
+        if((height>0)&&(width>0)) NULL;
+        else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
+            height = (src->height)*width/(src->width);
+        else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
+            width = (src->width)*height/(src->height);
+        else
+            mException(1,EXIT,"invalid input");
+        dst = mImageCreate(src->channel,height,width,NULL);
+    }
+    else
+    {
+        if(height <= 0) height = dst->height;
+        if(width  <= 0) width = dst->width;
+        
+        if((height>0)&&(width>0)) NULL;
+        else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
+            height = (src->height)*width/(src->width);
+        else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
+            width = (src->width)*height/(src->height);
+        else
+            mException(1,EXIT,"invalid input");
+        mImageRedefine(dst,src->channel,height,width,dst->data);
+    }
+
+    MHandle *hdl; ObjectHandle(src,BinaryImageResize,hdl);
+    struct HandleBinaryImageResize *handle = hdl->handle;
+    if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
+    {
+        float kx = ((float)(src->width ))/((float)width );
+        float ky = ((float)(src->height))/((float)height);
+             if(type == MORN_RESIZE_MINUNIFORM) {kx = MIN(kx,ky); ky = kx;}
+        else if(type == MORN_RESIZE_MAXUNIFORM) {kx = MAX(kx,ky); ky = kx;}
+        float scx = ((float)(src->width))/2.0f; float scy = ((float)(src->height))/2.0f;
+        float dcx = ((float)      width )/2.0f; float dcy = ((float)      height )/2.0f;
+    
+        handle->type = type;
+        
+        if(handle->width <width)
+        {
+            if(handle->lx != NULL) mFree(handle->lx);
+            handle->lx = mMalloc(width * sizeof(int));
+        }
+        handle->width = width;
+        
+        if(handle->height < height)
+        {
+            if(handle->ly != NULL) mFree(handle->ly);
+            handle->ly = mMalloc(height * sizeof(int));
+        }
+        handle->height = height;
+        
+        for(int i=0;i<width;i++)
+        {
+            float x = ((float)i-dcx)*kx+scx;
+            handle->lx[i] = (int)(x+0.5);
+        }
+        
+        for(int j=0;j<height;j++)
+        {
+            float y = ((float)j-dcy)*ky+scy;
+            handle->ly[j] = (int)(y+0.5);
+        }
+        
+        hdl->valid = 1;
+    }
+    int *lx = handle->lx;
+    int *ly = handle->ly;
+    
+    int j;
+    #pragma omp parallel for
+    for(j=0;j<height;j++)
+        for(int i=0;i<width;i++)
+            for(int cn=0;cn<src->channel;cn++)
+                dst->data[cn][j][i] =src->data[cn][ly[j]][lx[i]];
+
+    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    
+    if(p!=dst)
+    {
+        mImageExchange(src,dst);
+        mImageRelease(dst);
+    }
+}
+
 struct HandleImageResize
 {
     int height;
@@ -35,7 +143,7 @@ void endImageResize(void *info)
 void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    if(type|MORN_NEAREST==MORN_NEAREST) {mBinaryImageResize(src,dst,height,width,type);return;}
+    if((type|MORN_NEAREST)==MORN_NEAREST) {mBinaryImageResize(src,dst,height,width,type);return;}
    
     MImage *p=dst;
     if(INVALID_POINTER(dst)||(dst==src))
@@ -146,113 +254,6 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
     }
 }
 
-struct HandleBinaryImageResize
-{
-    int height;
-    int width;
-    int type;
-    
-    int *lx;
-    int *ly;
-};
-#define HASH_BinaryImageResize 0x3b7f3813
-void endBinaryImageResize(void *info)
-{
-    struct HandleBinaryImageResize *handle = info;
-    if(handle->lx != NULL) mFree(handle->lx);
-    if(handle->ly != NULL) mFree(handle->ly);
-}
-void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
-{
-    mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    type = type|0xFC;
-    
-    MImage *p=dst;
-    if(INVALID_POINTER(dst)||(dst==src))
-    {
-        if((height>0)&&(width>0)) NULL;
-        else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
-            height = (src->height)*width/(src->width);
-        else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
-            width = (src->width)*height/(src->height);
-        else
-            mException(1,EXIT,"invalid input");
-        dst = mImageCreate(src->channel,height,width,NULL);
-    }
-    else
-    {
-        if(height <= 0) height = dst->height;
-        if(width  <= 0) width = dst->width;
-        
-        if((height>0)&&(width>0)) NULL;
-        else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
-            height = (src->height)*width/(src->width);
-        else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
-            width = (src->width)*height/(src->height);
-        else
-            mException(1,EXIT,"invalid input");
-        mImageRedefine(dst,src->channel,height,width,dst->data);
-    }
-
-    MHandle *hdl; ObjectHandle(src,BinaryImageResize,hdl);
-    struct HandleBinaryImageResize *handle = hdl->handle;
-    if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
-    {
-        float kx = ((float)(src->width ))/((float)width );
-        float ky = ((float)(src->height))/((float)height);
-             if(type == MORN_RESIZE_MINUNIFORM) {kx = MIN(kx,ky); ky = kx;}
-        else if(type == MORN_RESIZE_MAXUNIFORM) {kx = MAX(kx,ky); ky = kx;}
-        float scx = ((float)(src->width))/2.0f; float scy = ((float)(src->height))/2.0f;
-        float dcx = ((float)      width )/2.0f; float dcy = ((float)      height )/2.0f;
-    
-        handle->type = type;
-        
-        if(handle->width <width)
-        {
-            if(handle->lx != NULL) mFree(handle->lx);
-            handle->lx = mMalloc(width * sizeof(int));
-        }
-        handle->width = width;
-        
-        if(handle->height < height)
-        {
-            if(handle->ly != NULL) mFree(handle->ly);
-            handle->ly = mMalloc(height * sizeof(int));
-        }
-        handle->height = height;
-        
-        for(int i=0;i<width;i++)
-        {
-            float x = ((float)i-dcx)*kx+scx;
-            handle->lx[i] = (int)(x+0.5);
-        }
-        
-        for(int j=0;j<height;j++)
-        {
-            float y = ((float)j-dcy)*ky+scy;
-            handle->ly[j] = (int)(y+0.5);
-        }
-        
-        hdl->valid = 1;
-    }
-    int *lx = handle->lx;
-    int *ly = handle->ly;
-    
-    int j;
-    #pragma omp parallel for
-    for(j=0;j<height;j++)
-        for(int i=0;i<width;i++)
-            for(int cn=0;cn<src->channel;cn++)
-                dst->data[cn][j][i] =src->data[cn][ly[j]][lx[i]];
-
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
-    
-    if(p!=dst)
-    {
-        mImageExchange(src,dst);
-        mImageRelease(dst);
-    }
-}
 
 
 

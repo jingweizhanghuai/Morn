@@ -150,8 +150,10 @@ void mImageSave(MImage *img,const char *filename);
 void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle);
 
 #define MORN_RESIZE_UNUNIFORM  DFLT
-#define MORN_RESIZE_MINUNIFORM 0
-#define MORN_RESIZE_MAXUNIFORM 1
+#define MORN_RESIZE_MINUNIFORM 0xFE
+#define MORN_RESIZE_MAXUNIFORM 0xFD
+#define MORN_INTERPOLATE       DFLT
+#define MORN_NEAREST           0xEF
 void mImageResize(MImage *src,MImage *dst,int height,int width,int type);
 
 extern unsigned char morn_default_color[3];
