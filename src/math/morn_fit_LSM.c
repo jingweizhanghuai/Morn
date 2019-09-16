@@ -1,9 +1,16 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "morn_image.h"
+#include "morn_Image.h"
 
 void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
 {
@@ -32,8 +39,8 @@ void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
 
 void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
 {
-    int i;
-    
+    int i,j;
+    float *thresh = mMalloc(piece_num*8*sizeof(int));
     float x_min=XIn[0],x_max=XIn[0],y_min=YIn[0],y_max=YIn[0];
     for(i=1;i<N;i++)
     {
@@ -84,6 +91,7 @@ void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
     int m=0;int sum=0;float xsum=0,ysum=0,xysum=0,x2sum=0;
     for(i=0;i<piece_num*8;i++)
     {
+        float a[2];
         sum += num[i];
         xsum += sumx[i];ysum += sumy[i];
         xysum+=sumxy[i];x2sum+=sumx2[i];

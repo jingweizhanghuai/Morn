@@ -1,25 +1,29 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 #include <time.h>
-#include "morn_math.h"
+#include "morn_Math.h"
 
 struct HandleVectorCreate
 {
     MVector *vec;
     int size;
-    MMemory *memory;
+    float *memory;
 };
 void endVectorCreate(void *info)
 {
     struct HandleVectorCreate *handle = info;
     mException((handle->vec==NULL),EXIT,"invalid vector");
-    
-    if(handle->memory != NULL)
-        mMemoryRelease(handle->memory);
-    
+    if(handle->memory != NULL) mFree(handle->memory);
     mFree(handle->vec);
 }
 #define HASH_VectorCreate 0xfc0b887c
@@ -42,16 +46,16 @@ MVector *mVectorCreate(int size,float *data)
     }
     else if(INVALID_POINTER(data))
     {
-        handle->memory = mMemoryCreate(1,size*sizeof(float));
+        handle->memory = mMalloc(size*sizeof(float));
         handle->size = size;
-        vec->data = (float *)(handle->memory->data[0]);
+        vec->data = handle->memory;
     }
     else
         vec->data = data;
     
     return vec;
 }
-
+ 
 void mVectorRelease(MVector *vec)
 {   
     mException(INVALID_POINTER(vec),EXIT,"invalid input");
@@ -60,27 +64,39 @@ void mVectorRelease(MVector *vec)
         mHandleRelease(vec->handle);
 }
 
-void mVectorRedefine(MVector *vec,int size)
+void mVectorRedefine(MVector *vec,int size,float *data)
 {
     mException(INVALID_POINTER(vec),EXIT,"invalid input");
     
     if(size <= 0) size = vec->size;
-    if(size == vec->size)
-        return;
+    if(size!=vec->size)mHandleReset(vec->handle);
+    int same_size = (size <= vec->size);
+    int reuse = (data==vec->data);
+    int flag = (vec->size >0);
     
-    vec->size = size;
-    mHandleReset(vec->handle);
+    vec->size=size;
+    
+    if(same_size&&reuse) return;
+    struct HandleVectorCreate *handle = ((MHandle *)(vec->handle->data[0]))->handle;
+    if(same_size&&(data==NULL)&&(handle->size>0)) return;
+    mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
+    
+    if(reuse) data=NULL;
+    handle->size=0;
+    
     if(size == 0) {vec->data = NULL; return;}
-    
-    struct HandleVectorCreate *handle;
-    handle = ((MHandle *)(vec->handle->data[0]))->handle;
+    if(data!=NULL){vec->data = data; return;}
     
     if(size>handle->size)
     {
-        MemorySet(handle->memory,1,size*sizeof(float),&(vec->data));
+        if(handle->memory!=NULL) mFree(handle->memory);
+        handle->memory = mMalloc(size*sizeof(float));
         handle->size = size;
+        vec->data = handle->memory;
     }
 }
+
+
 
 void PrintMat(MMatrix *mat)
 {
@@ -93,20 +109,6 @@ void PrintMat(MMatrix *mat)
     }
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  创建矩阵
-//
-// 参数：
-//  (I)row(NO) - 矩阵的行数（高度）
-//  (I)col(NO) - 矩阵的列数（宽度）
-//
-// 返回值：
-//  矩阵指针
-//
-// 备注：
-//  需使用 mMatrixRelease 释放矩阵
-/////////////////////////////////////////////////////////
 struct HandleMatrixCreate
 {
     MMatrix *mat;
@@ -175,16 +177,6 @@ MMatrix *mMatrixCreate(int row,int col,float **data)
     return mat;
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  矩阵释放
-//
-// 参数：
-//  (I)mat(NO) - 待释放的矩阵
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mMatrixRelease(MMatrix *mat)
 {
     mException(INVALID_POINTER(mat),EXIT,"invalid input");
@@ -193,67 +185,51 @@ void mMatrixRelease(MMatrix *mat)
         mHandleRelease(mat->handle);
 }
 
-
-
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  矩阵重定义
-//
-// 参数：
-//  (I)mat(NO) - 待重定义的矩阵
-//  (I)row(mat->row) - 矩阵的行数（高度）
-//  (I)col(mat->col) - 矩阵的列数（宽度）
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
-void mMatrixRedefine(MMatrix *mat,int row,int col)
+void mMatrixRedefine(MMatrix *mat,int row,int col,float **data)
 {
     mException((INVALID_POINTER(mat)),EXIT,"invalid input");
     
     if(row<=0) row = mat->row;
     if(col<=0) col = mat->col;
-    if((row==mat->row)&&(col==mat->col))
-        return;
+    if((row!=mat->row)||(col!=mat->col)) mHandleReset(mat->handle);
+    
+    int same_size=((row<=mat->row)&&(col<=mat->col));
+    int reuse = (data==mat->data);
+    int flag=(mat->row)&&(mat->col);
     
     mat->row = row;
     mat->col = col;
-    mHandleReset(mat->handle);
-    if((row == 0)||(col==0)) {mat->data=NULL; return;}
     
+    if(same_size&&reuse) return;
     struct HandleMatrixCreate *handle= ((MHandle *)(mat->handle->data[0]))->handle;
+    if(same_size&&(data==NULL)&&(handle->col>0)) return;
+    mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
+    
+    if(reuse) data=NULL;
+    handle->col=0;
+    
+    if((row == 0)||(col==0)) {mat->data=NULL; return;}
     
     if(row>handle->row)
     {
         if(handle->index != NULL)
             mFree(handle->index);
         handle->index = NULL;
-        
-        handle->col = 0;
     }
-    
     if(handle->index == NULL)
-        handle->index = (float **)mMalloc(row*sizeof(float *));
-    handle->row = row;
-    
-    if(col>handle->col)
     {
-        MemorySet(handle->memory,row,col*sizeof(float),handle->index);
-        handle->col = col;
+        handle->index = (float **)mMalloc(row*sizeof(float *));
+        handle->row = row;
     }
-    
     mat->data = handle->index;
+    
+    if(data!=NULL) {memcpy(handle->index,data,row*sizeof(float *));return;}
+    
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(row,col*sizeof(float));
+    mMemoryIndex(handle->memory,row,col*sizeof(float),(void **)(handle->index));
+    handle->col = col;
 }
 
-
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  创建单位方阵
-//
-// 参数：
-//  (I)size(NO) - 矩阵的尺寸（长宽）
-//
-/////////////////////////////////////////////////////////
 void mUnitMatrix(MMatrix *mat,int size)
 {
     if(size<0)
@@ -261,10 +237,9 @@ void mUnitMatrix(MMatrix *mat,int size)
         size = mat->row;
         mException(size!=mat->col,EXIT,"invalid input");
     }
-    else
-        mMatrixRedefine(mat,size,size);
+    else mMatrixRedefine(mat,size,size,mat->data);
+       
     int i;
-    
     #pragma omp parallel for
     for(i=0;i<size;i++)
     {
@@ -296,10 +271,8 @@ void mMatrixTranspose(MMatrix *mat,MMatrix *dst)
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
     
     p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat))
-        dst = mMatrixCreate(dst_row,dst_col,NULL);
-    else
-        mMatrixRedefine(dst,dst_row,dst_col);
+    if((INVALID_POINTER(dst))||(dst==mat)) dst = mMatrixCreate(dst_row,dst_col,NULL);
+    else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
     
     for(i=0;i<dst_row-8;i=i+8)
     {
@@ -333,27 +306,14 @@ void VectorAdd(float *vec1,float *vec2,float *dst,int num)
     for(i=0;i<num;i++)
         dst[i] = vec1[i]+vec2[i];
 }
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  向量求和
-//
-// 参数：
-//  (I)vec1(NO) - 待求和的向量
-//  (I)vec2(NO) - 待求和的向量
-//  (O)dst(vec1) - 计算结果
-//  
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst)
 {
     int i;
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
-    if(INVALID_POINTER(dst))
-        dst = vec1;
-    else
-        mVectorRedefine(dst,vec1->size);
+    if(INVALID_POINTER(dst)) dst = vec1;
+    else mVectorRedefine(dst,vec1->size,dst->data);
     
     for(i=0;i<vec1->size;i++)
         dst->data[i] = vec1->data[i] + vec2->data[i];
@@ -365,7 +325,7 @@ void mMatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
     #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
@@ -378,7 +338,7 @@ void mMatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
     #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
@@ -396,18 +356,7 @@ float VectorMul(float *vec1,float *vec2,int num)
     
     return sum;
 }
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算向量点乘
-//
-// 参数：
-//  (I)vec1(NO) - 待计算的向量
-//  (I)vec2(NO) - 待计算的向量
-//  (I)vec_num(NO) - 向量长度（元素个数）
-//  
-// 返回值：
-//  计算结果
-/////////////////////////////////////////////////////////
+
 float mVectorMul(MVector *vec1,MVector *vec2)
 {
     int i;
@@ -433,10 +382,8 @@ void mVectorScalarMul(MVector *vec1,MVector *vec2,MVector *dst)
     int i;
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
-    if(INVALID_POINTER(dst))
-        dst = vec1;
-    else
-        mVectorRedefine(dst,vec1->size);
+    if(INVALID_POINTER(dst)) dst = vec1;
+    else mVectorRedefine(dst,vec1->size,dst->data);
     
     for(i=0;i<vec1->size;i++)
         dst->data[i] = vec1->data[i] * vec2->data[i];
@@ -454,18 +401,7 @@ void MatrixVectorMul(MMatrix *mat,float *vec,float *dst)
         for(j=0;j<num_in;j++)
             dst[i] = dst[i] + vec[j]*mat->data[i][j];
 }
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算矩阵乘以列向量
-//
-// 参数：
-//  (I)mat(NO) - 待计算的矩阵
-//  (I)vec_in(NO) - 待计算的列向量
-//  (O)vec_out(NO) - 计算结果
-//  
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
 {
     int i,j;
@@ -482,10 +418,9 @@ void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
     mException((vec->size != num_in),EXIT,"invalid input");
     
     num_out = mat->row;
-    if(INVALID_POINTER(dst)||(dst == vec))
-        dst = mVectorCreate(num_out,NULL);
-    else
-        mVectorRedefine(dst,num_out);
+    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL);
+    else mVectorRedefine(dst,num_out,dst->data);
+       
     
     for(i=0;i<num_out;i++)
     {
@@ -515,18 +450,6 @@ void VectorMatrixMul(float *vec,MMatrix *mat,float *dst)
             dst[i] = dst[i] + vec[j]*mat->data[j][i];
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算行向量乘以矩阵
-//
-// 参数：
-//  (I)vec_in(NO) - 待计算的行向量
-//  (I)mat(NO) - 待计算的矩阵
-//  (O)vec_out(NO) - 计算结果
-//  
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst)
 {
     int i,j;
@@ -543,10 +466,8 @@ void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst)
     mException((vec->size != num_in),EXIT,"invalid input");
     
     num_out = mat->col;
-    if(INVALID_POINTER(dst)||(dst == vec))
-        dst = mVectorCreate(num_out,NULL);
-    else
-        mVectorRedefine(dst,num_out);
+    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL);
+    else mVectorRedefine(dst,num_out,dst->data);
     
     for(i=0;i<num_out;i++)
     {
@@ -569,28 +490,15 @@ void mMatrixScalarMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException((INVALID_MAT(mat1)||INVALID_MAT(mat2)),EXIT,"invalid input");
     mException((mat1->row != mat2->row)||(mat1->col != mat2->col),EXIT,"invalid input");
 
-    if(INVALID_POINTER(dst))
-        dst = mat1;
-    else
-        mMatrixRedefine(dst,mat1->row,mat1->col);
+    if(INVALID_POINTER(dst)) dst = mat1;
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
     
     for(j=0;j<mat1->row;j++)
         for(i=0;i<mat1->col;i++)
             dst->data[j][i] = mat1->data[j][i]*mat2->data[j][i];
 }
     
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算矩阵乘法
-//
-// 参数：
-//  (I)mat1(NO) - 待乘左矩阵
-//  (I)mat2(NO) - 待乘右矩阵
-//  (O)dst(mat1) - 计算结果
-//  
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+/*
 void mMatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
     int i,j,k;
@@ -607,10 +515,8 @@ void mMatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     dst_row = mat1->row;
     
     p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2))
-        dst = mMatrixCreate(dst_row,dst_col,NULL);
-    else
-        mMatrixRedefine(dst,dst_row,dst_col);
+    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col,NULL);
+    else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
     
     for(j=0;j<dst_row;j++)
     {
@@ -666,6 +572,7 @@ void mMatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
         }
     }
 }
+*/
 
 void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
@@ -676,10 +583,8 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     int dst_row = mat1->row;
 
     MMatrix *p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2))
-        dst = mMatrixCreate(dst_row,dst_col,NULL);
-    else
-        mMatrixRedefine(dst,dst_row,dst_col);
+    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col,NULL);
+    else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
 
     int flag = num&0x03; if(flag==0) flag = 4;
     
@@ -733,17 +638,6 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     }
 }
 
-
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算行列式的值
-//
-// 参数：
-//  (I)mat(NO) - 输入行列式
-//  
-// 返回值：
-//  计算结果
-/////////////////////////////////////////////////////////
 float mMatrixDetValue(MMatrix *mat)
 {
     int i,j,k;
@@ -834,17 +728,6 @@ float mMatrixDetValue(MMatrix *mat)
     return (float)value;
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算矩阵的逆矩阵
-//
-// 参数：
-//  (I)mat(NO) - 输入矩阵
-//  (O)inv(mat) - 输出逆矩阵
-//  
-// 返回值：
-//  矩阵可逆时返回1，不可逆时返回0
-/////////////////////////////////////////////////////////
 int mMatrixInverse(MMatrix *mat,MMatrix *inv)
 {
     int i,j,k;
@@ -861,10 +744,8 @@ int mMatrixInverse(MMatrix *mat,MMatrix *inv)
     mException((mat->col != num),EXIT,"invalid operate");
     
     p = inv;
-    if((INVALID_POINTER(inv))||(inv == mat))
-        inv = mMatrixCreate(num,num,NULL);
-    else
-        mMatrixRedefine(inv,num,num);
+    if((INVALID_POINTER(inv))||(inv == mat)) inv = mMatrixCreate(num,num,NULL);
+    else mMatrixRedefine(inv,num,num,inv->data);
     
     data = (double **)mMalloc((num+1)*sizeof(double *));
     data[0] = (double *)mMalloc((num+num)*num*sizeof(double));
@@ -949,17 +830,7 @@ int mMatrixInverse(MMatrix *mat,MMatrix *inv)
     return 1;
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  求解线性方程组
-//
-// 参数：
-//  (I)mat(NO) - 方程组系数矩阵
-//  (O)answer(NO) - 方程组求解结果
-//
-// 返回值：
-//  方程组有解时返回1，无解时返回0
-/////////////////////////////////////////////////////////
+
 int mLinearEquation(MMatrix *mat,float *answer)
 {
     int i,j,k;

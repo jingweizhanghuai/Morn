@@ -1,8 +1,15 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_math.h"
+#include "morn_Math.h"
 
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
 
@@ -38,17 +45,7 @@
     }\
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  保存.mat文件的文件头
-//
-// 参数：
-//  (I)f(NO) - 文件指针
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
-void mMATSaveHeader(FILE *f)
+void MATSaveHeader(FILE *f)
 {
     char message[116];
     
@@ -70,19 +67,7 @@ void mMATSaveHeader(FILE *f)
     fwrite(&buff_16,2,1,f);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  将文件存入.mat文件
-//
-// 参数：
-//  (I)mat(NO) - 待保存的矩阵
-//  (I)mat_name(NO) - 待保存的矩阵名
-//  (I)f(NO) - 文件指针
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
-void mMATSaveData(MMatrix *mat,char *mat_name,FILE *f)
+void MATSaveData(MMatrix *mat,char *mat_name,FILE *f)
 {
     int buff_32;
     
@@ -132,23 +117,6 @@ void mMATSaveData(MMatrix *mat,char *mat_name,FILE *f)
     }
 }
 
-// void mMATSave(MMatrix *mat[],char *mat_name[],int mat_num,const char *filename)
-// {
-    // mException((INVALID_POINTER(mat))||(INVALID_POINTER(mat_name)),EXIT,"invalid input");
-    // if(mat_num <=0)mat_num = 1;
-    
-    // FILE *f = fopen(filename,"wb");
-    // mException((f == NULL),EXIT,"file cannot open");
-    
-    // mMATSaveHeader(f);
-    // for(int n=0;n<mat_num;n++)
-    // {
-        // mException((mat_name[n]==NULL)||(mat[n]==NULL),EXIT,"invalid input");
-        // mMATSaveData(mat[n],mat_name[n],f);
-    // }
-    // fclose(f); 
-// }
-
 struct HandleMAT
 {
     FILE *f;
@@ -168,53 +136,35 @@ void mMATWrite(MFile *file,MMatrix *mat,char *mat_name)
     {
         if(handle->f==NULL) handle->f = fopen(file->filename,"wb+");
         mException((handle->f == NULL),EXIT,"file cannot open");
-        mMATSaveHeader(handle->f);
+        MATSaveHeader(handle->f);
         
         hdl->valid = 1;
     }
     fseek(handle->f,0,SEEK_END);
     mException((mat_name==NULL)||(mat==NULL),EXIT,"invalid input");
-    mMATSaveData(mat,mat_name,handle->f);
+    MATSaveData(mat,mat_name,handle->f);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  在.mat文件中寻找特定名称的矩阵
-//
-// 参数：
-//  (I)f(NO) - .mat文件的指针
-//  (I)matname(NO) - 需寻找的矩阵名
-//  (O)row(NULL) - 所找到的矩阵的高度
-//  (O)col(NULL) - 所找到的矩阵的宽度
-//
-// 返回值：
-//  找到了相应的矩阵则返回1，没有找到则返回0
-/////////////////////////////////////////////////////////
-int mMATSearch(FILE *f,char *matname,int *row,int *col)
+int MATSearch(FILE *f,char *matname,int *row,int *col)
 {
     char name[256];
     int type;
     int size;
     int buff[2];
-    
     int lenth;
     
-    int mat_size;
-    
-    int file_size;
-    
-    int mat_col,mat_row;
-    
     mException((INVALID_POINTER(f))||(INVALID_POINTER(matname)),EXIT,"invalid input");
+
+    int mat_col,mat_row;
     if(INVALID_POINTER(row))
         row = &mat_row;
     if(INVALID_POINTER(col))
         col = &mat_col;
     
-    mat_size = strlen(matname);
+    int mat_size = strlen(matname);
     
     fseek(f,0,SEEK_END);
-    file_size = ftell(f);    
+    int file_size = ftell(f);    
     
     fseek(f,128,SEEK_SET);
     
@@ -275,7 +225,7 @@ int mMATSearch(FILE *f,char *matname,int *row,int *col)
     return 1;
 }
 
-void mMATReadData(FILE *f,char *matname,MMatrix *dst)
+void MATReadData(FILE *f,char *matname,MMatrix *dst)
 {
     int col,row;
     
@@ -284,10 +234,9 @@ void mMATReadData(FILE *f,char *matname,MMatrix *dst)
     
     mException((INVALID_POINTER(f))||(INVALID_POINTER(dst)),EXIT,"file cannot open");
     
-    
-    if(!mMATSearch(f,matname,&row,&col))
+    if(!MATSearch(f,matname,&row,&col))
         mException(1,EXIT,"cannot find such mat name");
-    mMatrixRedefine(dst,row,col);
+    mMatrixRedefine(dst,row,col,dst->data);
     
     fread(&data_type,4,1,f);
     fread(&data_size,4,1,f);
@@ -304,24 +253,15 @@ void mMATReadData(FILE *f,char *matname,MMatrix *dst)
             }\
     }
 
-    if(data_type == SYMBOL_F32)
-        READ_DAT(float)
-    else if(data_type == SYMBOL_F64)
-        READ_DAT(double)
-    else if(data_type == SYMBOL_U8)
-        READ_DAT(unsigned char)
-    else if(data_type == SYMBOL_S8)
-        READ_DAT(char)
-    else if(data_type == SYMBOL_U16)
-        READ_DAT(unsigned short)
-    else if(data_type == SYMBOL_S16)
-        READ_DAT(short)
-    else if(data_type == SYMBOL_U32)
-        READ_DAT(unsigned int)
-    else if(data_type == SYMBOL_S32)
-        READ_DAT(int)
-    else
-        mException(1,EXIT,"invalid file format");
+         if(data_type == SYMBOL_F32) READ_DAT(float)
+    else if(data_type == SYMBOL_F64) READ_DAT(double)
+    else if(data_type == SYMBOL_U8 ) READ_DAT(unsigned char)
+    else if(data_type == SYMBOL_S8 ) READ_DAT(char)
+    else if(data_type == SYMBOL_U16) READ_DAT(unsigned short)
+    else if(data_type == SYMBOL_S16) READ_DAT(short)
+    else if(data_type == SYMBOL_U32) READ_DAT(unsigned int)
+    else if(data_type == SYMBOL_S32) READ_DAT(int)
+    else mException(1,EXIT,"invalid file format");
 }
 
 void mMATRead(MFile *file,char *matname,MMatrix *dst)
@@ -330,7 +270,7 @@ void mMATRead(MFile *file,char *matname,MMatrix *dst)
     struct HandleMAT *handle = hdl->handle;
     mException(hdl->valid == 0,EXIT,"no mat in file");
     
-    mMATReadData(handle->f,matname,dst);
+    MATReadData(handle->f,matname,dst);
 }
 
 

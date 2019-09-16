@@ -1,9 +1,16 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "morn_math.h"
+#include "morn_Math.h"
 
 void mMatrixMaxElement(MMatrix *src,float *element,int *x,int *y)
 {
@@ -73,19 +80,6 @@ void mMatrixMaxElement(MMatrix *src,float *element,int *x,int *y)
     }\
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  计算方阵的（实）特征值和特征向量
-//
-// 参数：
-//  (I)src(NO) - 待计算的方阵
-//  (O)eigenvalue(NULL) - 求得的特征值
-//  (O)eigenvector(NULL) - 求得的特征向量（与特征值对应）
-//  (O)eigennum(NULL) - 特征值的个数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mMatrixEigenvalue(MMatrix *src,float eigenvalue[],float *eigenvector[],int *eigennum)
 {
     int t;

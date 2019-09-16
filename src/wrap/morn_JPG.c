@@ -9,7 +9,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 #include <stdlib.h>
 
-#include "morn_Image.h"
+#include "morn_image.h"
 
 #include <jpeglib.h> 
 #define JPEG_QUALITY 100 //图片质量

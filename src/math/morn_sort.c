@@ -1,632 +1,15 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "morn_math.h"
-
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  快速排序
-//
-// 参数：
-//  (I/O)data(NO) - 需排序的数据序列
-//  (I)num(NO) - 数据序列的数量
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
-void mQuickSort(float *data,int num)
-{
-    int i,j;
-    float thresh;
-    
-    mException((INVALID_POINTER(data)),EXIT,"invalid input");
-    
-    if(num <= 1)
-        return;
-    
-    thresh = data[0];
-    i=0;j=num-1;
-    while(i<j)
-    {
-        while(data[j]>=thresh)
-        {
-            if(j==i)
-                goto next_sort;
-            j=j-1;
-        }
-        
-        data[i] = data[j];
-        
-        while(data[i]<=thresh)
-        {
-            if(i==j)
-                goto next_sort;
-            i=i+1;
-        }
-        
-        data[j] = data[i];
-    }
-
-next_sort:
-    data[i] = thresh;
-    mQuickSort(data,i);
-    mQuickSort(data+i+1,num-i-1);
-}
-
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  带索引的快速排序
-//
-// 参数：
-//  (I/O)data(NO) - 需排序的数据序列
-//  (I/O)index(NO) - 数据序列的索引
-//  (I)num(NO) - 数据序列的数量
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
-void mQuickSortWithIndex(float *data,int *index,int num)
-{
-    int i,j;
-    float thresh;
-    int thresh_index;
-    
-    if(INVALID_POINTER(index))
-    {
-        mQuickSort(data,num);
-        return;
-    }
-    
-    mException((INVALID_POINTER(data)),EXIT,"invalid input");
-    
-    if(num <= 1)
-        return;
-    
-    thresh = data[0];
-    thresh_index = index[0];
-    i=0;j=num-1;
-    while(i<j)
-    {
-        while(data[j]>=thresh)
-        {
-            if(j==i)
-                goto next_sort_with_index;
-            j=j-1;
-        }
-        
-        data[i] = data[j];
-        index[i] = index[j];
-        
-        while(data[i]<=thresh)
-        {
-            if(i==j)
-                goto next_sort_with_index;
-            i=i+1;
-        }
-        
-        data[j] = data[i];
-        index[j] = index[i];
-    }
-
-next_sort_with_index:
-    data[i] = thresh;
-    index[i] = thresh_index;
-    
-    mQuickSortWithIndex(data,index,i);
-    mQuickSortWithIndex(data+i+1,index+i+1,num-i-1);
-}
-
-
-void AscBubbleSort(float *data_in,float *data_out,int num)
-{
-    int i,j;
-    int flag;
-    float buff;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    
-    if(num <= 1)
-        return;
-    
-    flag = 1;
-    for(i=0;flag==1;i++)
-    {
-        flag = 0;
-        for(j=i;j<num-i-1;j++)
-        {
-            if(data_in[j+1]<data_in[j])
-            {
-                buff = data_in[j];
-                data_in[j] = data_in[j+1];
-                data_in[j+1] = buff;
-                flag = 1;
-            }
-        }
-        for(j=num-i-1;j>i;j--)
-        {
-            if(data_in[j]<data_in[j-1])
-            {
-                buff = data_in[j];
-                data_in[j] = data_in[j-1];
-                data_in[j-1] = buff;
-                flag = 1;
-            }
-        }
-    }
-}
-
-void AscBubbleSortWithIndex(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    int i,j;
-    int flag;
-    float data_buff;
-    int index_buff;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if(INVALID_POINTER(index_in)&&INVALID_POINTER(index_out))
-    {
-        AscBubbleSort(data_in,data_out,num);
-        return;
-    }
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    if(INVALID_POINTER(index_in))
-    {
-        for(i=0;i<num;i++)
-            index_out[i] = i;
-        index_in = index_out;
-    }
-    else if((!INVALID_POINTER(index_out))&&(index_in != index_out))
-    {
-        memcpy(index_out,index_in,num*sizeof(int));
-        index_in = index_out;
-    }
- 
-    if(num <= 1)
-        return;
-    
-    flag = 1;
-    for(i=0;flag==1;i++)
-    {
-        flag = 0;
-        for(j=i;j<num-i-1;j++)
-        {
-            if(data_in[j+1]<data_in[j])
-            {
-                data_buff = data_in[j];
-                data_in[j] = data_in[j+1];
-                data_in[j+1] = data_buff;
-                
-                index_buff = index_in[j];
-                index_in[j] = index_in[j+1];
-                index_in[j+1] = index_buff;
-                
-                flag = 1;
-            }
-        }
-        for(j=num-i-1;j>i;j--)
-        {
-            if(data_in[j]<data_in[j-1])
-            {
-                data_buff = data_in[j];
-                data_in[j] = data_in[j-1];
-                data_in[j-1] = data_buff;
-                
-                index_buff = index_in[j];
-                index_in[j] = index_in[j-1];
-                index_in[j-1] = index_buff;
-                
-                flag = 1;
-            }
-        }
-    }
-}
-
-void mAscBubbleSort(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    if((index_out == NULL)&&(index_in == NULL))
-        AscBubbleSort(data_in,data_out,num);
-    else
-        AscBubbleSortWithIndex(data_in,index_in,data_out,index_out,num);
-}
-
-
-    
-    
-
-void AscQuickSort(float *data_in,float *data_out,int num)
-{
-    int i,j;
-    float thresh;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    
-    if(num <= 1)
-        return;
-    
-    thresh = data_in[0];
-    i=0;j=num-1;
-    while(i<j)
-    {
-        while(data_in[j]>=thresh)
-        {
-            if(j==i) goto AscQuickSort_next;
-            j=j-1;
-        }
-        data_in[i] = data_in[j];
-        
-        while(data_in[i]<=thresh)
-        {
-            if(i==j) goto AscQuickSort_next;
-            i=i+1;
-        }
-        data_in[j] = data_in[i];
-    }
-
-AscQuickSort_next:
-    data_in[i] = thresh;
-    AscQuickSort(data_in,NULL,i);
-    AscQuickSort(data_in+i+1,NULL,num-i-1);
-}
-
-void AscQuickSortIndex(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    int i,j;
-    float thresh;
-    int thresh_index;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if(INVALID_POINTER(index_in)&&INVALID_POINTER(index_out))
-    {
-        AscQuickSort(data_in,data_out,num);
-        return;
-    }
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    if(INVALID_POINTER(index_in))
-    {
-        for(i=0;i<num;i++)
-            index_out[i] = i;
-        index_in = index_out;
-    }
-    else if((!INVALID_POINTER(index_out))&&(index_in != index_out))
-    {
-        memcpy(index_out,index_in,num*sizeof(int));
-        index_in = index_out;
-    }
- 
-    if(num <= 1)
-        return;
-    
-    thresh = data_in[0];
-    thresh_index = index_in[0];
-    i=0;j=num-1;
-    while(i<j)
-    {
-        while(data_in[j]>=thresh)
-        {
-            if(j==i)
-                goto AscQuickSort_next;
-            j=j-1;
-        }
-        
-        data_in[i] = data_in[j];
-        index_in[i] = index_in[j];
-        
-        while(data_in[i]<=thresh)
-        {
-            if(i==j)
-                goto AscQuickSort_next;
-            i=i+1;
-        }
-        
-        data_in[j] = data_in[i];
-        index_in[j] = index_in[i];
-    }
-
-AscQuickSort_next:
-    data_in[i] = thresh;
-    index_in[i] = thresh_index;
-    AscQuickSortIndex(data_in,index_in,NULL,NULL,i);
-    AscQuickSortIndex(data_in+i+1,index_in+i+1,NULL,NULL,num-i-1);
-}
-
-void mAscQuickSort(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    if((index_in == NULL)&&(index_out == NULL))
-        AscQuickSort(data_in,data_out,num);
-    else
-        AscQuickSortIndex(data_in,index_in,data_out,index_out,num);
-}
-
-
-// void mAscInsertionSort(float *data_in,int num)
-// {
-    // float buff;
-    // int i,j;
-    
-    // if(data_in[0]>data_in[1]) 
-    // {
-        // buff = data_in[0]; 
-        // data_in[0] = data_in[1]; 
-        // data_in[1] = buff;
-    // }
-    
-    // for(i=2;i<num;i++)
-    // {
-        // if(data_in[i]<data_in[i-1])
-        // {
-            // buff = data_in[i];
-            // data_in[i] = data_in[i-1];
-            // for(j=i-2;j>=0;j--)
-            // {
-                // if(buff>data_in[j])
-                // {
-                    // data_in[j+1] = buff;
-                    // break;
-                // }
-                // else
-                    // data_in[j+1] = data[j];
-            // }
-        // }
-    // }
-// }
-
-void AscInsertionSort(float *data_in,float *data_out,int num)
-{
-    float buff;
-    int i;
-    int n1,n2,n;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    
-    if(num <= 1)
-        return;
-    
-    if(data_in[0]>data_in[1]) 
-    {
-        buff = data_in[0]; 
-        data_in[0] = data_in[1]; 
-        data_in[1] = buff;
-    }
-    
-    for(i=2;i<num;i++)
-    {
-        if(data_in[i]<data_in[i-1])
-        {
-            buff = data_in[i];
-            if(buff <= data_in[0])
-            {
-                memmove(data_in+1,data_in,i*sizeof(float));
-                data_in[0] = buff;
-                continue;
-            }
-            
-            n2 = i-1;
-            n1 = 0;
-            while(n2-n1>1)
-            {
-                n = (n1+n2)>>1;
-                if(buff>data_in[n])
-                    n1 = n;
-                else
-                    n2 = n;
-            }
-            memcpy(data_in+n2+1,data_in+n2,(i-n2)*sizeof(float));
-            data_in[n2] = buff;
-        }
-    }
-}
-
-void AscInsertionSortWithIndex(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    float data_buff;
-    int index_buff;
-    int i;
-    int n1,n2,n;
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if(INVALID_POINTER(index_in)&&INVALID_POINTER(index_out))
-    {
-        AscInsertionSort(data_in,data_out,num);
-        return;
-    }
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    if(INVALID_POINTER(index_in))
-    {
-        for(i=0;i<num;i++)
-            index_out[i] = i;
-        index_in = index_out;
-    }
-    else if((!INVALID_POINTER(index_out))&&(index_in != index_out))
-    {
-        memcpy(index_out,index_in,num*sizeof(int));
-        index_in = index_out;
-    }
- 
-    if(num <= 1)
-        return;
-    
-    if(data_in[0]>data_in[1]) 
-    {
-        data_buff = data_in[0]; 
-        data_in[0] = data_in[1]; 
-        data_in[1] = data_buff;
-        
-        index_buff = index_in[0];
-        index_in[0] = index_in[1];
-        index_in[1] = index_buff;
-    }
-    
-    for(i=2;i<num;i++)
-    {
-        if(data_in[i]<data_in[i-1])
-        {
-            data_buff = data_in[i];
-            index_buff = index_in[i];
-            if(data_buff <= data_in[0])
-            {
-                memmove(data_in+1,data_in,i*sizeof(float));
-                memmove(index_in+1,index_in,i*sizeof(int));
-                data_in[0] = data_buff;
-                index_in[0] = index_buff;
-                continue;
-            }
-            
-            n2 = i-1;
-            n1 = 0;
-            while(n2-n1>1)
-            {
-                n = (n1+n2)>>1;
-                if(data_buff>data_in[n])
-                    n1 = n;
-                else
-                    n2 = n;
-            }
-            memcpy(data_in+n2+1,data_in+n2,(i-n2)*sizeof(float));
-            memcpy(index_in+n2+1,index_in+n2,(i-n2)*sizeof(int));
-            data_in[n2] = data_buff;
-            index_in[n2] = index_buff;
-        }
-    }
-}
-
-void mAscInsertionSort(float *data_in,int *index_in,float *data_out,int *index_out,int num)
-{
-    if((index_in==NULL)&&(index_out == NULL))
-        AscInsertionSort(data_in,data_out,num);
-    else
-        AscInsertionSortWithIndex(data_in,index_in,data_out,index_out,num);
-}
-/*
-void AscSort(float *data,float **buff,int num,void (*method)(float *,float *,int))
-{    
-    int i;
-    int count0,count1,count2,count3,count4,count5,count6,count7,count8,count9;
-    int n1,n2,n3,n4,n5,n6,n7,n8,n9;
-
-    float edge[9];
-    
-    if(num<=32)
-    {
-        method(data,NULL,num);
-        return;
-    }
-    
-    method(data,edge,9);
-    count0=0; count1=0; count2=0; count3=0; count4=0; count5=0; count6=0; count7=0; count8=0; count9=0;
-    for(i=7;i<num;i++)
-    {
-             if(data[i]<edge[0]) {buff[0][count0] = data[i];count0=count0+1;}
-        else if(data[i]<edge[1]) {buff[1][count1] = data[i];count1=count1+1;}
-        else if(data[i]<edge[2]) {buff[2][count2] = data[i];count2=count2+1;}
-        else if(data[i]<edge[3]) {buff[3][count3] = data[i];count3=count3+1;}
-        else if(data[i]<edge[4]) {buff[4][count4] = data[i];count4=count4+1;}
-        else if(data[i]<edge[5]) {buff[5][count5] = data[i];count5=count5+1;}
-        else if(data[i]<edge[6]) {buff[6][count6] = data[i];count6=count6+1;}
-        else if(data[i]<edge[7]) {buff[7][count7] = data[i];count7=count7+1;}
-        else if(data[i]<edge[8]) {buff[8][count8] = data[i];count8=count8+1;}
-        else                     {buff[9][count9] = data[i];count9=count9+1;}
-    }
-    
-                                                  memcpy(data   ,buff[0],count0 *sizeof(float));
-    n1 =     count0; data[n1] = edge[0]; n1=n1+1; memcpy(data+n1,buff[1],count1 *sizeof(float)); 
-    n2 = n1 +count1; data[n2] = edge[1]; n2=n2+1; memcpy(data+n2,buff[2],count2 *sizeof(float)); 
-    n3 = n2 +count2; data[n3] = edge[2]; n3=n3+1; memcpy(data+n3,buff[3],count3 *sizeof(float)); 
-    n4 = n3 +count3; data[n4] = edge[3]; n4=n4+1; memcpy(data+n4,buff[4],count4 *sizeof(float));
-    n5 = n4 +count4; data[n5] = edge[4]; n5=n5+1; memcpy(data+n5,buff[5],count5 *sizeof(float));
-    n6 = n5 +count5; data[n6] = edge[5]; n6=n6+1; memcpy(data+n6,buff[6],count6 *sizeof(float));
-    n7 = n6 +count6; data[n7] = edge[6]; n7=n7+1; memcpy(data+n7,buff[7],count7 *sizeof(float));
-    n8 = n7 +count7; data[n8] = edge[7]; n8=n8+1; memcpy(data+n8,buff[8],count8 *sizeof(float));
-    n9 = n8 +count8; data[n9] = edge[8]; n9=n9+1; memcpy(data+n9,buff[9],count9 *sizeof(float));
-    
-    AscSort(data   ,buff,count0,method);
-    AscSort(data+n1,buff,count1,method);
-    AscSort(data+n2,buff,count2,method);
-    AscSort(data+n3,buff,count3,method);
-    AscSort(data+n4,buff,count4,method);
-    AscSort(data+n5,buff,count5,method);
-    AscSort(data+n6,buff,count6,method);
-    AscSort(data+n7,buff,count7,method);
-    AscSort(data+n8,buff,count8,method);
-    AscSort(data+n9,buff,count9,method);
-}
-
-void mAscSort(float *data_in,float *data_out,int num,void (*method)(float *,float *,int))
-{
-    float *buff[10];
-    
-    mException((INVALID_POINTER(data_in)),EXIT,"invalid input");
-    
-    if((!INVALID_POINTER(data_out))&&(data_out!=data_in))
-    {
-        memcpy(data_out,data_in,num*sizeof(float));
-        data_in = data_out;
-    }
-    
-    if(num <= 1)
-        return;
-    buff[0] = mMalloc(num*sizeof(float));
-    buff[1] = mMalloc(num*sizeof(float));
-    buff[2] = mMalloc(num*sizeof(float));
-    buff[3] = mMalloc(num*sizeof(float));
-    buff[4] = mMalloc(num*sizeof(float));
-    buff[5] = mMalloc(num*sizeof(float));
-    buff[6] = mMalloc(num*sizeof(float));
-    buff[7] = mMalloc(num*sizeof(float));
-    buff[8] = mMalloc(num*sizeof(float));
-    buff[9] = mMalloc(num*sizeof(float));
-    
-    AscSort(data_in,buff,num,method);
-    
-    mFree(buff[0]);
-    mFree(buff[1]);
-    mFree(buff[2]);
-    mFree(buff[3]);
-    mFree(buff[4]);
-    mFree(buff[5]);
-    mFree(buff[6]);
-    mFree(buff[7]);
-    mFree(buff[8]);
-    mFree(buff[9]);
-}
-*/
-
 
 #define AscSort(Type,Data_in,Data_out,Num) {\
     int I,J;\
@@ -761,14 +144,14 @@ struct HandleSequenceBorder {
     };
     int index[2];
 };
-#define HASH_SequenceBorderD64 0x01
-#define HASH_SequenceBorderF32 0x02
-#define HASH_SequenceBorderS32 0x03
-#define HASH_SequenceBorderU32 0x04
-#define HASH_SequenceBorderS16 0x05
-#define HASH_SequenceBorderU16 0x06
-#define HASH_SequenceBorderS8  0x07
-#define HASH_SequenceBorderU8  0x08
+#define HASH_SequenceBorderD64 0xf8da1258
+#define HASH_SequenceBorderF32 0x598eb2d1
+#define HASH_SequenceBorderS32 0x20ac6748
+#define HASH_SequenceBorderU32 0x8193bb8e
+#define HASH_SequenceBorderS16 0x94a88efe
+#define HASH_SequenceBorderU16 0x0d9793d8
+#define HASH_SequenceBorderS8  0x8bee3165
+#define HASH_SequenceBorderU8  0x17ea79d3
 #define HandleSequenceBorderD64 HandleSequenceBorder
 #define HandleSequenceBorderF32 HandleSequenceBorder
 #define HandleSequenceBorderS32 HandleSequenceBorder
@@ -777,14 +160,14 @@ struct HandleSequenceBorder {
 #define HandleSequenceBorderU16 HandleSequenceBorder
 #define HandleSequenceBorderS8  HandleSequenceBorder
 #define HandleSequenceBorderU8  HandleSequenceBorder
-void endSequenceBorderD64(void *handle) {mFree(handle);}
-void endSequenceBorderF32(void *handle) {mFree(handle);}
-void endSequenceBorderS32(void *handle) {mFree(handle);}
-void endSequenceBorderU32(void *handle) {mFree(handle);}
-void endSequenceBorderS16(void *handle) {mFree(handle);}
-void endSequenceBorderU16(void *handle) {mFree(handle);}
-void endSequenceBorderS8( void *handle) {mFree(handle);}
-void endSequenceBorderU8( void *handle) {mFree(handle);}
+void endSequenceBorderD64(void *handle) {NULL;}
+void endSequenceBorderF32(void *handle) {NULL;}
+void endSequenceBorderS32(void *handle) {NULL;}
+void endSequenceBorderU32(void *handle) {NULL;}
+void endSequenceBorderS16(void *handle) {NULL;}
+void endSequenceBorderU16(void *handle) {NULL;}
+void endSequenceBorderS8( void *handle) {NULL;}
+void endSequenceBorderU8( void *handle) {NULL;}
 #define SequenceBorder(Type,Proc,Data_in,Index_in,Min,Min_index,Max,Max_index) {\
     MHandle *hdl; ObjectHandle(Proc,SequenceBorder##Type,hdl);\
     struct HandleSequenceBorder *handle = hdl->handle;\
@@ -821,7 +204,6 @@ void mSequenceBorderU16(MObject *proc,unsigned short data_in,int index_in,unsign
 void mSequenceBorderS8( MObject *proc,          char data_in,int index_in,          char *min,int *min_index,          char *max,int *max_index) {SequenceBorder(S8, proc,data_in,index_in,min,min_index,max,max_index);}
 void mSequenceBorderU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *min,int *min_index, unsigned char *max,int *max_index) {SequenceBorder(U8, proc,data_in,index_in,min,min_index,max,max_index);}
 
-
 struct SortTree {
     union
     {
@@ -841,11 +223,11 @@ struct SortTree {
     struct SortTree *right;
 };
 
-#define SortTreeResultAsc(Type,Tree,Data_out,Index_out,Order) {\
+#define SortTreeResult(Type,Tree,Data_out,Index_out,Order) {\
     int n;\
     \
     if(Tree->left != NULL)\
-        SortTreeResultAsc##Type(Tree->left,Data_out,Index_out,Order);\
+        SortTreeResult##Type(Tree->left,Data_out,Index_out,Order);\
     \
     n = *Order;\
     if(Data_out != NULL)\
@@ -855,42 +237,16 @@ struct SortTree {
     *Order = n+1;\
     \
     if(Tree->right != NULL)\
-        SortTreeResultAsc##Type(Tree->right,Data_out,Index_out,Order);\
+        SortTreeResult##Type(Tree->right,Data_out,Index_out,Order);\
 }
-void SortTreeResultAscD64(struct SortTree *tree,        double *data_out,int *index_out,int *order) {SortTreeResultAsc(D64,tree,data_out,index_out,order);}
-void SortTreeResultAscF32(struct SortTree *tree,         float *data_out,int *index_out,int *order) {SortTreeResultAsc(F32,tree,data_out,index_out,order);}
-void SortTreeResultAscS32(struct SortTree *tree,           int *data_out,int *index_out,int *order) {SortTreeResultAsc(S32,tree,data_out,index_out,order);}
-void SortTreeResultAscU32(struct SortTree *tree,  unsigned int *data_out,int *index_out,int *order) {SortTreeResultAsc(U32,tree,data_out,index_out,order);}
-void SortTreeResultAscS16(struct SortTree *tree,         short *data_out,int *index_out,int *order) {SortTreeResultAsc(S16,tree,data_out,index_out,order);}
-void SortTreeResultAscU16(struct SortTree *tree,unsigned short *data_out,int *index_out,int *order) {SortTreeResultAsc(U16,tree,data_out,index_out,order);}
-void SortTreeResultAscS8( struct SortTree *tree,          char *data_out,int *index_out,int *order) {SortTreeResultAsc(S8, tree,data_out,index_out,order);}
-void SortTreeResultAscU8( struct SortTree *tree, unsigned char *data_out,int *index_out,int *order) {SortTreeResultAsc(U8, tree,data_out,index_out,order);}
-
-#define SortTreeResultDesc(Type,Tree,Data_out,Index_out,Order) {\
-    int n;\
-    \
-    if(Tree->right != NULL)\
-        SortTreeResultDesc##Type(Tree->right,Data_out,Index_out,Order);\
-    \
-    n = *Order;\
-    if(Data_out != NULL)\
-        Data_out[n] = Tree->data_##Type;\
-    if(Index_out != NULL)\
-        Index_out[n] = Tree->index;\
-    *Order = n+1;\
-    \
-    if(Tree->left != NULL)\
-        SortTreeResultDesc##Type(Tree->left,Data_out,Index_out,Order);\
-}
-void SortTreeResultDescD64(struct SortTree *tree,        double *data_out,int *index_out,int *order) {SortTreeResultDesc(D64,tree,data_out,index_out,order);}
-void SortTreeResultDescF32(struct SortTree *tree,         float *data_out,int *index_out,int *order) {SortTreeResultDesc(F32,tree,data_out,index_out,order);}
-void SortTreeResultDescS32(struct SortTree *tree,           int *data_out,int *index_out,int *order) {SortTreeResultDesc(S32,tree,data_out,index_out,order);}
-void SortTreeResultDescU32(struct SortTree *tree,  unsigned int *data_out,int *index_out,int *order) {SortTreeResultDesc(U32,tree,data_out,index_out,order);}
-void SortTreeResultDescS16(struct SortTree *tree,         short *data_out,int *index_out,int *order) {SortTreeResultDesc(S16,tree,data_out,index_out,order);}
-void SortTreeResultDescU16(struct SortTree *tree,unsigned short *data_out,int *index_out,int *order) {SortTreeResultDesc(U16,tree,data_out,index_out,order);}
-void SortTreeResultDescS8( struct SortTree *tree,          char *data_out,int *index_out,int *order) {SortTreeResultDesc(S8, tree,data_out,index_out,order);}
-void SortTreeResultDescU8( struct SortTree *tree, unsigned char *data_out,int *index_out,int *order) {SortTreeResultDesc(U8, tree,data_out,index_out,order);}
-
+void SortTreeResultD64(struct SortTree *tree,        double *data_out,int *index_out,int *order) {SortTreeResult(D64,tree,data_out,index_out,order);}
+void SortTreeResultF32(struct SortTree *tree,         float *data_out,int *index_out,int *order) {SortTreeResult(F32,tree,data_out,index_out,order);}
+void SortTreeResultS32(struct SortTree *tree,           int *data_out,int *index_out,int *order) {SortTreeResult(S32,tree,data_out,index_out,order);}
+void SortTreeResultU32(struct SortTree *tree,  unsigned int *data_out,int *index_out,int *order) {SortTreeResult(U32,tree,data_out,index_out,order);}
+void SortTreeResultS16(struct SortTree *tree,         short *data_out,int *index_out,int *order) {SortTreeResult(S16,tree,data_out,index_out,order);}
+void SortTreeResultU16(struct SortTree *tree,unsigned short *data_out,int *index_out,int *order) {SortTreeResult(U16,tree,data_out,index_out,order);}
+void SortTreeResultS8( struct SortTree *tree,          char *data_out,int *index_out,int *order) {SortTreeResult(S8, tree,data_out,index_out,order);}
+void SortTreeResultU8( struct SortTree *tree, unsigned char *data_out,int *index_out,int *order) {SortTreeResult(U8, tree,data_out,index_out,order);}
 
 void SortTreeRelease(struct SortTree *tree)
 {
@@ -914,56 +270,39 @@ void endSequenceSort(void *info)
     if(handle->tree != NULL)
         SortTreeRelease(handle->tree);
 }
-#define endSequenceAscSortD64 endSequenceSort
-#define endSequenceAscSortF32 endSequenceSort
-#define endSequenceAscSortS32 endSequenceSort
-#define endSequenceAscSortU32 endSequenceSort
-#define endSequenceAscSortS16 endSequenceSort
-#define endSequenceAscSortU16 endSequenceSort
-#define endSequenceAscSortS8  endSequenceSort
-#define endSequenceAscSortU8  endSequenceSort
+#define endSequenceSortD64 endSequenceSort
+#define endSequenceSortF32 endSequenceSort
+#define endSequenceSortS32 endSequenceSort
+#define endSequenceSortU32 endSequenceSort
+#define endSequenceSortS16 endSequenceSort
+#define endSequenceSortU16 endSequenceSort
+#define endSequenceSortS8  endSequenceSort
+#define endSequenceSortU8  endSequenceSort
 
-#define HASH_SequenceAscSortD64 0xeb3a3c23
-#define HASH_SequenceAscSortF32 0xfa75b7a2
-#define HASH_SequenceAscSortS32 0xb358b1ab
-#define HASH_SequenceAscSortU32 0x52715d65
-#define HASH_SequenceAscSortS16 0x3f5c89f5
-#define HASH_SequenceAscSortU16 0xc66d851b
-#define HASH_SequenceAscSortS8  0x3f741d0a
-#define HASH_SequenceAscSortU8  0xc377ea6c
-#define HandleSequenceAscSortD64 HandleSequenceSort
-#define HandleSequenceAscSortF32 HandleSequenceSort
-#define HandleSequenceAscSortS32 HandleSequenceSort
-#define HandleSequenceAscSortU32 HandleSequenceSort
-#define HandleSequenceAscSortS16 HandleSequenceSort
-#define HandleSequenceAscSortU16 HandleSequenceSort
-#define HandleSequenceAscSortS8  HandleSequenceSort
-#define HandleSequenceAscSortU8  HandleSequenceSort
+#define HASH_SequenceSortD64 0xeb3a3c23
+#define HASH_SequenceSortF32 0xfa75b7a2
+#define HASH_SequenceSortS32 0xb358b1ab
+#define HASH_SequenceSortU32 0x52715d65
+#define HASH_SequenceSortS16 0x3f5c89f5
+#define HASH_SequenceSortU16 0xc66d851b
+#define HASH_SequenceSortS8  0x3f741d0a
+#define HASH_SequenceSortU8  0xc377ea6c
+#define HandleSequenceSortD64 HandleSequenceSort
+#define HandleSequenceSortF32 HandleSequenceSort
+#define HandleSequenceSortS32 HandleSequenceSort
+#define HandleSequenceSortU32 HandleSequenceSort
+#define HandleSequenceSortS16 HandleSequenceSort
+#define HandleSequenceSortU16 HandleSequenceSort
+#define HandleSequenceSortS8  HandleSequenceSort
+#define HandleSequenceSortU8  HandleSequenceSort
 
-#define HASH_SequenceDescSortD64 0xe0b40deb
-#define HASH_SequenceDescSortF32 0xefb4678a
-#define HASH_SequenceDescSortS32 0x4896deb3
-#define HASH_SequenceDescSortU32 0x47eb2f2d
-#define HASH_SequenceDescSortS16 0xb49a8b5d
-#define HASH_SequenceDescSortU16 0xdbe78283
-#define HASH_SequenceDescSortS8  0x866a1bc2
-#define HASH_SequenceDescSortU8  0x0a6de924
-#define HandleSequenceDescSortD64 HandleSequenceSort
-#define HandleSequenceDescSortF32 HandleSequenceSort
-#define HandleSequenceDescSortS32 HandleSequenceSort
-#define HandleSequenceDescSortU32 HandleSequenceSort
-#define HandleSequenceDescSortS16 HandleSequenceSort
-#define HandleSequenceDescSortU16 HandleSequenceSort
-#define HandleSequenceDescSortS8  HandleSequenceSort
-#define HandleSequenceDescSortU8  HandleSequenceSort
-
-#define mSequenceSort(Type,Flag,Proc,Data_in,Index_in,Data_out,Index_out,Num) {\
+#define mSequenceAscSort(Type,Proc,Data_in,Index_in,Data_out,Index_out,Num) {\
     struct SortTree *tree;\
     struct SortTree *node;\
     \
     int order;\
     \
-    MHandle *hdl; ObjectHandle(Proc,SequenceAscSort##Type,hdl);\
+    MHandle *hdl; ObjectHandle(Proc,SequenceSort##Type,hdl);\
     struct HandleSequenceSort *handle = hdl->handle;\
     hdl->valid = 1;\
     \
@@ -1010,27 +349,84 @@ void endSequenceSort(void *info)
     if((Data_out != NULL)||(Index_out!=NULL))\
     {\
         order = 0;\
-        SortTreeResult##Flag##Type(handle->tree,Data_out,Index_out,&order);\
+        SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
     }\
 }
-    
-void mSequenceAscSortD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int *num) {mSequenceSort(D64,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int *num) {mSequenceSort(F32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int *num) {mSequenceSort(S32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int *num) {mSequenceSort(U32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int *num) {mSequenceSort(S16,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int *num) {mSequenceSort(U16,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int *num) {mSequenceSort(S8 ,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceAscSortU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int *num) {mSequenceSort(U8 ,Asc,proc,data_in,index_in,data_out,index_out,num);}
 
-void mSequenceDescSortD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int *num) {mSequenceSort(D64,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int *num) {mSequenceSort(F32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int *num) {mSequenceSort(S32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int *num) {mSequenceSort(U32,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int *num) {mSequenceSort(S16,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int *num) {mSequenceSort(U16,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int *num) {mSequenceSort(S8 ,Asc,proc,data_in,index_in,data_out,index_out,num);}
-void mSequenceDescSortU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int *num) {mSequenceSort(U8 ,Asc,proc,data_in,index_in,data_out,index_out,num);}
+#define mSequenceDescSort(Type,Proc,Data_in,Index_in,Data_out,Index_out,Num) {\
+    struct SortTree *tree;\
+    struct SortTree *node;\
+    \
+    int order;\
+    \
+    MHandle *hdl; ObjectHandle(Proc,SequenceSort##Type,hdl);\
+    struct HandleSequenceSort *handle = hdl->handle;\
+    hdl->valid = 1;\
+    \
+    node = (struct SortTree *)mMalloc(sizeof(struct SortTree));\
+    node->data_##Type = Data_in;\
+    node->index = Index_in;\
+    node->left = NULL;\
+    node->right = NULL;\
+    \
+    if(handle->tree == NULL)\
+        handle->tree = node;\
+    else\
+    {\
+        tree = handle->tree;\
+        \
+        while(1)\
+        {\
+            if(Data_in >= tree->data_##Type)\
+            {\
+                if(tree->left == NULL)\
+                {\
+                    tree->left = node;\
+                    break;\
+                }\
+                else\
+                    tree = tree->left;\
+            }\
+            else\
+            {\
+                if(tree->right == NULL)\
+                {\
+                    tree->right = node;\
+                    break;\
+                }\
+                else\
+                    tree = tree->right;\
+            }\
+        }\
+    }\
+    handle->num = handle->num +1;\
+    if(Num != NULL)\
+        *Num = handle->num;\
+    \
+    if((Data_out != NULL)||(Index_out!=NULL))\
+    {\
+        order = 0;\
+        SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
+    }\
+}
+
+void mSequenceAscSortD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int *num) {mSequenceAscSort(D64,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int *num) {mSequenceAscSort(F32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int *num) {mSequenceAscSort(S32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int *num) {mSequenceAscSort(U32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int *num) {mSequenceAscSort(S16,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int *num) {mSequenceAscSort(U16,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int *num) {mSequenceAscSort(S8 ,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceAscSortU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int *num) {mSequenceAscSort(U8 ,proc,data_in,index_in,data_out,index_out,num);}
+
+void mSequenceDescSortD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int *num) {mSequenceDescSort(D64,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int *num) {mSequenceDescSort(F32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int *num) {mSequenceDescSort(S32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int *num) {mSequenceDescSort(U32,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int *num) {mSequenceDescSort(S16,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int *num) {mSequenceDescSort(U16,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int *num) {mSequenceDescSort(S8 ,proc,data_in,index_in,data_out,index_out,num);}
+void mSequenceDescSortU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int *num) {mSequenceDescSort(U8 ,proc,data_in,index_in,data_out,index_out,num);}
 
 #define endSequenceMinSubsetD64 endSequenceSort
 #define endSequenceMinSubsetF32 endSequenceSort
@@ -1083,7 +479,7 @@ void mSequenceDescSortU8( MObject *proc, unsigned char data_in,int index_in, uns
         if((Data_out != NULL)||(Index_out!=NULL))\
         {\
             order = 0;\
-            SortTreeResultAsc##Type(handle->tree,Data_out,Index_out,&order);\
+            SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
         }\
         Limit = handle->thresh->data_##Type;\
         return Limit;\
@@ -1156,7 +552,7 @@ void mSequenceDescSortU8( MObject *proc, unsigned char data_in,int index_in, uns
     if((Data_out != NULL)||(Index_out!=NULL))\
     {\
         order = 0;\
-        SortTreeResultAsc##Type(handle->tree,Data_out,Index_out,&order);\
+        SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
     }\
     return Limit;\
 }
@@ -1221,7 +617,7 @@ unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int in
         if((Data_out != NULL)||(Index_out!=NULL))\
         {\
             order = 0;\
-            SortTreeResultDesc##Type(handle->tree,Data_out,Index_out,&order);\
+            SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
         }\
         Limit = handle->thresh->data_##Type;\
         return Limit;\
@@ -1231,16 +627,16 @@ unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int in
         node = handle->thresh;\
         if(node->parent != NULL)\
         {\
-            node->parent->left = node->right;\
-            if(node->right != NULL)\
-                node->right->parent = node->parent;\
+            node->parent->right = node->left;\
+            if(node->left != NULL)\
+                node->left->parent = node->parent;\
             handle->thresh = node->parent;\
         }\
         else\
         {\
-            handle->tree = node->right;\
-            node->right->parent = NULL;\
-            handle->thresh = node->right;\
+            handle->tree = node->left;\
+            node->left->parent = NULL;\
+            handle->thresh = node->left;\
         }\
     }\
     \
@@ -1261,7 +657,7 @@ unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int in
         \
         while(1)\
         {\
-            if(Data_in <= tree->data_##Type)\
+            if(Data_in >= tree->data_##Type)\
             {\
                 if(tree->left == NULL)\
                 {\
@@ -1287,14 +683,14 @@ unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int in
     }\
     handle->num = handle->num +1;\
     \
-    while(handle->thresh->left != NULL)\
-        handle->thresh = handle->thresh->left;\
+    while(handle->thresh->right != NULL)\
+        handle->thresh = handle->thresh->right;\
     Limit = handle->thresh->data_##Type;\
     \
     if((Data_out != NULL)||(Index_out!=NULL))\
     {\
         order = 0;\
-        SortTreeResultDesc##Type(handle->tree,Data_out,Index_out,&order);\
+        SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
     }\
     return Limit;\
 }
@@ -1308,54 +704,44 @@ unsigned short mSequenceMaxSubsetU16(MObject *proc,unsigned short data_in,int in
           char mSequenceMaxSubsetS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int num) {SequenceMaxSubset(S8, proc,data_in,index_in,num,data_out,index_out);}
  unsigned char mSequenceMaxSubsetU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int num) {SequenceMaxSubset(U8, proc,data_in,index_in,num,data_out,index_out);}
 
-#define SequenceAscSortResult(Type,Flag,Proc,Data_out,Index_out) {\
-    mException((Data_out ==NULL)&&(Index_out==NULL),EXIT,"invalid input");\
+#define SequenceSortResult(Type,Proc,Data_out,Index_out) {\
+    mException((Data_out ==NULL)&&(Index_out==NULL),EXIT,"invalid input,with data out is %p,index out is %p",Data_out,Index_out);\
     \
-    MHandle *hdl; ObjectHandle(Proc,SequenceAscSort##Type,hdl);\
+    MHandle *hdl; ObjectHandle(Proc,SequenceSort##Type,hdl);\
     struct HandleSequenceSort *handle = hdl->handle;\
     mException((hdl->valid == 0),EXIT,"invalid input");\
     \
     int order = 0;\
-    SortTreeResult##Flag##Type(handle->tree,Data_out,Index_out,&order);\
+    SortTreeResult##Type(handle->tree,Data_out,Index_out,&order);\
 }
-void mSequenceAscSortResultD64(MObject *proc,        double *data_out,int *index_out) {SequenceAscSortResult(D64,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultF32(MObject *proc,         float *data_out,int *index_out) {SequenceAscSortResult(F32,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultS32(MObject *proc,           int *data_out,int *index_out) {SequenceAscSortResult(S32,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultU32(MObject *proc,  unsigned int *data_out,int *index_out) {SequenceAscSortResult(U32,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultS16(MObject *proc,         short *data_out,int *index_out) {SequenceAscSortResult(S16,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultU16(MObject *proc,unsigned short *data_out,int *index_out) {SequenceAscSortResult(U16,Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultS8( MObject *proc,          char *data_out,int *index_out) {SequenceAscSortResult(S8, Asc,proc,data_out,index_out);}
-void mSequenceAscSortResultU8( MObject *proc, unsigned char *data_out,int *index_out) {SequenceAscSortResult(U8, Asc,proc,data_out,index_out);}
+void mSequenceSortResultD64(MObject *proc,        double *data_out,int *index_out) {SequenceSortResult(D64,proc,data_out,index_out);}
+void mSequenceSortResultF32(MObject *proc,         float *data_out,int *index_out) {SequenceSortResult(F32,proc,data_out,index_out);}
+void mSequenceSortResultS32(MObject *proc,           int *data_out,int *index_out) {SequenceSortResult(S32,proc,data_out,index_out);}
+void mSequenceSortResultU32(MObject *proc,  unsigned int *data_out,int *index_out) {SequenceSortResult(U32,proc,data_out,index_out);}
+void mSequenceSortResultS16(MObject *proc,         short *data_out,int *index_out) {SequenceSortResult(S16,proc,data_out,index_out);}
+void mSequenceSortResultU16(MObject *proc,unsigned short *data_out,int *index_out) {SequenceSortResult(U16,proc,data_out,index_out);}
+void mSequenceSortResultS8( MObject *proc,          char *data_out,int *index_out) {SequenceSortResult(S8 ,proc,data_out,index_out);}
+void mSequenceSortResultU8( MObject *proc, unsigned char *data_out,int *index_out) {SequenceSortResult(U8 ,proc,data_out,index_out);}
 
-void mSequenceDescSortResultD64(MObject *proc,        double *data_out,int *index_out) {SequenceAscSortResult(D64,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultF32(MObject *proc,         float *data_out,int *index_out) {SequenceAscSortResult(F32,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultS32(MObject *proc,           int *data_out,int *index_out) {SequenceAscSortResult(S32,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultU32(MObject *proc,  unsigned int *data_out,int *index_out) {SequenceAscSortResult(U32,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultS16(MObject *proc,         short *data_out,int *index_out) {SequenceAscSortResult(S16,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultU16(MObject *proc,unsigned short *data_out,int *index_out) {SequenceAscSortResult(U16,Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultS8( MObject *proc,          char *data_out,int *index_out) {SequenceAscSortResult(S8, Desc,proc,data_out,index_out);}
-void mSequenceDescSortResultU8( MObject *proc, unsigned char *data_out,int *index_out) {SequenceAscSortResult(U8, Desc,proc,data_out,index_out);}
+#define mSequenceMinSubsetResultD64 mSequenceSortResultD64
+#define mSequenceMinSubsetResultF32 mSequenceSortResultF32
+#define mSequenceMinSubsetResultS32 mSequenceSortResultS32
+#define mSequenceMinSubsetResultU32 mSequenceSortResultU32
+#define mSequenceMinSubsetResultS16 mSequenceSortResultS16
+#define mSequenceMinSubsetResultU16 mSequenceSortResultU16
+#define mSequenceMinSubsetResultS8  mSequenceSortResultS8
+#define mSequenceMinSubsetResultU8  mSequenceSortResultU8
 
-#define mSequenceMinSubsetResultD64 mSequenceAscSortResultD64
-#define mSequenceMinSubsetResultF32 mSequenceAscSortResultF32
-#define mSequenceMinSubsetResultS32 mSequenceAscSortResultS32
-#define mSequenceMinSubsetResultU32 mSequenceAscSortResultU32
-#define mSequenceMinSubsetResultS16 mSequenceAscSortResultS16
-#define mSequenceMinSubsetResultU16 mSequenceAscSortResultU16
-#define mSequenceMinSubsetResultS8  mSequenceAscSortResultS8
-#define mSequenceMinSubsetResultU8  mSequenceAscSortResultU8
-
-#define mSequenceMaxSubsetResultD64 mSequenceDescSortResultD64
-#define mSequenceMaxSubsetResultF32 mSequenceDescSortResultF32
-#define mSequenceMaxSubsetResultS32 mSequenceDescSortResultS32
-#define mSequenceMaxSubsetResultU32 mSequenceDescSortResultU32
-#define mSequenceMaxSubsetResultS16 mSequenceDescSortResultS16
-#define mSequenceMaxSubsetResultU16 mSequenceDescSortResultU16
-#define mSequenceMaxSubsetResultS8  mSequenceDescSortResultS8
-#define mSequenceMaxSubsetResultU8  mSequenceDescSortResultU8
+#define mSequenceMaxSubsetResultD64 mSequenceSortResultD64
+#define mSequenceMaxSubsetResultF32 mSequenceSortResultF32
+#define mSequenceMaxSubsetResultS32 mSequenceSortResultS32
+#define mSequenceMaxSubsetResultU32 mSequenceSortResultU32
+#define mSequenceMaxSubsetResultS16 mSequenceSortResultS16
+#define mSequenceMaxSubsetResultU16 mSequenceSortResultU16
+#define mSequenceMaxSubsetResultS8  mSequenceSortResultS8
+#define mSequenceMaxSubsetResultU8  mSequenceSortResultU8
  
 #define MinSubset(Type,Data_in,Index_in,Num_in,Data_out,Index_out,Num_out,Limit) {\
-    Type Limit=0;\
     int I;\
     MObject *Proc;\
     Proc = mObjectCreate(NULL);\
@@ -1371,20 +757,18 @@ void mSequenceDescSortResultU8( MObject *proc, unsigned char *data_out,int *inde
     }\
     mSequenceMinSubsetResult##Type(Proc,Data_out,Index_out);\
     mObjectRelease(Proc);\
-    return Limit;\
 }
     
-        double mMinSubsetD64(        double *data_in,int *index_in,int num_in,        double *data_out,int *index_out,int num_out) MinSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-         float mMinSubsetF32(         float *data_in,int *index_in,int num_in,         float *data_out,int *index_out,int num_out) MinSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-           int mMinSubsetS32(           int *data_in,int *index_in,int num_in,           int *data_out,int *index_out,int num_out) MinSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-  unsigned int mMinSubsetU32(  unsigned int *data_in,int *index_in,int num_in,  unsigned int *data_out,int *index_out,int num_out) MinSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-         short mMinSubsetS16(         short *data_in,int *index_in,int num_in,         short *data_out,int *index_out,int num_out) MinSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-unsigned short mMinSubsetU16(unsigned short *data_in,int *index_in,int num_in,unsigned short *data_out,int *index_out,int num_out) MinSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-          char mMinSubsetS8(           char *data_in,int *index_in,int num_in,          char *data_out,int *index_out,int num_out) MinSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
- unsigned char mMinSubsetU8(  unsigned char *data_in,int *index_in,int num_in, unsigned char *data_out,int *index_out,int num_out) MinSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
+        double mMinSubsetD64(        double *data_in,int *index_in,int num_in,        double *data_out,int *index_out,int num_out) {        double limit=0;MinSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+         float mMinSubsetF32(         float *data_in,int *index_in,int num_in,         float *data_out,int *index_out,int num_out) {         float limit=0;MinSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+           int mMinSubsetS32(           int *data_in,int *index_in,int num_in,           int *data_out,int *index_out,int num_out) {           int limit=0;MinSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+  unsigned int mMinSubsetU32(  unsigned int *data_in,int *index_in,int num_in,  unsigned int *data_out,int *index_out,int num_out) {  unsigned int limit=0;MinSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+         short mMinSubsetS16(         short *data_in,int *index_in,int num_in,         short *data_out,int *index_out,int num_out) {         short limit=0;MinSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+unsigned short mMinSubsetU16(unsigned short *data_in,int *index_in,int num_in,unsigned short *data_out,int *index_out,int num_out) {unsigned short limit=0;MinSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+          char mMinSubsetS8(           char *data_in,int *index_in,int num_in,          char *data_out,int *index_out,int num_out) {          char limit=0;MinSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+ unsigned char mMinSubsetU8(  unsigned char *data_in,int *index_in,int num_in, unsigned char *data_out,int *index_out,int num_out) { unsigned char limit=0;MinSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
 
-#define MaxSubset(Type,Data_in,Index_in,Num_in,Data_out,Index_out,Num_out,Limit) {\
-    Type Limit=0;\
+ #define MaxSubset(Type,Data_in,Index_in,Num_in,Data_out,Index_out,Num_out,Limit) {\
     int I;\
     MObject *Proc;\
     Proc = mObjectCreate(NULL);\
@@ -1400,18 +784,17 @@ unsigned short mMinSubsetU16(unsigned short *data_in,int *index_in,int num_in,un
     }\
     mSequenceMaxSubsetResult##Type(Proc,Data_out,Index_out);\
     mObjectRelease(Proc);\
-    return Limit;\
 }
 
-        double mMaxSubsetD64(        double *data_in,int *index_in,int num_in,        double *data_out,int *index_out,int num_out) MaxSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-         float mMaxSubsetF32(         float *data_in,int *index_in,int num_in,         float *data_out,int *index_out,int num_out) MaxSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-           int mMaxSubsetS32(           int *data_in,int *index_in,int num_in,           int *data_out,int *index_out,int num_out) MaxSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-  unsigned int mMaxSubsetU32(  unsigned int *data_in,int *index_in,int num_in,  unsigned int *data_out,int *index_out,int num_out) MaxSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-         short mMaxSubsetS16(         short *data_in,int *index_in,int num_in,         short *data_out,int *index_out,int num_out) MaxSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-unsigned short mMaxSubsetU16(unsigned short *data_in,int *index_in,int num_in,unsigned short *data_out,int *index_out,int num_out) MaxSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-          char mMaxSubsetS8(           char *data_in,int *index_in,int num_in,          char *data_out,int *index_out,int num_out) MaxSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
- unsigned char mMaxSubsetU8(  unsigned char *data_in,int *index_in,int num_in, unsigned char *data_out,int *index_out,int num_out) MaxSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit)
-
+        double mMaxSubsetD64(        double *data_in,int *index_in,int num_in,        double *data_out,int *index_out,int num_out) {        double limit=0;MaxSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+         float mMaxSubsetF32(         float *data_in,int *index_in,int num_in,         float *data_out,int *index_out,int num_out) {         float limit=0;MaxSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+           int mMaxSubsetS32(           int *data_in,int *index_in,int num_in,           int *data_out,int *index_out,int num_out) {           int limit=0;MaxSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+  unsigned int mMaxSubsetU32(  unsigned int *data_in,int *index_in,int num_in,  unsigned int *data_out,int *index_out,int num_out) {  unsigned int limit=0;MaxSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+         short mMaxSubsetS16(         short *data_in,int *index_in,int num_in,         short *data_out,int *index_out,int num_out) {         short limit=0;MaxSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+unsigned short mMaxSubsetU16(unsigned short *data_in,int *index_in,int num_in,unsigned short *data_out,int *index_out,int num_out) {unsigned short limit=0;MaxSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+          char mMaxSubsetS8(           char *data_in,int *index_in,int num_in,          char *data_out,int *index_out,int num_out) {          char limit=0;MaxSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+ unsigned char mMaxSubsetU8(  unsigned char *data_in,int *index_in,int num_in, unsigned char *data_out,int *index_out,int num_out) { unsigned char limit=0;MaxSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out,limit);return limit;}
+ 
 #define MidValue(Type,Data_in,Num_in) {\
     mException((INVALID_POINTER(Data_in))||(Num_in<1),EXIT,"invalid input");\
     if(Num_in<=2) return Data_in[0];\
