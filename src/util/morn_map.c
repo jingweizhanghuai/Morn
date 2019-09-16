@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,8 +157,8 @@ void endMap(void *info)
 }
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
-    if(key_size  <=0) {key_size = strlen(key);    }int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
-    if(value_size<=0) {value_size = strlen(value);}int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
+    if(key_size  <=0) {key_size = strlen(key);    } int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
+    if(value_size<=0) {value_size = strlen(value);} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
     
     MChainNode *chain_node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
     int *data = chain_node->data;
@@ -243,10 +250,9 @@ void mMapDelete(MChain *map,const void *key,int key_size)
     if(hdl->valid == 0) return;
     
     MBtreeNode *bnode = &(handle->btree[(handle->btree_num)>>1]);
-    MChainNode *cnode=NULL;
-    int *data;
+    MChainNode *cnode=NULL; int *data=NULL;
     
-    int flag=0;
+    int flag=1;
     while(bnode != NULL)
     {
         cnode = bnode->data;data = cnode->data;
@@ -282,19 +288,16 @@ void mMapDelete(MChain *map,const void *key,int key_size)
         
         data = cnode->data;
         flag = mCompare(data+2,data[0],key,key_size);
-        if(flag==0) 
-            goto MapDelete_next;
+        if(flag==0) goto MapDelete_next;
         if((flag<0)!=(flag0<0)) return;
     }
     if(i==9) return;
-    
     MapDelete_next:
     if(cnode==handle->begin) handle->begin= cnode->next;
     if(cnode==handle->end  ) handle->end  = cnode->last;
     map->chainnode = handle->begin;
-    mChainNodeDelete(map,cnode);
-    handle->num  -=1;
-    handle->count+=1;
+    mChainNodeDelete(cnode);
+    handle->num -=1;
 }
 
 

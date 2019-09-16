@@ -1,14 +1,22 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
-#include <pthread.h>
 
 #include "morn_util.h"
 
+// int *debug=NULL;
+
 int *morn_mem_data[32] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 int morn_mem_size[32];
-
+      
 struct MemChain
 {
     int size;
@@ -23,7 +31,7 @@ void MemCollect(int index)
     struct MemChain *chain_list = &(morn_mem_chain_list[index][0]);
     memset(chain_list,0,64*sizeof(struct MemChain));
     struct MemChain *chain=NULL;
-   
+    
     int n=0;
     int *mem = data;
     while(mem<data+2048)
@@ -33,15 +41,15 @@ void MemCollect(int index)
             int *next = mem -(*mem)/sizeof(int)+1;
             while(*next <0)
             {
+                if(next >= data + 2048) break;
                 *mem = *mem + *next-sizeof(int);
                 next = next -(*next)/sizeof(int)+1;
-                if(next >= data + 2048) break;
             }
             
             if(0-(*mem) >= 128)
             {
                 chain_list[n].size = sizeof(int)-(*mem);
-                chain_list[n].ptr = mem;
+                chain_list[n].ptr = (mem);
                 if(n==0)
                 {
                     chain_list[n].next = NULL;
@@ -100,11 +108,10 @@ void *mMemAlloc(int size)
         
         mem = chain->ptr+1;
         morn_mem_size[i] += size+sizeof(int);
-        // printf("morn_mem_size[i] is %d\n",morn_mem_size[i]);
         
         chain->ptr[0] = size;
         chain->ptr = chain->ptr + size/sizeof(int) +1;
-        chain->size -= size+sizeof(int);
+        chain->size -= (size+sizeof(int));
         if(chain->size>0)
             chain->ptr[0] = sizeof(int)-chain->size;
         
@@ -126,15 +133,13 @@ void *mMemAlloc(int size)
         
         morn_mem_data[i] = (int *)malloc(2048*sizeof(int));
         morn_mem_size[i] = size+sizeof(int);
-        // printf("i is %d,morn_mem_data[i] is %p\n",i,morn_mem_data[i]);
-        // printf("morn_mem_size[i] is %d\n",morn_mem_size[i]);
         mem = morn_mem_data[i]+1; mem[-1]=size;
         
         struct MemChain *chain = &(morn_mem_chain_list[i][0]);
         chain->size = 2047*sizeof(int)-size;
         chain->ptr = mem + size/sizeof(int);
-        chain->next= NULL;
         chain->ptr[0] = sizeof(int)-chain->size;
+        chain->next=NULL;
         morn_mem_chain[i] = chain;
         
         goto Malloc_end;
@@ -150,11 +155,13 @@ void *mMemAlloc(int size)
     
     Malloc_end:
     pthread_mutex_unlock(&mem_mutex);
+    
     return mem;
 }
 
 void mMemFree(void *data)
 {
+    pthread_mutex_lock(&mem_mutex);
     // printf("data is %p\n",data);
     for(int i=0;i<32;i++)
     {
@@ -163,24 +170,28 @@ void mMemFree(void *data)
         if(((int *)data>=morn_mem_data[i])&&((int *)data < morn_mem_data[i] + 2048))
         {
             int *mem = (int *)data -1;
-                
+            
             // printf("data is %p,mem_size is %d\n",data,mem[0]);
-            // printf("bbmorn_mem_size[i] is %d\n",morn_mem_size[i]);
             morn_mem_size[i] -= ((*mem)+sizeof(int));
-            mException((*mem<0)||(morn_mem_size[i]<0),EXIT,"invalid operate with size is %d,%d",*mem,morn_mem_size[i]);
+            // if(i==23) printf("%d:%p,%p,qqqqqqqqqqqqqq %p qqqqqqq free size is %d,morn_mem_size[i] is %d\n",i,morn_mem_data[i],morn_mem_data[i] + 2048,data,(*mem)+sizeof(float),morn_mem_size[i]);
+            
+            mException((*mem<0)||(morn_mem_size[i]<0),EXIT,"invalid operate with address %p,size is %d,%d,%d",data,*mem,morn_mem_size[i],i);
             *mem = 0-(*mem);
             // printf("bbmorn_mem_size[%d] is %d\n",i,morn_mem_size[i]);
             if(morn_mem_size[i] == 0)
             {
-                // printf("bbbbbbbbbbb\n");
+                // printf("bbbbbbbbbbb %d\n",i);
                 free(morn_mem_data[i]);
                 morn_mem_data[i] = NULL;
                 morn_mem_chain[i]= NULL;
             }
-            return;
+            goto Free_end;
         }
     }
     free(((int *)data)-4);
+    
+    Free_end:
+    pthread_mutex_unlock(&mem_mutex);
 }
 
 /*
@@ -593,10 +604,48 @@ int morn_exception = 0;
 jmp_buf *morn_jump[16][8];
 pthread_t morn_pthread_ID[16];
 
+/*
+#define mExceptionBegin()\
+{\
+    morn_layer_order+=1;\
+    morn_malloc_num[morn_layer_order] = 0;\
+    jmp_buf buf_jump;\
+    morn_jump[morn_layer_order] = &buf_jump;\
+    if(setjmp(buf_jump))\
+        goto MORN_EXCEPTION_END;\
+}
 
+#define mExceptionEnd()\
+{\
+    MORN_EXCEPTION_END:\
+    morn_layer_order -= 1;\
+}
+
+#define mException(ERROR,ID,...) {\
+    if(ERROR < 0)\
+    {\
+        printf("[%s,line %d]Warning: in function %s:",__FILE__,__LINE__,__FUNCTION__);\
+        printf(__VA_ARGS__);\
+    }\
+    else if(ERROR > 0)\
+    {\
+        printf("[%s,line %d]Warning: in function %s:",__FILE__,__LINE__,__FUNCTION__);\
+        printf(__VA_ARGS__);\
+        morn_exception = ID;\
+        if(morn_layer_order >= 0)\
+            longjmp(*(morn_jump[morn_layer_order]),morn_exception);\
+        else\
+            exit(0);\
+    }\
+}
+*/
+
+pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#ifdef DEBUG
 struct MemoryElement
 {
-    char info[64];
+    char info[128];
     void *ptr;
     int size;
     int state;
@@ -607,10 +656,12 @@ struct MemoryElement **morn_memory_list = NULL;
 int morn_memory_num = 0;
 int morn_memory_valid_num = 0;
 
-// #ifdef DEBUG
 void *MemoryListSet(int size,const char *file,int line,const char *func)
 {
-    void *ptr = mMalloc(size+4);
+    pthread_mutex_lock(&debug_mutex);
+    
+    void *ptr = mMemAlloc(size+4);
+    // printf("ptr is %p\t",ptr);
     struct MemoryElement *element;
     int row,col;
     if((morn_memory_num == 0)&&(morn_memory_list == NULL))
@@ -625,7 +676,6 @@ void *MemoryListSet(int size,const char *file,int line,const char *func)
 
     element = morn_memory_list[row]+col;
     sprintf(element->info,"%s:%d %s",file,line,func);
-        // element->size = (((size+3)/sizeof(int))+1)*sizeof(int);
     element->size =  *((int *)ptr -1);
     element->state = 1;
     element->ptr = ptr;
@@ -633,11 +683,15 @@ void *MemoryListSet(int size,const char *file,int line,const char *func)
     morn_memory_valid_num++;
     morn_memory_num++;
     
+    pthread_mutex_unlock(&debug_mutex);
+    // printf("ptr is %p,morn_memory_num is %d\n",ptr,morn_memory_num);
     return ptr;
 }
 
 void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
 {
+    pthread_mutex_lock(&debug_mutex);
+    // printf("free morn_memory_num is %d\n",morn_memory_num);
     int i;
     int size = *((int *)ptr -1);
     for(i=0;i<morn_memory_num;i++)
@@ -652,7 +706,7 @@ void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
             {
                 if((*((char *)ptr + element->size-4) != -1)||(element->size != size))
                 {
-                    mLog(INFO,"[%s,line %d]Error: in function %s: memory over used\n",file,line,func);
+                    printf("[%s,line %d]Error: in function %s: memory over used\n",file,line,func);
                     exit(0);
                 }
                 element->state = 0;
@@ -663,7 +717,8 @@ void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
     }
     if(i==morn_memory_num)
     {
-        mLog(INFO,"[%s,line %d]Error: in function %s: free invalid memory\n",file,line,func);
+        printf("morn_memory_num is %d\n",morn_memory_num);
+        printf("[%s,line %d]Error: in function %s: free invalid memory\n",file,line,func);
         exit(0);
     }
    
@@ -678,22 +733,33 @@ void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
         morn_memory_list = NULL;
         morn_memory_num = 0;
     }
-    mFree(ptr);
+    mMemFree(ptr);
+    pthread_mutex_unlock(&debug_mutex);
 }
-// #endif
-
+#endif
 void MemoryListPrint(int state)
 {
+    NULL;
+    #ifdef DEBUG
+    // printf("print morn_memory_num is %d\n",morn_memory_num);
     for(int i=0;i<morn_memory_num;i++)
     {
         int row = i/1024;
         int col = i%1024;
         struct MemoryElement *element = morn_memory_list[row]+col;
         if((state<0)||(state==element->state))
-            printf("[%s] memory %d, ptr is 0x%p,size is %d,state is %d\n",element->info,i,element->ptr,element->size-4,element->state);
+            printf("%d:[%s] ptr is 0x%p,size is %d,state is %d\n",i,element->info,element->ptr,element->size-4,element->state);
     }
+    
+    for(int i=0;i<32;i++)
+    {
+        if(morn_mem_chain[i] != NULL)
+            printf("morn_mem_chain[i] is %p\n",morn_mem_chain[i]);
+    }
+    
     printf("memory not free %d\n",morn_memory_valid_num);
     printf("memory list over\n");
+    #endif
 }
 
 

@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +63,7 @@ int mStringRegular(const char *str1,const char *str2)
     }
 }
 
-void mStringSplit(const char *str_in,const char *flag,MList *list)
+char **mStringSplit(const char *str_in,const char *flag,MList *list)
 {
     mException(INVALID_POINTER(str_in)||INVALID_POINTER(list)||INVALID_POINTER(flag),EXIT,"invalid input");
     
@@ -90,13 +97,14 @@ void mStringSplit(const char *str_in,const char *flag,MList *list)
         }
     }
     
-    if(num > list->num)
-        mListAppend(list,num-list->num);
+    if(num > list->num) mListAppend(list,num);
     for(int i=0;i<num;i++)
         list->data[i] = str+locate[i];
     list->num = num;
    
     mFree(locate);
+    
+    return (char **)(list->data);
 }
 
 // int mStringCompare(const char *str1,const char *str2)
@@ -148,7 +156,8 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
     
 char *mStringArgument(int argc,char **argv,const char *flag,int *ok)
 {
-    int flag_len=0;
+    int flag_len=0,argv_len=0;
+    
     if(!INVALID_POINTER(flag))
         flag_len = strlen(flag);
     
@@ -159,8 +168,8 @@ char *mStringArgument(int argc,char **argv,const char *flag,int *ok)
     {
         if(argv[i][0] == '-')
         {
-            int argv_len = strlen(argv[i]+1);
-            if(!INVALID_POINTER(flag))
+            argv_len = strlen(argv[i]+1);
+            if(flag != NULL)
             {
                 if(strspn(argv[i]+1,flag)>=flag_len)
                 {

@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,26 +12,18 @@
 #include <time.h>
 #include <math.h>
 
-#include "morn_Math.h"
+#include "morn_math.h"
  
-#ifdef __GNUC__
-int morn_timer_n = -1;
-struct timeval morn_timer_begin[16];
-struct timeval morn_timer_end[16];
-// float mTimerUse()
-// {
-    // float use = (morn_timer_end.tv_sec - morn_timer_begin.tv_sec)*1000.0f + (morn_timer_end.tv_usec - morn_timer_begin.tv_usec)/1000.0f;
-    // mException((use<0.0f),EXIT,"invalid timer");
-    // return use;
-// }
-#else
+#ifdef _MSC_VER
 int morn_clock_n = -1;
 int morn_clock_begin[16];
 int morn_clock_end[16];
-// float mTimerUse()
-// {
-    // return ((float)(morn_clock_end-morn_clock_begin))/((float)CLOCKS_PER_SEC);
-// }
+#define stricmp _stricmp
+#else
+int morn_timer_n = -1;
+struct timeval morn_timer_begin[16];
+struct timeval morn_timer_end[16];
+#define stricmp strcasecmp
 #endif
 
 int morn_rand_seed = -1;
@@ -42,6 +41,15 @@ int mRand(int floor,int ceiling)
     return (rand()%d)+floor;
 }
 
+float mNormalRand(float mean,float delta)
+{
+    float u = mRand(1,32768)/32768.0f;
+    float v = mRand(0,32767)/32767.0f;
+    
+    float out = sqrt(0.0-2.0*log(u))*cos(2*3.14159265358979f*v);
+    return (out*delta+mean);
+}
+
 int mCompare(const void *mem1,int size1,const void *mem2,int size2)
 {
     if((size1<0)&&(size2<0)) return strcmp(mem1,mem2);
@@ -51,24 +59,19 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2)
     return (flag!=0)?flag:(size1-size2);
 }
 
-
-#ifdef _MSC_VER
-#define strcasecmp stricmp
-#endif
-
 float mInfoGet(MInfo *info,const char *name)
 {
     for(int i=0;i<8;i++)
-        if(strcasecmp(&(info->name[i][0]),name)==0)
+        if(stricmp(&(info->name[i][0]),name)==0)
             return info->value[i];
-       
+      
     return mNan();
 }
 
 void mInfoSet(MInfo *info,const char *name,float value)
 {
     for(int i=0;i<8;i++)
-        if(strcasecmp(&(info->name[i][0]),name)==0)
+        if(stricmp(&(info->name[i][0]),name)==0)
         {
             info->value[i] = value;
             return;
@@ -172,34 +175,6 @@ MList *mHandleCreate(void)
    
     return handle;
 }
-
-MHandle *mHandleAppend(MList *handle,int hash,int size,void (*func)(void *))
-{
-    MHandle *hdl = (MHandle *)mMalloc(sizeof(MHandle));
-    hdl->flag = hash;
-    hdl->valid = 0;
-    hdl->handle = mMalloc(size);
-    hdl->destruct = func;
-    
-    memset(hdl->handle,0,size);
-    
-    int num = handle->num;
-    if(num%16 == 0)
-    {
-        void **handle_buff = (void **)mMalloc((num+16)*sizeof(void *));
-        if(num>0)
-        {
-            memcpy(handle_buff,handle->data,num*sizeof(void *));
-            mFree(handle->data);
-        }
-        handle->data = handle_buff;
-    }
-    handle->data[num] = hdl;
-    handle->num = num+1;
-    
-    return (MHandle *)(handle->data[num]);
-}
-
 
 void mHandleRelease(MList *handle)
 {

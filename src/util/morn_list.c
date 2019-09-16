@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,12 +68,12 @@ void mListRelease(MList *list)
 void mListAppend(MList *list,int n)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
-    if(n<0) n=1;
+    if(n<0) n=list->num+1;
     
     mHandleReset(list->handle);
     
     struct HandleListCreate *handle= ((MHandle *)(list->handle->data[0]))->handle;
-    if(list->num+n<=handle->num) 
+    if(n<=handle->num) 
     {
         if(list->data!= handle->data)
         {
@@ -74,11 +81,11 @@ void mListAppend(MList *list,int n)
                 memcpy(handle->data,list->data,list->num*sizeof(void *));
             list->data = handle->data;
         }
-        list->num = list->num+n;
+        list->num = n;
         return;
     }
     
-    int num = list->num + MAX(MAX(128,n),(list->num)>>2);
+    int num = list->num + MAX(MAX(128,n-list->num),(list->num)>>2);
     void **list_data = (void **)mMalloc(num*sizeof(void *));
     if(list->num>0)
         memcpy(list_data,list->data,(list->num)*sizeof(void *));
@@ -89,8 +96,34 @@ void mListAppend(MList *list,int n)
     handle->num = num;
     
     list->data = handle->data;
-    list->num = list->num+n;
+    list->num = n;
 }
+
+// void mListAppend(MList *list,int num)
+// {
+    // mException(INVALID_POINTER(list),EXIT,"invalid input source list");
+    // if(num<0) num = 1;
+    // num = list->num+num;
+    
+    // mHandleReset(list->handle);
+    // struct HandleListCreate *handle= ((MHandle *)(list->handle->data[0]))->handle;
+    
+    // if(num<=handle->num){list->num = num; return;}
+    
+    // void **list_data = (void **)mMalloc(num*sizeof(void *));
+    // if(handle->num>0)
+    // {
+        // memcpy(list_data,list->data,(list->num)*sizeof(void *));
+        // mFree(list->data);
+    // }
+    // memset(list_data+list->num,0,(num-list->num)*sizeof(void *));
+    
+    // list->data = list_data;
+    
+    // handle->num = num;
+    // list->num = num;
+// }
+
 
 void mListPlace(MList *list,int num,int size)
 {
@@ -104,6 +137,13 @@ void mListPlace(MList *list,int num,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(num,size);
     mMemoryIndex(handle->memory,num,size,list->data);
 }
+
+// void ListDebug(MList *list)
+// {
+    // struct HandleListCreate *handle0 = ((MHandle *)(list->handle->data[0]))->handle;
+    // if(handle0->memory != NULL)
+    // printf("eeeeeeeeccccccccccccchandle0->memory->handle is %p\n",handle0->memory->handle);
+// }
 
 struct HandleListWrite
 {
@@ -191,7 +231,7 @@ void mListReorder(MList *list)
 
 void mListCopy(MList *src,MList *dst)
 {
-    mListAppend(dst,src->num-dst->num);
+    mListAppend(dst,src->num);
     
     MHandle *hdl;
     ObjectHandle(src,ListCreate,hdl);
@@ -212,7 +252,7 @@ void mListCopy(MList *src,MList *dst)
 
 void mListMerge(MList *list1,MList *list2,MList *dst)
 {
-    mListAppend(dst,list1->num+list2->num-dst->num);
+    mListAppend(dst,list1->num+list2->num);
     
     MHandle *hdl;
     ObjectHandle(list1,ListCreate,hdl);
@@ -248,7 +288,6 @@ void mListMerge(MList *list1,MList *list2,MList *dst)
     mMemoryRelease(handle1->memory);handle1->memory = NULL;
     mMemoryRelease(handle2->memory);handle2->memory = NULL;
 }
-    
 
 void mListElementDelete(MList *list,int n)
 {
@@ -271,8 +310,9 @@ void mListElementInsert(MList *list,int n,void *data,int size)
 void mListElementOperate(MList *list,void (*func)(MList *,int,void *),void *para)
 {
     mException(INVALID_POINTER(list)||(func==NULL),EXIT,"invalid input");
+	int i;
     #pragma omp parallel for
-    for(int i=0;i<list->num;i++)
+    for(i=0;i<list->num;i++)
         func(list,i,para);
 }
 
@@ -301,13 +341,13 @@ void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,voi
         if(list->data[i]==NULL)
             continue;
         
-        int flag1;
+        int flag1=1;
         for(int j=i+1;j<list->num;j++)
         {
             if(list->data[j] == NULL)
                 continue;
             
-            int flag2;
+            int flag2=1;
             func(list,i,j,&flag1,&flag2,para);
             if(flag2==0)
                 list->data[j]=NULL;
@@ -420,14 +460,12 @@ int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void
     return num;
 }
 
-
 void ListSort(MList *list,int n1,int n2,int func(MList *,int,int,void *),void *para)
 {
+    void **list_data = list->data;
     if(n2-n1 <= 1) return;
     
-    void **list_data = list->data;
-
-    void *buff;
+    void *buff; 
     int i=n1;int j=n2-1;
     while(i<j)
     {
@@ -457,8 +495,10 @@ void ListSort(MList *list,int n1,int n2,int func(MList *,int,int,void *),void *p
 void mListSort(MList *list,int func(MList *,int,int,void *),void *para)
 {
     mException((INVALID_POINTER(list))||(func==NULL),EXIT,"invalid input");
+  
     ListSort(list,0,list->num,func,para);
 }
+
 
 struct HandleStack
 {
@@ -517,6 +557,80 @@ struct HandleQueue
 };
 void endQueue(void *info) {NULL;}
 #define HASH_Queue 0xd98b43dc
+/*
+int mQueuePush(MList *queue)
+{
+    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+    mException(queue->num<=0,EXIT,"invalid queue");
+    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
+    struct HandleQueue *handle = hdl->handle;
+    if(hdl->valid == 0) {handle->read_order=0;handle->write_order=0;}
+    hdl->valid = 1;
+    
+    if(handle->flag>0) return DFLT;
+    
+    int order = handle->write_order;
+    handle->write_order = handle->write_order+1;
+    if(handle->write_order == queue->num) handle->write_order = 0;
+    handle->flag =(handle->write_order == handle->read_order)?1:0;
+    return order;
+}
+
+int mQueuePop(MList *queue)
+{
+    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+    mException(queue->num<=0,EXIT,"invalid queue");
+    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
+    struct HandleQueue *handle = hdl->handle;
+    if(hdl->valid == 0) return DFLT;
+    
+    if(handle->flag<0) return DFLT;
+    int order = handle->read_order;
+    handle->read_order = handle->read_order +1;
+    if(handle->read_order == queue->num) handle->read_order = 0;
+    handle->flag =(handle->write_order == handle->read_order)?-1:0;
+    return order;
+}
+
+void mQueueOperate(MList *queue,void (*func)(MList *,int,void *),void *para)
+{
+    mException(INVALID_POINTER(queue)||(func==NULL),EXIT,"invalid input");
+    mException(queue->num<=0,EXIT,"invalid queue");
+    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
+    struct HandleQueue *handle = hdl->handle;
+    if(hdl->valid == 0) return;
+    if(handle->flag<0) return;
+    
+    if(handle->read_order<handle->write_order)
+    {
+        #pragma omp parallel for
+        for(int i=handle->read_order;i<handle->write_order;i++)
+            func(list,i,para);
+    }
+    else
+    {
+        #pragma omp parallel for
+        for(int i=handle->read_order;i<queue->num;i++)
+            func(list,i,para);
+        #pragma omp parallel for
+        for(int i=0;i<handle->write_order;i++)
+            func(list,i,para);
+    }
+}
+*/
+
+int mQueueSize(MList *queue)
+{
+    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
+    struct HandleQueue *handle = hdl->handle;
+    if(handle->flag>0) return queue->num;
+    if(handle->flag<0) return 0;
+    
+    int n = handle->write_order - handle->read_order;
+    return ((n>0)?n:(queue->num+n));
+}
+
 void *mQueueWrite(MList *queue,void *data,int size)
 {
     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
@@ -556,22 +670,134 @@ void *mQueueRead(MList *queue,void *data,int size)
     return p;
 }
 
-int mQueueSize(MList *queue)
+// struct HashElement
+// {
+    // int hash;
+    // void *data;
+// };
+// struct HandleHashList
+// {
+    // int num;
+// };
+// void mHashList(MList *list,void *data,int size)
+// {
+    // if(list->size < 
+
+
+/*
+struct HandleBuffer
 {
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
-    if(handle->flag>0) return queue->num;
-    if(handle->flag<0) return 0;
-    
-    int n = handle->write_order - handle->read_order;
-    return ((n>0)?n:(queue->num+n));
+    int proc_num;
+    int *order;
+    unsigned char *state;
+};
+void endBuffer(void *info) 
+{
+    struct HandleBuffer *handle = info;
+    if(handle->state != NULL) mFree(handle->state);
+}
+#define HASH_Buffer 0xcb4df739
+int BufferRead(MList *buffer,int ID,struct HandleBuffer *handle)
+{
+    int proc_num = handle->proc_num;
+    int order = handle->order[ID];
+    if(((ID >0)&&(handle->order[ID-1]==order))||((ID==0)&&(handle->order[proc_num-1]==order)))
+        return DFLT;
+    int state = handle->state[order];
+    if((state&1 == 1)||(order<0))
+    {
+        order = order + 1;
+        if(order == buffer->num)
+        {
+            if(handle->order[handle->proc_num-1]<0) return DFLT;
+            order = 0;
+        }
+        handle->state[handle->order[ID]] = 0;
+        handle->order[ID] = order;
+        return BufferRead(buffer,ID,handle);
+    }
+    return order;
 }
 
 
-
-
-
+void *mBufferSet(MList *buffer,int volume,int proc_num)
+{
+    mException(INVALID_POINTER(buffer),EXIT,"invalid buffer");
+    if(volume>0)
+    {
+        if(buffer->num>volume) buff->num = volume;
+        else mListAppend(buff,volume);
+    }
+    mException(buffer->num<=1,EXIT,"invalid buffer");
     
+    mException((proc_num<=0),EXIT,"invalid proc_num");
+    MHandle *hdl;ObjectHandle(buffer,Buffer,hdl);
+    struct HandleBuffer *handle = hdl->handle;
+    if(hdl->valid == 0) 
+    {
+        handle->order = mMalloc(proc_num*sizeof(int));
+        memset(handle->order,-1,proc_num*sizeof(int));
+        handle->proc_num = proc_num;
+        
+        handle->state = mMalloc(buffer->num*sizeof(unsigned char));
+        memset(handle->state,0,buffer->num*sizeof(unsigned char));
+    }
+    hdl->valid = 1;
+}
 
+void *mBufferWrite(MList *buffer,int ID,void *data,int size)
+{
+    mException(INVALID_POINTER(buffer),EXIT,"invalid buffer");
+    MHandle *hdl;ObjectHandle(buffer,Buffer,hdl);
+    struct HandleBuffer *handle = hdl->handle;
+    mException((hdl->valid == 0),EXIT,"invalid buffer");
+    
+    int proc_num = handle->proc_num;
+    mException((ID>=proc_num)||(ID=<0),EXIT,"invalid ID");
+    int order = handle->order[ID];
+    if((handle->state[order]&2!=0)||(order<0))
+    {
+        order = order+1;
+        if(order==buffer->num) order=0;
+        if((ID==0)&&(state[order]!=0)) return NULL;
+        if((ID >0)&&(state[order]!=4)) return NULL;
+        
+        handle->state[handle->order] = 4;
+        handle->order[ID] = order;
+    }
+    void *p = mListWrite(buffer,order,data,size);
+    handle->state[order] = (handle->state[order])|2;
+    return p;
+}
+
+void mBufferRead(MList *buffer,int ID,void *data,int size)
+{
+    mException(INVALID_POINTER(buffer),EXIT,"invalid buffer");
+    MHandle *hdl;ObjectHandle(buffer,Buffer,hdl);
+    struct HandleBuffer *handle = hdl->handle;
+    mException((hdl->valid == 0),EXIT,"invalid buffer");
+    
+    int proc_num = handle->proc_num;
+    mException((ID>=proc_num)||(ID=<0),EXIT,"invalid ID");
+    int order = handle->order[ID];
+
+    if((handle->state[order]&1!=0)||(order<0))
+    {
+        order = order+1;
+        if(order==buffer->num)
+        {
+            if(handle->order[proc_num-1]< 0) return NULL;
+            order=0;
+        }
+        
+        if(ID>0)
+            if(handle->order[ID      -1]==order) return NULL;
+        else if(proc_num>1)
+            if(handle->order[proc_num-1]==order) return NULL;
+
+        handle->state[handle->order] = 0;
+        handle->order = order;
+    }
+    void *p = mListRead(buffer,order,data,size);
+*/
 

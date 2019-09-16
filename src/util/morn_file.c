@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Math.h"
+#include "morn_math.h"
+
+#define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
+#define fwrite(Data,Size,Num,Fl) mException((fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
 
 struct Chunk
 {
@@ -130,7 +133,7 @@ int mMORNSize(MFile *file,const char *name)
         if(i==handle->list->num)
             return 0;
     }
-    
+   
     return handle->size;
 }
 
@@ -142,8 +145,7 @@ void mMORNRead(MFile *file,const char *name,void **data,int num,int size)
     if((num==1)&&(size<=0)) size = chunk_size;
     else mException((size<=0),EXIT,"invalid input");
     
-    // printf("chunk_size is %d\n",chunk_size);
-    mException((chunk_size<size*num),EXIT,"no enough data,chunk_size is %d",chunk_size);
+    mException((chunk_size<size*num),EXIT,"no enough data for %s,size need %d,chunk_size is %d",name,size*num,chunk_size);
     
     MHandle *hdl; ObjectHandle(file,MORNRead,hdl);
     struct HandleMORNRead *handle = hdl->handle;
@@ -200,12 +202,11 @@ void mMORNWrite(MFile *file,const char *name,void **data,int num,int size)
     int hash = mHash(name,DFLT);
     fwrite(&hash,1,4,handle->f);
     int chunk_size = size*num;
-    // printf("hash is %x,chunk_size is %d\n",hash,chunk_size);
     
     fwrite(&chunk_size,4,1,handle->f);
     handle->size = handle->size + chunk_size + 4+4;
     
     if(num<=0) num=1;
     for(int i=0;i<num;i++)
-        fwrite(data[i],size,1,handle->f);    
+        fwrite(data[i],1,size,handle->f);
 }

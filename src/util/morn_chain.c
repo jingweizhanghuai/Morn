@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +15,6 @@
 struct HandleChainCreate
 {
     MList *memory;
-    int count;
 };
 
 void endChainCreate(void *info)
@@ -25,6 +31,9 @@ MChain *mChainCreate()
     MObject *chain = mProcCreate(NULL);
     
     MHandle *hdl; ObjectHandle(chain,ChainCreate,hdl);
+    struct HandleChainCreate *handle = hdl->handle;
+    
+    handle->memory = NULL;
     
     return chain;
 }
@@ -41,15 +50,9 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     struct HandleChainCreate *handle = hdl->handle;
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
     
-    if(size<0)size=0;
-    MChainNode *node = mMemoryWrite(handle->memory,NULL,sizeof(MChainNode)+size);
+    MChainNode *node = mMemoryWrite(handle->memory,NULL,sizeof(MChainNode));
     memset(node,0,sizeof(MChainNode));
-    
-    if(size>0)
-    {
-        node->data = node+1;
-        if(data!=NULL) memcpy(node->data,data,size);
-    }
+    node->data = mMemoryWrite(handle->memory,data,size);
     
     return node;
 }
@@ -72,37 +75,10 @@ void mChainNodeInsert(MChainNode *last,MChainNode *node,MChainNode *next)
     node->next = next;
 }
 
-void mChainNodeDelete(MChain *chain,MChainNode *node)
+void mChainNodeDelete(MChainNode *node)
 {
     node->last->next = node->next;
     node->next->last = node->last;
-    
-    MHandle *hdl = chain->handle->data[1];
-    mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
-    struct HandleChainCreate *handle = hdl->handle;
-    handle->count += 1;
-    if(handle->count>=256)
-    {
-        #define MEMORY_SIZE(Memory,N) (((int *)(Memory->data[N]))[-1])
-        int i;
-        int n = 0;
-        MMemory *memory = handle->memory;
-        for(i=0;i<memory->num;i++)
-        {
-            node = chain->chainnode; do
-            {
-                if(node->data >= memory->data[i])
-                    if((char *)(node->data) < (char *)(memory->data[i])+MEMORY_SIZE(memory,i))
-                        break;
-            }while(node!=chain->chainnode);
-            if(node==chain->chainnode)
-                mFree(memory->data[i]);
-            else
-                {memory->data[n] = memory->data[i];n=n+1;}
-        }
-        memory->num = n;
-        handle->count = 0;
-    }
 }
 
 
