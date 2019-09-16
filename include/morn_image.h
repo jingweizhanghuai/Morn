@@ -1,10 +1,3 @@
-/*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #ifndef _MORN_IMAGE_H_
 #define _MORN_IMAGE_H_
 
@@ -42,7 +35,7 @@ typedef struct MImageBorder
 }MImageBorder;
 
 typedef struct MImage {
-    int channel;
+    int channel;                         // ?????
     int height;
     int width;
     
@@ -151,10 +144,8 @@ void mImageSave(MImage *img,const char *filename);
 void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle);
 
 #define MORN_RESIZE_UNUNIFORM  DFLT
-#define MORN_RESIZE_MINUNIFORM 0xFE
-#define MORN_RESIZE_MAXUNIFORM 0xFD
-#define MORN_INTERPOLATE       DFLT
-#define MORN_NEAREST           0xEF
+#define MORN_RESIZE_MINUNIFORM 0
+#define MORN_RESIZE_MAXUNIFORM 1
 void mImageResize(MImage *src,MImage *dst,int height,int width,int type);
 
 extern unsigned char morn_default_color[3];

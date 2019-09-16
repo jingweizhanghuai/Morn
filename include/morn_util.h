@@ -1,17 +1,17 @@
-/*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #ifndef _MORN_UNIVERSAL_H_
 #define _MORN_UNIVERSAL_H_
 
 #include <time.h>
 #include <stdint.h>
 #include <setjmp.h>
+
+#ifdef _MSC_VER
+#include <win_pthread.h>
+#else
 #include <pthread.h>
+#endif
+
+#include <errno.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -94,8 +94,31 @@ extern int *morn_log_count;
         }\
     }\
 }while(0)
+
+#ifdef _MSC_VER
+#define mSleep(T) Sleep(T)
+#else
+// void usleep(int t);
+#define mSleep(T) usleep(T*1000)
+#endif
     
-#ifdef __GNUC__
+#ifdef _MSC_VER
+extern int morn_clock_n;
+extern int morn_clock_begin[16];
+extern int morn_clock_end[16];
+#define mTimerBegin() do{\
+    morn_clock_n+= 1;\
+    morn_clock_begin[morn_clock_n]=clock();\
+}while(0)
+#define mTimerEnd() do{\
+    morn_clock_end[morn_clock_n] =clock();\
+    float Use = ((float)(morn_clock_end[morn_clock_n]-morn_clock_begin[morn_clock_n]))*1000.0f/((float)CLOCKS_PER_SEC);\
+    mException((Use<0.0f),EXIT,"invalid timer");\
+    morn_clock_n -= 1;\
+    mLog(INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
+}while(0)
+#else
+#include <sys/time.h>
 extern int morn_timer_n;
 extern struct timeval morn_timer_begin[16];
 extern struct timeval morn_timer_end[16];
@@ -112,22 +135,6 @@ extern struct timeval morn_timer_end[16];
     mException((Use<0.0f),EXIT,"invalid timer");\
     morn_timer_n -= 1;\
     mLog(INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
-}while(0)
-#else
-extern int morn_clock_n;
-extern int morn_clock_begin[16];
-extern int morn_clock_end[16];
-#define mTimerBegin() do{\
-    morn_clock_n+= 1;\
-    morn_clock_begin[morn_clock_n]=clock();\
-}while(0)
-#define mTimerEnd() do{\
-    morn_clock_end[morn_clock_n] =clock();\
-    float Use = ((float)(morn_clock_end-morn_clock_begin))/((float)CLOCKS_PER_SEC);\
-    mException((Use<0.0f),EXIT,"invalid timer");\
-    morn_clock_n -= 1;\
-    mLog(INFO,"[%s,line %d]Timer: in function %s: ",__FILE__,__LINE__,__FUNCTION__);\
-    mLog(INFO,"time use is %fms\n",Use);\
 }while(0)
 #endif
 
@@ -175,7 +182,7 @@ int Layer_order = morn_layer_order[Thread_Order]+1;\
     morn_layer_order[Thread_Order] = Layer_order-1;\
 }
 
-#if defined _MSC_VER
+#ifdef _MSC_VER
 #define exit(Flag) do{system("pause");exit(Flag);}while(0)
 #endif
 #define mError(Flag) (Flag)
@@ -203,6 +210,8 @@ typedef struct MInfo
 }MInfo;
 float mInfoGet(MInfo *info,const char *name);
 void mInfoSet(MInfo *info,const char *name,float value);
+
+unsigned int mHash(const char *in,int size);
 
 typedef struct MList
 {
@@ -237,13 +246,9 @@ int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void
 void mListSort(MList *list,int func(MList *,int,int,void *),void *para);
 void mListReorder(MList *list);
 
-void *mStackWrite(MList *stack,void *data,int size);
-void *mStackRead(MList *stack,void *data,int size);
-int mStackSize(MList *stack);
-
+int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);
 void *mQueueRead(MList *queue,void *data,int size);
-int mQueueSize(MList *queue);
 
 #define MORN_FILE_TYPE 0
 #define MORN_DIR_TYPE 16
@@ -258,18 +263,21 @@ void *MemoryListSet( int  size,const char *file,int line,const char *func);
 void MemoryListUnset(void *ptr,const char *file,int line,const char *func);
 #define mMalloc(Size)  MemoryListSet(  Size   ,__FILE__,__LINE__,__FUNCTION__)
 #define mFree(Pointer) MemoryListUnset(Pointer,__FILE__,__LINE__,__FUNCTION__)
+void MemoryListPrint(int state);
 #else
 void *mMemAlloc(int size);
 void mMemFree(void *p);
 #define mMalloc(Size)  mMemAlloc(Size)
 #define mFree(Pointer) mMemFree(Pointer)
+// void MemoryListPrint(int state);
 #endif
 
-void MemoryListPrint(int state);
 #define mPointer(Pointer,Size) do{\
     int Size0;\
     if(Pointer == NULL)\
+    {\
         Pointer = mMalloc(Size);\
+    }\
     else\
     {\
         Size0 = *(((int *)Pointer)-1);\
@@ -282,6 +290,7 @@ void MemoryListPrint(int state);
 }while(0)
 
 
+
 typedef struct MHandle
 {
     int flag;
@@ -292,7 +301,6 @@ typedef struct MHandle
 
 MList *mHandleCreate(void);
 void mHandleRelease(MList *handle);
-MHandle *mHandleAppend(MList *handle,int hash,int size,void (*func)(void *));
 void mHandleReset(MList *handle);
 #define ObjectHandle(Obj,Func,Hdl) do{\
     Hdl = NULL;\
@@ -311,7 +319,29 @@ void mHandleReset(MList *handle);
     }\
     \
     if(Hdl==NULL)\
-        Hdl = mHandleAppend(Obj->handle,HASH_##Func,sizeof(struct Handle##Func),end##Func);\
+    {\
+        MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));\
+        Handle_context->flag = HASH_##Func;\
+        Handle_context->valid = 0;\
+        Handle_context->handle = mMalloc(sizeof(struct Handle##Func));\
+        Handle_context->destruct = end##Func;\
+        \
+        memset(Handle_context->handle,0,sizeof(struct Handle##Func));\
+        if(Num%16 == 0)\
+        {\
+            void **handle_buff = (void **)mMalloc((Num+16)*sizeof(void *));\
+            if(Num>0)\
+            {\
+                memcpy(handle_buff,Obj->handle->data,Num*sizeof(void *));\
+                mFree(Obj->handle->data);\
+            }\
+            Obj->handle->data = handle_buff;\
+        }\
+        Obj->handle->data[Num] = Handle_context;\
+        Obj->handle->num = Num+1;\
+        \
+        Hdl = (MHandle *)(Obj->handle->data[Num]);\
+    }\
 }while(0)
 
 #define MMemory MList
@@ -405,15 +435,9 @@ typedef struct MTable{
 MTable *TableCreate(int row,int col,int element_size,void **data);
 #define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,sizeof(Type),Data)
 void mTableRelease(MTable *tab);
-void TableRedefine(MTable *tab,int row,int col,int element_size);
-#define mTableRedefine(Tab,Row,Col,Type) TableRedefine(Tab,Row,Col,sizeof(Type))
-#define mTableSet(Tab,Row,Col,Type) do{\
-    if(Tab == NULL)\
-        Tab = TableCreate(Row,Col,sizeof(Type),NULL);\
-    else\
-        TableRedefine(Tab,Row,Col,sizeof(Type));\
-}while(0)
-#define mTableExchange(Tab1,Tab2) mTableExchange(Tab1,Tab2,MTable)
+void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
+#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,sizeof(Type),Data)
+#define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
 
 typedef struct MArray{
@@ -440,10 +464,11 @@ typedef struct MArray{
 MArray *ArrayCreate(int num,int element_size,void *data);
 #define mArrayCreate(Num,Type,Data) ArrayCreate(Num,sizeof(Type),Data)
 void mArrayRelease(MArray *array);
-void ArrayRedefine(MArray *array,int num,int element_size);
-#define mArrayRedefine(Array,Num,Type) ArrayRedefine(Array,Num,sizeof(Type))
+void ArrayRedefine(MArray *array,int num,int element_size,void *data);
+#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,sizeof(Type),Data)
 
 int mRand(int floor,int ceiling);
+float mNormalRand(float mean,float delta);
 
 /*
 #define MORN_LEFT_THRESHOLD      0x01
@@ -491,7 +516,7 @@ typedef struct MThreshold{
 
 
 int mStringRegular(const char *str1,const char *str2);
-void mStringSplit(const char *str,const char *flag,MList *list);
+char **mStringSplit(const char *str,const char *flag,MList *list);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
 
 
@@ -635,7 +660,7 @@ MChain *mChainCreate();
 void mChainRelease(MChain *chain);
 MChainNode *mChainNode(MChain *chain,void *data,int size);
 void mChainNodeInsert(MChainNode *last,MChainNode *node,MChainNode *next);
-void mChainNodeDelete(MChain *chain,MChainNode *node);
+void mChainNodeDelete(MChainNode *node);
 void mChainNodeExchange(MChainNode *node1,MChainNode *node2);
 MChain *mChainMerge(int chain_num,MChain *chain,...);
 
@@ -688,7 +713,6 @@ void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
-#ifdef __GNUC__
 #define ThreadRun2(F1,F2) {\
     void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
     void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
@@ -854,13 +878,15 @@ void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
     void thfunc15(void) {F15;} mException(pthread_create(id+14,NULL,(void *)thfunc15,NULL),EXIT,"createthread failed");\
     void thfunc16(void) {F16;} mException(pthread_create(id+15,NULL,(void *)thfunc16,NULL),EXIT,"createthread failed");\
 }
+
+// int pthread_setconcurrency(int new_level);
 #define mThread(Num,...) {\
+    pthread_setconcurrency(16);\
     mException((Num>16)||(Num<2),EXIT,"invalid Thread number");\
     pthread_t id[16];\
     ThreadRun##Num(__VA_ARGS__);\
-    for(int I=0;I<Num;I++) pthread_join(id[I],NULL);\
+    for(int I=0;I<Num;I++) {pthread_join(id[I],NULL);}\
 }
-#endif
 
 #ifdef __cplusplus
 }

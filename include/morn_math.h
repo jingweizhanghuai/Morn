@@ -1,9 +1,7 @@
-/*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+//////////////////////////////////////////////////////////
+// Copyright (c) Beijing IMPower Technologies Co. Ltd.
+// All rights reserved.
+//////////////////////////////////////////////////////////
 
 #ifndef _MORN_MATH_H_
 #define _MORN_MATH_H_
@@ -43,6 +41,7 @@ static inline float mInf() {float a=0.0f;return -1.0f/a;}
 #define mIsSup(A) (isinf(A)&&(A>0))
 #define mIsInf(A) (isinf(A)&&(A<0))
 #define mIsNan(A) isnan(A)
+#define mIsInteger(A) (ABS(A-((int)(A+0.5f)))<0.00001f)
 
 double mSigmoid(float x);
 
@@ -51,7 +50,7 @@ typedef struct MVector{
     float *data;
     
     MList *handle;
-    
+    MInfo info;
     void *reserve;
 }MVector;
 
@@ -60,7 +59,7 @@ typedef struct MVector{
 MVector *mVectorCreate(int size,float *data);
 void mVectorSetData(MVector *vec,float *data);
 void mVectorRelease(MVector *vec);
-void mVectorRedefine(MVector *vec,int size);
+void mVectorRedefine(MVector *vec,int size,float *data);
 #define mVectorSet(Vec,Size) {\
     if(Vec == NULL)\
         Vec = mVectorCreate(Size,NULL);\
@@ -78,7 +77,7 @@ typedef struct MMatrix{
     float **data;
     
     MList *handle;
-    
+    MInfo info;
     void *reserve;
 }MMatrix;
 
@@ -87,10 +86,8 @@ typedef struct MMatrix{
                                                                 ||((Mat)->row <= 0)))
 
 MMatrix *mMatrixCreate(int row,int col,float **data);
-MMatrix *mMatrixUnitCreate(int size);
-void mMatrixSetData(MMatrix *mat,float ** data);
 void mMatrixRelease(MMatrix *mat);
-void mMatrixRedefine(MMatrix *mat,int row,int col);
+void mMatrixRedefine(MMatrix *mat,int row,int col,float ** data);
 #define mMatrixleSet(Mat,Row,Col) {\
     if(Mat == NULL)\
         Mat = mMatrixCreate(Row,Col,NULL);\
