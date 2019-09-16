@@ -1,12 +1,14 @@
-//////////////////////////////////////////////////////////
-// Copyright (c) Beijing IMPower Technologies Co. Ltd.
-// All rights reserved.
-//////////////////////////////////////////////////////////
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #ifndef _MORN_MATH_H_
 #define _MORN_MATH_H_
 
-#include "morn_Util.h"
+#include "morn_util.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -60,12 +62,6 @@ MVector *mVectorCreate(int size,float *data);
 void mVectorSetData(MVector *vec,float *data);
 void mVectorRelease(MVector *vec);
 void mVectorRedefine(MVector *vec,int size,float *data);
-#define mVectorSet(Vec,Size) {\
-    if(Vec == NULL)\
-        Vec = mVectorCreate(Size,NULL);\
-    else\
-        mVectorRedefine(Vec,Size);\
-}
     
 #define mVectorExchange(Vec1,Vec2) mObjectExchange(Vec1,Vec2,MVector)
 #define mVectorReset(Vec) mHandleReset(Vec->handle)
@@ -88,12 +84,6 @@ typedef struct MMatrix{
 MMatrix *mMatrixCreate(int row,int col,float **data);
 void mMatrixRelease(MMatrix *mat);
 void mMatrixRedefine(MMatrix *mat,int row,int col,float ** data);
-#define mMatrixleSet(Mat,Row,Col) {\
-    if(Mat == NULL)\
-        Mat = mMatrixCreate(Row,Col,NULL);\
-    else\
-        mMatrixRedefine(Mat,Row,Col);\
-}
 
 #define mMatrixExchange(Mat1,Mat2) mObjectExchange(Mat1,Mat2,MMatrix)
 #define mMatrixReset(Mat) mHandleReset(Mat->handle)
