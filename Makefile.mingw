@@ -16,7 +16,7 @@ CCFLAGS += -DDEBUG
 endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
-SHAREDLIB = $(LIBDIR)/libmorn.dll
+SHAREDLIB = $(LIBDIR)/libmorn.so
 OUTPUT = $(STATICLIB) $(SHAREDLIB)
 
 CSOURCES  = $(wildcard ./src/util/*.c)
