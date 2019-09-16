@@ -12,11 +12,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdint.h>
 #include <setjmp.h>
 
-#ifdef _MSC_VER
-#include <win_pthread.h>
-#else
 #include <pthread.h>
-#endif
 
 #include <errno.h>
 
