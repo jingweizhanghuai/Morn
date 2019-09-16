@@ -9,7 +9,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Math.h"
+#include "morn_math.h"
 
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
 

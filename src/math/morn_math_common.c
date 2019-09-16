@@ -10,7 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 #include <math.h>
 
-#include "morn_Math.h"
+#include "morn_math.h"
 
 float g_sin_caculate_LUT[901]= {
 0.000000000000000f,0.001745328365898f,0.003490651415224f,0.005235963831420f,0.006981260297962f,0.008726535498374f,0.010471784116246f,0.012217000835247f,0.013962180339145f,0.015707317311821f, 

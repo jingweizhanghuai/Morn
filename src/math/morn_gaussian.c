@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <math.h>
 #include <time.h>
 
-#include "morn_Math.h"
+#include "morn_math.h"
 
 float morn_gaussian_curve_LUT[400] = { 
 0.398942280f,0.398922334f,0.398862500f,0.398762797f,0.398623254f,0.398443914f,0.398224830f,0.397966068f,0.397667706f,0.397329832f,

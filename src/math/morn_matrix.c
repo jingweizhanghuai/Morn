@@ -10,8 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 #include <math.h>
 
-#include <time.h>
-#include "morn_Math.h"
+#include "morn_math.h"
 
 struct HandleVectorCreate
 {

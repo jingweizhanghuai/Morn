@@ -10,7 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 #include <math.h>
 
-#include "morn_Image.h"
+#include "morn_image.h"
 
 void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
 {
