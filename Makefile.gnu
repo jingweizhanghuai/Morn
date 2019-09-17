@@ -17,7 +17,9 @@ endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
 SHAREDLIB = $(LIBDIR)/libmorn.so
-OUTPUT = $(STATICLIB) $(SHAREDLIB)
+
+TOOLSOURCES = $(wildcard ./tool/*.c)
+TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
 
 CSOURCES  = $(wildcard ./src/util/*.c)
 CSOURCES += $(wildcard ./src/math/*.c)
@@ -35,8 +37,21 @@ DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
 
 INCLUDEDIR = -I ./include -I ./lib/include/
 
-$(OUTPUT):$(OBJS)
+all:$(STATICLIB) $(SHAREDLIB) $(TOOLEXE)
+
+tool:$(TOOLEXE)
+
+%.exe:%.c $(STATICLIB)
+	$(CC) $(CCFLAGS) $(INCLUDEDIR) $< $(STATICLIB) -L $(LIBDIR) $(DEPENDLIB) -o $@
+
+static:$(STATICLIB)
+
+$(STATICLIB):$(OBJS)
 	$(LIB) -rc $(STATICLIB) $(OBJS)
+
+shared:$(SHAREDLIB)
+
+$(SHAREDLIB):$(OBJS)
 	$(CC) $(CCFLAGS) -shared $(OBJS) -o $(SHAREDLIB)
 
 %.o:%.c
@@ -44,7 +59,9 @@ $(OUTPUT):$(OBJS)
 
 clean:
 	$(REMOVE) $(OBJS)
-	$(REMOVE) $(OUTPUT)
+	$(REMOVE) $(STATICLIB)
+	$(REMOVE) $(SHAREDLIB)
+	$(REMOVE) $(TOOLEXE)
 
 
 

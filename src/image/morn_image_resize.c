@@ -110,7 +110,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
         for(int i=0;i<width;i++)
             for(int cn=0;cn<src->channel;cn++)
                 dst->data[cn][j][i] =src->data[cn][ly[j]][lx[i]];
- 
+   
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst)
