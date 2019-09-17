@@ -4,7 +4,7 @@ DEBUG=0
 
 CC = gcc
 LIB = ar
-LIBDIR = ./lib/mingw
+LIBDIR = ./lib/x64/mingw
 REMOVE = rm -rf
 
 CCFLAGS = -O2 -fPIC -Wall

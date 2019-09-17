@@ -4,7 +4,7 @@ DEBUG=0
 
 CC = gcc
 LIB = ar
-LIBDIR = ./lib/gnu
+LIBDIR = ./lib/x64/gnu
 REMOVE = rm -rf
 
 CCFLAGS = -O2 -fPIC -Wall
