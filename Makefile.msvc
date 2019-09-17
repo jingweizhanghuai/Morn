@@ -1,0 +1,79 @@
+﻿OPENMP=1
+JPG_PNG=1
+DEBUG=0
+
+CC = cl.exe
+LIB = lib.exe
+LINK = link.exe
+LIBDIR = ./lib/x64/msvc
+REMOVE = rm
+
+CCFLAGS = -O2
+ifeq ($(OPENMP), 1) 
+CCFLAGS += -openmp
+endif
+ifeq ($(DEBUG), 1) 
+CCFLAGS += -D DEBUG
+endif
+
+STATICLIB = $(LIBDIR)/libmorn.lib
+SHAREDLIB = ./tool/libmorn.dll
+
+TOOLSOURCES = $(wildcard ./tool/*.c)
+TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
+
+CSOURCES  = $(wildcard ./src/util/*.c)
+CSOURCES += $(wildcard ./src/math/*.c)
+CSOURCES += $(wildcard ./src/wave/*.c)
+CSOURCES += $(wildcard ./src/image/*.c)
+# CSOURCES += $(wildcard ./src/machine_learning/*.c)
+CSOURCES += $(wildcard ./src/deep_learning/*.c)
+ifeq ($(JPG_PNG), 1) 
+CSOURCES += $(wildcard ./src/wrap/*.c)
+endif
+
+OBJS = $(patsubst %.c,%.obj,$(CSOURCES))
+
+DEPENDLIB  = $(LIBDIR)/libopenblas.lib 
+DEPENDLIB += $(LIBDIR)/libjpeg.lib
+DEPENDLIB += $(LIBDIR)/libpng.lib
+DEPENDLIB += $(LIBDIR)/zlib.lib
+DEPENDLIB += $(LIBDIR)/pthread.lib
+
+INCLUDEDIR = -I ./include -I ./lib/include -I ./lib/include/pthread
+
+all:$(STATICLIB) $(SHAREDLIB) $(TOOLEXE)
+
+tool:$(TOOLEXE)
+
+%.exe:%.c $(STATICLIB)
+	$(CC) $(CCFLAGS) $(INCLUDEDIR) $< $(STATICLIB) $(DEPENDLIB) -Fe"$@"
+
+static:$(STATICLIB)
+
+$(STATICLIB):$(OBJS)
+	$(LIB) /out:$(STATICLIB) $(OBJS)
+
+shared:$(SHAREDLIB)
+
+$(SHAREDLIB):$(OBJS)
+	$(LINK) -DLL -out:$(SHAREDLIB) $(OBJS) $(DEPENDLIB)
+
+%.obj:%.c
+	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -Fo"$@"
+
+clean:
+	$(REMOVE) $(OBJS)
+	$(REMOVE) $(STATICLIB)
+	$(REMOVE) $(SHAREDLIB)
+	$(REMOVE) $(TOOLEXE)
+	# $(REMOVE) .\src\util\*.obj
+	# $(REMOVE) .\src\math\*.obj
+	# $(REMOVE) .\src\wave\*.obj
+	# $(REMOVE) .\src\image\*.obj
+	# $(REMOVE) .\src\machine_learning\*.obj
+	# $(REMOVE) .\src\deep_learning\*.obj
+	# $(REMOVE) .\src\wrap\*.obj
+	# $(REMOVE) .\lib\x64\msvc\libmorn.lib
+	# $(REMOVE) .\tool\libmorn.dll
+	# $(REMOVE) .\tool\*.exe

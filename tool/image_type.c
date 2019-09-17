@@ -12,6 +12,10 @@ You should have received a copy of the GNU General Public License along with thi
 #include "morn_image.h"
 #include "morn_help.h"
 
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif
+
 int main(int argc,char *argv[])
 {
     HELP_INFOMATION("ImageType");

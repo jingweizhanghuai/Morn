@@ -16,7 +16,7 @@ CCFLAGS += -DDEBUG
 endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
-SHAREDLIB = $(LIBDIR)/libmorn.so
+SHAREDLIB = ./tool/libmorn.so
 
 TOOLSOURCES = $(wildcard ./tool/*.c)
 TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
