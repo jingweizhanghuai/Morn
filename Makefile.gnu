@@ -37,7 +37,7 @@ DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
 
 INCLUDEDIR = -I ./include -I ./lib/include/
 
-all:$(STATICLIB) $(SHAREDLIB) $(TOOLEXE)
+all:$(STATICLIB) $(TOOLEXE)
 
 tool:$(TOOLEXE)
 

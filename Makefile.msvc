@@ -6,7 +6,6 @@ CC = cl.exe
 LIB = lib.exe
 LINK = link.exe
 LIBDIR = ./lib/x64/msvc
-REMOVE = rm
 
 CCFLAGS = -O2
 ifeq ($(OPENMP), 1) 
@@ -42,7 +41,7 @@ DEPENDLIB += $(LIBDIR)/pthread.lib
 
 INCLUDEDIR = -I ./include -I ./lib/include -I ./lib/include/pthread
 
-all:$(STATICLIB) $(SHAREDLIB) $(TOOLEXE)
+all:$(STATICLIB) $(TOOLEXE)
 
 tool:$(TOOLEXE)
 
@@ -63,17 +62,7 @@ $(SHAREDLIB):$(OBJS)
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -Fo"$@"
 
 clean:
-	$(REMOVE) $(OBJS)
-	$(REMOVE) $(STATICLIB)
-	$(REMOVE) $(SHAREDLIB)
-	$(REMOVE) $(TOOLEXE)
-	# $(REMOVE) .\src\util\*.obj
-	# $(REMOVE) .\src\math\*.obj
-	# $(REMOVE) .\src\wave\*.obj
-	# $(REMOVE) .\src\image\*.obj
-	# $(REMOVE) .\src\machine_learning\*.obj
-	# $(REMOVE) .\src\deep_learning\*.obj
-	# $(REMOVE) .\src\wrap\*.obj
-	# $(REMOVE) .\lib\x64\msvc\libmorn.lib
-	# $(REMOVE) .\tool\libmorn.dll
-	# $(REMOVE) .\tool\*.exe
+	del /a /s .\src\*.obj
+	del /a .\tool\*.exe
+	del /a .\tool\libmorn.dll
+	del /a .\lib\x64\msvc\libmorn.lib

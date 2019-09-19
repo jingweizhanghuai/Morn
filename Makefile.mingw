@@ -37,7 +37,7 @@ DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
 
 INCLUDEDIR = -I ./include -I ./lib/include
 
-all:$(STATICLIB) $(SHAREDLIB) $(TOOLEXE)
+all:$(STATICLIB) $(TOOLEXE)
 
 tool:$(TOOLEXE)
 
@@ -58,7 +58,13 @@ $(SHAREDLIB):$(OBJS)
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -o $@
 
 clean:
-	$(REMOVE) $(OBJS)
-	$(REMOVE) $(STATICLIB)
-	$(REMOVE) $(SHAREDLIB)
-	$(REMOVE) $(TOOLEXE)
+	del /a /s .\src\*.ob
+	del /a .\tool\*.exe
+	del /a .\tool\libmorn.so
+	del /a .\lib\x64\mingw\libmorn.a
+    
+#clean:
+#	rm -rf $(OBJS)
+#	rm -rf $(STATICLIB)
+#	rm -rf $(SHAREDLIB)
+#	rm -rf $(TOOLEXE)
