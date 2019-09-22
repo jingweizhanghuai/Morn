@@ -8,7 +8,7 @@
 int main(int argc,char *argv[])
 {
     HELP_INFOMATION("hashvalue");
-    mException((argc != 2),"invalid input",EXIT);
+    mException((argc != 2),EXIT,"invalid input");
     
     unsigned int out = mHash(argv[1],DFLT);
     printf("0x%x\n",out);
