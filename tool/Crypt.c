@@ -7,7 +7,7 @@
 
 int main(int argc,char *argv[])
 {
-    HELP_INFOMATION("Crypt");
+    HELP_INFOMATION("crypt");
     
     char *file_in;int flag;
     {

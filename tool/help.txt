@@ -1,28 +1,12 @@
 [version]
 version 00.00.01
 
-[SoundRecord]
-Options:
---help              Display this information
--v                  Display version information
--r <rate>           Set sample rate, defalt is 44100
--o <filename>       Set output file name, only WAV file is supported
-
-[ActiveSound]
-Options:
---help              Display this information
--v                  Display version information
--i <dir>            Set input directory
--o <dir>            Set output directory
--l <min lengthh>    Set minimum active sound length, defalt is 0.256s
--n <max num>        Set maximum active sound number, defalt is  128
-
-[HashValue]
+[hashvalue]
 Options:
 --help              Display this information
 -v                  Display version information
 
-[Crypt]
+[crypt]
 Options:
 --help              Display this information
 -v                  Display version information
@@ -31,7 +15,7 @@ Options:
 -o <file>           Set output file
 -k <key>            Set encrypt/decrypt key
 
-[ImageType]
+[imageformat]
 Options:
 --help              Display this information
 -v                  Display version information
