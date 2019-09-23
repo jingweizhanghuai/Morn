@@ -30,7 +30,7 @@ Morn的多线程，使用的POSIX标准的pthread，在MSVC下开发的用户，
 
 ### Linux+gcc编译
 
-makefile是 [../gnu-makefile](../gnu-makefile)。你可以使用以下命令编译：
+makefile是 [../gnu_makefile](../gnu_makefile)。你可以使用以下命令编译：
 
 ```
 make -f gnu_makefile     		#编译静态库和tool
@@ -39,13 +39,13 @@ make share -f gnu_makefile		#编译动态库
 make clean -f gnu_makefile		#编译清空
 ```
 
-编译后，会在[../lib/x64/gnu]()文件夹下，生成libmorn.a库文件（静态编译）。
+编译后，会在[../lib/x64/gnu](../lib/x64/gnu)文件夹下，生成libmorn.a库文件（静态编译）。
 
 
 
 ### Windows+MinGW编译
 
-makefile是 [../mingw-makefile](../mingw-makefile)。你可以使用以下命令编译：
+makefile是 [../mingw_makefile](../mingw_makefile)。你可以使用以下命令编译：
 
 ```
 make -f mingw_makefile     		#编译静态库和tool
@@ -54,7 +54,7 @@ make share -f mingw_makefile	#编译动态库
 make clean -f mingw_makefile	#编译清空
 ```
 
-编译后，会在[../lib/x64/mingw]()文件夹下，生成libmorn.a库文件（静态编译）。
+编译后，会在[../lib/x64/mingw](../lib/x64/mingw)文件夹下，生成libmorn.a库文件（静态编译）。
 
 
 
@@ -62,7 +62,7 @@ make clean -f mingw_makefile	#编译清空
 
 这个稍稍复杂，首先，你得先打开cmd命令行。cd到你安装的vc文件夹下（比如，我的文件夹是D:\ProgramFiles\VS2015\VC\bin\amd64）然后，执行这个文件夹里的vcvars64.bat脚本（32位或其他架构类似，但脚本文件名不同）。或者你把你的VC的文件夹添加到你的环境变量里，然后执行vcvars64.bat（或类似的）脚本。
 
-然后回到Morn目录下，执行make命令。makefile是 [../msvc-makefile](../msvc-makefile)。你可以使用以下命令编译：
+然后回到Morn目录下，执行make命令。makefile是 [../msvc_makefile](../msvc_makefile)。你可以使用以下命令编译：
 
 ```
 make -f msvc_makefile     		#编译静态库和tool
@@ -71,7 +71,7 @@ make share -f msvc_makefile		#编译动态库
 make clean -f msvc_makefile		#编译清空
 ```
 
-编译后，会在[../lib/x64/msvc]()文件夹下，生成morn.lib库文件（静态编译）。
+编译后，会在[../lib/x64/msvc](../lib/x64/msvc)文件夹下，生成morn.lib库文件（静态编译）。
 
 
 
