@@ -44,7 +44,7 @@ Morn并不追求大而全，写这些算法仅仅是因为作者曾经用到过�
 
 ### 安装和编译
 
-Morn使用Makefile和make工具来编译，具体另见文档[Morn：编译](./doc/Morn：编译)。
+Morn使用Makefile和make工具来编译，具体另见文档[Morn：编译](./doc/Morn：编译.md)。
 
 
 
