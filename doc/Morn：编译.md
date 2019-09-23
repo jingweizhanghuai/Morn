@@ -33,10 +33,10 @@ Morn的多线程，使用的POSIX标准的pthread，在MSVC下开发的用户，
 makefile是 [../gnu_makefile](../gnu_makefile)。你可以使用以下命令编译：
 
 ```
-make -f gnu_makefile     		#编译静态库和tool
-make static -f gnu_makefile		#编译静态库
-make share -f gnu_makefile		#编译动态库
-make clean -f gnu_makefile		#编译清空
+make -f gnu_makefile            #编译静态库和tool
+make static -f gnu_makefile     #编译静态库
+make share -f gnu_makefile      #编译动态库
+make clean -f gnu_makefile      #编译清空
 ```
 
 编译后，会在[../lib/x64/gnu](../lib/x64/gnu)文件夹下，生成libmorn.a库文件（静态编译）。
@@ -48,10 +48,10 @@ make clean -f gnu_makefile		#编译清空
 makefile是 [../mingw_makefile](../mingw_makefile)。你可以使用以下命令编译：
 
 ```
-make -f mingw_makefile     		#编译静态库和tool
-make static -f mingw_makefile	#编译静态库
-make share -f mingw_makefile	#编译动态库
-make clean -f mingw_makefile	#编译清空
+make -f mingw_makefile          #编译静态库和tool
+make static -f mingw_makefile   #编译静态库
+make share -f mingw_makefile    #编译动态库
+make clean -f mingw_makefile    #编译清空
 ```
 
 编译后，会在[../lib/x64/mingw](../lib/x64/mingw)文件夹下，生成libmorn.a库文件（静态编译）。
@@ -65,10 +65,10 @@ make clean -f mingw_makefile	#编译清空
 然后回到Morn目录下，执行make命令。makefile是 [../msvc_makefile](../msvc_makefile)。你可以使用以下命令编译：
 
 ```
-make -f msvc_makefile     		#编译静态库和tool
-make static -f msvc_makefile	#编译静态库
-make share -f msvc_makefile		#编译动态库
-make clean -f msvc_makefile		#编译清空
+make -f msvc_makefile           #编译静态库和tool
+make static -f msvc_makefile    #编译静态库
+make share -f msvc_makefile     #编译动态库
+make clean -f msvc_makefile     #编译清空
 ```
 
 编译后，会在[../lib/x64/msvc](../lib/x64/msvc)文件夹下，生成morn.lib库文件（静态编译）。
