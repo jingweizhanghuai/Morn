@@ -99,32 +99,6 @@ void mListAppend(MList *list,int n)
     list->num = n;
 }
 
-// void mListAppend(MList *list,int num)
-// {
-    // mException(INVALID_POINTER(list),EXIT,"invalid input source list");
-    // if(num<0) num = 1;
-    // num = list->num+num;
-    
-    // mHandleReset(list->handle);
-    // struct HandleListCreate *handle= ((MHandle *)(list->handle->data[0]))->handle;
-    
-    // if(num<=handle->num){list->num = num; return;}
-    
-    // void **list_data = (void **)mMalloc(num*sizeof(void *));
-    // if(handle->num>0)
-    // {
-        // memcpy(list_data,list->data,(list->num)*sizeof(void *));
-        // mFree(list->data);
-    // }
-    // memset(list_data+list->num,0,(num-list->num)*sizeof(void *));
-    
-    // list->data = list_data;
-    
-    // handle->num = num;
-    // list->num = num;
-// }
-
-
 void mListPlace(MList *list,int num,int size)
 {
     if(num<=0) return;
@@ -137,13 +111,6 @@ void mListPlace(MList *list,int num,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(num,size);
     mMemoryIndex(handle->memory,num,size,list->data);
 }
-
-// void ListDebug(MList *list)
-// {
-    // struct HandleListCreate *handle0 = ((MHandle *)(list->handle->data[0]))->handle;
-    // if(handle0->memory != NULL)
-    // printf("eeeeeeeeccccccccccccchandle0->memory->handle is %p\n",handle0->memory->handle);
-// }
 
 struct HandleListWrite
 {
@@ -307,23 +274,23 @@ void mListElementInsert(MList *list,int n,void *data,int size)
     list->data[n] = buff;
 }
 
-void mListElementOperate(MList *list,void (*func)(MList *,int,void *),void *para)
+void mListElementOperate(MList *list,void (*func)(void *,void *),void *para)
 {
     mException(INVALID_POINTER(list)||(func==NULL),EXIT,"invalid input");
 	int i;
     #pragma omp parallel for
     for(i=0;i<list->num;i++)
-        func(list,i,para);
+        func(list->data[i],para);
 }
 
-void mListElementScreen(MList *list,int (*func)(MList *,int,void *),void *para)
+void mListElementScreen(MList *list,int (*func)(void *,void *),void *para)
 {
     mException(INVALID_POINTER(list)||(func==NULL),EXIT,"invalid input");
     
     int n=0;
     for(int i=0;i<list->num;i++)
     {
-        if(func(list,i,para))
+        if(func(list->data[i],para))
         {
             list->data[n] = list->data[i];
             n=n+1;
@@ -331,7 +298,7 @@ void mListElementScreen(MList *list,int (*func)(MList *,int,void *),void *para)
     }
     list->num = n;
 }
-void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,void *),void *para)
+void mListElementSelect(MList *list,void (*func)(void *,void *,int *,int *,void *),void *para)
 {
     mException(INVALID_POINTER(list)||(func==NULL),EXIT,"invalid input");
     
@@ -348,7 +315,7 @@ void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,voi
                 continue;
             
             int flag2=1;
-            func(list,i,j,&flag1,&flag2,para);
+            func(list->data[i],list->data[j],&flag1,&flag2,para);
             if(flag2==0)
                 list->data[j]=NULL;
             if(flag1==0)
@@ -363,49 +330,7 @@ void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,voi
     list->num = n;
 }
 
-/*
-int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void *para)
-{
-    mException(INVALID_POINTER(list),EXIT,"invalid input source list");
-
-    int i,j;
-    for(i=0;i<list->num;i++) group[i] = i;
-    
-    int flag;
-    do
-    {
-        flag=0;
-        for(i=0;i<list->num;i++)
-        {
-            if(group[i] != i) continue;
-            for(j=0;j<list->num;j++)
-            {
-                if(i==j) continue;
-                if(group[j] == i) continue;
-                
-                if(func(list,i,j,para)==1)//同类
-                {
-                    group[i] = MIN(i,group[j]);
-                    group[j] = group[i];
-                    flag = 1;
-                    break;
-                }
-            }
-        }
-    }while(flag == 1);
-   
-    int num = 0;
-    for(i=0;i<list->num;i++)
-    {
-        if(i==group[i]) {group[i] = num;num=num+1;}
-        else group[i] = group[group[i]];
-    }
-    
-    return num;
-}
-*/
-
-int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void *para)
+int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *para)
 {
     mException((INVALID_POINTER(list))||(group==NULL)||(func==NULL),EXIT,"invalid input");
 
@@ -421,16 +346,16 @@ int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void
         {
             if(group[i]==group[j]) continue;
             
-            if(func(list,i,j,para)==1)//同类
+            if(func(list->data[i],list->data[j],para)==1)//同类
             {
                 if(group[i] == DFLT)
                     group[i] = group[j];
                 else
                 {
                     valid[group[j]] = 0;
-                    
+                    int g = group[j];
                     for(k=0;k<i;k++)
-                        if(group[k] == group[j]) group[k] = group[i];
+                        if(group[k] == g) group[k] = group[i];
                 }
             }
         }
@@ -460,39 +385,36 @@ int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void
     return num;
 }
 
-void ListSort(MList *list,int n1,int n2,int func(MList *,int,int,void *),void *para)
+void ListSort(MList *list,int n1,int n2,int func(void *,void *,void *),void *para)
 {
     void **list_data = list->data;
     if(n2-n1 <= 1) return;
     
-    void *buff; 
+    void *buff = list_data[n1]; 
     int i=n1;int j=n2-1;
     while(i<j)
     {
-        while(func(list,j,i,para)>=0)
+        while(func(list_data[j],buff,para)>=0)
         {
             if(j==i) goto ListSort_next;
             j=j-1;
         }
-        buff = list_data[i];
         list_data[i] = list_data[j];
-        list_data[j] = buff;
         
-        while(func(list,i,j,para)<=0)
+        while(func(list_data[i],buff,para)<=0)
         {
             if(i==j) goto ListSort_next;
             i=i+1;
         }
-        buff = list_data[j];
         list_data[j] = list_data[i];
-        list_data[i] = buff;
     }
     
     ListSort_next:
+    list_data[i] = buff;
     ListSort(list,n1 ,i ,func,para);
     ListSort(list,i+1,n2,func,para);
 }
-void mListSort(MList *list,int func(MList *,int,int,void *),void *para)
+void mListSort(MList *list,int func(void *,void *,void *),void *para)
 {
     mException((INVALID_POINTER(list))||(func==NULL),EXIT,"invalid input");
   
@@ -557,67 +479,6 @@ struct HandleQueue
 };
 void endQueue(void *info) {NULL;}
 #define HASH_Queue 0xd98b43dc
-/*
-int mQueuePush(MList *queue)
-{
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    mException(queue->num<=0,EXIT,"invalid queue");
-    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
-    if(hdl->valid == 0) {handle->read_order=0;handle->write_order=0;}
-    hdl->valid = 1;
-    
-    if(handle->flag>0) return DFLT;
-    
-    int order = handle->write_order;
-    handle->write_order = handle->write_order+1;
-    if(handle->write_order == queue->num) handle->write_order = 0;
-    handle->flag =(handle->write_order == handle->read_order)?1:0;
-    return order;
-}
-
-int mQueuePop(MList *queue)
-{
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    mException(queue->num<=0,EXIT,"invalid queue");
-    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
-    if(hdl->valid == 0) return DFLT;
-    
-    if(handle->flag<0) return DFLT;
-    int order = handle->read_order;
-    handle->read_order = handle->read_order +1;
-    if(handle->read_order == queue->num) handle->read_order = 0;
-    handle->flag =(handle->write_order == handle->read_order)?-1:0;
-    return order;
-}
-
-void mQueueOperate(MList *queue,void (*func)(MList *,int,void *),void *para)
-{
-    mException(INVALID_POINTER(queue)||(func==NULL),EXIT,"invalid input");
-    mException(queue->num<=0,EXIT,"invalid queue");
-    MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
-    if(hdl->valid == 0) return;
-    if(handle->flag<0) return;
-    
-    if(handle->read_order<handle->write_order)
-    {
-        #pragma omp parallel for
-        for(int i=handle->read_order;i<handle->write_order;i++)
-            func(list,i,para);
-    }
-    else
-    {
-        #pragma omp parallel for
-        for(int i=handle->read_order;i<queue->num;i++)
-            func(list,i,para);
-        #pragma omp parallel for
-        for(int i=0;i<handle->write_order;i++)
-            func(list,i,para);
-    }
-}
-*/
 
 int mQueueSize(MList *queue)
 {

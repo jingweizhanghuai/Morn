@@ -242,11 +242,11 @@ void mListElementInsert(MList *list,int n,void *data,int size);
 void mListCopy(MList *src,MList *dst);
 void mListMerge(MList *list1,MList *list2,MList *dst);
 
-void mListElementOperate(MList *list,void (*func)(MList *,int,void *),void *para);
-void mListElementScreen(MList *list,int (*func)(MList *,int,void *),void *para);
-void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,void *),void *para);
-int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void *para);
-void mListSort(MList *list,int func(MList *,int,int,void *),void *para);
+void mListElementOperate(MList *list,void (*func)(void *,void *),void *para);
+void mListElementScreen(MList *list,int (*func)(void *,void *),void *para);
+void mListElementSelect(MList *list,void (*func)(void *,void *,int *,int *,void *),void *para);
+int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *para);
+void mListSort(MList *list,int func(void *,void *,void *),void *para);
 void mListReorder(MList *list);
 
 int mQueueSize(MList *queue);
