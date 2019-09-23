@@ -2,16 +2,16 @@
 
 上次的MList没有讲完，这次接着说。
 
-#### MList操作
+### MList操作
 
 这里主要是一些需要借助回调函数完成的功能：
 
 
 
-**MList元素运算**:
+#### MList元素运算
 
 ```c
-void mListElementOperate(MList,void (*func)(MList *,int,void *),void *para);
+void mListElementOperate(MList,void (*func)(void *,void *),void *para);
 ```
 
 这个是遍历容器中的每个元素，对每个元素执行func函数操作。例如，对MList中的一众数据取阈值。
@@ -27,10 +27,10 @@ int main()
         printf("%d,",a);
         mListWrite(list,DFLT,&a,sizeof(int));
     }
-    void Threshold(MList *list,int n,void *para)
+    void Threshold(void *data,void *para)
     {
-        int *data = list->data[n];
-        data[0]=(data[0]>5)?10:0;
+        int *p = data;
+        *p=(*p>5)?10:0;
     }
     mListElementOperate(list,Threshold,NULL);
     printf("\nafter\n");
@@ -52,10 +52,10 @@ after
 
 
 
-**MList筛选元素**：
+#### MList筛选元素
 
 ```c
-void mListElementScreen(MList *list,int (*func)(MList *,int,void *),void *para);
+void mListElementScreen(MList *list,int (*func)(void *,void *),void *para);
 ```
 
 例如，从一众整数中筛选出偶数：
@@ -71,9 +71,9 @@ int main()
         printf("%d,",a);
         mListWrite(list,DFLT,&a,sizeof(int));
     }
-    int EvenScreen(MList *list,int n,void *para)
+    int EvenScreen(void *data,void *para)
     {
-        int *data = list->data[n];return (data[0]%2==0);
+        int *p = pdata;return ((*p)%2==0);
     }
     mListElementScreen(list,EvenScreen,NULL);
     printf("\nafter\n");
@@ -95,10 +95,10 @@ after
 
 
 
-**MList比选元素**：
+#### MList比选元素
 
 ```c
-void mListElementSelect(MList *list,void (*func)(MList *,int,int,int *,int *,void *),void *para);
+void mListElementSelect(MList *list,void (*func)(void *,void *,int *,int *,void *),void *para);
 ```
 
 比选和筛选的区别，筛选是单个元素选择去还是留，比选是两两元素捉对比较后再决定哪个去哪个留（或者两个都去，再或者两个都留）
@@ -116,12 +116,12 @@ int main()
         printf("%d,",a);
         mListWrite(list,DFLT,&a,sizeof(int));
     }
-    void DuplicateDelete(MList *list,int n1,int n2,int *flag1,int *flag2,void *para)
+    void DuplicateDelete(void *data1,void *data2,int *flag1,int *flag2,void *para)
     {
-        int *data1 = list->data[n1];
-        int *data2 = list->data[n2];
+        int *p1 = data1;
+        int *p2 = data2;
         *flag1 = 1;
-        *flag2 = (data2[0]!=data1[0]);
+        *flag2 = (*p2!=*p1);
     }
     mListElementSelect(list,DuplicateDelete,NULL);
     printf("\nafter\n");
@@ -143,7 +143,7 @@ after
 
 
 
-**MList元素乱序**：
+#### MList元素乱序
 
 ```c
 void mListReorder(MList *list);
@@ -153,13 +153,13 @@ void mListReorder(MList *list);
 
 
 
-**MList元素排序**：
+#### MList元素排序
 
 ```c
-void mListSort(MList *list,int func(MList *,int,int,void *),void *para);
+void mListSort(MList *list,int func(void *,void *,void *),void *para);
 ```
 
-因为MList里面装的东西不一定是数，所以排序的时候需要使用者首先定义（即func函数）什么是“大于”（func函数输出大于0），什么是“小于”（func函数输出小于0），什么是“等于”（func函数输出等于0）。例如，对上例中的数进行排序。
+因为MList里面装的东西不一定是"数"，所以排序的时候需要使用者首先定义（即func函数）什么是“大于”（func函数输出大于0），什么是“小于”（func函数输出小于0），什么是“等于”（func函数输出等于0）。例如，对上例中的数进行排序。
 
 ```c
 int main()
@@ -172,12 +172,12 @@ int main()
         printf("%d,",a);
         mListWrite(list,DFLT,&a,sizeof(int));
     }
-    int Compare(MList *list,int n1,int n2,void *para)
+    int Compare(void *data1,void *data2,void *para)
     {
         
-        int *data1 = list->data[n1];
-        int *data2 = list->data[n2];
-        return (data1[0]-data2[0]);
+        int *p1 = data1;
+        int *p2 = data2;
+        return (p[0]-p[0]);
     }
     mListSort(list,Compare,NULL);
     printf("\nafter sort\n");
@@ -207,10 +207,10 @@ after reorder
 
 
 
-**MList元素聚类**：
+#### MList元素聚类
 
 ```c
-int mListCluster(MList *list,int *group,int (*func)(MList *,int,int,void *),void *para);
+int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *para);
 ```
 
 这个函数的输出为group，它保存了list中每个元素的类别，函数的返回值为元素的种类数量。
@@ -228,11 +228,11 @@ int main()
         printf("%d,",a);
         mListWrite(list,DFLT,&a,sizeof(int));
     }
-    int Neighbor(MList *list,int n1,int n2,void *para)
+    int Neighbor(void *data1,void *data2,void *para)
     {
-        int *data1 = list->data[n1];
-        int *data2 = list->data[n2];
-        return (ABS(data1[0]-data2[0])<=1);
+        int *p1 = data1;
+        int *p2 = data2;
+        return (ABS((*p1)-(*p2))<=1);
     }
     int group[list->num];
     int group_num = mListCluster(list,group,Neighbor,NULL);
