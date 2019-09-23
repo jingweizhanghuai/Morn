@@ -259,5 +259,5 @@ group num is 3
 
 
 
-以上例子都在 [../test/test_List.c]()文件中。
+以上例子都在 [../test/test_list.c]()文件中。
 

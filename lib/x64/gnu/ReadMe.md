@@ -6,4 +6,6 @@
 
 如果没有的话，你可以下载我编译好的：https://pan.baidu.com/s/1PnRGLXpTLJL2UtCYyZWH5A
 
+这个是Linux下使用gcc  5.4.0编译的库。
+
 或者，你也可以从这些库的官方网站下载。
