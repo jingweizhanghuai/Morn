@@ -74,6 +74,10 @@ void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
 void mImageSub(MImage *src1,MImage *src2,MImage *dst);
 void mImageInvert(MImage *src,MImage *dst);
 
+void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned char *,void *),void *para);
+void mImageBinaryFilter(MImage *src,MImage *dst,int r,int thresh);
+
+
 #define MORN_IMAGE_STREAM_HWC DFLT
 #define MORN_IMAGE_STREAM_HCW 1
 #define MORN_IMAGE_STREAM_CHW 2
@@ -196,6 +200,8 @@ int mPolygonCross(MList *polygon1,MList *polygon2);
 int mPolygonConcaveCheck(MList *polygon);
 void mShapeBounding(MList *shape,MList *bounding);
 
+void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
+void mEdgeBoundary(MList *edge,MList *polygon,float thresh);
 
 void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh);
 

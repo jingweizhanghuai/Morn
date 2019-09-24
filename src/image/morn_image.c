@@ -545,33 +545,30 @@ void mImageLinearMap(MImage *src,MImage *dst,float k,float b)
     dst->border = src->border;
 }
 
-void mImageOperate(MImage *src,MImage *dst,int (*func)(unsigned char,void *),void *para)
+void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned char *,void *),void *para)
 {
     mException((INVALID_IMAGE(src)),EXIT,"invalid input");
     
     if(INVALID_POINTER(dst)) {dst = src;}
-    else {mImageRedefine(dst,src->channel,src->height,src->width,dst->data);}
+    else 
+    {
+        mException((dst->channel<=0),EXIT,"invalid input dst channel");
+        mImageRedefine(dst,dst->channel,src->height,src->width,dst->data);
+    }
        
     if(!INVALID_POINTER(src->border)) dst->border = src->border;
     
-    unsigned char data[256];
-    for(int i=0;i<256;i++)
+    unsigned char idata[MORN_MAX_IMAGE_CN];
+    unsigned char odata[MORN_MAX_IMAGE_CN];
+    int j;
+    #pragma omp parallel for
+    for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
     {
-        int rst = func(i,para);
-        if(rst>255)      data[i] = 255;
-        else if(rst<0)   data[i] = 0;
-        else             data[i] = (unsigned char)rst;
-    }
-    
-    for(int cn=0;cn<dst->channel;cn++)
-    {
-        int j;
-        #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-            {
-                dst->data[cn][j][i] = data[src->data[cn][j][i]];
-            }
+        for(int cn=0;cn<src->channel;cn++) idata[cn]=src->data[cn][j][i];
+        
+        func(idata,odata,para);
+        
+        for(int cn=0;cn<dst->channel;cn++) dst->data[cn][j][i]=odata[cn];
     }
     dst->border = src->border;
 }
