@@ -17,8 +17,6 @@ int main()
     MImage *src = mImageCreate(DFLT,DFLT,DFLT,NULL);
     mImageLoad("../doc/test_geometry.jpg",src);
     
-    printf("aaaaaaaaaaaa\n");
-    
     MImage *dst = mImageCreate(1,src->height,src->width,NULL);
     void thresh(unsigned char *in,unsigned char *out,void *para)
     {
@@ -27,9 +25,7 @@ int main()
         int mean = (in[0]+in[1]+in[2])/3;
         out[0]=((mean>80)&&(max-min<50))?255:0;
     }
-    printf("aaaaaaaaaaaa\n");
     mImageOperate(src,dst,thresh,NULL);
-    printf("aaaaaaaaaaaa\n");
     mImageBinaryFilter(dst,dst,2,3);
     
     mImageSave(dst,"./test_geometry_bin.jpg");

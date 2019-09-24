@@ -103,6 +103,12 @@ void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,F32 (*func)(uns
 void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,D64 (*func)(unsigned char,void *),void *para);
 #define mImageDataOutput(Img,Stream,Stream_type,Type,Func,Para) mImageDataOutput##Type(Img,Stream,Stream_type,Func,Para)
 
+void mImageRGBToYUV(MImage *src,MImage *dst);
+void mImageYUVToRGB(MImage *src,MImage *dst);
+void mImageRGBToHSV(MImage *src,MImage *dst);
+void mImageHSVToRGB(MImage *src,MImage *dst);
+void mImageRGBToGray(MImage *src,MImage *dst);
+void mImageYUVToGray(MImage *src,MImage *dst);
 void mImageToGray(MImage *src,MImage *dst); 
 
 void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para);
