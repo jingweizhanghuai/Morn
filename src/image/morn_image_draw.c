@@ -18,7 +18,6 @@ void ImageDrawPoint1(MImage *img,MImagePoint *point,unsigned char *color)
 {
     int x=(int)(point->x+0.5);int y=(int)(point->y+0.5);
     if((x<0)||(x>=img->width)||(y<0)||(y>img->height)) return;
-    // printf("x is %d,y is %d\n",x,y);
     for(int cn=0;cn<img->channel;cn++)
         img->data[cn][y][x] = color[cn];
 }
@@ -145,12 +144,12 @@ void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char
         if(x>cx+r) y=0.0f;
         else y=sqrt(r*r-(x-cx)*(x-cx));
         
-        mImagePointSetup(&p1,x-1.0f,cy+y0);
-        mImagePointSetup(&p2,x     ,cy+y );
+        mPoint(&p1,x-1.0f,cy+y0);
+        mPoint(&p2,x     ,cy+y );
         LineTravel(&p1,&p2,1,PointDraw,&para);
         
-        mImagePointSetup(&p1,x-1.0f,cy-y0);
-        mImagePointSetup(&p2,x     ,cy-y );
+        mPoint(&p1,x-1.0f,cy-y0);
+        mPoint(&p2,x     ,cy-y );
         LineTravel(&p1,&p2,1,PointDraw,&para);
         
         y0=y;

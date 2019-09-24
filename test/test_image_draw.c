@@ -25,14 +25,13 @@ int main()
     
     color[0]=255;color[1]=0;color[2]=0;
     MImagePoint p1,p2;
-    p1.x= 30;p1.y= 20;
-    p2.x=210;p2.y=160;
+    mPoint(&p1,30,20);
+    mPoint(&p2,210,160);
     mImageDrawLine(img,img,&p1,&p2,color,3);
     
     color[0]=0;color[1]=255;color[2]=0;
     MImageRect rect;
-    rect.x1 = 220;rect.y1 =  50;
-    rect.x2 = 380;rect.y2 = 150;
+    mRect(&rect,220,50,380,150);
     mImageDrawRect(img,img,&rect,color,3);
     
     color[0]=0;color[1]=0;color[2]=255;
@@ -43,7 +42,7 @@ int main()
     
     color[0]=255;color[1]=0;color[2]=255;
     MImageCircle circle;
-    mImageCircleSetup(&circle,700,100,80);
+    mCircle(&circle,700,100,80);
     mImageDrawCircle(img,img,&circle,color,3);
     
     float func(float x,void *para) {return (x-900)*(x-900)/50;}

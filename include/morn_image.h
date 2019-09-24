@@ -130,7 +130,7 @@ typedef struct MImageRect
     int x2;
     int y2;
 }MImageRect;
-#define mImageRectSetup(Rect,X1,Y1,X2,Y2) do{(Rect)->x1=X1;(Rect)->y1=Y1;(Rect)->x2=X2;(Rect)->y2=Y2;}while(0)
+#define mRect(Rect,X1,Y1,X2,Y2) do{(Rect)->x1=X1;(Rect)->y1=Y1;(Rect)->x2=X2;(Rect)->y2=Y2;}while(0)
 #define mRectHeight(Rect) ((Rect)->y2-(Rect)->y1)
 #define mRectWidth(Rect)  ((Rect)->x2-(Rect)->x1)
 
@@ -139,14 +139,14 @@ typedef struct MImagePoint
     float x;
     float y;
 }MImagePoint;
-#define mImagePointSetup(Point,X,Y) do{(Point)->x=X; (Point)->y=Y;}while(0)
+#define mPoint(Point,X,Y) do{(Point)->x=X; (Point)->y=Y;}while(0)
 
 typedef struct MImageCircle
 {
     MImagePoint center;
     float r;
 }MImageCircle;
-#define mImageCircleSetup(Circle,Cx,Cy,R) do{(Circle)->center.x=Cx;(Circle)->center.y=Cy;(Circle)->r=R;}while(0)
+#define mCircle(Circle,Cx,Cy,R) do{(Circle)->center.x=Cx;(Circle)->center.y=Cy;(Circle)->r=R;}while(0)
     
 void mBMPSave(MImage *src,const char *filename);
 void mBMPLoad(const char *filename,MImage *dst);
