@@ -172,6 +172,7 @@ void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *colo
 void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width);
 void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width);
 void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char *color,int width);
+void mImageDrawCurve(MImage *src,MImage *dst,float (*func)(float,void *),void *para,unsigned char *color,int width);
 
 void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mLineTravel(MList *line,int stride,void (*func)(MImagePoint *,void *),void *para);
