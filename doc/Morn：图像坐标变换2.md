@@ -2,7 +2,9 @@
 
 之前说过一次图像坐标变换，上次说的主要是整幅图像的坐标变换，这次重点说说图像的局部坐标变换，也就是图像模板变换。
 
-#### 接口
+
+
+### 接口
 
 ```c
 void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y);
@@ -22,7 +24,9 @@ void mImageLensTemplate(MObject *temp,float k,int r);
 
 temp就是要生成的模板，k和r是模板的参数。其中r是模板的尺寸（多少个像素？），k表示了模板的作用是放大还是缩小，它的取值需在[-1,1]之间，当k为整数时表示放大，k为负数的时候表示缩小。
 
-#### 示例
+
+
+### 示例
 
 这里写了个程序用于演示模板变换：
 
@@ -74,30 +78,30 @@ int main()
 
 原始图像是：
 
-![](E:\morn\doc\test2.jpg)
+![](test2.jpg)
 
 当k=-0.5时，结果为：
 
-![](E:\morn\doc\test_Transform_out1.jpg)
+![](test_Transform_out1.jpg)
 
 当k=-0.3时，结果为：
 
-![](E:\morn\doc\test_Transform_out2.jpg)
+![](test_Transform_out2.jpg)
 
 当k=-0.1时，结果为：
 
-![](E:\morn\doc\test_Transform_out3.jpg)
+![](test_Transform_out3.jpg)
 
 当k=0.1时，结果为：
 
-![](E:\morn\doc\test_Transform_out4.jpg)
+![](test_Transform_out4.jpg)
 
 当k=0.3时，结果为：
 
-![](E:\morn\doc\test_Transform_out5.jpg)
+![](test_Transform_out5.jpg)
 
 当k=0.5时，结果为：
 
-![](E:\morn\doc\test_Transform_out6.jpg)
+![](test_Transform_out6.jpg)
 
 可以看到结果还是挺有意思，这种透镜模板可以用来做“瘦脸”，不过要说明一下，这个模板不是用来做“美颜”的，如果你需要的话，可以写出更好的美颜模板（原理还是这个原理）。
