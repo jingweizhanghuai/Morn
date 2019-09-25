@@ -1,8 +1,10 @@
 ## Morn：异常处理
 
-首先声明，Morn的作者不喜欢Morn里面的异常处理，所以以下会多少有些吐槽
+首先声明，我不喜欢Morn里面的异常处理，所以以下会多少有些吐槽。
 
-#### 接口
+
+
+### 接口
 
 ```c
 mException(int exception_flag,int exception ID,char *info);
@@ -49,9 +51,11 @@ void file_list_read(char *file_list[],int file_num)
 
 这段程序的意思是如果读不到文件，就跳过直接读下一文件，与之前的程序相比，这里除了使用mException以外，还使用了mExceptionBegin和mExceptionEnd。
 
-当mException的执行顺序在mExceptionBegin和mExceptionEnd之间时，发生异常将不再直接退出，而是跳转到mExceptionEnd所在的位置继续执行。也就是说mExceptionBegin相当于其它编程语言里的try，mExceptionEnd相当于其它编程语言里的catch
+当mException的执行顺序在mExceptionBegin和mExceptionEnd之间时，发生异常将不再直接退出，而是跳转到mExceptionEnd所在的位置继续执行。也就是说mExceptionBegin相当于其它编程语言里的try，mExceptionEnd相当于其它编程语言里的catch。
 
-#### 规则
+
+
+### 规则
 
 有一些规则：
 
@@ -105,9 +109,10 @@ void file_list_read(char *file_list[],int file_num)
   }
   ```
 
-  
 
-#### 痛点
+
+
+### 痛点
 
 以上的这些规则，虽然好几条，但是并不复杂，还算比较友好。但是以下这个才是最大的痛点，比如下例
 

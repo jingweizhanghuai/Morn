@@ -4,9 +4,9 @@ Morn所提供的文件加密解密是DES加密解密，什么是DES？百度一�
 
 
 
-#### 接口
+### 接口
 
-**文件加密**：
+#### 文件加密
 
 ```c
 void mEncrypt(const char *in_name,const char *out_name,uint64_t key);
@@ -18,7 +18,7 @@ key是秘钥，秘钥是一个64位整数。当然你也可以输入秘钥为DFL
 
 
 
-**文件解密**：
+#### 文件解密
 
 ```c
 void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
@@ -30,7 +30,7 @@ key是秘钥，秘钥是一个64位整数，如果设置为DFLT，则使用默�
 
 
 
-**MFile加密**：
+#### MFile加密
 
 ```c
 void mFileEncrypt(MFile *file,uint64_t key);
@@ -40,7 +40,7 @@ void mFileEncrypt(MFile *file,uint64_t key);
 
 
 
-**MFile解密**：
+#### MFile解密
 
 ```c
 void mFileDecrypt(MFile *file,uint64_t key);
@@ -66,7 +66,7 @@ mFileRelease(file);
 
 
 
-#### 工具
+### 工具
 
 Morn除了提供了DES加密解密的函数以外，还提供了一个工具Crypt.exe。这个工具在[../tool/](../tool/)文件夹里。
 
