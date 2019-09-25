@@ -10,7 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Image.h"
+#include "morn_image.h"
 
 int main()
 {

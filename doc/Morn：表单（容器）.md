@@ -2,7 +2,7 @@
 
 Morn里面的容器是表（MSheet）和单（MList）。表就是表格，有行有列，是一个二维容器。单就是清单，是一个一维容器。其中，一维的MList又比二维的MSheet用得更普遍，所以这里重点讲MList。
 
-#### MList定义
+### MList定义
 
 MList的定义在[../include/morn_Util.h]()文件里：
 
@@ -21,11 +21,13 @@ typedef struct MList
 
 
 
-#### MList基本操作
+### MList基本操作
 
-MList的函数都定义在[../src/util/morn_List.c](../src/util/morn_List.c)文件中。
+MList的函数都定义在[../src/util/morn_list.c](../src/util/morn_list.c)文件中。
 
-**创建一个MList**：
+
+
+#### 创建一个MList
 
 ```C
 MList *mListCreate(int num,void **data);
@@ -37,7 +39,7 @@ MList *mListCreate(int num,void **data);
 
 
 
-**释放一个MList**：
+#### 释放一个MList
 
 ```c
 void mListRelease(MList *list);
@@ -47,17 +49,19 @@ void mListRelease(MList *list);
 
 
 
-**设置MList的规格**（包括容器容量和每个元素的大小）：
+#### 设置MList的规格
 
 ```c
 void mListPlace(MList *list,int num,int size);
 ```
 
+这个函数用于设置容器的容量和每个元素的大小。
+
 设置后，list中将会有num个元素的容量，且每个元素的大小为size个字节。
 
 
 
-**MList扩容**：
+#### MList扩容
 
 ```c
 void mListAppend(MList *list,int num);
@@ -67,7 +71,7 @@ num是扩容后的容器的容量，默认值为（list->num+1），也就是说
 
 
 
-**清空MList**：
+#### 清空MList
 
 ```c
 void mListClear(MList *list);
@@ -77,7 +81,7 @@ void mListClear(MList *list);
 
 
 
-**向Mlist中写入元素**：
+#### 向Mlist中写入元素
 
 ```c
 void *mListWrite(Mlist *list,int order,void *data,int size);
@@ -93,7 +97,7 @@ void *mListWrite(Mlist *list,int order,void *data,int size);
 
 
 
-**从Mlist中读出元素**：
+#### 从Mlist中读出元素
 
 ```C
 void *mListRead(MList *list,int order,void *data,int size);
@@ -111,7 +115,7 @@ order也可以设置为DFLT，order为默认值时，如果是第一次使用`mL
 
 
 
-**Mlist拷贝**：
+#### Mlist拷贝
 
 ```c
 void mListCopy(MList *src,MList*dst);
@@ -133,7 +137,7 @@ void mListMerge(MList *src1,MList *src2,MList *dst);
 
 
 
-**在Mlist中插入元素**：
+#### 在Mlist中插入元素
 
 ```c
 void mListElementInsert(MList *list,int order,void *data,int size);
@@ -143,7 +147,7 @@ void mListElementInsert(MList *list,int order,void *data,int size);
 
 
 
-**从MList中删除一个元素**：
+#### 从MList中删除一个元素
 
 ```c
 void mListElementDelete(MList *list,int order);
@@ -170,7 +174,7 @@ mListRelease(list);                     //释放了list
 
 
 
-#### MList性能
+### MList性能
 
 写了一个程序如下，来测试Morn的MList和C++ STL里的容器vector。
 
@@ -240,7 +244,7 @@ int main()
 
 这个程序就是往容器里写入了1000000个字符串，然后再随机的读出1000000次。运行结果如下：
 
-![](E:\morn\doc\容器.PNG)
+![](容器.PNG)
 
 可以看到，对于写入数据Morn大概比STL快40%左右，对于读出数据两者相当（其实可以认为读出数据耗时可忽略，这里的时间其实主要是运行`mRand`函数的时间）。
 

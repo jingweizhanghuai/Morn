@@ -2,7 +2,9 @@
 
 图像处理算法是Morn的一个非常非常重要组成部分。这里先介绍一下Morn里面，图像的数据结构的定义和一些最基本的操作。
 
-#### MImage的定义
+
+
+### MImage的定义
 
 ```c
 typedef struct MImage {
@@ -31,11 +33,15 @@ border是图像的感兴趣边界，以后再讲。
 
 handle、info、reserve是Morn结构体所公用的，不赘述。
 
-#### MImage基本操作
+
+
+### MImage基本操作
 
 这里说的基本操作是最最基本的操作，不涉及图像处理算法。
 
-##### MImage的创建
+
+
+#### MImage的创建
 
 ```c
 MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
@@ -45,7 +51,9 @@ MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
 
 data是图像像素的索引，如果创建时尚没有数据，就把它设置为NULL（通常都是把它设置为NULL）。
 
-##### MImage的释放
+
+
+#### MImage的释放
 
 ```c
 void mImageRelease(MImage *img);
@@ -53,7 +61,9 @@ void mImageRelease(MImage *img);
 
 使用`MImageCreate`创建的MImage，必须且只能用MImageRelease释放掉。
 
-##### MImage重定义
+
+
+#### MImage重定义
 
 ```c
 void mImageRedefine(MImage *img,int channel,int height,int width);
@@ -63,7 +73,9 @@ void mImageRedefine(MImage *img,int channel,int height,int width);
 
 img是需要重定义的图像，channel、height、width是重新定义后的通道数、高度和宽度。
 
-##### MImage拷贝
+
+
+#### MImage拷贝
 
 ```c
 void mImageCopy(MImage *src,MImage *dst);
@@ -73,7 +85,9 @@ Morn里（不限于MImage）的拷贝都是深拷贝。如果你想浅拷贝的�
 
 `dst=mImageCreate(src->cn,src->height,src->width,src->data);`
 
-##### MImage裁剪
+
+
+#### MImage裁剪
 
 ```c
 void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2);
@@ -85,7 +99,11 @@ x1的默认值是0，x2的默认值是img->width，y1的默认值是0，y2的默
 
 dst的默认值是src。
 
-##### MImage像素运算
+这个函数的参数中，并不要求x1>0，y1>0，也不要求x2\<img->width，y2\<img->height。甚至不要求x1<x2，y1<y2。所以，这个函数用起来很灵活，可以实现很多功能。
+
+
+
+#### MImage像素运算
 
 ```c
 void mImageDataAdd(MImage *src1,MImage *src2,MImage *dst);
@@ -101,7 +119,9 @@ void mImageDiff   (MImage *src1,MImage *src2,MImage *dst)；
 
 特别说明，这里会出现两种情况：第一种，src1和src2的通道数相同，这个好理解，就是各个相对应的通道分别运算。第二种，src1是多通道的，src2是单通道的，这种也是允许的，这时src1的各个通道会分别和src2的第0通道进行运算。除此以外（src1单通道src2多通道，或者src1和src2都是多通道，但是通道数不相同）都是不允许的，会报错的。
 
-##### MImage差值绝对值
+
+
+#### MImage差值绝对值
 
 ```c
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
@@ -113,7 +133,7 @@ void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 
 
 
-##### MImage反色
+#### MImage反色
 
 ```c
 void mImageInvert(MImage *src,MImage *dst);
@@ -123,7 +143,9 @@ void mImageInvert(MImage *src,MImage *dst);
 
 dst的默认值是src。
 
-##### MImage对比度线性拉伸
+
+
+#### MImage对比度线性拉伸
 
 ```c
 void mImageLinearMap(MImage *src,MImage *dst,float k,float b);
@@ -133,10 +155,12 @@ void mImageLinearMap(MImage *src,MImage *dst,float k,float b);
 
 dst的默认值是src。
 
-##### MImage像素遍历
+
+
+#### MImage像素遍历
 
 ```c
-void mImageOperate(MImage *src,MImage *dst,int (*func)(unsigned char,void *),void *para);
+void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned char *,void *),void *para);
 ```
 
 这是对图像的像素逐个遍历，进行自定义的操作，这个操作被定义在func函数里面。
@@ -144,12 +168,14 @@ void mImageOperate(MImage *src,MImage *dst,int (*func)(unsigned char,void *),voi
 例如，对图像进行阈值操作，可以这么写：
 
 ```c
-int thresh = 128;
-int thresh_func(unsigned char data,void *para)
 {
-    return (data>thresh)?255:0;
+    int thresh = 128;
+	void thresh_func(unsigned char *in,unsigned char *out,void *para)
+	{
+    	 *out=((data[0]>thresh)&&(data[1]>thresh)&&(data[2]>thresh))?255:0;
+	}
+	mImageOperate(src,dst,thresh_func,NULL);
 }
-mImageOperate(src,dst,thresh_func,NULL);
 ```
 
 

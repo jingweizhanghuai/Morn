@@ -2,7 +2,9 @@
 
 其实，Morn没有啥编程规范，也不想设置啥编程规范，如果非要说编程必须有的规则，那么就一条：
 
-#### 唯一的规范
+
+
+### 唯一的规范
 
 **所有的mMalloc都必mFree，所有的mXxxCreate都必须mXxxRelease，所有的mXxxBegin都必须mXxxEnd。**
 

@@ -6,13 +6,17 @@
 
 在Morn中，映射键值对中的键和值都可以是任意数据类型（整数、浮点数、字符串、数组、指针、结构体等）。
 
-#### 基本操作
+
+
+### 基本操作
 
 首先映射就是链表，所以在使用映射之前，需要先使用`mChainCreate`函数来创建映射（链表），在使用结束后需要使用`mChainRelease`函数来释放映射（链表）。
 
 除此以外，映射增加的操作主要有：
 
-##### 向映射中写入键值对
+
+
+#### 向映射中写入键值对
 
 ``` c
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
@@ -26,7 +30,9 @@ value是key所对应的值，也是指向任意类型的指针，value_size是va
 
 这里注意：对于每一个键值对，键必须是唯一的，如果两个键值对的键是相同的，那么后写入的将会覆盖之前的。
 
-##### 从映射中读取键值对
+
+
+#### 从映射中读取键值对
 
 ```c
 void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
@@ -38,7 +44,9 @@ value是要读出值的保存位置的指针，如果只是读，不需要copy�
 
 函数返回值是所找到的key对应的值在映射中的内存地址。
 
-##### 删除键值对
+
+
+#### 删除键值对
 
 ```c
 void mMapDelete(MChain *map,const void *key,int key_size);
@@ -48,7 +56,7 @@ void mMapDelete(MChain *map,const void *key,int key_size);
 
 
 
-#### 示例
+### 示例
 
 下面是一个示例程序：
 
@@ -152,7 +160,9 @@ int main()
 9 = nine  
 ```
 
-#### 性能
+
+
+### 性能
 
 这里写了一个测试程序，用以比较Morn中映射和C++ STL中的map。
 

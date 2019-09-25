@@ -34,7 +34,7 @@ ini文件的格式，你可以百度一下就能知道。简单的说，一个in
 
 
 
-#### ini文件基本操作
+### ini文件基本操作
 
 ini文件也是文件，在进行ini文件操作之前，先要用`mFileCreate`创建一个文件，在结束的时候要用`mFileRekease`把创建的文件释放掉。
 
@@ -71,6 +71,8 @@ MList *mINIKey(MFile *file,const char *section);
 其中section是传入你要获取哪个节里面的键。返回的也是一个列表，列表里面的元素是字符串。
 
 
+
+### 示例
 
 一个例子：计算上面这个ini里的每个学生的平均成绩：
 
