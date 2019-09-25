@@ -321,7 +321,7 @@ void mImageCopy(MImage *src,MImage *dst)
     int i;
     if(src==dst) return;
 
-    mException((INVALID_IMAGE(src)||INVALID_IMAGE(dst)),EXIT,"invalid input");
+    mException((INVALID_IMAGE(src)||INVALID_POINTER(dst)),EXIT,"invalid input");
     mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
     dst->border = src->border;

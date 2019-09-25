@@ -47,12 +47,15 @@ MImageRect就是矩形，有四个坐标，x1是左边沿，x2是右边沿，y1�
 ```c
 void mPoint(MImagePoint *point,float x,float y);
 void mRect(MImageRect *rect,int x1,int y1,int x2,int y2);
+void mCircle(MImageCircle *circle,float x,float y,float r);
 void mPolygon(MList *polygon,int num,...);
 ```
 
-mPoint函数就是初始化一个点，比如`mPoint（p,1,2);`实际上就是`p->x=1;p->y=2`，也就是指定了一个坐标为(1,2)的点。
+mPoint就是初始化一个点，比如`mPoint（p,1,2);`实际上就是`p->x=1;p->y=2`，也就是指定了一个坐标为(1,2)的点。
 
-mRect函数就是初始化一个矩形，比如`mRect(rect,1,2,3,4);`就是初始化了一个左上角点为(1,2)，右下角点为(3,4)的矩形，需要说的是`mRect(rect,3,4,1,2);`或者`mRect(rect,1,4,3,2);`初始化得到的都是同一个矩形。
+mRect就是初始化一个矩形，比如`mRect(rect,1,2,3,4);`就是初始化了一个左上角点为(1,2)，右下角点为(3,4)的矩形，需要说的是`mRect(rect,3,4,1,2);`或者`mRect(rect,1,4,3,2);`初始化得到的都是同一个矩形。
+
+mCircle就是初始化一个圆，比如`mCircle(circle,1,2,3);`就是初始化了一个圆心点为(1,2)，半径为3的圆。
 
 mPolygon就是初始化一个线或者一个多边形。num是点的个数，num=2就是初始化一条线，num=5就是初始化一个五边形。比如`mPolygon(polygon,3,1,2,3,4,5,6);`就是初始化了一个三角形，三角形的三个顶点分别是(1,2)，(3,4)，(5,6)。这里需要提醒一句，这里的polygon需要使用mListCreate来创建，用完后要用mListRelease来释放。
 

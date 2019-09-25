@@ -225,6 +225,9 @@ void mImageGradientFilter(MImage *dir,MImage *value,MImage *ddst,MImage *vdst,in
 void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r);
 void mImageCanny(MImage *src,MImage *dst,int r,int thresh);
 
+void mImageLensTemplate(MObject *temp,float k,int r);
+void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y);
+
 int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh);
 
 
