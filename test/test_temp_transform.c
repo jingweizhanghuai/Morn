@@ -1,3 +1,10 @@
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 // gcc -O2 -fopenmp test_temp_transform.c -I ..\include\ -L ..\lib\x64\mingw -lmorn -ljpeg -lpng -lz -o test_test_Transform.exe
 #include <stdio.h>
 #include <stdlib.h>
