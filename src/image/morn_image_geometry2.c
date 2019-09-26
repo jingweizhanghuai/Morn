@@ -110,7 +110,7 @@ void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePo
         else           {x_min=p2->x;x_max=p1->x;y_min=p2->y;y_max=p1->y;}
         step = (p1->x-p2->x)/(p1->y-p2->y);step = step*stride;
         num = (y_max-y_min)/stride;
-        #pragma omp parallel for
+        // #pragma omp parallel for
         for(i=0;i<num;i++)
         {
             MImagePoint point; 

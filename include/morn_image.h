@@ -225,6 +225,9 @@ void mImageGradientFilter(MImage *dir,MImage *value,MImage *ddst,MImage *vdst,in
 void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r);
 void mImageCanny(MImage *src,MImage *dst,int r,int thresh);
 
+void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para);
+void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd);
+void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd);
 void mImageLensTemplate(MObject *temp,float k,int r);
 void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y);
 

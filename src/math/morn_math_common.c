@@ -162,11 +162,8 @@ void mMean(float *in,int num,float *sum,float *mean)
     for(i=0;i<num;i++)
         m = m + in[i];
     
-    if(INVALID_POINTER(sum))
-        *sum = m;
-    
-    if(INVALID_POINTER(mean))
-        *mean = m/((float)num);
+    if(!INVALID_POINTER(sum)) *sum = m;
+    if(!INVALID_POINTER(mean)) *mean = m/((float)num);
 }
 
 void mVariance(float *in,int num,float *mean,float *variance)
@@ -182,8 +179,7 @@ void mVariance(float *in,int num,float *mean,float *variance)
         var = var + in[i]*in[i];
     }
     sum = sum/((float)num);
-    if(INVALID_POINTER(mean))
-        *mean = sum;    
+    if(!INVALID_POINTER(mean)) *mean = sum;
     *variance = var/((float)num) - (sum*sum);
 }
 
@@ -203,10 +199,8 @@ void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *
     }
     sum1 = sum1/((float)num);
     sum2 = sum2/((float)num);
-    if(INVALID_POINTER(mean1))
-        *mean1 = sum1;
-    if(INVALID_POINTER(mean2))
-        *mean2 = sum1;
+    if(!INVALID_POINTER(mean1)) *mean1 = sum1;
+    if(!INVALID_POINTER(mean2)) *mean2 = sum1;
     *covariance = cosum/((float)num) - sum1*sum2;
 }
 
@@ -235,12 +229,7 @@ void mApproxMidValue(float *value,int num,float *mid,int *idx)
 
 double mSigmoid(float x)
 {
-    double result;
-    result = 1.0/(1.0+exp((double)(0.0f-x)));
-    
-    // printf("result is %f\n",result);
-    
-    return result;
+    return (1.0/(1.0+exp((double)(0.0f-x))));
 }
 
 unsigned int mHash(const char *in,int size)
