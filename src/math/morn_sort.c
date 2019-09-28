@@ -11,198 +11,182 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_math.h"
 
-#define AscSort(Type,Data_in,Data_out,Num) {\
-    int I,J;\
-    Type Thresh;\
+#define AscSortData(Type,Data,Num) {\
+    Type Buff;\
+    if(Data[0]>Data[Num-1]) {Buff=Data[0];Data[0]=Data[Num-1];Data[Num-1]=Buff;}\
+    if(Num==2) return;\
     \
-    mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
+         if(Data[1]<Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];}\
+    else if(Data[1]>Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];}\
+    else                          Buff=Data[    1];\
+    if(Num==3) {Data[1]=Buff;return;}\
     \
-    if((!INVALID_POINTER(Data_out))&&(Data_out!=Data_in))\
+    int I=1;int J=Num-2;\
+    while(1)\
     {\
-        memcpy(Data_out,Data_in,Num*sizeof(Type));\
-        Data_in = Data_out;\
+        while(Data[J]>=Buff){J=J-1;if(J==I) goto AscSortData_next;}\
+        Data[I] = Data[J];   I=I+1;if(J==I) goto AscSortData_next; \
+        while(Data[I]<=Buff){I=I+1;if(J==I) goto AscSortData_next;}\
+        Data[J] = Data[I];   J=J-1;if(J==I) goto AscSortData_next; \
     }\
-    \
-    if(Num <= 1)\
-        return;\
-    \
-    Thresh = Data_in[0];\
-    I=0;J=Num-1;\
-    while(I<J)\
-    {\
-        while(Data_in[J]>=Thresh)\
-        {\
-            if(J==I)\
-                goto AscSort_next;\
-            J=J-1;\
-        }\
-        \
-        Data_in[I] = Data_in[J];\
-        \
-        while(Data_in[I]<=Thresh)\
-        {\
-            if(I==J)\
-                goto AscSort_next;\
-            I=I+1;\
-        }\
-        \
-        Data_in[J] = Data_in[I];\
-    }\
-\
-AscSort_next:\
-    Data_in[I] = Thresh;\
-    mAscSort##Type(Data_in,NULL,NULL,NULL,I);\
-    mAscSort##Type(Data_in+I+1,NULL,NULL,NULL,Num-I-1);\
+AscSortData_next:\
+    Data[I] = Buff;\
+    if(    I  >1) AscSortData##Type(Data    ,    I  );\
+    if(Num-I-1>1) AscSortData##Type(Data+I+1,Num-I-1);\
 }
+void AscSortDataD64(D64 *data,int num) {AscSortData(D64,data,num);}
+void AscSortDataF32(F32 *data,int num) {AscSortData(F32,data,num);}
+void AscSortDataS32(S32 *data,int num) {AscSortData(S32,data,num);}
+void AscSortDataU32(U32 *data,int num) {AscSortData(U32,data,num);}
+void AscSortDataS16(S16 *data,int num) {AscSortData(S16,data,num);}
+void AscSortDataU16(U16 *data,int num) {AscSortData(U16,data,num);}
+void AscSortDataS8 ( S8 *data,int num) {AscSortData( S8,data,num);}
+void AscSortDataU8 ( U8 *data,int num) {AscSortData( U8,data,num);}
 
-#define AscSortIndex(Type,Data_in,Index_in,Data_out,Index_out,Num) {\
-    int I,J;\
-    Type Thresh;\
-    int Thresh_index;\
-    \
-    mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
-    \
-    if(INVALID_POINTER(Index_in)&&INVALID_POINTER(Index_out))\
+#define AscSortIndex(Type,Data,Index,Num) {\
+    Type Buff;int Buff_index;\
+    if(Data[0]>Data[Num-1])\
     {\
-        AscSort(Type,Data_in,Data_out,Num);\
-        return;\
+        Buff      = Data[0]; Data[0]= Data[Num-1]; Data[Num-1]=Buff;\
+        Buff_index=Index[0];Index[0]=Index[Num-1];Index[Num-1]=Buff_index;\
     }\
+    if(Num==2) return;\
     \
-    if((!INVALID_POINTER(Data_out))&&(Data_out!=Data_in))\
-    {\
-        memcpy(Data_out,Data_in,Num*sizeof(Type));\
-        Data_in = Data_out;\
-    }\
-    if(INVALID_POINTER(Index_in))\
-    {\
-        for(I=0;I<Num;I++)\
-            Index_out[I] = I;\
-        Index_in = Index_out;\
-    }\
-    else if((!INVALID_POINTER(Index_out))&&(Index_in != Index_out))\
-    {\
-        memcpy(Index_out,Index_in,Num*sizeof(int));\
-        Index_in = Index_out;\
-    }\
+         if(Data[1]<Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];Buff_index=Index[    0];Index[    0]=Index[1];}\
+    else if(Data[1]>Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];Buff_index=Index[Num-1];Index[Num-1]=Index[1];}\
+    else                         {Buff=Data[    1];                    Buff_index=Index[    1];}\
+    if(Num==3) {Data[1]=Buff;Index[1]=Buff_index; return;}\
     \
-    if(Num <= 1)\
-        return;\
-    \
-    Thresh = Data_in[0];\
-    Thresh_index = Index_in[0];\
-    I=0;J=Num-1;\
-    while(I<J)\
+    int I=1;int J=Num-2;\
+    while(1)\
     {\
-        while(Data_in[J]>=Thresh)\
-        {\
-            if(J==I)\
-                goto AscSortIndex_next;\
-            J=J-1;\
-        }\
-        \
-        Data_in[I] = Data_in[J];\
-        Index_in[I] = Index_in[J];\
-        \
-        while(Data_in[I]<=Thresh)\
-        {\
-            if(I==J)\
-                goto AscSortIndex_next;\
-            I=I+1;\
-        }\
-        \
-        Data_in[J] = Data_in[I];\
-        Index_in[J] = Index_in[I];\
+        while(Data[J]>=Buff)             {J=J-1;if(J==I) goto AscSortIndex_next;}\
+        Data[I]=Data[J];Index[I]=Index[J];I=I+1;if(J==I) goto AscSortIndex_next; \
+        while(Data[I]<=Buff)             {I=I+1;if(J==I) goto AscSortIndex_next;}\
+        Data[J]=Data[I];Index[J]=Index[I];J=J-1;if(J==I) goto AscSortIndex_next; \
     }\
 \
 AscSortIndex_next:\
-    Data_in[I] = Thresh;\
-    Index_in[I] = Thresh_index;\
-    mAscSort##Type(Data_in,Index_in,NULL,NULL,I);\
-    mAscSort##Type(Data_in+I+1,Index_in+I+1,NULL,NULL,Num-I-1);\
+    Data[I] = Buff;Index[I] = Buff_index;\
+    if(    I  >1) AscSortIndex##Type(Data    ,Index    ,    I  );\
+    if(Num-I-1>1) AscSortIndex##Type(Data+I+1,Index+I+1,Num-I-1);\
 }
+void AscSortIndexD64(D64 *data,int *index,int num) {AscSortIndex(D64,data,index,num);}
+void AscSortIndexF32(F32 *data,int *index,int num) {AscSortIndex(F32,data,index,num);}
+void AscSortIndexS32(S32 *data,int *index,int num) {AscSortIndex(S32,data,index,num);}
+void AscSortIndexU32(U32 *data,int *index,int num) {AscSortIndex(U32,data,index,num);}
+void AscSortIndexS16(S16 *data,int *index,int num) {AscSortIndex(S16,data,index,num);}
+void AscSortIndexU16(U16 *data,int *index,int num) {AscSortIndex(U16,data,index,num);}
+void AscSortIndexS8 ( S8 *data,int *index,int num) {AscSortIndex( S8,data,index,num);}
+void AscSortIndexU8 ( U8 *data,int *index,int num) {AscSortIndex( U8,data,index,num);}
 
-void mAscSortD64(        double *data_in,int *index_in,        double *data_out,int *index_out,int num) {AscSortIndex(D64,data_in,index_in,data_out,index_out,num);}
-void mAscSortF32(         float *data_in,int *index_in,         float *data_out,int *index_out,int num) {AscSortIndex(F32,data_in,index_in,data_out,index_out,num);}
-void mAscSortS32(           int *data_in,int *index_in,           int *data_out,int *index_out,int num) {AscSortIndex(S32,data_in,index_in,data_out,index_out,num);}
-void mAscSortS16(         short *data_in,int *index_in,         short *data_out,int *index_out,int num) {AscSortIndex(S16,data_in,index_in,data_out,index_out,num);}
-void mAscSortS8(           char *data_in,int *index_in,          char *data_out,int *index_out,int num) {AscSortIndex( S8,data_in,index_in,data_out,index_out,num);}
-void mAscSortU32(  unsigned int *data_in,int *index_in,  unsigned int *data_out,int *index_out,int num) {AscSortIndex(U32,data_in,index_in,data_out,index_out,num);}
-void mAscSortU16(unsigned short *data_in,int *index_in,unsigned short *data_out,int *index_out,int num) {AscSortIndex(U16,data_in,index_in,data_out,index_out,num);}
-void mAscSortU8(  unsigned char *data_in,int *index_in, unsigned char *data_out,int *index_out,int num) {AscSortIndex( U8,data_in,index_in,data_out,index_out,num);}
-
-struct HandleSequenceBorder {
-    union
-    {
-        int data_S32[2];
-        unsigned int data_U32[2];
-        short data_S16[2];
-        unsigned short data_U16[2];
-        char data_S8[2];
-        unsigned char data_U8[2];
-        float data_F32[2];
-        double data_D64[2];
-    };
-    int index[2];
-};
-#define HASH_SequenceBorderD64 0xf8da1258
-#define HASH_SequenceBorderF32 0x598eb2d1
-#define HASH_SequenceBorderS32 0x20ac6748
-#define HASH_SequenceBorderU32 0x8193bb8e
-#define HASH_SequenceBorderS16 0x94a88efe
-#define HASH_SequenceBorderU16 0x0d9793d8
-#define HASH_SequenceBorderS8  0x8bee3165
-#define HASH_SequenceBorderU8  0x17ea79d3
-#define HandleSequenceBorderD64 HandleSequenceBorder
-#define HandleSequenceBorderF32 HandleSequenceBorder
-#define HandleSequenceBorderS32 HandleSequenceBorder
-#define HandleSequenceBorderU32 HandleSequenceBorder
-#define HandleSequenceBorderS16 HandleSequenceBorder
-#define HandleSequenceBorderU16 HandleSequenceBorder
-#define HandleSequenceBorderS8  HandleSequenceBorder
-#define HandleSequenceBorderU8  HandleSequenceBorder
-void endSequenceBorderD64(void *handle) {NULL;}
-void endSequenceBorderF32(void *handle) {NULL;}
-void endSequenceBorderS32(void *handle) {NULL;}
-void endSequenceBorderU32(void *handle) {NULL;}
-void endSequenceBorderS16(void *handle) {NULL;}
-void endSequenceBorderU16(void *handle) {NULL;}
-void endSequenceBorderS8( void *handle) {NULL;}
-void endSequenceBorderU8( void *handle) {NULL;}
-#define SequenceBorder(Type,Proc,Data_in,Index_in,Min,Min_index,Max,Max_index) {\
-    MHandle *hdl; ObjectHandle(Proc,SequenceBorder##Type,hdl);\
-    struct HandleSequenceBorder *handle = hdl->handle;\
-    if(hdl->valid == 0)\
-    {\
-        handle->data_##Type[0] = Data_in;\
-        handle->data_##Type[1] = Data_in;\
-        handle->index[0] = Index_in;\
-        handle->index[1] = Index_in;\
-        hdl->valid = 1;\
-    }\
-    else if(Data_in<handle->data_##Type[0])\
-    {\
-        handle->data_##Type[0] = Data_in;\
-        handle->index[0] = Index_in;\
-    }\
-    else if(Data_in>handle->data_##Type[1])\
-    {\
-        handle->data_##Type[1] = Data_in;\
-        handle->index[1] = Index_in;\
-    }\
+#define AscSort(Type,Data_in,Index_in,Data_out,Index_out,Num) {\
+    mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
+    if((Data_out!=NULL)&&(Data_out!=Data_in)) {memcpy(Data_out,Data_in,Num*sizeof(Type));Data_in=Data_out;}\
+    if((Index_in==NULL)&&(Index_out==NULL)) {if(Num>1) AscSortData##Type(Data_in,Num); return;}\
     \
-    if(Min!=NULL)          *Min = handle->data_##Type[0];\
-    if(Min_index!=NULL)    *Min_index = handle->index[0];\
-    if(Max!=NULL)          *Max = handle->data_##Type[1];\
-    if(Max_index!=NULL)    *Max_index = handle->index[1];\
+    if(Index_in==NULL) {for(int I=0;I<Num;I++)Index_out[I] = I;Index_in = Index_out;}\
+    else if((Index_out!=NULL)&&(Index_in != Index_out))\
+        {memcpy(Index_out,Index_in,Num*sizeof(int));Index_in = Index_out;}\
+    if(Num>1) {AscSortIndex##Type(Data_in,Index_in,Num);return;}\
 }
-void mSequenceBorderD64(MObject *proc,        double data_in,int index_in,        double *min,int *min_index,        double *max,int *max_index) {SequenceBorder(D64,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderF32(MObject *proc,         float data_in,int index_in,         float *min,int *min_index,         float *max,int *max_index) {SequenceBorder(F32,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderS32(MObject *proc,           int data_in,int index_in,           int *min,int *min_index,           int *max,int *max_index) {SequenceBorder(S32,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *min,int *min_index,  unsigned int *max,int *max_index) {SequenceBorder(U32,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderS16(MObject *proc,         short data_in,int index_in,         short *min,int *min_index,         short *max,int *max_index) {SequenceBorder(S16,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *min,int *min_index,unsigned short *max,int *max_index) {SequenceBorder(U16,proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderS8( MObject *proc,          char data_in,int index_in,          char *min,int *min_index,          char *max,int *max_index) {SequenceBorder(S8, proc,data_in,index_in,min,min_index,max,max_index);}
-void mSequenceBorderU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *min,int *min_index, unsigned char *max,int *max_index) {SequenceBorder(U8, proc,data_in,index_in,min,min_index,max,max_index);}
+void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {AscSort(D64,data_in,index_in,data_out,index_out,num);}
+void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {AscSort(F32,data_in,index_in,data_out,index_out,num);}
+void mAscSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {AscSort(S32,data_in,index_in,data_out,index_out,num);}
+void mAscSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {AscSort(S16,data_in,index_in,data_out,index_out,num);}
+void mAscSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {AscSort( S8,data_in,index_in,data_out,index_out,num);}
+void mAscSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {AscSort(U32,data_in,index_in,data_out,index_out,num);}
+void mAscSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num) {AscSort(U16,data_in,index_in,data_out,index_out,num);}
+void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {AscSort( U8,data_in,index_in,data_out,index_out,num);}
+
+
+#define DescSortData(Type,Data,Num) {\
+    Type Buff;\
+    if(Data[0]<Data[Num-1]) {Buff=Data[0];Data[0]=Data[Num-1];Data[Num-1]=Buff;}\
+    if(Num==2) return;\
+    \
+         if(Data[1]>Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];}\
+    else if(Data[1]<Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];}\
+    else                          Buff=Data[    1];\
+    if(Num==3) {Data[1]=Buff;return;}\
+    \
+    int I=1;int J=Num-2;\
+    while(1)\
+    {\
+        while(Data[J]<=Buff){J=J-1;if(J==I) goto DescSortData_next;}\
+        Data[I] = Data[J];   I=I+1;if(J==I) goto DescSortData_next; \
+        while(Data[I]>=Buff){I=I+1;if(J==I) goto DescSortData_next;}\
+        Data[J] = Data[I];   J=J-1;if(J==I) goto DescSortData_next; \
+    }\
+DescSortData_next:\
+    Data[I] = Buff;\
+    if(    I  >1) DescSortData##Type(Data    ,    I  );\
+    if(Num-I-1>1) DescSortData##Type(Data+I+1,Num-I-1);\
+}
+void DescSortDataD64(D64 *data,int num) {DescSortData(D64,data,num);}
+void DescSortDataF32(F32 *data,int num) {DescSortData(F32,data,num);}
+void DescSortDataS32(S32 *data,int num) {DescSortData(S32,data,num);}
+void DescSortDataU32(U32 *data,int num) {DescSortData(U32,data,num);}
+void DescSortDataS16(S16 *data,int num) {DescSortData(S16,data,num);}
+void DescSortDataU16(U16 *data,int num) {DescSortData(U16,data,num);}
+void DescSortDataS8 ( S8 *data,int num) {DescSortData( S8,data,num);}
+void DescSortDataU8 ( U8 *data,int num) {DescSortData( U8,data,num);}
+
+#define DescSortIndex(Type,Data,Index,Num) {\
+    Type Buff;int Buff_index;\
+    if(Data[0]<Data[Num-1])\
+    {\
+        Buff      = Data[0]; Data[0]= Data[Num-1]; Data[Num-1]=Buff;\
+        Buff_index=Index[0];Index[0]=Index[Num-1];Index[Num-1]=Buff_index;\
+    }\
+    if(Num==2) return;\
+    \
+         if(Data[1]>Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];Buff_index=Index[    0];Index[    0]=Index[1];}\
+    else if(Data[1]<Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];Buff_index=Index[Num-1];Index[Num-1]=Index[1];}\
+    else                         {Buff=Data[    1];                    Buff_index=Index[    1];}\
+    if(Num==3) {Data[1]=Buff;Index[1]=Buff_index; return;}\
+    \
+    int I=1;int J=Num-2;\
+    while(1)\
+    {\
+        while(Data[J]<=Buff)             {J=J-1;if(J==I) goto DescSortIndex_next;}\
+        Data[I]=Data[J];Index[I]=Index[J];I=I+1;if(J==I) goto DescSortIndex_next; \
+        while(Data[I]>=Buff)             {I=I+1;if(J==I) goto DescSortIndex_next;}\
+        Data[J]=Data[I];Index[J]=Index[I];J=J-1;if(J==I) goto DescSortIndex_next; \
+    }\
+\
+DescSortIndex_next:\
+    Data[I] = Buff;Index[I] = Buff_index;\
+    if(    I  >1) DescSortIndex##Type(Data    ,Index    ,    I  );\
+    if(Num-I-1>1) DescSortIndex##Type(Data+I+1,Index+I+1,Num-I-1);\
+}
+void DescSortIndexD64(D64 *data,int *index,int num) {DescSortIndex(D64,data,index,num);}
+void DescSortIndexF32(F32 *data,int *index,int num) {DescSortIndex(F32,data,index,num);}
+void DescSortIndexS32(S32 *data,int *index,int num) {DescSortIndex(S32,data,index,num);}
+void DescSortIndexU32(U32 *data,int *index,int num) {DescSortIndex(U32,data,index,num);}
+void DescSortIndexS16(S16 *data,int *index,int num) {DescSortIndex(S16,data,index,num);}
+void DescSortIndexU16(U16 *data,int *index,int num) {DescSortIndex(U16,data,index,num);}
+void DescSortIndexS8 ( S8 *data,int *index,int num) {DescSortIndex( S8,data,index,num);}
+void DescSortIndexU8 ( U8 *data,int *index,int num) {DescSortIndex( U8,data,index,num);}
+
+#define DescSort(Type,Data_in,Index_in,Data_out,Index_out,Num) {\
+    mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
+    if((Data_out!=NULL)&&(Data_out!=Data_in)) {memcpy(Data_out,Data_in,Num*sizeof(Type));Data_in=Data_out;}\
+    if((Index_in==NULL)&&(Index_out==NULL)) {if(Num>1) DescSortData##Type(Data_in,Num); return;}\
+    \
+    if(Index_in==NULL) {for(int I=0;I<Num;I++)Index_out[I] = I;Index_in = Index_out;}\
+    else if((Index_out!=NULL)&&(Index_in != Index_out))\
+        {memcpy(Index_out,Index_in,Num*sizeof(int));Index_in = Index_out;}\
+    if(Num>1) {DescSortIndex##Type(Data_in,Index_in,Num);return;}\
+}
+void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {DescSort(D64,data_in,index_in,data_out,index_out,num);}
+void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {DescSort(F32,data_in,index_in,data_out,index_out,num);}
+void mDescSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {DescSort(S32,data_in,index_in,data_out,index_out,num);}
+void mDescSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {DescSort(S16,data_in,index_in,data_out,index_out,num);}
+void mDescSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {DescSort( S8,data_in,index_in,data_out,index_out,num);}
+void mDescSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {DescSort(U32,data_in,index_in,data_out,index_out,num);}
+void mDescSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num) {DescSort(U16,data_in,index_in,data_out,index_out,num);}
+void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {DescSort( U8,data_in,index_in,data_out,index_out,num);}
 
 struct SortTree {
     union
@@ -459,12 +443,12 @@ void mSequenceDescSortU8( MObject *proc, unsigned char data_in,int index_in, uns
     Type Limit;\
     \
     int order;\
-    if(Num <= 1)\
+    /*if(Num <= 1)\
     {\
         mSequenceBorder##Type(Proc,Data_in,Index_in,Data_out,Index_out,NULL,NULL);\
         Limit = *Data_out;\
         return Limit;\
-    }\
+    }*/\
     \
     MHandle *hdl; ObjectHandle(Proc,SequenceMinSubset##Type,hdl);\
     struct HandleSequenceSort *handle = hdl->handle;\
@@ -597,12 +581,12 @@ unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int in
     Type Limit;\
     \
     int order;\
-    if(Num <= 1)\
+    /*if(Num <= 1)\
     {\
         mSequenceBorder##Type(Proc,Data_in,Index_in,NULL,NULL,Data_out,Index_out);\
         Limit = *Data_out;\
         return Limit;\
-    }\
+    }*/\
     \
     MHandle *hdl; ObjectHandle(Proc,SequenceMaxSubset##Type,hdl);\
     struct HandleSequenceSort *handle = hdl->handle;\

@@ -385,40 +385,37 @@ int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *
     return num;
 }
 
-void ListSort(MList *list,int n1,int n2,int func(void *,void *,void *),void *para)
+void ListSort(void **list_data,int n,int func(void *,void *,void *),void *para)
 {
-    void **list_data = list->data;
-    if(n2-n1 <= 1) return;
+    void *buff;
     
-    void *buff = list_data[n1]; 
-    int i=n1;int j=n2-1;
-    while(i<j)
+    if(func(list_data[n-1],list_data[0],para)<0) {buff=list_data[n-1];list_data[n-1]=list_data[0];list_data[0]=buff;}
+    if(n==2) return;
+    
+         if(func(list_data[  1],list_data[0],para)<0) {buff=list_data[  0];list_data[  0]=list_data[1];}
+    else if(func(list_data[n-1],list_data[1],para)<0) {buff=list_data[n-1];list_data[n-1]=list_data[1];}
+    else                                               buff=list_data[  1];
+    if(n==3) {list_data[1]=buff;return;}
+    
+    int i=1;int j=n-2;
+    while(1)
     {
-        while(func(list_data[j],buff,para)>=0)
-        {
-            if(j==i) goto ListSort_next;
-            j=j-1;
-        }
-        list_data[i] = list_data[j];
-        
-        while(func(list_data[i],buff,para)<=0)
-        {
-            if(i==j) goto ListSort_next;
-            i=i+1;
-        }
-        list_data[j] = list_data[i];
+        while(func(list_data[j],buff,para)>=0) {j=j-1;if(j==i) goto ListSort_next;}
+        list_data[i] = list_data[j];            i=i+1;if(i==j) goto ListSort_next;
+        while(func(list_data[i],buff,para)<=0) {i=i+1;if(i==j) goto ListSort_next;}
+        list_data[j] = list_data[i];            j=j-1;if(i==j) goto ListSort_next;
     }
-    
+   
     ListSort_next:
-    list_data[i] = buff;
-    ListSort(list,n1 ,i ,func,para);
-    ListSort(list,i+1,n2,func,para);
+    list_data[i]=buff;
+    if(  i  >1)ListSort(list_data    ,  i  ,func,para);
+    if(n-i-1>1)ListSort(list_data+i+1,n-i-1,func,para);
 }
 void mListSort(MList *list,int func(void *,void *,void *),void *para)
 {
     mException((INVALID_POINTER(list))||(func==NULL),EXIT,"invalid input");
-  
-    ListSort(list,0,list->num,func,para);
+    if(list->num<=1)return;
+    ListSort(list->data,list->num,func,para);
 }
 
 

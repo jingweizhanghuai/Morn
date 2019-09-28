@@ -101,7 +101,7 @@ extern int *morn_log_count;
 #ifdef _MSC_VER
 #define mSleep(T) Sleep(T)
 #else
-void usleep(int micro_seconds);
+// void usleep(int micro_seconds);
 #define mSleep(T) usleep(T*1000)
 #endif
     

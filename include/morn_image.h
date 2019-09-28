@@ -184,7 +184,7 @@ int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
 int mLineCrossCheck(MList *line1,MList *line2);
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py);
 void mPolygon(MList *polygon,int num,...);
-#define mRectArea(Rect) ((Rect->x2-Rect->x1)*(Rect->y2-Rect->y1))
+#define mRectArea(Rect) ((((MImageRect *)(Rect))->x2-((MImageRect *)(Rect))->x1)*(((MImageRect *)(Rect))->y2-((MImageRect *)(Rect))->y1))
 float mPolygonArea(MList *polygon);
 float TriangleArea(float x1,float y1,float x2,float y2,float x3,float y3);
 float mTriangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3);
