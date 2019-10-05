@@ -117,37 +117,45 @@ void mLinearFit(float *XIn,float *YIn,int N,float *A);
 void mParabolaFit(float *XIn,float *YIn,int N,float *A);
 void mPolyFit(float *XIn,float *YIn,int N,float *A,int k);
 
-// void mQuickSort(float *data,int num);
-// void mQuickSortWithIndex(float *data,int *index,int num);
+void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
+void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
+void mAscSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num);
+void mAscSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num);
+void mAscSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num);
+void mAscSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num);
+void mAscSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num);
+void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num);
+#define mAscSort(Type,DataIn,IndexIn,DataOut,IndexOut,Num) mAscSort##Type(DataIn,IndexIn,DataOut,IndexOut,Num)
 
-// void mAscendingBubbleSort(float *data_in,float *data_out,int num);
-// void mAscendingQuickSort(float *data_in,float *data_out,int num);
-// void mAscendingInsertionSort(float *data_in,float *data_out,int num);
-// void mAscendingSort(float *data_in,float *data_out,int num,void (*method)(float *,float *,int));
+void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
+void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
+void mDescSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num);
+void mDescSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num);
+void mDescSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num);
+void mDescSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num);
+void mDescSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num);
+void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num);
+#define mDescSort(Type,DataIn,IndexIn,DataOut,IndexOut,Num) mDescSort##Type(DataIn,IndexIn,DataOut,IndexOut,Num)
 
-// void mAscendingQuickSortIndex(float *data_in,int *index_in,float *data_out,int *index_out,int num);
+D64 mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
+F32 mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
+S32 mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
+U32 mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
+S16 mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
+U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
+ S8 mMinSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out);
+ U8 mMinSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out);
+#define mMinSubset(Type,DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) mMinSubset##Type(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut)
 
-float mMinSubset(float *data_in,int num_in,float *data_out,int num_out);
-float mMinSubsetIndex(float *data_in,int *index_in,int num_in,float *data_out,int *index_out,int num_out);
-
-        double mSequenceMinSubsetD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int num); 
-         float mSequenceMinSubsetF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int num);
-           int mSequenceMinSubsetS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int num);
-  unsigned int mSequenceMinSubsetU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int num);
-         short mSequenceMinSubsetS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int num);
-unsigned short mSequenceMinSubsetU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int num);
-          char mSequenceMinSubsetS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int num);
- unsigned char mSequenceMinSubsetU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int num);
-
-        double mSequenceMaxSubsetD64(MObject *proc,        double data_in,int index_in,        double *data_out,int *index_out,int num);
-         float mSequenceMaxSubsetF32(MObject *proc,         float data_in,int index_in,         float *data_out,int *index_out,int num);
-           int mSequenceMaxSubsetS32(MObject *proc,           int data_in,int index_in,           int *data_out,int *index_out,int num);
-  unsigned int mSequenceMaxSubsetU32(MObject *proc,  unsigned int data_in,int index_in,  unsigned int *data_out,int *index_out,int num);
-         short mSequenceMaxSubsetS16(MObject *proc,         short data_in,int index_in,         short *data_out,int *index_out,int num);
-unsigned short mSequenceMaxSubsetU16(MObject *proc,unsigned short data_in,int index_in,unsigned short *data_out,int *index_out,int num);
-          char mSequenceMaxSubsetS8( MObject *proc,          char data_in,int index_in,          char *data_out,int *index_out,int num);
- unsigned char mSequenceMaxSubsetU8( MObject *proc, unsigned char data_in,int index_in, unsigned char *data_out,int *index_out,int num);
-
+D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
+F32 mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
+S32 mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
+U32 mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
+S16 mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
+U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
+ S8 mMaxSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out);
+ U8 mMaxSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out);
+#define mMaxSubset(Type,DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) mMaxSubset##Type(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut)
 
 #define MAX_TENSOR_BATCH 32
 

@@ -10,7 +10,7 @@ MList是个筐，啥都可以装。
 
 
 
-### MList定义
+### 定义
 
 MList的定义在[../include/morn_Util.h]()文件里：
 
@@ -29,9 +29,9 @@ typedef struct MList
 
 
 
-### MList基本操作
+### 接口
 
-MList的函数都定义在[../src/util/morn_list.c](../src/util/morn_list.c)文件中。
+此文档MList的相关函数都定义在[../src/util/morn_list.c](../src/util/morn_list.c)文件中。
 
 
 
