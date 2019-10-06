@@ -1,61 +1,105 @@
-// gcc -O2 -fopenmp test44.c -I ..\include\ -L ..\lib\mingw\ -lmorn -lopenblas -o test44.exe
+/*
+Copyright (C) 2019  JingWeiZhangHuai
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+//编译：gcc -O2 -fopenmp test_minist.c -I ..\include\ -L ..\lib\x64\mingw\ -lmorn -lopenblas -o test_minist.exe
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>
 
 #include "morn_Image.h"
 #include "morn_Tensor.h"
 
-int main()
+void test_data()
 {
-    MFile *ini = mFileCreate("./test44.ini");
-    NetworkTrain(ini);
-    mFileRelease(ini);
-    return 0;
+    FILE *f_label= fopen("E:/minist/train-labels.idx1-ubyte","rb");
+    FILE *f_data = fopen("E:/minist/train-images.idx3-ubyte","rb");
+    
+    MTensor *tns[2];
+    tns[0] = mTensorCreate(1,1,28,28,NULL);
+    tns[1] = mTensorCreate(1,1, 1,10,NULL);
+
+    unsigned char label;
+    unsigned char data[28*28];
+    fseek(f_label,8,SEEK_SET);
+    fseek(f_data,16,SEEK_SET);
+    char mornname[256];
+    for(int n=0;n<60000;n++)
+    {
+        fread(&label,1,1,f_label);
+        memset(tns[1]->data[0],0,10*sizeof(float));tns[1]->data[0][label]=1;
+        
+        fread(data,1,28*28,f_data);
+        for(int i=0;i<28*28;i++) tns[0]->data[0][i]=(float)data[i]/256;
+        
+        sprintf(mornname,"E:/minist/train_data/train%05d.morn",n);
+        MFile *morn = mFileCreate(mornname);
+        mMORNWrite(morn, "input",(void **)(tns[0]->data),1,28*28*sizeof(float));
+        mMORNWrite(morn,"output",(void **)(tns[1]->data),1,   10*sizeof(float));
+        mFileRelease(morn);
+    }
+    mTensorRelease(tns[0]);
+    mTensorRelease(tns[1]);
+    fclose(f_label);
+    fclose(f_data);
+    return;
 }
 
-int main1()
+void test_train()
 {
-    MList *filelist = mListCreate(DFLT,NULL);
-    mFileList(filelist,"E:\\minist\\test","*.morn");
+    MFile *ini = mFileCreate("./test_minist.ini");
+    NetworkTrain(ini);
+    mFileRelease(ini);
+    return;
+}
+
+int test_predict()
+{
+    MFile *ini = mFileCreate("./test_minist.ini");
     
-    char *name[2];name[0]="input_0";name[1]="output_0";
+    FILE *f_label= fopen("E:/minist/t10k-labels.idx1-ubyte","rb");
+    FILE *f_data = fopen("E:/minist/t10k-images.idx3-ubyte","rb");
+    
     MTensor *tns[2];
     tns[0] = mTensorCreate(1,1,28,28,NULL);
     tns[1] = mTensorCreate(1,1, 1,10,NULL);
     
-    float *out = tns[1]->data[0];
-    float true[10];float *ref = true;
+    char *name[2];name[0]="input";name[1]="output";
     
-    MFile *ini = mFileCreate("./test44.ini");
-    
-    int num=0;
-    for(int i=0;i<filelist->num;i++)
+    unsigned char label;
+    unsigned char predict;
+    unsigned char data[28*28];
+    fseek(f_label,8,SEEK_SET);
+    fseek(f_data,16,SEEK_SET);
+    int correct=0;
+    for(int n=0;n<10000;n++)
     {
-        char filename[128];sprintf(filename,"E:\\minist\\test\\%s",filelist->data[i]);
-        MFile *file = mFileCreate(filename);
+        fread(data,1,28*28,f_data);
+        for(int i=0;i<28*28;i++) tns[0]->data[0][i]=(float)data[i]/256;
         
-        mMORNRead(file,name[0],(void **)(tns[0]->data),1,28*28*sizeof(float));
         mNetworkPredict(ini,name,tns);
+        float max=0;for(int i=0;i<10;i++) if(tns[1]->data[0][i]>max) {max=tns[1]->data[0][i];predict=i;}
         
-        float max=out[0];int result=0;
-        for(int j=1;j<10;j++) {if(out[j]>max) {max=out[j];result=j;}}
-        
-        mMORNRead(file,name[1],(void **)(&ref),1,10*sizeof(float));
-        int reference;
-        for(int j=0;j<10;j++) if(ref[j]==1.0f) reference=j;
-        
-        printf("filename is %s,result is %d,reference is %d\n",filename,result,reference);
-        num+=(result==reference);
-        
-        mFileRelease(file);
+        fread(&label,1,1,f_label);
+        if(label==predict) correct+=1;
     }
-    printf("num is %d\n",num);
+    printf("total 10000,correct %d\n",correct);
+    mTensorRelease(tns[0]);
+    mTensorRelease(tns[1]);
+    
+    fclose(f_label);
+    fclose(f_data);
     
     mFileRelease(ini);
     return 0;
 }
 
-    
-    
+int main(int argc,char **argv)
+{
+    if(strcmp(argv[1],"data"   )==0) {test_data()   ;return 0;}
+    if(strcmp(argv[1],"train"  )==0) {test_train()  ;return 0;}
+    if(strcmp(argv[1],"predict")==0) {test_predict();return 0;}
+}

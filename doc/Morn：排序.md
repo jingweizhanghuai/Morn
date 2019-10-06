@@ -25,7 +25,7 @@ void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num
 void mAscSort(Type,Type* data_in,int *index_in,Type *data_out,int *index_out,int num);
 ```
 
-其中，Type只支持D64（double），F32（float），S32（int），U32（unsigned int），S16（short），U16（unsigned short），S8（signed char） ，U8（unsigned char）八种类型，以下函数与此相同，不赘述。
+其中，Type只支持D64（double），F32（float），S32（int），U32（unsigned int），S16（short），U16（unsigned short），S8（signed char） ，U8（unsigned char）八种类型。
 
 data_in是数据的输入（待排序数据），data_out是数据的输出（排序后数据）。
 
@@ -47,10 +47,10 @@ num是数据的个数。
 
 ```c
 printf("\n\nin :");
-for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
-mAscSort(S32,data,NULL,NULL,index,N);
+for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+mAscSort(S32,data,NULL,NULL,index,10);
 printf("\nout :");
-for(int i=0;i<N;i++) {printf("%d(%d),",data[i],index[i]);}
+for(int i=0;i<10;i++) {printf("%d(%d),",data[i],index[i]);}
 ```
 
 其运行结果为
@@ -83,6 +83,25 @@ void mDescSort(Type,Type* data_in,int *index_in,Type *data_out,int *index_out,in
 
 其参数与`mAscSort`相同，不再赘述。
 
+例如：
+
+```c
+printf("\n\nin :");
+for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+mDescSort(S32,data,NULL,NULL,NULL,10);
+printf( "\nout :");
+for(int i=0;i<10;i++) {printf("%d,",data[i]);}
+```
+
+其运行结果为
+
+```
+in :91,-96,2,53,-8,82,-79,16,18,-5,
+out :91,82,53,18,16,2,-5,-8,-79,-96,
+```
+
+
+
 
 
 #### 最小值子集
@@ -112,6 +131,24 @@ num_in即输入数据的个数。num_out即输出数据的个数。
 
 返回值是临界值，即输出数据中的最大值。
 
+例如：
+
+```c
+printf("\n\nin :");
+for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+mMinSubset(S32,data,NULL,10,NULL,index,4);
+printf( "\nout :");
+for(int i=0;i<4;i++) {printf("%d(%d),",data[i],index[i]);}
+    
+```
+
+其运行结果为
+
+```
+in :47,-56,-38,57,-63,-41,23,41,29,78,
+out :-41(5),-56(1),-38(2),-63(4),
+```
+
 
 
 #### 最大值子集
@@ -137,9 +174,29 @@ Type mMaxSubset(Type，Type *data_in,int *index_in,int num_in, Type *data_out,in
 
 返回值是临界值，即输出数据中的最小值。
 
+例如：
+
+```c
+printf("\n\nin :");
+for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+mMinSubset(S32,data,NULL,10,NULL,index,4);
+printf( "\nout :");
+for(int i=0;i<4;i++) {printf("%d(%d),",data[i],index[i]);}
+    
+```
+
+其运行结果为
+
+```
+in :47,-56,-38,57,-63,-41,23,41,29,78,
+out :-41(5),-56(1),-38(2),-63(4),
+```
 
 
-这里的排序都只针对“数”来进行排序，Morn的容器MList，还提供了更通用的排序`mListSort`，具体可参见文档[Morn:容器2](Morn：容器2)。
+
+#### 容器排序
+
+以上的排序都只针对“数”来进行排序，Morn的容器MList，还提供了更通用的排序`mListSort`，具体可参见文档[Morn:容器2](Morn：容器2)。
 
 
 
@@ -176,7 +233,7 @@ mFree(data2);
 
 ![排序](排序.PNG)
 
-这里比较了32位整数和64位浮点数的性能，测试的数据都是1000000个，可以看到Morn的排序比qsort明显更快。（这么比有一点儿不公平，`qsort`使用回调函数排序，有更广泛的应用，不过如果你需要的只是数值排序，显然Morn是更好的选择）。
+这里比较了32位整数和64位浮点数的性能，测试的数据都是1000000个，可以看到Morn的排序比qsort明显更快。（这么比有一点儿不公平，`qsort`使用回调函数排序，虽然慢，但是有更广泛的应用。不过，如果你需要的只是数值排序，可能Morn是更好的选择）。
 
 
 
@@ -200,6 +257,6 @@ mFree(data);
 
 ![排序2](排序2.PNG)
 
-这里比较了32位整数和64位浮点数的性能，测试的数据输入都是1000000个，输出分别为100000个、300000个、500000个、700000个、900000个。
+这里测试了32位整数和64位浮点数的性能，测试的数据输入都是1000000个，输出分别为100000个、300000个、500000个、700000个、900000个。
 
 可以看到其运算用时，比1000000个数据排序要小一个数量级。

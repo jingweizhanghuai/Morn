@@ -331,11 +331,6 @@ void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
         {
             if(strcmp(layer->name,name[j])==0)
             {
-                printf("handle->batch is %d,%d\n",handle->batch,tns[j]->batch);
-                printf("layer->tns->channel is %d,%d\n",layer->tns->channel,tns[j]->channel);
-                printf("layer->tns->width is %d,%d\n",layer->tns->width,tns[j]->width);
-                printf("layer->tns->height is %d,%d\n",layer->tns->height,tns[j]->height);
-                
                 mException((handle->batch!=tns[j]->batch)||(layer->tns->channel!=tns[j]->channel)||
                        (layer->tns->width!=tns[j]->width)||(layer->tns->height !=tns[j]->height ),EXIT,"invalid input");
                 mTensorRedefine(layer->tns,handle->batch,DFLT,DFLT,DFLT,tns[j]->data);
