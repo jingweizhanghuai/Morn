@@ -179,10 +179,9 @@ Type mMaxSubset(Type，Type *data_in,int *index_in,int num_in, Type *data_out,in
 ```c
 printf("\n\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
-mMinSubset(S32,data,NULL,10,NULL,index,4);
+mMaxSubset(S32,data,NULL,10,NULL,NULL,4);
 printf( "\nout :");
-for(int i=0;i<4;i++) {printf("%d(%d),",data[i],index[i]);}
-    
+for(int i=0;i<4;i++) {printf("%d,",data[i]);}    
 ```
 
 其运行结果为
