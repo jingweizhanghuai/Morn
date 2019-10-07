@@ -54,30 +54,70 @@ void GridInterpolation(MImage *src,MImage *dst,MTable *gridx,MTable *gridy,MTabl
 	int i, j;
     int height = dst->height;
     int width = dst->width;
+    unsigned char **s0=src->data[0];unsigned char **s1=src->data[1];unsigned char **s2=src->data[2];unsigned char **s3=src->data[3];
+    unsigned char **d0=dst->data[0];unsigned char **d1=dst->data[1];unsigned char **d2=dst->data[2];unsigned char **d3=dst->data[3];
     
-    // #pragma omp parallel for
-    for(j=0;j<height;j++)
+    if(src->channel==1)
     {
-        for(i=0;i<width;i++)
+        #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
         {
-            int x = gridx->dataS16[j][i];
-            if((x<0)||(x>=src->width -1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
-            int y = gridy->dataS16[j][i];
-            if((y<0)||(y>=src->height-1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0; continue;}
             
-            int wx = (w->dataU8[j][i]&0xF0)>>4;
+            int wx = (w->dataU8[j][i]>>4);
             int wy = (w->dataU8[j][i]&0x0F);
             
-            // if((i==49)&&(j==17))
-                // printf("x is %d,y is %d,wx is %d,wy is %d\n",x,y,wx,wy);
+            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+                     
+        }
+    }
+    else if(src->channel==2)
+    {
+        #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}
             
-            for(int cn=0;cn<src->channel;cn++)
-            {
-                register int data =((src->data[cn][y  ][x  ]*wx + src->data[cn][y  ][x+1]*(15-wx))*wy
-                                   +(src->data[cn][y+1][x  ]*wx + src->data[cn][y+1][x+1]*(15-wx))*(15-wy) + 112)/225;
-
-                dst->data[cn][j][i] = data;
-            }
+            int wx = (w->dataU8[j][i]>>4);
+            int wy = (w->dataU8[j][i]&0x0F);
+            
+            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d1[j][i]=((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+        }
+    }
+    else if(src->channel==3)
+    {
+        #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}
+            
+            int wx = (w->dataU8[j][i]>>4);
+            int wy = (w->dataU8[j][i]&0x0F);
+            
+            d0[j][i]= ((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d1[j][i]= ((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d2[j][i]= ((s2[y][x]*wx+s2[y][x+1]*(15-wx))*wy+(s2[y+1][x]*wx+s2[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+        }
+    }
+    else //if(src->channel==4)
+    {
+        #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}
+            
+            int wx = (w->dataU8[j][i]>>4);
+            int wy = (w->dataU8[j][i]&0x0F);
+            
+            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d1[j][i]=((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d2[j][i]=((s2[y][x]*wx+s2[y][x+1]*(15-wx))*wy+(s2[y+1][x]*wx+s2[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            d3[j][i]=((s3[y][x]*wx+s3[y][x+1]*(15-wx))*wy+(s3[y+1][x]*wx+s3[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
         }
     }
 }
@@ -368,7 +408,7 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
         memcpy(handle->pd,pd,3*sizeof(MImagePoint));
         handle->height = height;
         handle->width  = width;
-        
+
         hdl->valid = 1;
     }
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
