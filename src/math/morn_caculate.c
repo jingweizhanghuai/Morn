@@ -106,7 +106,6 @@ double GetValue(char **ptr)
             if(stricmp(str,"abs"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  ABS(value):NAN;}
             if(stricmp(str,"sqrt" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? sqrt(value):NAN;}
             if(stricmp(str,"exp"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  exp(value):NAN;}
-            if(stricmp(str,"log"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  log(value):NAN;}
             if(stricmp(str,"ln"   )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  log(value):NAN;}
             if(stricmp(str,"log10")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?log10(value):NAN;}
             if(stricmp(str,"sin"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  sin(value):NAN;}
@@ -117,10 +116,12 @@ double GetValue(char **ptr)
             if(stricmp(str,"atan" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? atan(value):NAN;}
             if(stricmp(str,"ceil" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? ceil(value):NAN;}
             if(stricmp(str,"floor")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?floor(value):NAN;}
+            if(stricmp(str,"round")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?round(value):NAN;}
             
             if(stricmp(str,"min")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MIN(v1,v2):NAN;}
             if(stricmp(str,"max")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MAX(v1,v2):NAN;}
             if(stricmp(str,"pow")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?pow(v1,v2):NAN;}
+            if(stricmp(str,"log")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?(log(v2),log(v1)):NAN;}
             return NAN;
         }
         p++;*ptr=p;
