@@ -17,7 +17,8 @@ extern "C"
 
 #define MORN_DEFAULT -1
 
-#define MORN_PI 3.14159265358979f
+#define MORN_PI 3.141592653589793238462643383279502884197169399375105820974944592308
+#define MORN_E  2.718281828459045235360287471352662497757247093699959574966967627724
 
 #define mMathABS(x) (((x)>0)?(x):(-(x)))
 #define mMathABSDiff(x,y) (((x)>(y))?((x)-(y)):((y)-(x)))
@@ -159,7 +160,7 @@ U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index
 
 #define MAX_TENSOR_BATCH 32
 
-
+double mCaculate(char *str);
 
 
 unsigned int mHash(const char *in,int size);
