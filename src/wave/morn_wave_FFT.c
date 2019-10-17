@@ -39,11 +39,11 @@ void mWaveFFT(MWave *src,MWave *fft)
 {
     int i,j,k,n;
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"invalid input");
+    // mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"invalid input");
     int wave_size = src->size;
     
     int N;
-    
+
     MHandle *hdl; ObjectHandle(src,WaveFFT,hdl);
     struct HandleWaveFFT *handle = hdl->handle;
     if(hdl->valid == 0)
@@ -63,10 +63,11 @@ void mWaveFFT(MWave *src,MWave *fft)
             handle->Wre[0] = 1.0f;
             handle->Wim[0] = 0.0f;
             double thta = n_pi;
+            
             for(k=1;k<(handle->size)>>1;k++)
             {
                 handle->Wre[k] = (float)cos(thta);
-                handle->Wim[k] = 0.0f- (float)sin(thta);
+                handle->Wim[k] = 0.0f-(float)sin(thta);
                 thta = thta + n_pi;
             }
         }
@@ -98,10 +99,10 @@ void mWaveFFT(MWave *src,MWave *fft)
         float *FFTDataRe = fft->data[(cn<<1)];
         float *FFTDataIm = fft->data[(cn<<1)+1];
         
+        memset(FFTDataIm,0,(N+N)*sizeof(float));
+        
         FFTDataRe[0] = src->data[cn][0];
         FFTDataRe[N] = src->data[cn][1];
-        FFTDataIm[0] = 0.0f;
-        FFTDataIm[N] = 0.0f;
         for(i=1,j=N;i<N;i++)  
         {
             if(j>=wave_size)
@@ -115,22 +116,19 @@ void mWaveFFT(MWave *src,MWave *fft)
                 FFTDataRe[i+N] = src->data[cn][j+1];
             }
             
-            FFTDataIm[i] = 0.0f;
-            FFTDataIm[i+N] = 0.0f;
-            
-            k=N;  
-            while(k<=j)  
-            {  
-                j=j-k;  
-                k=k/2;  
-            }
-            j=j+k;  
+            k=N;while(k<=j){j=j-k;k=k/2;}
+            j=j+k;
         }
         
-        for(n=1;n<=N;n=(n<<1))    
+        mTimerBegin();
+        for(n=1;n<=N;n=(n<<1))
+        {
+            #pragma omp parallel for
             for(j=0;j<(N<<1);j=j+(n<<1))
                 for(i=0,k=0;i<n;i++,k=k+N/n)
                     FFTCACL(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n]);
+        }
+        mTimerEnd();
     }
     
     if(!out_valid)
@@ -217,10 +215,13 @@ void mWaveIFFT(MWave *fft,MWave *dst)
             j=j+k;  
         }
         
-        for(n=1;n<=N;n=(n<<1))    
+        for(n=1;n<=N;n=(n<<1))
+        {
+            #pragma omp parallel for
             for(j=0;j<(N<<1);j=j+(n<<1))
                 for(i=0,k=0;i<n;i++,k=k+N/n)
                     FFTCACL(DstDataRe[j+i],DstDataIm[j+i],DstDataRe[j+i+n],DstDataIm[j+i+n]);
+        }
         
         for(i=0;i<wave_size;i++)
             dst->data[cn>>1][i] = (float)(DstDataRe[i]/((double)wave_size));

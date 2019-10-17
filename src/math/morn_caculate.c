@@ -121,7 +121,7 @@ double GetValue(char **ptr)
             if(stricmp(str,"min")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MIN(v1,v2):NAN;}
             if(stricmp(str,"max")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MAX(v1,v2):NAN;}
             if(stricmp(str,"pow")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?pow(v1,v2):NAN;}
-            if(stricmp(str,"log")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?(log(v2),log(v1)):NAN;}
+            if(stricmp(str,"log")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=',')return NAN;*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?(log(v2)/log(v1)):NAN;}
             return NAN;
         }
         p++;*ptr=p;

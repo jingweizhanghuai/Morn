@@ -97,7 +97,7 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     
     mException((cn>MORN_MAX_WAVE_CN),EXIT,"invalid input");
-    if(flag) data=NULL;
+    if(reuse) data=NULL;
     handle->size = 0;
     
     if((cn<=0)||(size<=0)) {memset(src->data,0,MORN_MAX_WAVE_CN*sizeof(float *));return;}

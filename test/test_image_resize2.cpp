@@ -24,7 +24,7 @@ int main()
     Mat dst;
     
     mTimerBegin();
-    for(int i=0;i<10;i++)
+    for(int i=0;i<1000;i++)
         resize(src,dst,Size(256,256),(0, 0),(0, 0),INTER_LINEAR);
     mTimerEnd();
     
@@ -38,7 +38,7 @@ int main()
     MImage *out = mImageCreate(in->channel,256,256,NULL);
     
     mTimerBegin();
-    for(int i=0;i<10;i++)
+    for(int i=0;i<1000;i++)
         mImageResize(in,out,DFLT,DFLT,DFLT);
     mTimerEnd();
     

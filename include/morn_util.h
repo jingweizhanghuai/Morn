@@ -173,6 +173,7 @@ int Thread_Order; PthreadOrder(Thread_Order);\
 int Layer_order = morn_layer_order[Thread_Order]+1;\
 {\
     morn_layer_order[Thread_Order] = Layer_order;\
+    morn_exception = 0;\
     jmp_buf buf_jump;\
     morn_jump[Thread_Order][Layer_order] = &buf_jump;\
     if(setjmp(buf_jump))\

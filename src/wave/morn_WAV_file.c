@@ -99,7 +99,7 @@ void WAVInfo(struct MWAVInfo *info)
 
 void mWAVLoad(const char *filename,MWave *dst)
 {
-    mException(INVALID_WAVE(dst),EXIT,"invalid input");
+    mException((dst==NULL),EXIT,"invalid input");
     
     struct MWAVInfo info;
     info.f = fopen(filename,"rb");
@@ -116,7 +116,7 @@ void mWAVLoad(const char *filename,MWave *dst)
         short *data_16 = (short *)mMalloc(data_num*cn*sizeof(short));
         fread(data_16,data_num*cn*sizeof(short),1,info.f);
         for(i=0,n=0;i<data_num;i++,n=n+cn)for(int c=0;c<cn;c++)
-            dst->data[c][i] = ((float)data_16[n+c])/32768.0f;
+            dst->data[c][i] = ((float)(data_16[n+c]))/32768.0f;
         mFree(data_16);
     }
     else if(info.data_type == 8)
