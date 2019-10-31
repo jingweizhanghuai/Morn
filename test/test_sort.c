@@ -21,35 +21,35 @@ int main()
     
     int *index=mMalloc(N*sizeof(int));
     
-    printf(    "in :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf(    "in :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mAscSort(S32,data,NULL,NULL,NULL,N);
     printf( "\nout :");for(int i=0;i<N;i++) {printf("%d,",data[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mAscSort(S32,data,NULL,NULL,index,N);
     printf(" \nout :");for(int i=0;i<N;i++) {printf("%d(%d),",data[i],index[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mDescSort(S32,data,NULL,NULL,NULL,N);
     printf( "\nout :");for(int i=0;i<N;i++) {printf("%d,",data[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mDescSort(S32,data,NULL,NULL,index,N);
     printf( "\nout :");for(int i=0;i<N;i++) {printf("%d(%d),",data[i],index[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mMinSubset(S32,data,NULL,N,NULL,NULL,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d,",data[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mMinSubset(S32,data,NULL,N,NULL,index,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d(%d),",data[i],index[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mMaxSubset(S32,data,NULL,N,NULL,NULL,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d,",data[i]);}
     
-    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
+    printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mMaxSubset(S32,data,NULL,N,NULL,index,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d(%d),",data[i],index[i]);}
     

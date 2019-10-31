@@ -6,19 +6,40 @@ You should have received a copy of the GNU General Public License along with thi
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "morn_math.h"
 
+/*
+#define InsertSortData(Type,Data,Num) {\
+	Type Buff;int I,J;\
+	if(Data[0]>Data[1]) {Buff=Data[0];Data[0]=Data[1];Data[1]=Buff;}\
+	for(I=2;I<Num;I++)\
+	{\
+		Buff=Data[I];\
+		\
+		for(J=1;J<I;J+=2) if(Buff<Data[J]) {if(Buff<Data[J-1]) J--; break;}\
+		if(J<I) {memmove(Data+J+1,Data+J,(I-J)*sizeof(Type));Data[J]=Buff;}\
+		\
+		I=I+1;if(I==Num) return;\
+		Buff=Data[I];\
+		if(Buff<Data[0]) {memmove(Data+1,Data,I*sizeof(Type));Data[0]=Buff; continue;}\
+		\
+		for(J=2;J<I;J+=2) if(Buff<Data[J]) {if(Buff<Data[J-1]) J--; break;}\
+		if(J<I) {memmove(Data+J+1,Data+J,(I-J)*sizeof(Type));Data[J]=Buff;}\
+	}\
+}
+*/
+
 #define AscSortData(Type,Data,Num) {\
-    Type Buff;\
+	Type Buff;\
     if(Data[0]>Data[Num-1]) {Buff=Data[0];Data[0]=Data[Num-1];Data[Num-1]=Buff;}\
     if(Num==2) return;\
     \
+	Buff=Data[Num>>1];Data[Num>>1]=Data[1];Data[1]=Buff;\
          if(Data[1]<Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];}\
     else if(Data[1]>Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];}\
-    else                          Buff=Data[    1];\
     if(Num==3) {Data[1]=Buff;return;}\
     \
     int I=1;int J=Num-2;\
@@ -52,9 +73,9 @@ void AscSortDataU8 ( U8 *data,int num) {AscSortData( U8,data,num);}
     }\
     if(Num==2) return;\
     \
+	Buff=Data[Num>>1];Buff_index=Index[Num>>1];Data[Num>>1]=Data[1];Index[Num>>1]=Index[1];Data[1]=Buff;Index[1]=Buff_index;\
          if(Data[1]<Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];Buff_index=Index[    0];Index[    0]=Index[1];}\
     else if(Data[1]>Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];Buff_index=Index[Num-1];Index[Num-1]=Index[1];}\
-    else                         {Buff=Data[    1];                    Buff_index=Index[    1];}\
     if(Num==3) {Data[1]=Buff;Index[1]=Buff_index; return;}\
     \
     int I=1;int J=Num-2;\
@@ -105,9 +126,9 @@ void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num
     if(Data[0]<Data[Num-1]) {Buff=Data[0];Data[0]=Data[Num-1];Data[Num-1]=Buff;}\
     if(Num==2) return;\
     \
+	Buff=Data[Num>>1];Data[Num>>1]=Data[1];Data[1]=Buff;\
          if(Data[1]>Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];}\
     else if(Data[1]<Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];}\
-    else                          Buff=Data[    1];\
     if(Num==3) {Data[1]=Buff;return;}\
     \
     int I=1;int J=Num-2;\
@@ -141,9 +162,9 @@ void DescSortDataU8 ( U8 *data,int num) {DescSortData( U8,data,num);}
     }\
     if(Num==2) return;\
     \
+	Buff=Data[Num>>1];Buff_index=Index[Num>>1];Data[Num>>1]=Data[1];Index[Num>>1]=Index[1];Data[1]=Buff;Index[1]=Buff_index;\
          if(Data[1]>Data[    0]) {Buff=Data[    0];Data[    0]=Data[1];Buff_index=Index[    0];Index[    0]=Index[1];}\
     else if(Data[1]<Data[Num-1]) {Buff=Data[Num-1];Data[Num-1]=Data[1];Buff_index=Index[Num-1];Index[Num-1]=Index[1];}\
-    else                         {Buff=Data[    1];                    Buff_index=Index[    1];}\
     if(Num==3) {Data[1]=Buff;Index[1]=Buff_index; return;}\
     \
     int I=1;int J=Num-2;\

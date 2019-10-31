@@ -27,44 +27,43 @@ struct HandleWaveFFT {
     int size;
     float *Wre;
     float *Wim;
+    int *order;
 }HandleWaveFFT;
 void endWaveFFT(void *info)
 {
     struct HandleWaveFFT *handle=info;
     if(handle->Wre != NULL)mFree(handle->Wre);
     if(handle->Wim != NULL)mFree(handle->Wim);
+    if(handle->order!=NULL)mFree(handle->order);
 }
 #define HASH_WaveFFT 0xf197b3ec
+
 void mWaveFFT(MWave *src,MWave *fft)
 {
     int i,j,k,n;
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
     // mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"invalid input");
-    int wave_size = src->size;
-    
-    int N;
 
+    int N;
     MHandle *hdl; ObjectHandle(src,WaveFFT,hdl);
     struct HandleWaveFFT *handle = hdl->handle;
     if(hdl->valid == 0)
     {
-        k=1;
-        while(src->size>(2<<k))
-            k=k+1;
-        N = (2<<k);
+        mException((src->size<4),EXIT,"invalid input");
+        k=1;while(src->size>(2<<k))k=k+1; N=(2<<k);
         if(handle->size != N)
         {
-            mPointer(handle->Wre,N*sizeof(float)>>1);
-            mPointer(handle->Wim,N*sizeof(float)>>1);
-            
             handle->size = N;
+            if(handle->order!=NULL) mFree(handle->order);handle->order=mMalloc(N*sizeof(int));
+            N=N>>1;handle->order[0]=0;j=1;
+            for(k=N;k>0;k=k>>1) {for(i=0;i<j;i++) handle->order[i+j]=handle->order[i]+k; j=j+j;}
             
-            double n_pi = ((double)MORN_PI)/((double)(N>>1));
-            handle->Wre[0] = 1.0f;
-            handle->Wim[0] = 0.0f;
-            double thta = n_pi;
+            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=mMalloc(N*sizeof(float));
+            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=mMalloc(N*sizeof(float));
             
-            for(k=1;k<(handle->size)>>1;k++)
+            double n_pi = MORN_PI/((double)N);double thta = n_pi;
+            handle->Wre[0] = 1.0f; handle->Wim[0] = 0.0f;
+            for(k=1;k<N;k++)
             {
                 handle->Wre[k] = (float)cos(thta);
                 handle->Wim[k] = 0.0f-(float)sin(thta);
@@ -74,20 +73,11 @@ void mWaveFFT(MWave *src,MWave *fft)
         hdl->valid = 1;
     }
     N = handle->size;
-    float *Wre = handle->Wre;
-    float *Wim = handle->Wim;
-    
-    int out_valid;
-    if((INVALID_POINTER(fft))||(fft == src))
-    {
-        out_valid = 0;
-        fft = mWaveCreate(((src->channel)<<1),N,NULL);
-    }
-    else
-    {
-        out_valid = 1;
-        mWaveRedefine(fft,((src->channel)<<1),N,fft->data);
-    }
+    float *Wre = handle->Wre; float *Wim = handle->Wim;
+
+    MWave *p=fft;
+    if((fft==NULL)||(fft == src)) fft = mWaveCreate(((src->channel)<<1),N,NULL);
+    else                          mWaveRedefine(fft,((src->channel)<<1),N,fft->data);
     fft->info = src->info;
     mInfoSet(&(fft->info),"wave_type",MORN_WAVE_FD);
     mInfoSet(&(fft->info),"normalize",MORN_NOT_NORMALIZED);
@@ -98,47 +88,101 @@ void mWaveFFT(MWave *src,MWave *fft)
     {
         float *FFTDataRe = fft->data[(cn<<1)];
         float *FFTDataIm = fft->data[(cn<<1)+1];
+        float *src_data = src->data[cn];
         
-        memset(FFTDataIm,0,(N+N)*sizeof(float));
-        
-        FFTDataRe[0] = src->data[cn][0];
-        FFTDataRe[N] = src->data[cn][1];
-        for(i=1,j=N;i<N;i++)  
+        for(i=0;i<N+N;i+=4)
         {
-            if(j>=wave_size)
-            {
-                FFTDataRe[i] = 0;
-                FFTDataRe[i+N] = 0;
-            }
-            else
-            {        
-                FFTDataRe[i] = src->data[cn][j];
-                FFTDataRe[i+N] = src->data[cn][j+1];
-            }
-            
-            k=N;while(k<=j){j=j-k;k=k/2;}
-            j=j+k;
+            int n0=handle->order[i  ];int n1=handle->order[i+1];
+            int n2=handle->order[i+2];int n3=handle->order[i+3];
+            float d0=src_data[n0];float d1=(n1>=src->size)?0:src_data[n1];
+            float d2=src_data[n2];float d3=(n3>=src->size)?0:src_data[n3];
+            FFTDataRe[i  ]=d0+d1+d2+d3;FFTDataRe[i+1]=d0-d1;FFTDataRe[i+2]=d0+d1-d2-d3;FFTDataRe[i+3]=d0-d1;
+            FFTDataIm[i  ]=0;          FFTDataIm[i+1]=d3-d2;FFTDataIm[i+2]=0;          FFTDataIm[i+3]=d2-d3;
         }
         
-        mTimerBegin();
-        for(n=1;n<=N;n=(n<<1))
-        {
-            #pragma omp parallel for
+        for(n=4;n<=N;n=(n<<1))
             for(j=0;j<(N<<1);j=j+(n<<1))
                 for(i=0,k=0;i<n;i++,k=k+N/n)
                     FFTCACL(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n]);
-        }
-        mTimerEnd();
     }
     
-    if(!out_valid)
-    {
-        mWaveExchange(src,fft);
-        mWaveRelease(fft);
-    }    
+    if(p!=fft) {mWaveExchange(src,fft);mWaveRelease(fft);}
 }
 
+#define HandleWaveIFFT HandleWaveFFT
+#define endWaveIFFT endWaveFFT
+#define HASH_WaveIFFT 0x81f00b75
 void mWaveIFFT(MWave *fft,MWave *dst)
+{
+    int i,j,k,n;
+    mException((INVALID_WAVE(fft)),EXIT,"invalid input");
+    mException((mInfoGet(&(fft->info),"wave_type") != MORN_WAVE_FD),EXIT,"invalid input");
+
+    int N;
+    MHandle *hdl; ObjectHandle(fft,WaveIFFT,hdl);
+    struct HandleWaveIFFT *handle = hdl->handle;
+    if(hdl->valid == 0)
+    {
+        N=fft->size;mException((N<4)||((N&(N-1))!=0),EXIT,"invalid input");
+        if(handle->size != N)
+        {
+            handle->size = N;
+            if(handle->order!=NULL) mFree(handle->order);handle->order=mMalloc(N*sizeof(int));
+            N=N>>1;handle->order[0]=0;j=1;
+            for(k=N;k>0;k=k>>1) {for(i=0;i<j;i++) handle->order[i+j]=handle->order[i]+k; j=j+j;}
+            
+            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=mMalloc(N*sizeof(float));
+            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=mMalloc(N*sizeof(float));
+            
+            double n_pi = MORN_PI/((double)N);double thta = n_pi;
+            handle->Wre[0] = 1.0f; handle->Wim[0] = 0.0f;
+            for(k=1;k<N;k++)
+            {
+                handle->Wre[k] = (float)cos(thta);
+                handle->Wim[k] = (float)sin(thta);
+                thta = thta + n_pi;
+            }
+        }
+        hdl->valid = 1;
+    }
+    N = handle->size;
+    float *Wre = handle->Wre; float *Wim = handle->Wim;
+
+    MWave *p=dst;
+    if((dst==NULL)||(dst==fft)) dst = mWaveCreate(fft->channel,N,NULL);
+    else                        mWaveRedefine(dst,fft->channel,N,dst->data);
+    dst->info = fft->info;
+    mInfoSet(&(dst->info),"wave_type",MORN_WAVE_TD);
+    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    
+    N=(N>>1);
+    for(int cn=0;cn<dst->channel;cn+=2)
+    {
+        float *FFTDataRe = dst->data[cn];
+        float *FFTDataIm = dst->data[cn+1];
+        float *fft_data_re=fft->data[cn];
+        float *fft_data_im=fft->data[cn+1];
+
+        for(i=0;i<N+N;i++)
+        {
+            int n=handle->order[i];
+            FFTDataRe[i]=fft_data_re[n];FFTDataIm[i]=fft_data_im[n];
+        }
+        
+        for(n=1;n<=N;n=(n<<1))
+            for(j=0;j<(N<<1);j=j+(n<<1))
+                for(i=0,k=0;i<n;i++,k=k+N/n)
+                    FFTCACL(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n]);
+       
+        for(i=0;i<N+N;i++) dst->data[cn>>1][i] = FFTDataRe[i]/((float)(N+N));
+    }
+    dst->channel=dst->channel>>1;
+    if(p!=dst) {mWaveExchange(fft,dst);mWaveRelease(dst);}
+}
+
+
+/*
+void mWaveIFFT0(MWave *fft,MWave *dst)
 {    
     int i,j,k,n;
     
@@ -201,6 +245,8 @@ void mWaveIFFT(MWave *fft,MWave *dst)
         DstDataIm[N] = fft->data[cn+1][1];
         for(i=1,j=N;i<N;i++)  
         {
+            printf("i is %d,j is %d\n",i,j);
+            printf("i is %d,j is %d\n",i+N,j+1);
             DstDataRe[i]   = fft->data[cn][j];
             DstDataRe[i+N] = fft->data[cn][j+1];
             DstDataIm[i]   = fft->data[cn+1][j];
@@ -208,16 +254,18 @@ void mWaveIFFT(MWave *fft,MWave *dst)
             
             k=N;  
             while(k<=j)  
-            {  
+            {
                 j=j-k;  
                 k=k/2;  
             }
             j=j+k;  
         }
+        for(i=0;i<N+N;i++)
+            printf("data is %f+%fi\n",DstDataRe[i],DstDataIm[i]);
         
         for(n=1;n<=N;n=(n<<1))
         {
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for(j=0;j<(N<<1);j=j+(n<<1))
                 for(i=0,k=0;i<n;i++,k=k+N/n)
                     FFTCACL(DstDataRe[j+i],DstDataIm[j+i],DstDataRe[j+i+n],DstDataIm[j+i+n]);
@@ -238,6 +286,7 @@ void mWaveIFFT(MWave *fft,MWave *dst)
         mWaveRelease(dst);
     }
 }
+*/
 
 void mWavePowerSpectrum(MWave *fft,MWave *ps,int mode)
 {

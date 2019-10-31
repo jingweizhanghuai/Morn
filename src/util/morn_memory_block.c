@@ -297,6 +297,7 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
     }
 
     if(data!=NULL) memcpy(handle->pdata,data,size);
+    else           memset(handle->pdata,   0,size);
     char *memory_data = handle->pdata;
     handle->pdata = handle->pdata + size;
     handle->mem_size = handle->mem_size - size;

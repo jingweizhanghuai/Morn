@@ -36,7 +36,7 @@ void TreeNodeRelease(MTreeNode *node)
     for(int i=0;i<node->child_num;i++)
         TreeNodeRelease(node->child[i]);
     
-    mFree(node->child);
+    if(node->child!=NULL) mFree(node->child);
 }
 void mTreeRelease(MTree *tree)
 {
@@ -59,115 +59,6 @@ MTreeNode *mTreeNode(MTree *tree,void *data,int size)
     
     return node;
 }
-
-
-    
-
-
-
-
-
-
-
-/*
-MTree *mTreeCreate(int size,void *data)
-{
-    mException((data!=NULL)&&(size<=0),"invalid input",EXIT);
-    
-    MTree *tree = (MTree *)mMalloc(sizeof(MTree));
-    memset(tree,0,sizeof(MTree));
-    
-    if(size>0)
-    {
-        tree->size = size;
-        tree->data = mMalloc(size);
-    }
-    
-    if(data!=NULL)
-        memcpy(tree->data,data,size);
-    
-    return tree;
-}
-
-void mTreeRelease(MTree *tree)
-{
-    mException(INVALID_POINTER(tree),"invalid tree",EXIT);
-    
-    if(tree->child_num >0)
-    {
-        for(int i=0;i<tree->child_num;i++)
-            mTreeRelease(tree->child[i]);
-        mFree(tree->child);
-    }
-    
-    if(!INVALID_POINTER(tree->data))
-        mFree(tree->data);
-    
-    if(!INVALID_POINTER(tree->handle))
-        HandleRelease(tree->handle);
-    
-    mFree(tree);
-}
-
-void mTreeRedefine(MTree *tree,int size,void *data)
-{
-    mException(INVALID_POINTER(tree),"invalid tree",EXIT);
-    mException((data!=NULL)&&(size<=0),"invalid input",EXIT);
-    
-    mHandleReset(tree->handle);
-    
-    if(tree->size >= size)
-    {
-        if(data!=NULL)
-            memcpy(tree->data,data,size);
-        tree->size = size;
-        return;
-    }
-    
-    void *buff = NULL;
-    if(size > 0)
-    {
-        buff = mMalloc(size);
-        memcpy(buff,data,size);
-    }
-    
-    if(tree->size > 0)
-    {
-        if(tree->data != NULL)
-            mFree(tree->data);
-    }
-    
-    tree->data = buff;
-    tree->size = size;
-}
-*/
-/*
-void mTreeParentSet(MTree *tree,MTree *parent)
-{
-    mException(INVALID_POINTER(tree),"invalid tree",EXIT);
-    
-    if((parent==NULL)||(tree->parent == parent))
-        return;
-    
-    mException((tree->parent != NULL),"invalid input",EXIT);
-    tree->parent = parent;
-    
-    int n = parent->child_num;
-    if(n == 0)
-        parent->child = (MTree **)mMalloc(2*sizeof(MTree *));
-    else if(n>1)
-    {
-        MTree **buff = (MTree **)mMalloc((n+1)*sizeof(MTree *));
-        memcpy(buff,parent->child,n*sizeof(MTree *));
-        mFree(parent->child);
-        parent->child = buff;
-    }
-    parent->child[n] = tree;
-    parent->child_num = n+1;
-}
-
-void mTreeChildSet(MTree *tree,MTree **child,int child_num);
-*/
 
 void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order)
 {
@@ -296,28 +187,16 @@ MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *par
             {if(func(parent,para)==1) return parent;}
         for(i=0;i<parent->child_num;i++)
         {
-            if(flag == 0) continue;
             if(parent->child[i] == node) {flag = 1;continue;}
-       
+            if(flag == 0) continue;
+            
             rst = TreeSearch(parent->child[i],func,func);
             if(rst != NULL) return rst;
         }
-        
         node = parent;
     }
-    
     return NULL;
 }
-        
-   
-    
-    
-    
-
-
-
-
-
 
 /*
 struct Shadow
