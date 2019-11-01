@@ -85,3 +85,50 @@ dst->size is 16.
 -0.590000,-0.330000,0.340000,-0.000000,0.690000,0.240000,-0.220000,0.580000,0.620000,-0.360000,0.000000,-0.000000,0.000000,0.000000,-0.000000,0.000000,
 ```
 
+可以看到经过傅里叶变换和逆变换后的波形与输出波形一致（后面补零）。
+
+
+
+### 性能
+
+这里我们将Morn的傅里叶函数与著名的FFTW库进行了比较。
+
+```c
+int main()
+{
+    MFile *file = mFileCreate("E:/test.wav");
+    MWave *src = mWaveCreate(1,1024,NULL);
+    MWave *dst = mWaveCreate(2,1024,NULL);
+    mWAVRead(file,src);
+
+    printf("fft with Morn:\n");
+    mTimerBegin();
+    for(int i=0;i<10000;i++)mWaveFFT(src,dst);
+    mTimerEnd();
+    
+    fftwf_complex *in  = fftwf_malloc(sizeof(fftwf_complex) * 1024);
+    fftwf_complex *out = fftwf_malloc(sizeof(fftwf_complex) * 1024);
+    for(int i=0;i<1024;i++){in[i][0]=src->data[0][i];in[i][1]=0;}
+
+    printf("fft with FFTW:\n");
+    mTimerBegin();
+    fftwf_plan plan = fftwf_plan_dft_1d(1024,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
+    for(int i=0;i<10000;i++) fftwf_execute(plan);
+    fftwf_destroy_plan(plan);
+    fftwf_cleanup();
+    mTimerEnd();
+    
+    fftwf_free(in);
+    fftwf_free(out);
+    
+    mFileRelease(file);
+    mWaveRelease(src);
+    mWaveRelease(dst);
+}
+```
+
+这里，从一段音乐中读取了一段长度为1024的波形，分别用Morn和fftw进行傅里叶变换（这里fftw没有使用SIMD指令，当然Morn也没有），各自处理10000次，测定其运行时间，得到的结果如下：
+
+![傅里叶变换](傅里叶变换.PNG)
+
+必须承认FFTW很优秀，终究还是比Morn快一点儿，但两者速度差别在5%以内。
