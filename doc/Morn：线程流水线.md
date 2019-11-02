@@ -70,7 +70,11 @@ struct PipeData
 MList *pipe;
 void step0() 
 {
-    for(int i=0;i<10;i++) {struct PipeData *p=mPipeline(pipe,0);p->data0=mRand(0,100);} 	
+    for(int i=0;i<10;i++) 
+    {
+        struct PipeData *p=mPipeline(pipe,0);
+        p->data0=mRand(0,100);
+    } 	
     mPipelineComplete(pipe,0);
 }
 void step1() 
@@ -87,7 +91,8 @@ void step2()
     while(1) 
     {
         struct PipeData *p=mPipeline(pipe,2);
-        if(p==NULL)return;p->data2=p->data1*2;    
+        if(p==NULL)return;
+        p->data2=p->data1*2;    
     }
 }
 void step3() 
@@ -148,4 +153,14 @@ int main()
 这个示例只是为了说明Morn流水线的用法，实际上这么简单的操作根本就用不到多线程，也不应该使用流水线。
 
 
+
+### 关于异常
+
+这里关于异常，多说一点儿。
+
+假设有工序0到工序5，共6道工序，如果这其中工序3异常而终止执行（没有执行`mPipelineComplete`函数），那么整个流水线都将停止，并且进入死锁状态。这显然是我们不想看到的。
+
+处理的策略有二：
+
+其一，即使遇到异常，线程也不退出，这你可以参考(Morn)[]
 

@@ -18,7 +18,6 @@ typedef struct JSONData
 {
     char *name;
     char *value;
-    int count;
 }JSONData;
 
 void PrintNode(MTreeNode *node)
@@ -39,7 +38,7 @@ void endJSONLoad(void *info)
 #define HASH_JSONLoad 0xa59d25b3
 void mJSONLoad(char *filename,MTree *tree)
 {
-    FILE *f = fopen(filename,"r");
+    FILE *f = fopen(filename,"rb");
     mException((f==NULL),EXIT,"cannot open file");
     
     fseek(f,0,SEEK_END);
@@ -56,9 +55,6 @@ void mJSONLoad(char *filename,MTree *tree)
     
     char *p=handle->file;
     
-    // file[filesize-1]=0;
-    // printf("%s\n",file);
-    
     char key_buff[1024];
     char *key = key_buff;
     
@@ -71,7 +67,6 @@ void mJSONLoad(char *filename,MTree *tree)
     *json = p;
     
     MTreeNode *child;
-    MTreeNode *parent;
     
     while(p<handle->file+filesize)
     {
@@ -145,157 +140,62 @@ void mJSONLoad(char *filename,MTree *tree)
     }
 }
 
-/*
+char *mJSONName(MTreeNode *node)  {return (((JSONData *)(node->data))->name );}
+char *mJSONValue(MTreeNode *node) {return (((JSONData *)(node->data))->value);}
+
+void JSONRead(MTreeNode *node,char **name,int n,MList *list)
+{
+    if(n==1)
+    {
+        for(int i=0;i<node->child_num;i++)
+        {
+            JSONData *data = node->child[i]->data;
+            if(strcmp(data->name,name[0])==0)
+                if(data->value!=NULL)
+                    mListWrite(list,DFLT,data->value,DFLT);
+        }
+        return;
+    }
+    for(int i=0;i<node->child_num;i++)
+    {
+        JSONData *data = node->child[i]->data;
+        if(strcmp(data->name,name[0])==0)
+            JSONRead(node->child[i],name+1,n-1,list);
+    }
+}
+
 struct HandleJSONRead
 {
+    MList *name;
     MTree *tree;
-    MTreeNode *node;
+    MList *result;
 }HandleJSONRead;
 void endJSONRead(void *info) 
 {
     struct HandleJSONRead *handle = info;
-    if(handle->tree!= NULL)
-        mTreeRelease(handle->tree);
+    if(handle->tree!= NULL) mTreeRelease(handle->tree);
+    if(handle->name!= NULL) mListRelease(handle->name);
+    if(handle->result!=NULL)mListRelease(handle->result);
 }
 #define HASH_JSONRead 0x40bc5267
-char *mJSONRead(MProc *file,char *name)
+MList *mJSONRead(MFile *json,char *name)
 {
-    MTreeNode *node;
-    JSONData *data;
-    
-    int handle_index;
-    mHandle(file,JSONRead,handle_index);
-    struct HandleJSONRead *handle = file->handle->handle[handle_index];
-    if(file->handle->valid[handle_index] == 0)
+    mException((json==NULL)||(name==NULL),EXIT,"invalid input");
+    MHandle *hdl; ObjectHandle(json,JSONRead,hdl);
+    struct HandleJSONRead *handle = hdl->handle;
+    if(hdl->valid == 0)
     {
-        handle->tree = mTreeCreate(NULL);
-        mJSONLoad(file->object,handle->tree);
+        if(handle->name  ==NULL) handle->name  =mListCreate(DFLT,NULL);
+        if(handle->tree  ==NULL) handle->tree  =mTreeCreate();
+        if(handle->result==NULL) handle->result=mListCreate(DFLT,NULL);
+
+        mJSONLoad(json->filename,handle->tree);
         
-        node = (MTreeNode *)(handle->tree->object);
-        data = node->data;
-        data->count = 0;
-        handle->node = node;
-        
-        file->handle->valid[handle_index]=1;
+        hdl->valid = 1;
     }
-    
-    node = handle->node;
-    if(node == handle->tree->object)
-    {
-        data = node->data;
-        data->count += 1;
-    }
-    
-    for(int j=0;;j++)
-    {
-        // printf("\n%d:\n",j);
-        JSONData *data0 = node->data;
-        
-        int child_num = node->child_num;
-        
-        // printf("node name is %s,child_num is %d,count is %d\n",data0->name,node->child_num,data0->count);
-        int i;
-        for(i=0;i<child_num;i++)
-        {
-            data = node->child[i]->data;
-            // printf("child name is %s,count is %d\n",data->name,data->count);
-            if(data->count < data0->count)
-            {
-                // printf("i is %d,data->count is %d\n",i,data->count);
-                // if(node->child[i] == handle->node)
-                    // return NULL;
-                
-                data->count += 1;
-                if(strcmp(name,data->name)==0)
-                {
-                    handle->node = node->child[i];
-                    return data->value;
-                }
-                node = node->child[i];
-                
-                break;
-            }
-        }
-       
-        if(i==child_num)
-        {
-            // if((j>0)&&(node == handle->node))
-                // return NULL;
-            
-            if(node->parent != NULL)
-                node = node->parent;
-            else
-            {
-                // if(node == handle->node)
-                handle->node = node;
-                return NULL;
-                
-                // data = node->data;
-                // data->count += 1;
-            }
-        }
-    }
+    mStringSplit(name,".",handle->name);
+    mListClear(handle->result);
+    JSONRead(handle->tree->treenode,(char **)(handle->name->data),handle->name->num,handle->result);
+    return handle->result;
 }
-
-
-
-
-
-char *mJSONNodeName(MTreeNode *node)  {return ((JSONData *)(node->data))->name ;}
-char *mJSONNodeValue(MTreeNode *node) {return ((JSONData *)(node->data))->value;}
     
-
-#define NODE_CMP(Data,Name,Value,Flag) {\
-    int flag1 = (Name !=NULL)&&(Data->name !=NULL);\
-    int flag2 = (value!=NULL)&&(Data->value!=NULL);\
-    flag =!(flag1||flag2);\
-    if((flag==0)&&flag1) flag = strcmp(Data->name ,Name );\
-    if((flag==0)&&flag2) flag = strcmp(Data->value,Value);\
-}
-
-void NodeSearch(MTreeNode *node,void *para)
-{
-    void **p = (void **)para;
-    char *name =(char *)(p[0]);
-    char *value=(char *)(p[1]);
-    MList *list =(MList*)(p[2]);
-    
-    JSONData *data = node->data;
-    
-    int flag;
-    NODE_CMP(data,name,value,flag);
-    if(flag == 0)
-    {
-        int n = list->num;
-        mListAppend(list,DFLT);
-        list->data[n] = node;
-        list->num = n+1;
-    }
-}
-void TreeTraversal(MTreeNode *tree,void (*func)(MTreeNode *,void *),void *para,int mode);
-void mJSONSearch(MTreeNode *node,char *name,char *value,MList *list)
-{
-    mException(INVALID_POINTER(node),"invalid input",EXIT);
-    mException((INVALID_POINTER(name)&&INVALID_POINTER(value)),"invalid input",EXIT);
-    
-    mException(INVALID_POINTER(list),"invalid input",EXIT);
-    mListRedefine(list,0);
-   
-    void *para[3] = {name,value,list};
-    TreeTraversal(node,NodeSearch,para,MORN_TREE_PREORDER_TRAVERSAL);
-}
-*/
-    
-    
-   
-    
-    
-    
-    
-    
-    
-
-    
-
-    
-
