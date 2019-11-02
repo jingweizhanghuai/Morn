@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License along with thi
 #define COMPLEXMUL(re0,im0,re1,im1,re_out,im_out) {re_out = re0*re1-im0*im1;im_out = im0*re1+re0*im1;}
 
 #define FFTCACL(re0,im0,re1,im1) {\
-    float re_mul,im_mul;\
+    register float re_mul,im_mul;\
     COMPLEXMUL(Wre[k],Wim[k],re1,im1,re_mul,im_mul);\
     COMPLEXSUB(re0,im0,re_mul,im_mul,re1,im1);\
     COMPLEXADD(re0,im0,re_mul,im_mul,re0,im0);\
@@ -83,7 +83,6 @@ void mWaveFFT(MWave *src,MWave *fft)
     mInfoSet(&(fft->info),"normalize",MORN_NOT_NORMALIZED);
     
     N=(N>>1);
-    
     for(int cn=0;cn<src->channel;cn++)
     {
         float *FFTDataRe = fft->data[(cn<<1)];
