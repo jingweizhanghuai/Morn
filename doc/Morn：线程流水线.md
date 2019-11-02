@@ -48,7 +48,7 @@ void mPipelineComplete(MList *list,int thread)；
 
 这个函数通常由“生产者”执行，用以表示流水线至此结束。（这里只是为了说明，借用“生产者”和“消费者”的概念，这里的生产者通常是工序0，但是没有强制要求，任意工序都可以执行此函数）。
 
-值得一提的是：在`mPipelineComplete`后，流水线并不会全部终止，例如工序0发出`mPipelineComplete`要求后，工序1还将继续执行一个周期，工序2还将继续执行两个周期。
+值得一提的是：在`mPipelineComplete`后，流水线并不会全部终止，例如工序2发出`mPipelineComplete`要求后，工序0和工序1都将返回NULL而停止，但工序3还将继续执行一个周期，工序4还将继续执行两个周期。
 
 函数的参数与`mPipeline`相同，不再赘述。
 
@@ -162,5 +162,23 @@ int main()
 
 处理的策略有二：
 
-其一，即使遇到异常，线程也不退出，这你可以参考(Morn)[]
+其一，即使遇到异常，线程也不退出，这你可以参考[Morn：异常处理](Morn：异常处理.md)的相关内容。
+
+其二，一旦遇到异常，整个流水线所有线程都终止。例如上例中工序3，如果开方的数是负数，那么就认为是出现异常，整个流水线都退出，此时这段程序应改为：
+
+```c
+void step3() 
+{
+    while(1) 
+    {
+        struct PipeData *p=mPipeline(pipe,3);
+        if(p==NULL)return;
+        if(p->data2<0) break;
+        p->data3=sqrt(p->data2);
+    }
+    mPipelineComplete(pipe,3);
+}
+```
+
+
 
