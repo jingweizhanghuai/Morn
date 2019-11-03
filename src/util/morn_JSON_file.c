@@ -36,7 +36,7 @@ void endJSONLoad(void *info)
         mFree(handle->file);
 }
 #define HASH_JSONLoad 0xa59d25b3
-void mJSONLoad(char *filename,MTree *tree)
+void mJSONLoad(const char *filename,MTree *tree)
 {
     FILE *f = fopen(filename,"rb");
     mException((f==NULL),EXIT,"cannot open file");
@@ -143,7 +143,7 @@ void mJSONLoad(char *filename,MTree *tree)
 char *mJSONName(MTreeNode *node)  {return (((JSONData *)(node->data))->name );}
 char *mJSONValue(MTreeNode *node) {return (((JSONData *)(node->data))->value);}
 
-void JSONRead(MTreeNode *node,char **name,int n,MList *list)
+void JSONGet(MTreeNode *node,char **name,int n,MList *list)
 {
     if(n==1)
     {
@@ -160,42 +160,37 @@ void JSONRead(MTreeNode *node,char **name,int n,MList *list)
     {
         JSONData *data = node->child[i]->data;
         if(strcmp(data->name,name[0])==0)
-            JSONRead(node->child[i],name+1,n-1,list);
+            JSONGet(node->child[i],name+1,n-1,list);
     }
 }
 
-struct HandleJSONRead
+struct HandleJSONGet
 {
     MList *name;
-    MTree *tree;
     MList *result;
-}HandleJSONRead;
-void endJSONRead(void *info) 
+}HandleJSONGet;
+void endJSONGet(void *info) 
 {
-    struct HandleJSONRead *handle = info;
-    if(handle->tree!= NULL) mTreeRelease(handle->tree);
+    struct HandleJSONGet *handle = info;
     if(handle->name!= NULL) mListRelease(handle->name);
     if(handle->result!=NULL)mListRelease(handle->result);
 }
-#define HASH_JSONRead 0x40bc5267
-MList *mJSONRead(MFile *json,char *name)
+#define HASH_JSONGet 0x3924c7c7
+MList *mJSONGet(MTree *tree,char *name)
 {
-    mException((json==NULL)||(name==NULL),EXIT,"invalid input");
-    MHandle *hdl; ObjectHandle(json,JSONRead,hdl);
-    struct HandleJSONRead *handle = hdl->handle;
+    mException((tree==NULL)||(name==NULL),EXIT,"invalid input");
+    MHandle *hdl; ObjectHandle(tree,JSONGet,hdl);
+    struct HandleJSONGet *handle = hdl->handle;
     if(hdl->valid == 0)
     {
         if(handle->name  ==NULL) handle->name  =mListCreate(DFLT,NULL);
-        if(handle->tree  ==NULL) handle->tree  =mTreeCreate();
         if(handle->result==NULL) handle->result=mListCreate(DFLT,NULL);
-
-        mJSONLoad(json->filename,handle->tree);
         
         hdl->valid = 1;
     }
     mStringSplit(name,".",handle->name);
     mListClear(handle->result);
-    JSONRead(handle->tree->treenode,(char **)(handle->name->data),handle->name->num,handle->result);
+    JSONGet(tree->treenode,(char **)(handle->name->data),handle->name->num,handle->result);
     return handle->result;
 }
     

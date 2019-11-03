@@ -34,11 +34,11 @@ ini文件的格式，你可以百度一下就能知道。简单的说，一个in
 
 
 
-### ini文件基本操作
+### 接口
 
 ini文件也是文件，在进行ini文件操作之前，先要用`mFileCreate`创建一个文件，在结束的时候要用`mFileRekease`把创建的文件释放掉。
 
-读ini文件
+#### 读ini文件
 
 ```
 char *mINIRead(MFile *file,const char *section,const char *key);
@@ -52,7 +52,7 @@ char *mINIRead(MFile *file,const char *section,const char *key);
 
 
 
-获取ini的节：
+#### 获取ini的节
 
 ```
 MList *mINISection(MFile *file);
@@ -62,7 +62,7 @@ MList *mINISection(MFile *file);
 
 
 
-获取ini的键：
+#### 获取ini的键
 
 ```
 MList *mINIKey(MFile *file,const char *section);
