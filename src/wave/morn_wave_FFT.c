@@ -12,15 +12,35 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_wave.h"
 
-#define COMPLEXADD(re0,im0,re1,im1,re_out,im_out) {re_out = re0+re1;im_out = im0+im1;}
-#define COMPLEXSUB(re0,im0,re1,im1,re_out,im_out) {re_out = re0-re1;im_out = im0-im1;}
-#define COMPLEXMUL(re0,im0,re1,im1,re_out,im_out) {re_out = re0*re1-im0*im1;im_out = im0*re1+re0*im1;}
+#define FFTCACL0(re0,re1) {\
+    register float re_mul=re1;\
+    re1=re0-re_mul;\
+    re0=re0+re_mul;\
+}
 
-#define FFTCACL(re0,im0,re1,im1) {\
-    register float re_mul,im_mul;\
-    COMPLEXMUL(Wre[k],Wim[k],re1,im1,re_mul,im_mul);\
-    COMPLEXSUB(re0,im0,re_mul,im_mul,re1,im1);\
-    COMPLEXADD(re0,im0,re_mul,im_mul,re0,im0);\
+#define FFTCACL1(re0,im0,re1,im1,re2,im2) {\
+    register float re_mul=Wre[k]*re1-Wim[k]*im1;\
+    register float im_mul=Wim[k]*re1+Wre[k]*im1;\
+    re2=re0-re_mul;im2=-im0+im_mul;\
+    re0=re0+re_mul;im0= im0+im_mul;\
+}
+
+#define FFTCACL2(im0,re1) {\
+    im0=-re1;\
+}
+
+void WaveFFT8(float *fft_re,float *fft_im,float d0,float d4,float d2,float d6,float d1,float d5,float d3,float d7)
+{
+    float data15 = d1-d5;float data37=d3-d7;
+    float a = 0.70710678118654752440084436210485*(data15-data37);
+    float b = 0.70710678118654752440084436210485*(data15+data37);
+    float c = d0-d4;float d = d2-d6;float e = d0+d4;float f = d2+d6;float g = d1+d5;float h = d3+d7;float i=e+f;float j=g+h;
+    
+    fft_re[0]= i+j;  fft_im[0]= 0;
+    fft_re[1]= c+a;  fft_im[1]=-d-b;
+    fft_re[2]= e-f;  fft_im[2]= h-g;
+    fft_re[3]= c-a;  fft_im[3]= d-b;
+    fft_re[4]= i-j;  fft_im[4]= 0;
 }
 
 struct HandleWaveFFT {
@@ -37,7 +57,6 @@ void endWaveFFT(void *info)
     if(handle->order!=NULL)mFree(handle->order);
 }
 #define HASH_WaveFFT 0xf197b3ec
-
 void mWaveFFT(MWave *src,MWave *fft)
 {
     int i,j,k,n;
@@ -49,7 +68,7 @@ void mWaveFFT(MWave *src,MWave *fft)
     struct HandleWaveFFT *handle = hdl->handle;
     if(hdl->valid == 0)
     {
-        mException((src->size<4),EXIT,"invalid input");
+        mException((src->size<=4),EXIT,"invalid input");
         k=1;while(src->size>(2<<k))k=k+1; N=(2<<k);
         if(handle->size != N)
         {
@@ -81,32 +100,121 @@ void mWaveFFT(MWave *src,MWave *fft)
     fft->info = src->info;
     mInfoSet(&(fft->info),"wave_type",MORN_WAVE_FD);
     mInfoSet(&(fft->info),"normalize",MORN_NOT_NORMALIZED);
-    
+
     N=(N>>1);
     for(int cn=0;cn<src->channel;cn++)
     {
         float *FFTDataRe = fft->data[(cn<<1)];
         float *FFTDataIm = fft->data[(cn<<1)+1];
-        float *src_data = src->data[cn];
+        float *data = src->data[cn];
         
-        for(i=0;i<N+N;i+=4)
+        for(i=0;i<N+N;i+=8)
         {
-            int n0=handle->order[i  ];int n1=handle->order[i+1];
-            int n2=handle->order[i+2];int n3=handle->order[i+3];
-            float d0=src_data[n0];float d1=(n1>=src->size)?0:src_data[n1];
-            float d2=src_data[n2];float d3=(n3>=src->size)?0:src_data[n3];
-            FFTDataRe[i  ]=d0+d1+d2+d3;FFTDataRe[i+1]=d0-d1;FFTDataRe[i+2]=d0+d1-d2-d3;FFTDataRe[i+3]=d0-d1;
-            FFTDataIm[i  ]=0;          FFTDataIm[i+1]=d3-d2;FFTDataIm[i+2]=0;          FFTDataIm[i+3]=d2-d3;
+            int n0=handle->order[i  ];int n1=handle->order[i+1];int n2=handle->order[i+2];int n3=handle->order[i+3];
+            int n4=handle->order[i+4];int n5=handle->order[i+5];int n6=handle->order[i+6];int n7=handle->order[i+7];
+            WaveFFT8(FFTDataRe+i,FFTDataIm+i,(n0>src->size)?0:data[n0],(n1>src->size)?0:data[n1],(n2>src->size)?0:data[n2],(n3>src->size)?0:data[n3],
+                                             (n4>src->size)?0:data[n4],(n5>src->size)?0:data[n5],(n6>src->size)?0:data[n6],(n7>src->size)?0:data[n7]);
         }
-        
-        for(n=4;n<=N;n=(n<<1))
+
+        for(n=8;n<=N;n=(n<<1))
             for(j=0;j<(N<<1);j=j+(n<<1))
-                for(i=0,k=0;i<n;i++,k=k+N/n)
-                    FFTCACL(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n]);
+            {
+                FFTCACL0(FFTDataRe[j],FFTDataRe[j+n]);
+                
+                for(i=1,k=N/n;i<(n>>1);i++,k=k+N/n)
+                    FFTCACL1(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n],FFTDataRe[j-i+n],FFTDataIm[j-i+n]);
+
+                FFTCACL2(FFTDataIm[j+i],FFTDataRe[j+i+n]);
+            }
     }
     
     if(p!=fft) {mWaveExchange(src,fft);mWaveRelease(fft);}
 }
+
+#define FFTCACL(re0,im0,re1,im1) {\
+    register float re_mul=Wre[k]*re1-Wim[k]*im1;\
+    register float im_mul=Wim[k]*re1+Wre[k]*im1;\
+    re1=re0-re_mul;im1=im0-im_mul;\
+    re0=re0+re_mul;im0=im0+im_mul;\
+}
+/*
+void mWaveFFT(MWave *src,MWave *fft)
+{
+    int i,j,k,n;
+    mException((INVALID_WAVE(src)),EXIT,"invalid input");
+    // mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"invalid input");
+
+    int N;
+    MHandle *hdl; ObjectHandle(src,WaveFFT,hdl);
+    struct HandleWaveFFT *handle = hdl->handle;
+    if(hdl->valid == 0)
+    {
+        mException((src->size<=4),EXIT,"invalid input");
+        k=1;while(src->size>(2<<k))k=k+1; N=(2<<k);
+        if(handle->size != N)
+        {
+            handle->size = N;
+            if(handle->order!=NULL) mFree(handle->order);handle->order=mMalloc(N*sizeof(int));
+            N=N>>1;handle->order[0]=0;j=1;
+            for(k=N;k>0;k=k>>1) {for(i=0;i<j;i++) handle->order[i+j]=handle->order[i]+k; j=j+j;}
+            
+            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=mMalloc(N*sizeof(float));
+            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=mMalloc(N*sizeof(float));
+            
+            double n_pi = MORN_PI/((double)N);double thta = n_pi;
+            handle->Wre[0] = 1.0f; handle->Wim[0] = 0.0f;
+            for(k=1;k<N;k++)
+            {
+                handle->Wre[k] = (float)cos(thta);
+                handle->Wim[k] = 0.0f-(float)sin(thta);
+                thta = thta + n_pi;
+            }
+        }
+        hdl->valid = 1;
+    }
+    N = handle->size;
+    float *Wre = handle->Wre; float *Wim = handle->Wim;
+
+    MWave *p=fft;
+    if((fft==NULL)||(fft == src)) fft = mWaveCreate(((src->channel)<<1),N,NULL);
+    else                          mWaveRedefine(fft,((src->channel)<<1),N,fft->data);
+    fft->info = src->info;
+    mInfoSet(&(fft->info),"wave_type",MORN_WAVE_FD);
+    mInfoSet(&(fft->info),"normalize",MORN_NOT_NORMALIZED);
+
+    N=(N>>1);
+    for(int cn=0;cn<src->channel;cn++)
+    {
+        float *FFTDataRe = fft->data[(cn<<1)];
+        float *FFTDataIm = fft->data[(cn<<1)+1];
+        float *data = src->data[cn];
+        
+        for(i=0;i<N+N;i+=8)
+        {
+            int n0=handle->order[i  ];int n1=handle->order[i+1];int n2=handle->order[i+2];int n3=handle->order[i+3];
+            int n4=handle->order[i+4];int n5=handle->order[i+5];int n6=handle->order[i+6];int n7=handle->order[i+7];
+            WaveFFT8(FFTDataRe+i,FFTDataIm+i,(n0>src->size)?0:data[n0],(n1>src->size)?0:data[n1],(n2>src->size)?0:data[n2],(n3>src->size)?0:data[n3],
+                                             (n4>src->size)?0:data[n4],(n5>src->size)?0:data[n5],(n6>src->size)?0:data[n6],(n7>src->size)?0:data[n7]);
+        }
+
+        for(n=8;n<=N;n=(n<<1))
+        {
+            for(j=0;j<(N<<1);j=j+(n<<1))
+            {
+                for(i=0,k=0;i<=(n>>1);i++,k=k+N/n)
+                    FFTCACL(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n]);
+                for(;i<n;i++)
+                {
+                    FFTDataRe[j+i] = FFTDataRe[j+n+n-i];FFTDataIm[j+i] =-FFTDataIm[j+n+n-i];
+                    FFTDataRe[j+i+n] = FFTDataRe[j+n-i];FFTDataIm[j+i+n] =-FFTDataIm[j+n-i];
+                }
+            }
+        }
+    }
+    
+    if(p!=fft) {mWaveExchange(src,fft);mWaveRelease(fft);}
+}
+*/
 
 #define HandleWaveIFFT HandleWaveFFT
 #define endWaveIFFT endWaveFFT
