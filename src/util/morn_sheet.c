@@ -186,6 +186,31 @@ void mSheetColAppend(MSheet *sheet,int row,int n)
     sheet->col[row] = n;
 }
 
+void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
+{
+    if((row<=0)||(col<=0)) return;
+    mException((size<=0),EXIT,"invalid input list element size");
+
+    mSheetRowAppend(sheet,row);
+    for(int j=0;j<row;j++) mSheetColAppend(sheet,j,col);
+
+    void **idx = mMalloc(row*col*sizeof(void *));
+    struct HandleSheetCreate *handle = ((MHandle *)(sheet->handle->data[0]))->handle;
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(row*col,size);
+    mMemoryIndex(handle->memory,row*col,size,idx);
+
+    char *p_data=data;void **p_idx = idx;
+    for(int j=0;j<row;j++)
+    {
+        memcpy(sheet->data[j],p_idx,col*sizeof(void *));p_idx=p_idx+col;
+        if(data!=NULL)
+        {
+            for(int i=0;i<col;i++){memcpy(sheet->data[j][i],p_data,size);p_data+=size;}
+        } 
+    }
+    mFree(idx);
+}
+
 struct HandleSheetWrite
 {
     int write_size;
@@ -429,7 +454,7 @@ void *mHashSheetRead(MSheet *sheet,void *key,int key_size,void *data,int size)
     int row = hash&(sheet->row-1);
     
     int i;
-    struct HashElement *p;
+    struct HashElement *p=NULL;
     for(i=0;i<sheet->col[row];i++)
     {
         p = sheet->data[row][i];

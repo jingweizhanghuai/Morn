@@ -145,7 +145,7 @@ MImageBorder *mImageBorderCreate(int height,int width,int num,...)
     mException((num<3),EXIT,"invalid input");
 
     MList *polygon = mListCreate(num,NULL);
-    mListPlace(polygon,num,sizeof(MImagePoint));
+    mListPlace(polygon,NULL,num,sizeof(MImagePoint));
     MImagePoint **point = (MImagePoint **)(polygon->data);
 
     va_list para;
@@ -196,7 +196,7 @@ void mLineSetup(MList *line,float x1,float y1,float x2,float y2)
 {
     mException(INVALID_POINTER(line),EXIT,"invalid input");
     
-    mListPlace(line,2,sizeof(MImagePoint));
+    mListPlace(line,NULL,2,sizeof(MImagePoint));
     
     MImagePoint **point = (MImagePoint **)(line->data);
     point[0]->x = x1;
@@ -209,7 +209,7 @@ void mTriangleSet(MList *triangle,float x1,float y1,float x2,float y2,float x3,f
 {
     mException(INVALID_POINTER(triangle),EXIT,"invalid input");
     
-    mListPlace(triangle,3,sizeof(MImagePoint));
+    mListPlace(triangle,NULL,3,sizeof(MImagePoint));
     
     MImagePoint **point = (MImagePoint **)(triangle->data);
     point[0]->x = x1;
@@ -224,7 +224,7 @@ void mQuadrangleSet(MList *quadrangle,float x1,float y1,float x2,float y2,float 
 {
     mException(INVALID_POINTER(quadrangle),EXIT,"invalid input");
     
-    mListPlace(quadrangle,4,sizeof(MImagePoint));
+    mListPlace(quadrangle,NULL,4,sizeof(MImagePoint));
     
     MImagePoint **point = (MImagePoint **)(quadrangle->data);
     point[0]->x = x1;
@@ -245,7 +245,7 @@ void mShapeSetup(MList *polygon,int num,...)
         num = polygon->num;
     mException((num<1),EXIT,"invalid input");
     
-    mListPlace(polygon,num,sizeof(MImagePoint));
+    mListPlace(polygon,NULL,num,sizeof(MImagePoint));
 
     MImagePoint **point = (MImagePoint **)(polygon->data);
 

@@ -117,7 +117,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
         if(handle->thread_num!=pool->num)
         {
             mException(pool->num<=0,EXIT,"invalid input thread pool");
-            mListPlace(pool,pool->num,sizeof(struct ThreadPoolData));
+            mListPlace(pool,NULL,pool->num,sizeof(struct ThreadPoolData));
             handle->thread_num = pool->num;
         }
         if(handle->buff==NULL) handle->buff=mListCreate(DFLT,NULL);

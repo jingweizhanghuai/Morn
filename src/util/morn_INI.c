@@ -137,20 +137,7 @@ void INIOpen(MObject *file,struct HandleINIRead *handle)
         
     }
 }
-  
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  读取.ini配置文件
-//
-// 参数：
-//  (I)filename(NO) - 文件路径
-//  (I)section(NULL) - 需读取的段，若缺省则读取第一个符合的key值。
-//  (I)key(NO) - 需读取的键
-//  (O)value(NO) - 读得的键值
-//
-// 返回值：
-//  若成功读取则返回1，否则返回0
-/////////////////////////////////////////////////////////
+
 char *mINIRead(MObject *file,const char *section,const char *key)
 {
     int i,j;
@@ -180,8 +167,7 @@ char *mINIRead(MObject *file,const char *section,const char *key)
             if(j==sheet->col[i])
                 return NULL;
         }
-    if(i==list->num)
-        return NULL;
+    return NULL;
 }
 
 MList *mINISection(MFile *file)
@@ -236,9 +222,9 @@ MList *mINIKey(MFile *file,const char *section)
     {
         if(strcmp(section,list->data[i])==0)
         {
-            if(handle->key->num<sheet->col[j])
-                mListAppend(handle->key,sheet->col[j]);
-            handle->key->num = sheet->col[j];
+            if(handle->key->num<sheet->col[i])
+                mListAppend(handle->key,sheet->col[i]);
+            handle->key->num = sheet->col[i];
             
             for(j=0;j<sheet->col[i];j++)
             {

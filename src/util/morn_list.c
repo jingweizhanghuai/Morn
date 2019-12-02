@@ -99,17 +99,20 @@ void mListAppend(MList *list,int n)
     list->num = n;
 }
 
-void mListPlace(MList *list,int num,int size)
+void mListPlace(MList *list,void *data,int num,int size)
 {
     if(num<=0) return;
     mException((size<=0),EXIT,"invalid input list element size");
     
-    list->num = 0;
     mListAppend(list,num);
     
     struct HandleListCreate *handle = ((MHandle *)(list->handle->data[0]))->handle;
     if(handle->memory == NULL) handle->memory = mMemoryCreate(num,size);
     mMemoryIndex(handle->memory,num,size,list->data);
+    
+    if(data==NULL) return;
+    char *p=data;
+    for(int i=0;i<num;i++) {memcpy(list->data[i],p,size);p+=size;}
 }
 
 struct HandleListWrite
@@ -261,6 +264,7 @@ void mListElementDelete(MList *list,int n)
     mException(INVALID_POINTER(list),EXIT,"invalid input");
     mException((n>=list->num),EXIT,"invalid input");
     memmove(list->data+n,list->data+n+1,(list->num-n-1)*sizeof(void *));
+    list->num-=1;
 }
 
 void mListElementInsert(MList *list,int n,void *data,int size)

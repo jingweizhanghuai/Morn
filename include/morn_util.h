@@ -101,7 +101,7 @@ extern int *morn_log_count;
 #ifdef _MSC_VER
 #define mSleep(T) Sleep(T)
 #else
-void usleep(int micro_seconds);
+// void usleep(int micro_seconds);
 #define mSleep(T) usleep(T*1000)
 // #define mSleep(T) _sleep(T)
 #endif
@@ -233,7 +233,7 @@ typedef struct MList
 MList *mListCreate(int num,void **data);
 void mListRelease(MList *list);
 void mListAppend(MList *list,int num);
-void mListPlace(MList *list,int num,int size);
+void mListPlace(MList *list,void *data,int num,int size);
 #define mListClear(List) do{List->num = 0;}while(0)
 
 void *mListWrite(MList *list,int n,void *data,int size);
@@ -404,6 +404,7 @@ void mSheetRelease(MSheet *sheet);
 #define mSheetClear(Sheet) do{for(int Row=0;Row<Sheet->row;Row++) Sheet->col[Row]=0;Sheet->row=0;}while(0)
 void mSheetRowAppend(MSheet *sheet,int row);
 void mSheetColAppend(MSheet *sheet,int row,int col);
+void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size);
 void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size);
 void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetElementDelete(MSheet *sheet,int row,int col);

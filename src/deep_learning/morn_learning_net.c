@@ -219,7 +219,7 @@ void NetworkTrain(MFile *ini)
         mTrainData(ini);
         mNetworkForward(net);
         mNetworkBackward(net);
-        mLog("%05d:error is %f\n",morn_network_time,morn_network_error);
+        mLog(INFO,"%05d:error is %f\n",morn_network_time,morn_network_error);
         if(morn_network_error <= morn_network_error_thresh)
             return;
     }

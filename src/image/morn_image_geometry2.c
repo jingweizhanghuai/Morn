@@ -197,19 +197,26 @@ float mQuadrangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3,MImagePoin
 
 double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx2,double ly2,float *vx,float *vy)
 {
+    double v_x,v_y,l;
     double a=ly2-ly1;
     double b=lx2-lx1;
-    double c=a*lx2-b*ly2;
-    double d=a*py+b*px;
-    
-    double buff = (a*a+b*b);
-    double v_x = (c*a+b*d)/buff;
-    double v_y = (a*v_x-c)/b;
+         if(a==0) {v_x=px; v_y=ly1;l=ABS(py-v_y);}
+    else if(b==0) {v_x=lx1;v_y=py; l=ABS(px-v_x);}
+    else
+    {
+        double c=a*lx2-b*ly2;
+        double d=a*py+b*px;
+        
+        double buff = (a*a+b*b);
+        v_x = (c*a+b*d)/buff;
+        v_y = (a*v_x-c)/b;
+        l=sqrt((px-v_x)*(px-v_x)+(py-v_y)*(py-v_y));
+    }
     
     if(vx!=NULL) *vx = v_x;
     if(vy!=NULL) *vy = v_y;
     
-    return sqrt((px-v_x)*(px-v_x)+(py-v_y)*(py-v_y));
+    return l;
 }
 
 float mPointVerticalDistance(MImagePoint *point,MList *line,MImagePoint *pedal)
