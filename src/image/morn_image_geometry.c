@@ -9,6 +9,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "morn_image.h"
 
@@ -256,6 +257,60 @@ void mShapeSetup(MList *polygon,int num,...)
         point[i]->y = (float)va_arg(para,double);
     }
     va_end(para);
+}
+
+void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)
+{
+    mException(list==NULL,EXIT,"invalid input");
+    float grid_size = 0.707106781*r;
+    float r2 = r*r;
+    
+    int gw = ceil((x2-x1)/grid_size);int gh = ceil((y2-y1)/grid_size);
+    MImagePoint **grid = mMalloc(gh*sizeof(MImagePoint *));
+    for(int j=0;j<gh;j++) {grid[j]=mMalloc(gw*sizeof(MImagePoint));memset(grid[j],0,gw*sizeof(MImagePoint));}
+
+    //printf("grid_size is %f,gw is %d,gh is %d\n",grid_size,gw,gh);
+    mListClear(list);
+
+    MImagePoint point;point.x=(x1+x2)/2;point.y=(y1+y2)/2;
+    mListWrite(list,DFLT,&point,sizeof(MImagePoint));
+    int x=floor(point.x/grid_size);int y=floor(point.y/grid_size);grid[y][x]=point;
+
+    for(int n=0;n<list->num;n++)
+    {
+        MImagePoint *p = list->data[n];
+        int num = 0;
+        while(1)
+        {
+            num+=1;if(num>=64) break;
+            float d = (float)mRand(r*10000,r*15000)/10000.0f;
+            float a = (float)mRand(0,360000)/1000.0f;
+            float dx = d*mSin(a);point.x = p->x+dx; if((point.x>=x2)||(point.x<x1)) continue;
+            float dy = d*mCos(a);point.y = p->y+dy; if((point.y>=y2)||(point.y<y1)) continue;
+            x=floor(point.x/grid_size); y=floor(point.y/grid_size);
+            #define DISTANCE(P1,P2) ((P1.x-P2.x)*(P1.x-P2.x)+(P1.y-P2.y)*(P1.y-P2.y))
+                                   if((grid[y  ][x  ].x!=0)||(grid[y  ][x  ].y!=0)) {                                      continue;}
+            if((y-2>=0)          ) if((grid[y-2][x  ].x!=0)||(grid[y-2][x  ].y!=0)) {if(DISTANCE(grid[y-2][x  ],point)<r2) continue;}
+            if((y-1>=0)&&(x-1>=0)) if((grid[y-1][x-1].x!=0)||(grid[y-1][x-1].y!=0)) {if(DISTANCE(grid[y-1][x-1],point)<r2) continue;}
+            if((y-1>=0)          ) if((grid[y-1][x  ].x!=0)||(grid[y-1][x  ].y!=0)) {if(DISTANCE(grid[y-1][x  ],point)<r2) continue;}
+            if((y-1>=0)&&(x+1<gw)) if((grid[y-1][x+1].x!=0)||(grid[y-1][x+1].y!=0)) {if(DISTANCE(grid[y-1][x+1],point)<r2) continue;}
+            if(          (x-2>=0)) if((grid[y  ][x-2].x!=0)||(grid[y  ][x-2].y!=0)) {if(DISTANCE(grid[y  ][x-2],point)<r2) continue;}
+            if(          (x-1>=0)) if((grid[y  ][x-1].x!=0)||(grid[y  ][x-1].y!=0)) {if(DISTANCE(grid[y  ][x-1],point)<r2) continue;}
+            if(          (x+1<gw)) if((grid[y  ][x+1].x!=0)||(grid[y  ][x+1].y!=0)) {if(DISTANCE(grid[y  ][x+1],point)<r2) continue;}
+            if(          (x+2<gw)) if((grid[y  ][x+2].x!=0)||(grid[y  ][x+2].y!=0)) {if(DISTANCE(grid[y  ][x+2],point)<r2) continue;}
+            if((y+1<gh)&&(x-1>=0)) if((grid[y+1][x-1].x!=0)||(grid[y+1][x-1].y!=0)) {if(DISTANCE(grid[y+1][x-1],point)<r2) continue;}
+            if((y+1<gh)          ) if((grid[y+1][x  ].x!=0)||(grid[y+1][x  ].y!=0)) {if(DISTANCE(grid[y+1][x  ],point)<r2) continue;}
+            if((y+1<gh)&&(x+1<gw)) if((grid[y+1][x+1].x!=0)||(grid[y+1][x+1].y!=0)) {if(DISTANCE(grid[y+1][x+1],point)<r2) continue;}
+            if((y+2<gh)          ) if((grid[y+2][x  ].x!=0)||(grid[y+2][x  ].y!=0)) {if(DISTANCE(grid[y+2][x  ],point)<r2) continue;}
+
+            num=0;
+            mListWrite(list,DFLT,&point,sizeof(MImagePoint)); 
+            grid[y][x]=point;
+        }
+    }
+    
+    for(int j=0;j<gh;j++) mFree(grid[j]);
+    mFree(grid);
 }
 
 
