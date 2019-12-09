@@ -48,7 +48,7 @@ int main()
     for(int i=0;i<1024;i++){data[i]=src->data[0][i];}
     fftwf_complex *out = fftwf_malloc(sizeof(fftwf_complex) * 1024);
     
-    printf("fft with Morn:\n");
+    printf("fft with fftw:\n");
     mTimerBegin();
     // fftwf_plan plan = fftwf_plan_dft_1d(1024,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
     fftwf_plan plan = fftwf_plan_dft_r2c_1d(1024,data,out,FFTW_ESTIMATE);

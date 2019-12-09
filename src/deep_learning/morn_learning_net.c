@@ -209,9 +209,10 @@ void mNetworkBackward(MList *net)
 
 int morn_network_flag = MORN_PREDICT;
 
-void NetworkTrain(MFile *ini)
+void mDeeplearningTrain(char *filename)
 {
     morn_network_flag = MORN_TRAIN;
+    MFile *ini = mFileCreate(filename);
     MList *net = mNetworkGenerate(ini);
    
     for(morn_network_time=0;morn_network_time<=morn_network_time_max;morn_network_time++)
@@ -221,8 +222,10 @@ void NetworkTrain(MFile *ini)
         mNetworkBackward(net);
         mLog(INFO,"%05d:error is %f\n",morn_network_time,morn_network_error);
         if(morn_network_error <= morn_network_error_thresh)
-            return;
+            break;
     }
+    
+    mFileRelease(ini);
 }
 
 void mNetworkTrain(MFile *ini,char *name[],MTensor *tns[])

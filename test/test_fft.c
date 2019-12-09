@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 int main()
 {
-    MWave *src = mWaveCreate(1,10,NULL);
+    MWave *src = mWaveCreate(1,30,NULL);
     MWave *fft = mWaveCreate(DFLT,DFLT,NULL);
     MWave *dst = mWaveCreate(DFLT,DFLT,NULL);
     
@@ -24,12 +24,12 @@ int main()
     
     mWaveFFT(src,fft);
     
-    printf("\nfft->size is %d.\n",fft->size);
+    printf("\n\nfft->size is %d.\n",fft->size);
     for(int i=0;i<fft->size;i++) printf("%f+%fi,",fft->data[0][i],fft->data[1][i]);
     
     mWaveIFFT(fft,dst);
     
-    printf("\ndst->size is %d.\n",dst->size);
+    printf("\n\ndst->size is %d.\n",dst->size);
     for(int i=0;i<dst->size;i++) printf("%f,",dst->data[0][i]);
     
     mWaveRelease(src);

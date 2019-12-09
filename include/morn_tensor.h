@@ -120,7 +120,7 @@ void mTrainData(MFile *ini);
 // void mPredictData(MFile *ini,char *name[],MTensor *tns[]);
 void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[]);
 
-void NetworkTrain(MFile *ini);
+void mDeeplearningTrain(char *filename);
 void mNetworkTrain(MFile *ini,char *name[],MTensor *tns[]);
 void mNetworkPredict(MFile *ini,char *name[],MTensor *tns[]);
 
