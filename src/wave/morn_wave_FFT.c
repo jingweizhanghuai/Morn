@@ -24,7 +24,7 @@ You should have received a copy of the GNU General Public License along with thi
     re2=re0-re_mul;im2=-im0+im_mul;\
     re0=re0+re_mul;im0= im0+im_mul;\
 }
-
+ 
 #define FFTCACL2(im0,re1) {\
     im0=-re1;\
 }
@@ -112,20 +112,25 @@ void mWaveFFT(MWave *src,MWave *fft)
         {
             int n0=handle->order[i  ];int n1=handle->order[i+1];int n2=handle->order[i+2];int n3=handle->order[i+3];
             int n4=handle->order[i+4];int n5=handle->order[i+5];int n6=handle->order[i+6];int n7=handle->order[i+7];
-            WaveFFT8(FFTDataRe+i,FFTDataIm+i,(n0>src->size)?0:data[n0],(n1>src->size)?0:data[n1],(n2>src->size)?0:data[n2],(n3>src->size)?0:data[n3],
-                                             (n4>src->size)?0:data[n4],(n5>src->size)?0:data[n5],(n6>src->size)?0:data[n6],(n7>src->size)?0:data[n7]);
+            WaveFFT8(FFTDataRe+i,FFTDataIm+i,data[n0],(n1>src->size)?0:data[n1],data[n2],(n3>src->size)?0:data[n3],
+                                             data[n4],(n5>src->size)?0:data[n5],data[n6],(n7>src->size)?0:data[n7]);
         }
 
         for(n=8;n<=N;n=(n<<1))
-            for(j=0;j<(N<<1);j=j+(n<<1))
+        {
+            int m=N/n;
+            for(j=0;j<N+N;j=j+n+n)
             {
                 FFTCACL0(FFTDataRe[j],FFTDataRe[j+n]);
                 
-                for(i=1,k=N/n;i<(n>>1);i++,k=k+N/n)
+                for(i=1,k=m;i<(n>>1);i++,k=k+m)
                     FFTCACL1(FFTDataRe[j+i],FFTDataIm[j+i],FFTDataRe[j+i+n],FFTDataIm[j+i+n],FFTDataRe[j-i+n],FFTDataIm[j-i+n]);
 
                 FFTCACL2(FFTDataIm[j+i],FFTDataRe[j+i+n]);
             }
+        }
+
+        for(int i=N+1;i<N+N;i++) {FFTDataRe[i]=FFTDataRe[N+N-i];FFTDataIm[i]=0-FFTDataIm[N+N-i];}
     }
     
     if(p!=fft) {mWaveExchange(src,fft);mWaveRelease(fft);}

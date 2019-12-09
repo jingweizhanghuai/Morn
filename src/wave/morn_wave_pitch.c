@@ -60,7 +60,7 @@ void mWaveSelfCorrelation(MWave *src,int check_length,int check_step,float **sel
 
 void mWavePitch(MWave *src,int check_length,int *pitch,float *correlation)
 {
-    int diff;
+    int diff=0;
     float corr;
     float corr_max;
     

@@ -39,8 +39,8 @@ void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
 
 void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
 {
-    int i,j;
-    float *thresh = mMalloc(piece_num*8*sizeof(int));
+    int i;
+    // float *thresh = mMalloc(piece_num*8*sizeof(int));
     float x_min=XIn[0],x_max=XIn[0],y_min=YIn[0],y_max=YIn[0];
     for(i=1;i<N;i++)
     {
@@ -91,7 +91,7 @@ void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
     int m=0;int sum=0;float xsum=0,ysum=0,xysum=0,x2sum=0;
     for(i=0;i<piece_num*8;i++)
     {
-        float a[2];
+        // float a[2];
         sum += num[i];
         xsum += sumx[i];ysum += sumy[i];
         xysum+=sumxy[i];x2sum+=sumx2[i];
@@ -124,21 +124,6 @@ void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
     else     {info2->pe.y = y_max;info2->pe.x =(y_max-info2->b)/info2->k;}
 }
 
-
-
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  用最小二乘法拟合二维空间抛物线
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]X^2+A[1]X+A[2]
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mParabolaFitLSM(float *XIn,float *YIn,int N,float *A)
 {
     int i;
@@ -183,20 +168,6 @@ void mParabolaFitLSM(float *XIn,float *YIn,int N,float *A)
     mMatrixRelease(mat);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  使用最小二乘法在二维空间上做多项式拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]X^k + A[1]X^(k-1) +...+ A[k-1]*X + A[k]
-//  (I)k(NO) - 拟合多项式的次数
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mPolyFitLSM(float *XIn,float *YIn,int N,float *A,int k)
 {
     int i,j;
@@ -295,20 +266,6 @@ void mPolyFitLSM(float *XIn,float *YIn,int N,float *A,int k)
     mMatrixRelease(mat);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  对有权重的点集拟合二维空间直线
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)WIn(NULL) - 待拟合点的权重
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mLinearFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A)
 {
     int i;
@@ -338,19 +295,6 @@ void mLinearFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A)
     A[1] = ((sumx2*sumy)-(sumx*sumxy))/((sum*sumx2)-(sumx*sumx));
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  拟合二维空间直线
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mLinearFit(float *XIn,float *YIn,int N,float *A)
 {
     int i;
@@ -417,21 +361,7 @@ void mLinearFit(float *XIn,float *YIn,int N,float *A)
     
     free(w);
 }
- 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  对有权重的点集拟合二维空间抛物线
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)WIn(NULL) - 待拟合点的权重
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mParabolaFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A)
 {
     int i;
@@ -479,19 +409,6 @@ void mParabolaFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A)
     mMatrixRelease(mat);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  拟合二维空间抛物线
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mParabolaFit(float *XIn,float *YIn,int N,float *A)
 {
     int i;
@@ -559,20 +476,6 @@ void mParabolaFit(float *XIn,float *YIn,int N,float *A)
     free(w);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  对有权重的点集在二维空间上做多项式拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)WIn(NULL) - 待拟合点的权重
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mPolyFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A,int k)
 {
     int i,j;
@@ -687,19 +590,6 @@ void mPolyFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A,int k)
     mMatrixRelease(mat);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  在二维空间上的多项式拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mPolyFit(float *XIn,float *YIn,int N,float *A,int k)
 {
     int i,j;
@@ -797,19 +687,6 @@ void mPolyFit(float *XIn,float *YIn,int N,float *A,int k)
     free(w);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  用最小二乘法作二维空间指数拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*exp(A[1]*X)
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mExpFitLSM(float *XIn,float *YIn,int N,float *A)
 {
     float *lny;
@@ -827,19 +704,7 @@ void mExpFitLSM(float *XIn,float *YIn,int N,float *A)
     
     mFree(lny);
 }
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  作二维空间指数拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*exp(A[1]*X)
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mExpFit(float *XIn,float *YIn,int N,float *A)
 {
     float *lny;
@@ -857,19 +722,7 @@ void mExpFit(float *XIn,float *YIn,int N,float *A)
     
     mFree(lny);
 }
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  用最小二乘法作二维空间对数拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*ln(X) + A[1]
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mLnFitLSM(float *XIn,float *YIn,int N,float *A)
 {
     float *lnx;
@@ -883,19 +736,7 @@ void mLnFitLSM(float *XIn,float *YIn,int N,float *A)
     
     mFree(lnx);
 }
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  作二维空间对数拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*ln(X) + A[1]
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mLnFit(float *XIn,float *YIn,int N,float *A)
 {
     float *lnx;
@@ -910,19 +751,6 @@ void mLnFit(float *XIn,float *YIn,int N,float *A)
     mFree(lnx);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  用最小二乘法作二维空间幂拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*X^A[1]
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mPowerFitLSM(float *XIn,float *YIn,int N,float *A)
 {
     float *lnx,*lny;
@@ -944,19 +772,7 @@ void mPowerFitLSM(float *XIn,float *YIn,int N,float *A)
     
     mFree(lnx);
 }
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  作二维空间幂拟合
-//
-// 参数：
-//  (I)XIn(NO) - 待拟合点的横坐标
-//  (I)YIn(NO) - 待拟合点的纵坐标
-//  (I)N(NO) - 待拟合点的数量
-//  (O)A(NO) - 拟合结果：Y=A[0]*X^A[1]
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
+
 void mPowerFit(float *XIn,float *YIn,int N,float *A)
 {
     float *lnx,*lny;
