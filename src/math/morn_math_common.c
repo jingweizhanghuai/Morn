@@ -208,7 +208,7 @@ void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *
 void mApproxMidValue(float *value,int num,float *mid,int *idx)
 {
     int n;for(n=9;n<num/4;n=n*3);
-    int *index = mMalloc(sizeof(int)*n);
+    int *index = (int *)mMalloc(sizeof(int)*n);
     float step = (float)num/(float)n;for(int i=0;i<n;i++) index[i] = i*step;
     for(;n>1;n=n/3)
     {

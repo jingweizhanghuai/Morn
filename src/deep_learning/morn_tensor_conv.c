@@ -114,7 +114,7 @@ struct TensorConvPara
 };
 void *mTensorConvPara(MFile *ini,char *name)
 {
-    struct TensorConvPara *para = mMalloc(sizeof(struct TensorConvPara));
+    struct TensorConvPara *para = (struct TensorConvPara *)mMalloc(sizeof(struct TensorConvPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -176,7 +176,7 @@ struct HandleTensorConv
 };
 void endTensorConv(void *info)
 {
-    struct HandleTensorConv *handle = info;
+    struct HandleTensorConv *handle = (struct HandleTensorConv *)info;
     if(handle->mat   != NULL) mFree(handle->mat);
     if(handle->kernel!= NULL) mFree(handle->kernel);
     if(handle->update!= NULL) mFree(handle->update);
@@ -186,13 +186,13 @@ void TensorConvSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
     
-    struct TensorConvPara *para = layer->para;
+    struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorConv,hdl);
-    struct HandleTensorConv *handle = hdl->handle;
+    struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
@@ -207,12 +207,12 @@ void TensorConvSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
         if(handle->update != NULL) mFree(handle->update);
-        handle->update =mMalloc(data_size*sizeof(float));
+        handle->update =(float *)mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
     
     if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = mMalloc(data_size*sizeof(float));
+    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
     
     if(morn_network_parafile==NULL)
     {
@@ -226,7 +226,7 @@ void TensorConvSet(MLayer *layer)
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = mMalloc(mheight*mwidth*sizeof(float));
+    handle->mat = (float *)mMalloc(mheight*mwidth*sizeof(float));
     
     hdl->valid = 1;
 }
@@ -235,7 +235,7 @@ void mTensorConvForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorConvPara *para = layer->para;
+    struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
@@ -243,7 +243,7 @@ void mTensorConvForward(MLayer *layer)
     TensorConvSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorConv,hdl);
-    struct HandleTensorConv *handle = hdl->handle;
+    struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
     int mwidth = para->knl_height*para->knl_width*in->channel+1;
@@ -271,13 +271,13 @@ void mTensorConvBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorConvPara *para = layer->para;
+    struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorConv,hdl);
-    struct HandleTensorConv *handle = hdl->handle;
+    struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     int mheight = (out->height*out->width);
@@ -440,7 +440,7 @@ struct TensorGroupConvPara
 };
 void *mTensorGroupConvPara(MFile *ini,char *name)
 {
-    struct TensorGroupConvPara *para = mMalloc(sizeof(struct TensorConvPara));
+    struct TensorGroupConvPara *para = (struct TensorGroupConvPara *)mMalloc(sizeof(struct TensorConvPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -508,7 +508,7 @@ struct HandleTensorGroupConv
 };
 void endTensorGroupConv(void *info)
 {
-    struct HandleTensorGroupConv *handle = info;
+    struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)info;
     if(handle->mat   != NULL) mFree(handle->mat);
     if(handle->kernel!= NULL) mFree(handle->kernel);
     if(handle->update!= NULL) mFree(handle->update);
@@ -518,7 +518,7 @@ void TensorGroupConvSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
     
-    struct TensorGroupConvPara *para = layer->para;
+    struct TensorGroupConvPara *para = (struct TensorGroupConvPara *)(layer->para);
     if(para->knl_channel<=0) 
     {
         layer->type_index=mTensorRegisterIndex("Conv");
@@ -530,7 +530,7 @@ void TensorGroupConvSet(MLayer *layer)
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorGroupConv,hdl);
-    struct HandleTensorGroupConv *handle = hdl->handle;
+    struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
@@ -547,12 +547,12 @@ void TensorGroupConvSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
         if(handle->update != NULL) mFree(handle->update);
-        handle->update =mMalloc(data_size*sizeof(float));
+        handle->update =(float *)mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
     
     if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = mMalloc(data_size*sizeof(float));
+    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
     
     if(morn_network_parafile==NULL)
     {
@@ -566,7 +566,7 @@ void TensorGroupConvSet(MLayer *layer)
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = mMalloc(mheight*mwidth*sizeof(float));
+    handle->mat = (float *)mMalloc(mheight*mwidth*sizeof(float));
     
     hdl->valid = 1;
 }
@@ -574,7 +574,7 @@ void TensorGroupConvSet(MLayer *layer)
 void mTensorGroupConvForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    struct TensorGroupConvPara *para = layer->para;
+    struct TensorGroupConvPara *para = (struct TensorGroupConvPara *)(layer->para);
     if(para->knl_channel<=0) return mTensorConvForward(layer);
     
     mException(strcmp("GroupConv",mLayerType(layer)),EXIT,"invalid layer type");
@@ -585,7 +585,7 @@ void mTensorGroupConvForward(MLayer *layer)
     TensorGroupConvSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorGroupConv,hdl);
-    struct HandleTensorGroupConv *handle = hdl->handle;
+    struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     
     int out_channel=(in->channel-para->knl_channel/2+1)/para->c_stride;
     int mheight = (out->height*out->width*out_channel);
@@ -615,7 +615,7 @@ void mTensorGroupConvForward(MLayer *layer)
 void mTensorGroupConvBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    struct TensorGroupConvPara *para = layer->para;
+    struct TensorGroupConvPara *para = (struct TensorGroupConvPara *)(layer->para);
     if(para->knl_channel<=0) return mTensorConvBackward(layer);
     
     mException(strcmp("GroupConv",mLayerType(layer)),EXIT,"invalid layer type");
@@ -625,7 +625,7 @@ void mTensorGroupConvBackward(MLayer *layer)
     MTensor *out=layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorGroupConv,hdl);
-    struct HandleTensorGroupConv *handle = hdl->handle;
+    struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     int out_channel=(in->channel-para->knl_channel/2+1)/para->c_stride;

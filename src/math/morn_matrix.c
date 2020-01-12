@@ -20,7 +20,7 @@ struct HandleVectorCreate
 };
 void endVectorCreate(void *info)
 {
-    struct HandleVectorCreate *handle = info;
+    struct HandleVectorCreate *handle = (struct HandleVectorCreate *)info;
     mException((handle->vec==NULL),EXIT,"invalid vector");
     if(handle->memory != NULL) mFree(handle->memory);
     mFree(handle->vec);
@@ -36,7 +36,7 @@ MVector *mVectorCreate(int size,float *data)
     vec->size = size;
     
     MHandle *hdl; ObjectHandle(vec,VectorCreate,hdl);
-    struct HandleVectorCreate *handle = hdl->handle;
+    struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(hdl->handle);
     handle->vec = vec;
     
     if(size==0)
@@ -45,7 +45,7 @@ MVector *mVectorCreate(int size,float *data)
     }
     else if(INVALID_POINTER(data))
     {
-        handle->memory = mMalloc(size*sizeof(float));
+        handle->memory = (float *)mMalloc(size*sizeof(float));
         handle->size = size;
         vec->data = handle->memory;
     }
@@ -76,7 +76,7 @@ void mVectorRedefine(MVector *vec,int size,float *data)
     vec->size=size;
     
     if(same_size&&reuse) return;
-    struct HandleVectorCreate *handle = ((MHandle *)(vec->handle->data[0]))->handle;
+    struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(((MHandle *)(vec->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->size>0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     
@@ -89,13 +89,11 @@ void mVectorRedefine(MVector *vec,int size,float *data)
     if(size>handle->size)
     {
         if(handle->memory!=NULL) mFree(handle->memory);
-        handle->memory = mMalloc(size*sizeof(float));
+        handle->memory = (float *)mMalloc(size*sizeof(float));
         handle->size = size;
         vec->data = handle->memory;
     }
 }
-
-
 
 void PrintMat(MMatrix *mat)
 {
@@ -118,7 +116,7 @@ struct HandleMatrixCreate
 };
 void endMatrixCreate(void *info)
 {
-    struct HandleMatrixCreate *handle = info;
+    struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)info;
     mException((handle->mat == NULL),EXIT,"invalid matrix");
     
     if(handle->index != NULL) mFree(handle->index);
@@ -139,7 +137,7 @@ MMatrix *mMatrixCreate(int row,int col,float **data)
     mat->row = row;
     
     MHandle *hdl; ObjectHandle(mat,MatrixCreate,hdl);
-    struct HandleMatrixCreate *handle = hdl->handle;
+    struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)(hdl->handle);
     handle->mat = mat;
     
     if(row == 0)
@@ -153,7 +151,6 @@ MMatrix *mMatrixCreate(int row,int col,float **data)
         mat->data = data;
         return mat;
     }
-    
     
     handle->index = (float **)mMalloc(row*sizeof(float *));
     handle->row = row;
@@ -200,7 +197,7 @@ void mMatrixRedefine(MMatrix *mat,int row,int col,float **data)
     mat->col = col;
     
     if(same_size&&reuse) return;
-    struct HandleMatrixCreate *handle= ((MHandle *)(mat->handle->data[0]))->handle;
+    struct HandleMatrixCreate *handle= (struct HandleMatrixCreate *)(((MHandle *)(mat->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->col>0)) return;
     mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
     
@@ -247,17 +244,6 @@ void mUnitMatrix(MMatrix *mat,int size)
     }
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能：
-//  矩阵转置
-//
-// 参数：
-//  (I)mat(NO) - 待转置矩阵
-//  (O)dst(mat) - 计算结果
-//  
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mMatrixTranspose(MMatrix *mat,MMatrix *dst)
 {
     int i,j;

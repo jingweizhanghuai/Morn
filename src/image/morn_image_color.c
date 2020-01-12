@@ -751,7 +751,7 @@ struct HandleColorCluster
 };
 void endColorCluster(void *info)
 {
-    struct HandleColorCluster *handle = info;
+    struct HandleColorCluster *handle = (struct HandleColorCluster *)info;
     if(handle->locate != NULL) mTableRelease(handle->locate);
     if(handle->number != NULL) mTableRelease(handle->number);
     if(handle->sum[0] != NULL) mTableRelease(handle->sum[0]);
@@ -772,7 +772,7 @@ int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh)
     int i,j,cn;
     
     MHandle *hdl; ObjectHandle(src,ColorCluster,hdl);
-    struct HandleColorCluster *handle = hdl->handle;
+    struct HandleColorCluster *handle = (struct HandleColorCluster *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->locate == NULL) handle->locate = mTableCreate(height,width,U32,NULL);

@@ -26,7 +26,7 @@ struct TensorBatchNormPara
 
 void *mTensorBatchNormPara(MFile *ini,char *name)
 {
-    struct TensorBatchNormPara *para = mMalloc(sizeof(struct TensorBatchNormPara));
+    struct TensorBatchNormPara *para = (struct TensorBatchNormPara *)mMalloc(sizeof(struct TensorBatchNormPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -80,7 +80,7 @@ struct HandleTensorBatchNorm
 };
 void endTensorBatchNorm(void *info)
 {
-    struct HandleTensorBatchNorm *handle = info;
+    struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)info;
     if(handle->k        != NULL) mFree(handle->k);
     if(handle->b        != NULL) mFree(handle->b);
     if(handle->mean     != NULL) mFree(handle->mean);
@@ -93,22 +93,22 @@ void endTensorBatchNorm(void *info)
 void TensorBatchNormSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    struct TensorBatchNormPara *para = layer->para;
+    struct TensorBatchNormPara *para = (struct TensorBatchNormPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorBatchNorm,hdl);
-    struct HandleTensorBatchNorm *handle = hdl->handle;
+    struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     
-    if(handle->k != NULL) {mFree(handle->k);} handle->k =mMalloc(in->channel*sizeof(float));
-    if(handle->b != NULL) {mFree(handle->b);} handle->b =mMalloc(in->channel*sizeof(float));
+    if(handle->k != NULL) {mFree(handle->k);} handle->k =(float *)mMalloc(in->channel*sizeof(float));
+    if(handle->b != NULL) {mFree(handle->b);} handle->b =(float *)mMalloc(in->channel*sizeof(float));
     
-    if(handle->mean!= NULL) {mFree(handle->mean);} handle->mean=mMalloc(in->channel*sizeof(double));
-    if(handle->var != NULL) {mFree(handle->var );} handle->var =mMalloc(in->channel*sizeof(double));
+    if(handle->mean!= NULL) {mFree(handle->mean);} handle->mean=(double *)mMalloc(in->channel*sizeof(double));
+    if(handle->var != NULL) {mFree(handle->var );} handle->var =(double *)mMalloc(in->channel*sizeof(double));
     
-    if(handle->roll_mean!= NULL) {mFree(handle->roll_mean);} handle->roll_mean=mMalloc(in->channel*sizeof(float));
-    if(handle->roll_var != NULL) {mFree(handle->roll_var );} handle->roll_var =mMalloc(in->channel*sizeof(float));
+    if(handle->roll_mean!= NULL) {mFree(handle->roll_mean);} handle->roll_mean=(float *)mMalloc(in->channel*sizeof(float));
+    if(handle->roll_var != NULL) {mFree(handle->roll_var );} handle->roll_var =(float *)mMalloc(in->channel*sizeof(float));
     
     mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -142,14 +142,14 @@ void mTensorBatchNormForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("BatchNorm",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorBatchNormPara *para = layer->para;
+    struct TensorBatchNormPara *para = (struct TensorBatchNormPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
     
     TensorBatchNormSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorBatchNorm,hdl);
-    struct HandleTensorBatchNorm *handle = hdl->handle;
+    struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     
     int in_size = in->height*in->width;
     
@@ -200,13 +200,13 @@ void mTensorBatchNormBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("BatchNorm",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorBatchNormPara *para = layer->para;
+    struct TensorBatchNormPara *para = (struct TensorBatchNormPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorBatchNorm,hdl);
-    struct HandleTensorBatchNorm *handle = hdl->handle;
+    struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     mNetworkParaWrite(layer,"scale",handle->k,in->channel*sizeof(float));

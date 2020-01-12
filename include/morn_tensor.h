@@ -69,8 +69,8 @@ struct TensorRegister
 };
 extern struct TensorRegister morn_tensor_register[256];
 extern int morn_tensor_register_num;
-void mTensorRegister(char *type,void *(*para)(MFile *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *));
-int mTensorRegisterIndex(char *type);
+void mTensorRegister(const char *type,void *(*para)(MFile *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *));
+int mTensorRegisterIndex(const char *type);
 void mTensorRegisterAll();
 
 struct ActvRegister
@@ -81,7 +81,7 @@ struct ActvRegister
 };
 extern struct ActvRegister morn_actv_register[64];
 extern int morn_actv_register_num;
-void mActivationRegister(char *name,float (*func)(float,float *),float (*dfunc)(float,float *));
+void mActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *));
 void mActivationRegisterAll();
 
 struct LossRegister
@@ -92,7 +92,7 @@ struct LossRegister
 };
 extern struct LossRegister morn_loss_register[64];
 extern int morn_loss_register_num;
-void mLossRegister(char *name,float (*loss)(MLayer *,MLayer *,float *),void (*dloss)(MLayer *,MLayer *));
+void mLossRegister(const char *name,float (*loss)(MLayer *,MLayer *,float *),void (*dloss)(MLayer *,MLayer *));
 void mLossRegisterAll();
 
 // extern char *morn_network_train_data_dir;

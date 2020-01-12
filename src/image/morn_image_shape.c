@@ -62,7 +62,7 @@ void mImageHoughLine(MImage *src,MList *list,int thresh1,int thresh2,int thresh)
     // printf("range is %d\n",range);
     
     MHandle *hdl; ObjectHandle(src,ImageHoughLine,hdl);
-    struct HandleImageHoughLine *handle = hdl->handle;
+    struct HandleImageHoughLine *handle = (struct HandleImageHoughLine *)(hdl->handle);
     if(hdl->valid==0)
     {
         if(handle->tab==NULL) handle->tab = mTableCreate(range*2,362,U16,NULL);

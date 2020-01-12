@@ -17,9 +17,8 @@ struct HandleImageTarget
 };
 void endImageTarget(void *info)
 {
-    struct HandleImageTarget *handle = info;
-    if(handle->color_num != NULL)
-        mFree(handle->color_num);
+    struct HandleImageTarget *handle = (struct HandleImageTarget *)info;
+    if(handle->color_num != NULL) mFree(handle->color_num);
 }
 #define HASH_ImageTarget 0xcc6db083
 void mImageTarget(MImage *src,MImage *dst,MImageRect *rect)
@@ -27,11 +26,11 @@ void mImageTarget(MImage *src,MImage *dst,MImageRect *rect)
     int i,j;
     
     MHandle *hdl; ObjectHandle(src,ImageTarget,hdl);
-    struct HandleImageTarget *handle = hdl->handle;
+    struct HandleImageTarget *handle = (struct HandleImageTarget *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->color_num != NULL) mFree(handle->color_num);
-        handle->color_num = mMalloc(32768*sizeof(int));
+        handle->color_num = (int *)mMalloc(32768*sizeof(int));
         hdl->valid = 1;
     }
     int *color_num = handle->color_num;
@@ -59,8 +58,8 @@ void mImageTarget(MImage *src,MImage *dst,MImageRect *rect)
             int r = (src->data[2][j][i])>>3;
             int n = (b<<10)+(g<<5)+r;
             
-            if(flag=1) color_num[n] += 1;
-            else       color_num[n] -= 1;
+            if(flag==1) color_num[n] += 1;
+            else        color_num[n] -= 1;
         }
     }
     

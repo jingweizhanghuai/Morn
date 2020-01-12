@@ -212,7 +212,7 @@ void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int nu
 #define T_D64 double
 #define T_F32 double
 #define T_S32 int
-#define T_U32 int
+#define T_U32 U32
 #define T_S16 int
 #define T_U16 int
 #define T_S8  int
@@ -300,7 +300,7 @@ U16 IndexMinSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
     \
     Type *Buff;\
     if((DataOut==DataIn)||(DataOut==NULL)) {Buff=DataIn;}\
-    else                                    Buff=mMalloc(NumIn*sizeof(Type));\
+    else                                    Buff=(Type *)mMalloc(NumIn*sizeof(Type));\
     \
     Type Max=DataIn[0];Type Min=Max;\
     int I,J;\
@@ -328,7 +328,7 @@ U16 IndexMinSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
         if(IndexOut==NULL) IndexBuff=IndexIn;\
         else\
         {\
-            IndexBuff = mMalloc(NumIn*sizeof(int));\
+            IndexBuff = (int *)mMalloc(NumIn*sizeof(int));\
             if(IndexIn==NULL) {for(I=0;I<NumIn;I++) IndexBuff[I]=I;IndexIn=IndexBuff;}\
             else               memcpy(IndexBuff,IndexIn,NumIn*sizeof(int));\
         }\
@@ -433,7 +433,7 @@ U16 IndexMaxSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
     \
     Type *Buff;\
     if((DataOut==DataIn)||(DataOut==NULL)) {Buff=DataIn;}\
-    else                                    Buff=mMalloc(NumIn*sizeof(Type));\
+    else                                    Buff=(Type *)mMalloc(NumIn*sizeof(Type));\
     \
     Type Max=DataIn[0];Type Min=Max;\
     int I,J;\
@@ -461,7 +461,7 @@ U16 IndexMaxSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
         if(IndexOut==NULL) IndexBuff=IndexIn;\
         else\
         {\
-            IndexBuff = mMalloc(NumIn*sizeof(int));\
+            IndexBuff = (int *)mMalloc(NumIn*sizeof(int));\
             if(IndexIn==NULL) {for(I=0;I<NumIn;I++) IndexBuff[I]=I;IndexIn=IndexBuff;}\
             else               memcpy(IndexBuff,IndexIn,NumIn*sizeof(int));\
         }\

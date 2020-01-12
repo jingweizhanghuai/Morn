@@ -26,7 +26,7 @@ float morn_network_error_thresh = 0.01;
 struct TensorRegister morn_tensor_register[256];
 int morn_tensor_register_num = 0;
 
-void mTensorRegister(char *type,void *(*para)(MFile *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *))
+void mTensorRegister(const char *type,void *(*para)(MFile *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *))
 {
     int n = morn_tensor_register_num;
     for(int i=0;i<n;i++)
@@ -56,7 +56,7 @@ void mTensorRegisterAll()
     mTensorRegister("Mul"       ,mTensorMulPara       ,mTensorMulForward       ,mTensorMulBackward       );
 }
 
-int mTensorRegisterIndex(char *type)
+int mTensorRegisterIndex(const char *type)
 {
     for(int i=0;i<morn_tensor_register_num;i++)
     {
@@ -71,7 +71,7 @@ int GetLayerIndex(MList *net,char *name)
 {
     for(int i=0;i<net->num;i++)
     {
-        MLayer *layer = net->data[i];
+        MLayer *layer = (MLayer *)(net->data[i]);
         if(strcmp(layer->name,name)==0)
             return i;
     }
@@ -115,13 +115,13 @@ void endNetworkGenerate(void *info)
     if(morn_network_parafile != NULL)
         mFileRelease(morn_network_parafile);
     
-    struct HandleNetworkGenerate *handle = info;
+    struct HandleNetworkGenerate *handle = (struct HandleNetworkGenerate *)info;
     MList *list = handle->net;
     if(list==NULL) return;
     
     for(int i=0;i<list->num;i++)
     {
-        MLayer *layer = list->data[i];
+        MLayer *layer = (MLayer *)(list->data[i]);
         if(layer->para!=NULL) mFree(layer->para);
         if(layer->tns !=NULL) mTensorRelease(layer->tns);
         if(layer->res !=NULL) mTensorRelease(layer->res);
@@ -134,7 +134,7 @@ void endNetworkGenerate(void *info)
 MList *mNetworkGenerate(MFile *ini)
 {
     MHandle *hdl; ObjectHandle(ini,NetworkGenerate,hdl);
-    struct HandleNetworkGenerate *handle = hdl->handle;
+    struct HandleNetworkGenerate *handle = (struct HandleNetworkGenerate *)(hdl->handle);
     if(hdl->valid == 1) return (handle->net);
     
     mActivationRegisterAll();
@@ -149,8 +149,8 @@ MList *mNetworkGenerate(MFile *ini)
     mListClear(handle->net);
     for(int j=0;j<section->num;j++)
     {
-        if(strcmp(section->data[j],"para")==0) continue;
-        strcpy(layer->name,section->data[j]);
+        if(strcmp((char *)(section->data[j]),"para")==0) continue;
+        strcpy(layer->name,(char *)(section->data[j]));
     
         layer->state = DFLT;
         
@@ -166,7 +166,7 @@ MList *mNetworkGenerate(MFile *ini)
     
     for(int j=0;j<handle->net->num;j++)
     {
-        layer = handle->net->data[j];
+        layer = (MLayer *)(handle->net->data[j]);
         layer->para= (morn_tensor_register[layer->type_index].para)(ini,layer->name);
     }
 
@@ -181,7 +181,7 @@ MLayer *mNetworkLayer(MFile *ini,char *name)
     
     for(int i=0;i<net->num;i++)
     {
-        MLayer *layer = net->data[i];
+        MLayer *layer = (MLayer *)(net->data[i]);
         if(strcmp(layer->name,name)==0)
             return layer;
     }

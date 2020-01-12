@@ -21,7 +21,7 @@ struct TensorInputPara
 };
 void *mTensorInputPara(MFile *ini,char *name)
 {
-    struct TensorInputPara *para = mMalloc(sizeof(struct TensorInputPara));
+    struct TensorInputPara *para = (struct TensorInputPara *)mMalloc(sizeof(struct TensorInputPara));
     
     char *value;
     value=mINIRead(ini,name,"height" );if(value!=NULL) para->height =atoi(value);else para->height = DFLT;
@@ -36,7 +36,7 @@ void mTensorInputForward(MLayer *layer)
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Input",mLayerType(layer)),EXIT,"invalid layer type");
     
-    struct TensorInputPara *para = layer->para;
+    struct TensorInputPara *para = (struct TensorInputPara *)(layer->para);
     MTensor *out=layer->tns;
 
     if(para->channel!= DFLT) mException((out->channel!=para->channel),EXIT,"invalid para channel");
@@ -57,7 +57,7 @@ void mTensorInputBackward(MLayer *layer)
 
 void *mTensorOutputPara(MFile *ini,char *name)
 {
-    struct TensorOutputPara *para = mMalloc(sizeof(struct TensorOutputPara));
+    struct TensorOutputPara *para = (struct TensorOutputPara *)mMalloc(sizeof(struct TensorOutputPara));
     
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -133,13 +133,13 @@ struct HandleTensorOutput
     int idx;
     float sum;
 };
-void endTensorOutput(void *info) {NULL;}
+void endTensorOutput(void *info) {}
 #define HASH_TensorOutput 0xa9f05c6f
 
 void TensorOutputSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    struct TensorOutputPara *para = layer->para;
+    struct TensorOutputPara *para = (struct TensorOutputPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
@@ -175,7 +175,7 @@ void mTensorOutputBackward(MLayer *layer)
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Output",mLayerType(layer)),EXIT,"invalid layer type");
     
-    struct TensorOutputPara *para = layer->para;
+    struct TensorOutputPara *para = (struct TensorOutputPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
     
@@ -188,7 +188,7 @@ void mTensorOutputBackward(MLayer *layer)
     float network_error = para->loss(layer,para->prev,NULL);
     
     MHandle *hdl; ObjectHandle(out,TensorOutput,hdl);
-    struct HandleTensorOutput *handle = hdl->handle;
+    struct HandleTensorOutput *handle = (struct HandleTensorOutput *)(hdl->handle);
     if(hdl->valid == 0)
     {
         for(int i=0;i<32;i++) handle->error[i] = network_error;

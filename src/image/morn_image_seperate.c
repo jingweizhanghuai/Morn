@@ -109,7 +109,7 @@ struct HandleImageSeperate
 };
 void endImageSeperate(void *info)
 {
-    struct HandleImageSeperate *handle = info;
+    struct HandleImageSeperate *handle = (struct HandleImageSeperate *)info;
     if(handle->img!= NULL) mImageRelease(handle->img);
 }
 #define HASH_ImageSeperate 0x50c2063
@@ -127,7 +127,7 @@ int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     memset(tab,0,1024*sizeof(int));
     
     MHandle *hdl; ObjectHandle(src,ImageSeperate,hdl);
-    struct HandleImageSeperate *handle = hdl->handle;
+    struct HandleImageSeperate *handle = (struct HandleImageSeperate *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->img = mImageCreate(src->channel,32,32,NULL);

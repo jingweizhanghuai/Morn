@@ -147,7 +147,7 @@ void *mMemAlloc(int size)
     
     for(int i=0;i<32;i++)
     {
-        if(2048*sizeof(int)-morn_mem_size[i] > size+512)
+        if((int)(2048*sizeof(int))-morn_mem_size[i] > size+512)
             MemCollect(i);
     }
     mem = (int *)malloc(size+sizeof(int)*4);
@@ -739,7 +739,6 @@ void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
 #endif
 void MemoryListPrint(int state)
 {
-    NULL;
     #ifdef DEBUG
     // printf("print morn_memory_num is %d\n",morn_memory_num);
     for(int i=0;i<morn_memory_num;i++)

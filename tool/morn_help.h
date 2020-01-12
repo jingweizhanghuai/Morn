@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License along with thi
     if(arg_flag) {mToolHelp("version"); return 1;}\
 }
 
-void mToolHelp(char *name)
+void mToolHelp(const char *name)
 {
     FILE *f;
     char buff[2048];
@@ -32,7 +32,7 @@ void mToolHelp(char *name)
         fgets(buff,2048,f);
         if(buff[0] == '[')
         {
-            if((strspn(buff+1,name)>=len)&&(buff[len+1] == ']'))
+            if(((int)strspn(buff+1,name)>=len)&&(buff[len+1] == ']'))
                 break;
         }
     }

@@ -154,7 +154,7 @@ int mWaveAdaptiveActive(MWave *src,float sensibility,float thresh)
         sensibility = 0.5f;
     
     MHandle *hdl; ObjectHandle(src,WaveAdaptiveActive,hdl);
-    struct HandleWaveAdaptiveActive *handle = hdl->handle;
+    struct HandleWaveAdaptiveActive *handle = (struct HandleWaveAdaptiveActive *)(hdl->handle);
     if(hdl->valid == 0)
     {
         memset(handle,0,sizeof(struct HandleWaveAdaptiveActive));
@@ -260,7 +260,7 @@ int mWaveAdaptiveLoud(MWave *src,float sensibility,float thresh)
         sensibility = 0.5f;
     
     MHandle *hdl; ObjectHandle(src,WaveAdaptiveLoud,hdl);
-    struct HandleWaveAdaptiveLoud *handle = hdl->handle;
+    struct HandleWaveAdaptiveLoud *handle = (struct HandleWaveAdaptiveLoud *)(hdl->handle);
     if(hdl->valid == 0)
     {
         memset(handle,0,sizeof(struct HandleWaveAdaptiveLoud));

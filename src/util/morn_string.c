@@ -70,10 +70,10 @@ char **mStringSplit(const char *str_in,const char *flag,MList *list)
     int src_len = strlen(str_in)+1;
     
     mListWrite(list,0,(void *)str_in,src_len);
-    char *str = list->data[0];
+    char *str = (char *)(list->data[0]);
 
     int *locate = (int *)mMalloc(src_len*sizeof(int));
-    int flag_len = strlen(flag);
+    uint64_t flag_len = strlen(flag);
     int num;
     if(strspn(str,flag)<flag_len)
     {
@@ -156,7 +156,7 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
     
 char *mStringArgument(int argc,char **argv,const char *flag,int *ok)
 {
-    int flag_len=0,argv_len=0;
+    uint64_t flag_len=0,argv_len=0;
     
     if(!INVALID_POINTER(flag))
         flag_len = strlen(flag);
@@ -200,7 +200,7 @@ void mHelp(const char *helpfile,const char *name)
 {
     FILE *f;
     char buff[2048];
-    int len;
+    uint64_t len;
     
     len = strlen(name);
     

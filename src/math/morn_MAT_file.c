@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_math.h"
 
-#define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
 
 #define SYMBOL_S8  1
 #define SYMBOL_U8  2
@@ -123,7 +123,7 @@ struct HandleMAT
 };
 void endMAT(void *info)
 {
-    struct HandleMAT *handle = info;
+    struct HandleMAT *handle = (struct HandleMAT *)info;
     fclose(handle->f);
 }
 #define HASH_MAT 0xa26c3e4d
@@ -131,7 +131,7 @@ void mMATWrite(MFile *file,MMatrix *mat,char *mat_name)
 {
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     MHandle *hdl; ObjectHandle(file,MAT,hdl);
-    struct HandleMAT *handle = hdl->handle;
+    struct HandleMAT *handle = (struct HandleMAT *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->f==NULL) handle->f = fopen(file->filename,"wb+");
@@ -240,7 +240,7 @@ void MATReadData(FILE *f,char *matname,MMatrix *dst)
     
     fread(&data_type,4,1,f);
     fread(&data_size,4,1,f);
-    mException((data_size < row*col*sizeof(float)),EXIT,"invalid file format");
+    mException((data_size < (int)(row*col*sizeof(float))),EXIT,"invalid file format");
   
     #define READ_DAT(type) {\
         int i,j;\
@@ -267,7 +267,7 @@ void MATReadData(FILE *f,char *matname,MMatrix *dst)
 void mMATRead(MFile *file,char *matname,MMatrix *dst)
 {
     MHandle *hdl; ObjectHandle(file,MAT,hdl);
-    struct HandleMAT *handle = hdl->handle;
+    struct HandleMAT *handle = (struct HandleMAT *)(hdl->handle);
     mException(hdl->valid == 0,EXIT,"no mat in file");
     
     MATReadData(handle->f,matname,dst);

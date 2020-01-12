@@ -49,7 +49,7 @@ MImage *mImageCreate(int cn,int height,int width,unsigned char **data[])
     else if(cn==4) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGBA);
    
     MHandle *hdl; ObjectHandle(img,ImageCreate,hdl);
-    struct HandleImageCreate *handle = hdl->handle;
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
     
     if((cn==0)||(height == 0))
@@ -118,7 +118,7 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
     img->width = width;
     
     if(same_size&&reuse) return;
-    struct HandleImageCreate *handle = ((MHandle *)(img->handle->data[0]))->handle;
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->width >0)) return;
     mException(reuse&&flag&&(handle->width==0),EXIT,"invalid redefine");
     
@@ -580,7 +580,7 @@ struct HandleImageChannelSplit
 };
 void endImageChannelSplit(void *info)
 {
-    struct HandleImageChannelSplit *handle = info;
+    struct HandleImageChannelSplit *handle = (struct HandleImageChannelSplit *)info;
     for(int i=0;i<MORN_MAX_IMAGE_CN;i++)
     {
         if(handle->img[i]!=NULL)
@@ -594,7 +594,7 @@ MImage *mImageChannelSplit(MImage *src,int cn)
     mException((cn>=src->channel),EXIT,"invalid input");
      
     MHandle *hdl; ObjectHandle(src,ImageChannelSplit,hdl);
-    struct HandleImageChannelSplit *handle = hdl->handle;
+    struct HandleImageChannelSplit *handle = (struct HandleImageChannelSplit *)(hdl->handle);
     hdl->valid = 1;
     
     if(handle->img[cn]==NULL)

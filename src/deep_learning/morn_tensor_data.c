@@ -66,7 +66,7 @@ struct HandleTrainData
 };
 void endTrainData(void *info)
 {
-    struct HandleTrainData *handle = info;
+    struct HandleTrainData *handle = (struct HandleTrainData *)info;
     if(handle->filelist != NULL)
         mListRelease(handle->filelist);
 }
@@ -74,7 +74,7 @@ void endTrainData(void *info)
 void mTrainData(MFile *ini)
 {
     MHandle *hdl; ObjectHandle(ini,TrainData,hdl);
-    struct HandleTrainData *handle = hdl->handle;
+    struct HandleTrainData *handle = (struct HandleTrainData *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->net = mNetworkGenerate(ini);
@@ -105,7 +105,7 @@ void mTrainData(MFile *ini)
         
         for(int i=0;i<handle->net->num;i++)
         {
-            MLayer *layer = handle->net->data[i];
+            MLayer *layer = (MLayer *)(handle->net->data[i]);
             if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
             
             value=mINIRead(ini,layer->name,"channel");mException((value==NULL),EXIT,"no input channel");int channel=atoi(value);
@@ -132,7 +132,7 @@ void mTrainData(MFile *ini)
             
             for(int i=0;i<handle->net->num;i++)
             {
-                MLayer *layer = handle->net->data[i];
+                MLayer *layer = (MLayer *)(handle->net->data[i]);
                 if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
                 
                 MTensor *tns = layer->tns;
@@ -158,7 +158,7 @@ void mTrainData(MFile *ini)
         
         for(int i=0;i<handle->net->num;i++)
         {
-            MLayer *layer = handle->net->data[i];
+            MLayer *layer = (MLayer *)(handle->net->data[i]);
             if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
             
             MTensor *tns = layer->tns;
@@ -175,7 +175,7 @@ void mTrainData(MFile *ini)
         int n = mRand(0,handle->train_batch);
         for(int i=0;i<handle->net->num;i++)
         {
-            MLayer *layer = handle->net->data[i];
+            MLayer *layer = (MLayer *)(handle->net->data[i]);
             if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
             
             MTensor *tns = layer->tns;
@@ -282,14 +282,14 @@ struct HandleNetworkTensor
 };
 void endNetworkTensor(void *info)
 {
-    struct HandleNetworkTensor *handle = info;
+    struct HandleNetworkTensor *handle = (struct HandleNetworkTensor *)info;
     if(handle->idx != NULL) mFree(handle->idx);
 }
 #define HASH_NetworkTensor 0xed589636
 void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
 {
     MHandle *hdl; ObjectHandle(ini,NetworkTensor,hdl);
-    struct HandleNetworkTensor *handle = hdl->handle;
+    struct HandleNetworkTensor *handle = (struct HandleNetworkTensor *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->net = mNetworkGenerate(ini);
@@ -304,10 +304,10 @@ void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
         int index_input = mTensorRegisterIndex("Input" );
         int index_output= mTensorRegisterIndex("Output");
         
-        handle->idx = mMalloc(handle->net->num*sizeof(int));
+        handle->idx = (int *)mMalloc(handle->net->num*sizeof(int));
         for(int i=0;i<handle->net->num;i++)
         {
-            MLayer *layer = handle->net->data[i];
+            MLayer *layer = (MLayer *)(handle->net->data[i]);
             if((layer->type_index!=index_input)&&(layer->type_index!=index_output)) continue;
             
             value=mINIRead(ini,layer->name,"channel");mException((value==NULL),EXIT,"no input channel");int channel=atoi(value);
@@ -325,7 +325,7 @@ void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
     
     for(int i=0;i<handle->num;i++)
     {
-        MLayer *layer=handle->net->data[handle->idx[i]];
+        MLayer *layer=(MLayer *)(handle->net->data[handle->idx[i]]);
         int j;
         for(j=0;j<handle->num;j++) 
         {

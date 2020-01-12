@@ -28,7 +28,7 @@ void mPNGLoad(const char *filename,MImage *dst)
    
     FILE *pf=NULL; FILE *f=NULL;
     MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
-    struct HandleImageLoad *handle = hdl->handle;
+    struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else
     {
@@ -41,7 +41,7 @@ void mPNGLoad(const char *filename,MImage *dst)
     png_infop info_ptr = png_create_info_struct(png_ptr);
 
     char buf[4];fread(buf,1,4,f); 
-    mException((png_sig_cmp((void*)buf, (png_size_t)0,4)!=0),EXIT,"PNG format error");
+    mException((png_sig_cmp((unsigned char*)buf, (png_size_t)0,4)!=0),EXIT,"PNG format error");
  
     fseek(f,0,SEEK_SET);
     png_init_io(png_ptr,f);
@@ -124,7 +124,7 @@ void mPNGSave(MImage *src,const char *filename)
         src->data[0] = src->data[2];
         src->data[2] = p;
                 
-        buff = mMalloc(src->channel*img_height*img_width*sizeof(unsigned char));
+        buff = (unsigned char *)mMalloc(src->channel*img_height*img_width*sizeof(unsigned char));
         mImageDataOutputU8(src,buff,DFLT,NULL,NULL);
         
         p = src->data[0];
@@ -149,7 +149,7 @@ void mPNGSave(MImage *src,const char *filename)
 void mImageLoad(const char *filename,MImage *img)
 {
     MHandle *hdl; ObjectHandle(img,ImageLoad,hdl);
-    struct HandleImageLoad *handle = hdl->handle;
+    struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     mException((handle->f!=NULL),EXIT,"invalid operate");
     handle->f = fopen(filename,"rb");
     mException((handle->f == NULL),EXIT,"open file %s error",filename);
@@ -159,6 +159,9 @@ void mImageLoad(const char *filename,MImage *img)
     fread(flag,8,1,handle->f);
     
     unsigned char png_flag[8] = {0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
+    unsigned char bmp_flag [2] = {0x42,0x4d};
+    unsigned char jpg_flag1[2] = {0xFF,0xD8};
+    unsigned char jpg_flag2[2] = {0xFF,0xD9};
     if(memcmp(flag,png_flag,8)==0)
     {
         fseek(handle->f,0,SEEK_SET);
@@ -166,7 +169,6 @@ void mImageLoad(const char *filename,MImage *img)
         goto ImageLoad_Next;
     }
     
-    unsigned char bmp_flag[2] = {0x42,0x4d};
     if(memcmp(flag,bmp_flag,2)==0)
     {
         fseek(handle->f,0,SEEK_SET);
@@ -174,8 +176,6 @@ void mImageLoad(const char *filename,MImage *img)
         goto ImageLoad_Next;
     }
     
-    unsigned char jpg_flag1[2] = {0xFF,0xD8};
-    unsigned char jpg_flag2[2] = {0xFF,0xD9};
     if(memcmp(flag,jpg_flag1,2)==0)
     {
         fseek(handle->f,-2,SEEK_END);

@@ -27,7 +27,7 @@ struct HandleINIRead
 };
 void endINIRead(void *info)
 {
-    struct HandleINIRead *handle = info;
+    struct HandleINIRead *handle = (struct HandleINIRead *)info;
     if(handle->data != NULL) mFree(handle->data);
     if(handle->list !=NULL) mListRelease(handle->list);
     if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
@@ -35,7 +35,7 @@ void endINIRead(void *info)
 #define HASH_INIRead 0x5baa94c1     
 void INIOpen(MObject *file,struct HandleINIRead *handle)
 {
-    FILE *f = fopen(file->object,"rb");
+    FILE *f = fopen((const char *)(file->object),"rb");
     mException((f == NULL),EXIT,"file cannot open");
     fseek(f,0,SEEK_END);
     int file_size = ftell(f);
@@ -45,7 +45,7 @@ void INIOpen(MObject *file,struct HandleINIRead *handle)
     {
         if(handle->data!=NULL)
             mFree(handle->data);
-        handle->data = mMalloc(file_size+1);
+        handle->data = (char *)mMalloc(file_size+1);
         handle->size = file_size;
     }
     fread(handle->data,file_size,1,f);
@@ -145,7 +145,7 @@ char *mINIRead(MObject *file,const char *section,const char *key)
     mException(INVALID_POINTER(section)||INVALID_POINTER(key),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,INIRead,hdl);
-    struct HandleINIRead *handle = hdl->handle;
+    struct HandleINIRead *handle = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         INIOpen(file,handle);
@@ -156,11 +156,11 @@ char *mINIRead(MObject *file,const char *section,const char *key)
     
     struct KeyValue *kv;
     for(i=0;i<list->num;i++)
-        if(strcmp(section,list->data[i])==0)
+        if(strcmp(section,(char *)(list->data[i]))==0)
         {
             for(j=0;j<sheet->col[i];j++)
             {
-                kv = sheet->data[i][j];
+                kv = (struct KeyValue *)(sheet->data[i][j]);
                 if(strcmp(key,kv->name)==0)
                     return kv->value;
             }
@@ -174,7 +174,7 @@ MList *mINISection(MFile *file)
 {
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     MHandle *hdl; ObjectHandle(file,INIRead,hdl);
-    struct HandleINIRead *handle = hdl->handle;
+    struct HandleINIRead *handle = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         INIOpen(file,handle);
@@ -189,7 +189,7 @@ struct HandleINIKey
 };
 void endINIKey(void *info)
 {
-    struct HandleINIKey *handle = info;
+    struct HandleINIKey *handle = (struct HandleINIKey *)info;
     if(handle->key != NULL) mListRelease(handle->key);
 }
 #define HASH_INIKey 0x5b939d8c
@@ -200,7 +200,7 @@ MList *mINIKey(MFile *file,const char *section)
     mException(INVALID_POINTER(section),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,INIRead,hdl);
-    struct HandleINIRead *handle0 = hdl->handle;
+    struct HandleINIRead *handle0 = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         INIOpen(file,handle0);
@@ -210,7 +210,7 @@ MList *mINIKey(MFile *file,const char *section)
     MSheet *sheet= handle0->sheet;
     
     ObjectHandle(file,INIKey,hdl);
-    struct HandleINIKey *handle = hdl->handle;
+    struct HandleINIKey *handle = (struct HandleINIKey *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->key = mListCreate(DFLT,NULL);
@@ -220,7 +220,7 @@ MList *mINIKey(MFile *file,const char *section)
     struct KeyValue *kv;
     for(i=0;i<list->num;i++)
     {
-        if(strcmp(section,list->data[i])==0)
+        if(strcmp(section,(char *)(list->data[i]))==0)
         {
             if(handle->key->num<sheet->col[i])
                 mListAppend(handle->key,sheet->col[i]);
@@ -228,7 +228,7 @@ MList *mINIKey(MFile *file,const char *section)
             
             for(j=0;j<sheet->col[i];j++)
             {
-                kv = sheet->data[i][j];
+                kv = (struct KeyValue *)(sheet->data[i][j]);
                 handle->key->data[j] = kv->name;
             }
             return handle->key;

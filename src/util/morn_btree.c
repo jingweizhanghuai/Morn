@@ -40,10 +40,10 @@ MBtreeNode *mBtreeNode(MBtree *btree,void *data,int size)
 {
     MHandle *hdl = (MHandle *)(btree->handle->data[0]);
     mException((hdl->flag != HASH_BtreeCreate),EXIT,"invalid input btree");
-    struct HandleBtreeCreate *handle = hdl->handle;
+    struct HandleBtreeCreate *handle = (struct HandleBtreeCreate *)(hdl->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
     
-    MBtreeNode *node = mMemoryWrite(handle->memory,NULL,sizeof(MBtreeNode));
+    MBtreeNode *node = (MBtreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MBtreeNode));
     memset(node,0,sizeof(MBtreeNode));
     node->data = mMemoryWrite(handle->memory,data,size);
     
@@ -103,13 +103,13 @@ void BtreeOperate(MBtreeNode *tree,void (*func)(MBtreeNode *,void *),void *para,
 }
 void mBtreeOperate(MBtree *tree,void (*func)(MBtreeNode *,void *),void *para,int mode)
 {
-    BtreeOperate(tree->object,func,para,mode);
+    BtreeOperate(tree->btreenode,func,para,mode);
 }
 
 MBtreeNode *mBTreeDecide(MBtree *btree,int (*func)(MBtreeNode *,void *),void *para)
 {
     MBtreeNode *node = NULL;
-    MBtreeNode *p = btree->object;
+    MBtreeNode *p = btree->btreenode;
     while(p!=NULL)
     {
         node = p;

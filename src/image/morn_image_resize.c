@@ -24,7 +24,7 @@ struct HandleBinaryImageResize
 #define HASH_BinaryImageResize 0x3b7f3813
 void endBinaryImageResize(void *info)
 {
-    struct HandleBinaryImageResize *handle = info;
+    struct HandleBinaryImageResize *handle = (struct HandleBinaryImageResize *)info;
     if(handle->lx != NULL) mFree(handle->lx);
     if(handle->ly != NULL) mFree(handle->ly);
 }
@@ -36,7 +36,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
     MImage *p=dst;
     if(INVALID_POINTER(dst)||(dst==src))
     {
-        if((height>0)&&(width>0)) NULL;
+        if((height>0)&&(width>0));
         else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
             height = (src->height)*width/(src->width);
         else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
@@ -50,7 +50,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
         if(height <= 0) height = dst->height;
         if(width  <= 0) width = dst->width;
         
-        if((height>0)&&(width>0)) NULL;
+        if((height>0)&&(width>0));
         else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
             height = (src->height)*width/(src->width);
         else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
@@ -61,7 +61,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
     }
 
     MHandle *hdl; ObjectHandle(src,BinaryImageResize,hdl);
-    struct HandleBinaryImageResize *handle = hdl->handle;
+    struct HandleBinaryImageResize *handle = (struct HandleBinaryImageResize *)hdl->handle;
     if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
     {
         float kx = ((float)(src->width ))/((float)width );
@@ -76,14 +76,14 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
         if(handle->width <width)
         {
             if(handle->lx != NULL) mFree(handle->lx);
-            handle->lx = mMalloc(width * sizeof(int));
+            handle->lx = (int *)mMalloc(width * sizeof(int));
         }
         handle->width = width;
         
         if(handle->height < height)
         {
             if(handle->ly != NULL) mFree(handle->ly);
-            handle->ly = mMalloc(height * sizeof(int));
+            handle->ly = (int *)mMalloc(height * sizeof(int));
         }
         handle->height = height;
         
@@ -134,7 +134,7 @@ struct HandleImageResize
 #define HASH_ImageResize 0x56db84c
 void endImageResize(void *info)
 {
-    struct HandleImageResize *handle = info;
+    struct HandleImageResize *handle = (struct HandleImageResize *)info;
     if(handle->lx != NULL) mFree(handle->lx);
     if(handle->wx != NULL) mFree(handle->wx);
     if(handle->ly != NULL) mFree(handle->ly);
@@ -148,7 +148,7 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
     MImage *p=dst;
     if(INVALID_POINTER(dst)||(dst==src))
     {
-        if((height>0)&&(width>0)) NULL;
+        if((height>0)&&(width>0));
         else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
             height = (src->height)*width/(src->width);
         else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
@@ -162,7 +162,7 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
         if(height <= 0) height = dst->height;
         if(width  <= 0) width = dst->width;
         
-        if((height>0)&&(width>0)) NULL;
+        if((height>0)&&(width>0));
         else if((height<=0)&&(type != MORN_RESIZE_UNUNIFORM))
             height = (src->height)*width/(src->width);
         else if((width<=0)&&(type != MORN_RESIZE_UNUNIFORM))
@@ -173,7 +173,7 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
     }
 
     MHandle *hdl; ObjectHandle(src,ImageResize,hdl);
-    struct HandleImageResize *handle = hdl->handle;
+    struct HandleImageResize *handle = (struct HandleImageResize *)(hdl->handle);
     if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
     {
         float kx = ((float)(src->width ))/((float)width );
@@ -189,8 +189,8 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
         {
             if(handle->lx != NULL) mFree(handle->lx);
             if(handle->wx != NULL) mFree(handle->wx);
-            handle->lx = mMalloc(width * sizeof(int));
-            handle->wx = mMalloc(width * sizeof(unsigned char));
+            handle->lx = (          int *)mMalloc(width * sizeof(int));
+            handle->wx = (unsigned char *)mMalloc(width * sizeof(unsigned char));
         }
         handle->width = width;
         
@@ -198,8 +198,8 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
         {
             if(handle->ly != NULL) mFree(handle->ly);
             if(handle->wy != NULL) mFree(handle->wy);
-            handle->ly = mMalloc(height * sizeof(int));
-            handle->wy = mMalloc(height * sizeof(unsigned char));
+            handle->ly = (          int *)mMalloc(height * sizeof(int));
+            handle->wy = (unsigned char *)mMalloc(height * sizeof(unsigned char));
         }
         handle->height = height;
         

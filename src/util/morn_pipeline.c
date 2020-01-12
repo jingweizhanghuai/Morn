@@ -29,7 +29,7 @@ struct HandlePipeline
 };
 void endPipeline(void *info)
 {
-    struct HandlePipeline *handle = info;
+    struct HandlePipeline *handle = (struct HandlePipeline *)info;
     if(handle->order!= NULL) mFree(handle->order);
     if(handle->state!= NULL) mFree(handle->state);
 }
@@ -38,7 +38,7 @@ void endPipeline(void *info)
 void *Pipeline0(MList *list,int thread)
 {
     MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
-    struct HandlePipeline *handle = hdl->handle;
+    struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     if(hdl->valid == 0)
     {
         pthread_mutex_init(&(handle->mutex0),NULL);
@@ -52,8 +52,8 @@ void *Pipeline0(MList *list,int thread)
 
         handle->over= 0;
         
-        handle->order = mMalloc(sizeof(int)*list->num);
-        handle->state = mMalloc(sizeof(int)*list->num);
+        handle->order = (int *)mMalloc(sizeof(int)*list->num);
+        handle->state = (int *)mMalloc(sizeof(int)*list->num);
         for(int i=0;i<list->num;i++) {handle->order[i]=0-i;handle->state[i]=-1-i;}
             
         hdl->valid = 1;
@@ -95,7 +95,7 @@ void *mPipeline(MList *list,int thread)
     
     pthread_mutex_lock(&pipeline_mutex);
     MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
-    struct HandlePipeline *handle = hdl->handle;
+    struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     while(handle->count==0) {mSleep(1);}
 
     handle->state[thread] = handle->order[thread];
@@ -129,7 +129,7 @@ void mPipelineComplete(MList *list,int thread)
     
     pthread_mutex_lock(&pipeline_mutex);
     MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
-    struct HandlePipeline *handle = hdl->handle;
+    struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     mException((hdl->valid==0),EXIT,"invalid pipeline");
 
     handle->over = thread+1;

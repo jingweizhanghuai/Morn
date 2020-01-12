@@ -31,7 +31,7 @@ MChain *mChainCreate()
     MObject *chain = mProcCreate(NULL);
     
     MHandle *hdl; ObjectHandle(chain,ChainCreate,hdl);
-    struct HandleChainCreate *handle = hdl->handle;
+    struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     
     handle->memory = NULL;
     
@@ -45,12 +45,12 @@ void mChainRelease(MChain *chain)
 
 MChainNode *mChainNode(MChain *chain,void *data,int size)
 {
-    MHandle *hdl = chain->handle->data[1];
+    MHandle *hdl = (MHandle *)(chain->handle->data[1]);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
-    struct HandleChainCreate *handle = hdl->handle;
+    struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
     
-    MChainNode *node = mMemoryWrite(handle->memory,NULL,sizeof(MChainNode));
+    MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode));
     memset(node,0,sizeof(MChainNode));
     node->data = mMemoryWrite(handle->memory,data,size);
     
@@ -89,7 +89,7 @@ void mChainNodeExchange(MChainNode *node1,MChainNode *node2)
     // node1->size = node2->size;
     // node2->size = buff;
     
-    void *p = node1;
+    MChainNode *p = node1;
     node1 = node2;
     node2 = p;
 }

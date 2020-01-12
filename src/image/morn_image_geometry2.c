@@ -122,14 +122,14 @@ void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePo
 }
 void mLineTravel(MList *line,int stride,void (*func)(MImagePoint *,void *),void *para)
 {
-    LineTravel(line->data[0],line->data[1],stride,func,para);
+    LineTravel((MImagePoint *)(line->data[0]),(MImagePoint *)(line->data[1]),stride,func,para);
 }
 void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para)
 {
     int i;
     for(i=0;i<polygon->num-1;i++)
-        LineTravel(polygon->data[i],polygon->data[i+1],stride,func,para);
-    LineTravel(polygon->data[i],polygon->data[0],stride,func,para);
+        LineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[i+1]),stride,func,para);
+    LineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[0]),stride,func,para);
 }
 
 void mPolygon(MList *polygon,int num,...)
@@ -377,6 +377,7 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
     MImagePoint **v1 = (MImagePoint **)(polygon1->data);
     MImagePoint **v2 = (MImagePoint **)(polygon2->data);
     int n1=polygon1->num;int n2=polygon2->num;int n=n1+n2;
+    MList *polygon;
     
     for(i=0;i<n1;i++)for(j=0;j<n2;j++)
     {
@@ -395,8 +396,8 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         memset(x_mat->data[i],0,n*sizeof(float));
         memset(y_mat->data[i],0,n*sizeof(float));
     }
-    int *num1 = mMalloc(n1*sizeof(int));memset(num1,0,n1*sizeof(int));
-    int *num2 = mMalloc(n2*sizeof(int));memset(num2,0,n2*sizeof(int));
+    int *num1 = (int *)mMalloc(n1*sizeof(int));memset(num1,0,n1*sizeof(int));
+    int *num2 = (int *)mMalloc(n2*sizeof(int));memset(num2,0,n2*sizeof(int));
     int lx,ly;
     
     mListAppend(polygon1,DFLT);polygon1->data[n1]=polygon1->data[0];polygon1->num=n1;
@@ -448,7 +449,7 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         mException((num2[j]>2),EXIT,"invalid input polygon");
     }
     
-    MList *polygon = mListCreate(DFLT,NULL);
+    polygon = mListCreate(DFLT,NULL);
     
     PolygonIntersetArea_next:
     point.x = x_mat->data[ly][lx];x_mat->data[ly][lx]=0.0f;x_mat->data[lx][ly]=0.0f;
@@ -643,6 +644,7 @@ void mShapeBounding(MList *shape,MList *bounding)
     float a = 0.0f;
     int point_min1=0;int point_max1=0;
     int point_min2=0;int point_max2=0;
+    float k1,k2,b1,b2,sn1,sn2,cs1,cs2;
     
     for(int i=0;i<90;i++)
     {
@@ -694,20 +696,12 @@ void mShapeBounding(MList *shape,MList *bounding)
         goto ShapeBoundingNext;
     }
     
-    float sn1 = mSin(a);
-    float cs1 = mCos(a);
-    float sn2 = cs1;
-    float cs2 = 0.0-sn1;
-            
-    float k1 = sn1/cs1;
-    float k2 = sn2/cs2;
-    
+    sn1 = mSin(a);cs1 = mCos(a);sn2 = cs1;cs2 = 0.0-sn1;
+
+    k1 = sn1/cs1;k2 = sn2/cs2;
     // printf("a is %f\n",a);
     // printf("sn1 is %f,cs1 is %f\n",sn1,cs1);
     // printf("k1 is %f,k2 is %f\n",k1,k2);
-    
-    float b1,b2;
-    
     b1 = point[point_min1]->y - k1*point[point_min1]->x;
     b2 = point[point_min2]->y - k2*point[point_min2]->x;
     
@@ -830,7 +824,7 @@ void mConvexHull(MList *point,MList *polygon)
     list1->num = n1; list2->num = n2; list3->num = n3; list4->num = n4;
     // printf("n is %d,%d,%d,%d\n",list1->num,list2->num,list3->num,list4->num);
     
-    MChain *chain = mChainCreate(NULL);
+    MChain *chain = mChainCreate();
     MChainNode *node1=NULL; if(i1!=i2) {node1 = mChainNode(chain,NULL,DFLT);node1->data = p[i1];                         chain->object = (void *)node1;}
     MChainNode *node2=NULL; if(i2!=i3) {node2 = mChainNode(chain,NULL,DFLT);node2->data = p[i2]; if(chain->object==NULL) chain->object = (void *)node2; else mChainNodeInsert(NULL,node2,(MChainNode *)(chain->object));}
     MChainNode *node3=NULL; if(i3!=i4) {node3 = mChainNode(chain,NULL,DFLT);node3->data = p[i3]; if(chain->object==NULL) chain->object = (void *)node3; else mChainNodeInsert(NULL,node3,(MChainNode *)(chain->object));}

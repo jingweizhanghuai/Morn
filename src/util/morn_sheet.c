@@ -53,7 +53,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
     memset(sheet,0,sizeof(MSheet));
     
     MHandle *hdl; ObjectHandle(sheet,SheetCreate,hdl);
-    struct HandleSheetCreate *handle = hdl->handle;
+    struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(hdl->handle);
     handle->sheet = sheet;
     
     if(row<0) row = 0;
@@ -69,10 +69,10 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
         return sheet;
     }
     
-    handle->data= (void ***)mMalloc(row*sizeof(void **));
-    handle->num = (int *)mMalloc(row*sizeof(int));
-    handle->col = (int *)mMalloc(row*sizeof(int));
-    handle->row_info =   mMalloc(row*sizeof(MInfo));
+    handle->data    = (void ***)mMalloc(row*sizeof(void **));
+    handle->num     = (int *   )mMalloc(row*sizeof(int));
+    handle->col     = (int *   )mMalloc(row*sizeof(int));
+    handle->row_info= (MInfo * )mMalloc(row*sizeof(MInfo));
     memset(handle->row_info,0,row*sizeof(MInfo));
     if(col!= NULL)
     {
@@ -85,7 +85,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
                 handle->col[j] = 0;
                 continue;
             }
-            handle->data[j] = mMalloc(col[j]*sizeof(void *));
+            handle->data[j] = (void **)mMalloc(col[j]*sizeof(void *));
             handle->col[j] = col[j];
             handle->num[j] = col[j];
             
@@ -123,7 +123,7 @@ void mSheetRowAppend(MSheet *sheet,int n)
     mException(INVALID_POINTER(sheet),EXIT,"invalid input source sheet");
     if(n<0) n = sheet->row + 1;
    
-    struct HandleSheetCreate *handle= ((MHandle *)(sheet->handle->data[0]))->handle;
+    struct HandleSheetCreate *handle= (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
     if(n>handle->row)
     {
         int row = sheet->row + MAX(n-sheet->row,8);
@@ -163,7 +163,7 @@ void mSheetColAppend(MSheet *sheet,int row,int n)
     mException((row<0)||(row>=sheet->row),EXIT,"invalid input row");
     if(n<0) n = sheet->col[row]+1;
     
-    struct HandleSheetCreate *handle= ((MHandle *)(sheet->handle->data[0]))->handle;
+    struct HandleSheetCreate *handle= (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
     if(n > handle->num[row])
     {
         int col = sheet->col[row] + MAX(n-sheet->col[row],8);
@@ -194,12 +194,12 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
     mSheetRowAppend(sheet,row);
     for(int j=0;j<row;j++) mSheetColAppend(sheet,j,col);
 
-    void **idx = mMalloc(row*col*sizeof(void *));
-    struct HandleSheetCreate *handle = ((MHandle *)(sheet->handle->data[0]))->handle;
+    void **idx = (void **)mMalloc(row*col*sizeof(void *));
+    struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(row*col,size);
     mMemoryIndex(handle->memory,row*col,size,idx);
 
-    char *p_data=data;void **p_idx = idx;
+    char *p_data=(char *)data;void **p_idx = idx;
     for(int j=0;j<row;j++)
     {
         memcpy(sheet->data[j],p_idx,col*sizeof(void *));p_idx=p_idx+col;
@@ -215,16 +215,16 @@ struct HandleSheetWrite
 {
     int write_size;
 };
-void endSheetWrite(void *info) {NULL;}
+void endSheetWrite(void *info) {}
 #define HASH_SheetWrite 0x815f53f7
 void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size)
 {
     mException(INVALID_POINTER(sheet),EXIT,"invalid input source sheet");
     mException((size<=0)&&(INVALID_POINTER(data)),EXIT,"invalid input sheet element size");
     mException((row>sheet->row)||(row<0),EXIT,"invalid write location");
-    if(size<=0) size = strlen(data)+1;
+    if(size<=0) size = strlen((char *)data)+1;
    
-    struct HandleSheetCreate *handle0 = ((MHandle *)(sheet->handle->data[0]))->handle;
+    struct HandleSheetCreate *handle0 = (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
     
     if(row == sheet->row) 
         mSheetRowAppend(sheet,DFLT);
@@ -241,13 +241,13 @@ void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size)
     if((row!=sheet->row-1)&&(col!=sheet->col[row]-1))
     {
         MHandle *hdl; ObjectHandle(sheet,SheetWrite,hdl);
-        struct HandleSheetWrite *handle = hdl->handle;
+        struct HandleSheetWrite *handle = (struct HandleSheetWrite *)(hdl->handle);
         handle->write_size += size;
         
         if(handle->write_size>16384)
         {
             int num = 0; for(int j=0;j<sheet->row;j++) num += sheet->col[j];
-            void **index = mMalloc(sizeof(void *)*num);
+            void **index = (void **)mMalloc(sizeof(void *)*num);
             num = 0;
             for(int j=0;j<sheet->row;j++) 
             {
@@ -268,7 +268,7 @@ struct HandleSheetRead
     int row_order;
     int col_order;
 };
-void endSheetRead(void *info) {NULL;}
+void endSheetRead(void *info) {}
 #define HASH_SheetRead 0x4c826020
 void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size)
 {
@@ -276,7 +276,7 @@ void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size)
     mException((size <=0)||(INVALID_POINTER(data)),EXIT,"invalid input"); 
     
     MHandle *hdl; ObjectHandle(sheet,SheetRead,hdl);
-    struct HandleSheetRead *handle = hdl->handle;
+    struct HandleSheetRead *handle = (struct HandleSheetRead *)(hdl->handle);
 
     if(row<0)
     {
@@ -324,8 +324,8 @@ void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size)
     }
     if(data!=NULL)
     {
-        if(size>0)memcpy(data,sheet->data[row][col],size);
-        else      strcpy(data,sheet->data[row][col]);
+        if(size>0)memcpy(        data,         sheet->data[row][col],size);
+        else      strcpy((char *)data,(char *)(sheet->data[row][col]));
     }
     return sheet->data[row][col];
 }
@@ -380,7 +380,7 @@ struct HandleHashSheet
 {
     int num;
 };
-void endHashSheet(void *info) {NULL;}
+void endHashSheet(void *info) {}
 #define HASH_HashSheet 0xd4458d30
 void HashSheetResize(MSheet *sheet)
 {
@@ -393,7 +393,7 @@ void HashSheetResize(MSheet *sheet)
     for(int j=0;j<src->row;j++)
         for(int i=0;i<src->col[j];i++)
         {
-            struct HashElement *p = src->data[j][i];
+            struct HashElement *p = (struct HashElement *)(src->data[j][i]);
             int row = p->hash & sheet_row;
             int col = sheet->col[row];
             mSheetColAppend(sheet,row,DFLT);
@@ -407,11 +407,11 @@ void HashSheetResize(MSheet *sheet)
 void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
 {
     mException(INVALID_POINTER(sheet),EXIT,"invalid input sheet");
-    if(key_size<0) key_size = strlen(key);
-    if(size <0) size = strlen(data);
+    if(key_size<0) key_size = strlen((char *)key);
+    if(size <0) size = strlen((char *)data);
     
     MHandle *hdl; ObjectHandle(sheet,HashSheet,hdl);
-    struct HandleHashSheet *handle = hdl->handle;
+    struct HandleHashSheet *handle = (struct HandleHashSheet *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->num = 0;
@@ -420,11 +420,11 @@ void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
     }
     
     int i;
-    unsigned int hash = mHash(key,key_size);
+    unsigned int hash = mHash((const char *)key,key_size);
     int row = hash&(sheet->row-1);
     for(i=0;i<sheet->col[row];i++)
     {
-        struct HashElement *p = sheet->data[row][i];
+        struct HashElement *p = (struct HashElement *)(sheet->data[row][i]);
         if(key_size == p->key_size) if(memcmp(p->key,key,key_size)==0) break;
     }
     int col = i;
@@ -432,7 +432,7 @@ void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
     int key_size2 = (((key_size+3)>>2)<<2);
     int size2 = (((size+3)>>2)<<2);
     mSheetWrite(sheet,row,col,NULL,sizeof(int)+sizeof(int)+sizeof(int)+key_size2+size2);
-    struct HashElement *p = sheet->data[row][col];
+    struct HashElement *p = (struct HashElement *)(sheet->data[row][col]);
     p->hash = hash;
     p->key_size = key_size;
     p->size = size;
@@ -450,14 +450,14 @@ void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
 
 void *mHashSheetRead(MSheet *sheet,void *key,int key_size,void *data,int size)
 {
-    unsigned int hash = mHash(key,key_size);
+    unsigned int hash = mHash((const char *)key,key_size);
     int row = hash&(sheet->row-1);
     
     int i;
     struct HashElement *p=NULL;
     for(i=0;i<sheet->col[row];i++)
     {
-        p = sheet->data[row][i];
+        p = (struct HashElement *)(sheet->data[row][i]);
         if(key_size == p->key_size) if(memcmp(p->key,key,key_size)==0) break;
     }
     if(i==sheet->col[row])
@@ -474,17 +474,17 @@ void *mHashSheetRead(MSheet *sheet,void *key,int key_size,void *data,int size)
 void mHashSheetElementDelete(MSheet *sheet,void *key,int key_size)
 {
     MHandle *hdl; ObjectHandle(sheet,HashSheet,hdl);
-    struct HandleHashSheet *handle = hdl->handle;
+    struct HandleHashSheet *handle = (struct HandleHashSheet *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid input sheet");
         
-    unsigned int hash = mHash(key,key_size);
+    unsigned int hash = mHash((const char *)key,key_size);
     int row = hash&(sheet->row-1);
     
     int i;
     struct HashElement *p;
     for(i=0;i<sheet->col[row];i++)
     {
-        p = sheet->data[row][i];
+        p = (struct HashElement *)(sheet->data[row][i]);
         if(key_size == p->key_size) if(memcmp(p->key,key,key_size)==0) break;
     }
     if(i==sheet->col[row]) return;

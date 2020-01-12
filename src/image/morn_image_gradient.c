@@ -268,7 +268,6 @@ void mImageGradientFilter(MImage *dir,MImage *value,MImage *ddst,MImage *vdst,in
     else
         mImageRedefine(vdst,1,value->height,value->width,vdst->data);
     
-    int src_cn = dir->channel;
     unsigned char **ddata = dir->data[0];
     unsigned char **vdata = value->data[0];
     
@@ -308,47 +307,19 @@ void mImageGradientSuppression(MImage *dir,MImage *value,MImage *dst,int r)
     else
         mImageRedefine(dst,1,value->height,value->width,dst->data);
     
-    int src_cn = dir->channel;
     unsigned char **ddata = dir->data[0];
     unsigned char **vdata = value->data[0];
     unsigned char **dst_data = dst->data[0];
                 
     #define ImageGradientSuppression(X,Y) {\
-        if(ddata[Y][X] == 0)\
-        {\
-            dst_data[Y][X] = 0;\
-            continue;\
-        }\
-        register int Data = vdata[Y][X];\
-        int N;\
-        if(ddata[Y][X] == 1)\
-            for(N=1;N<r+1;N++)\
-            {\
-                if(Data<vdata[Y-N][X  ]) break;\
-                if(Data<vdata[Y+N][X  ]) break;\
-            }\
-        else if(ddata[Y][X] == 2)\
-            for(N=1;N<r+1;N++)\
-            {\
-                if(Data<vdata[Y-N][X+N]) break;\
-                if(Data<vdata[Y+N][X-N]) break;\
-            }\
-        else if(ddata[Y][X] == 3)\
-            for(N=1;N<r+1;N++)\
-            {\
-                if(Data<vdata[Y  ][X-N]) break;\
-                if(Data<vdata[Y  ][X+N]) break;\
-            }\
-        else if(ddata[Y][X] == 4)\
-            for(N=1;N<r+1;N++)\
-            {\
-                if(Data<vdata[Y-N][X-N]) break;\
-                if(Data<vdata[Y+N][X+N]) break;\
-            }\
-        \
+        if(ddata[Y][X] == 0) {dst_data[Y][X] = 0;continue;}\
+        register int Data = vdata[Y][X]; int N;\
+             if(ddata[Y][X] == 1) for(N=1;N<r+1;N++) {if(Data<vdata[Y-N][X  ]) break;if(Data<vdata[Y+N][X  ]) break;}\
+        else if(ddata[Y][X] == 2) for(N=1;N<r+1;N++) {if(Data<vdata[Y-N][X+N]) break;if(Data<vdata[Y+N][X-N]) break;}\
+        else if(ddata[Y][X] == 3) for(N=1;N<r+1;N++) {if(Data<vdata[Y  ][X-N]) break;if(Data<vdata[Y  ][X+N]) break;}\
+        else /*ddata[Y][X] == 4*/ for(N=1;N<r+1;N++) {if(Data<vdata[Y-N][X-N]) break;if(Data<vdata[Y+N][X+N]) break;}\
         dst_data[Y][X] = (N==r+1)?255:0;\
     }
-              
     mImageRegion(value,r,ImageGradientSuppression);
     
     if(p!=dst) { mImageExchange(value,dst); mImageRelease(dst);}
@@ -388,7 +359,7 @@ void mImageCanny(MImage *src,MImage *dst,int r,int thresh)
     // gdt->channel = 2;
     
     mImageRedefine(dst,1,height,width,dst->data);
-    mImageGradientSuppression(dir,value,dst,r);
+    mImageGradientSuppression(dir,value,dst,r+1);
     
     // printf("dst->data[819][1023] is %d\n",dst->data[0][819][1023]);
     

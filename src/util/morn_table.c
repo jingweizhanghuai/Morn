@@ -22,7 +22,7 @@ struct HandleTableCreate
 };
 void endTableCreate(void *info)
 {
-    struct HandleTableCreate *handle = info;
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)info;
     mException((handle->tab==NULL),EXIT,"invalid table");
     
     if(handle->index != NULL) mFree(handle->index);
@@ -44,7 +44,7 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     
     MHandle *hdl; ObjectHandle(tab,TableCreate,hdl);
     
-    struct HandleTableCreate *handle = hdl->handle;
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(hdl->handle);
     handle->tab = tab;
     
     if(row == 0)
@@ -95,7 +95,7 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     if(row<=0) row = tab->row;
     if(col<=0) col = tab->col;
     
-    struct HandleTableCreate *handle = ((MHandle *)(tab->handle->data[0]))->handle;
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(tab->handle->data[0]))->handle);
     if((row!=tab->row)||(col!=tab->col)||(element_size!=handle->element_size)) mHandleReset(tab->handle);
     int same_size = (row<=tab->row)&&(col*element_size<=tab->col*handle->element_size);
     int reuse = (data==tab->data);
@@ -135,7 +135,7 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
 
 void mTableCopy(MTable *src,MTable *dst)
 {
-    struct HandleTableCreate *handle = ((MHandle *)(src->handle->data[0]))->handle;
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(src->handle->data[0]))->handle);
     int element_size = handle->element_size;
     
     TableRedefine(dst,src->row,src->col,element_size,dst->data);
@@ -152,7 +152,7 @@ struct HandleArrayCreate
 };
 void endArrayCreate(void *info)
 {
-    struct HandleArrayCreate *handle = info;
+    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)info;
     mException((handle->array == NULL),EXIT,"invalid array");
     
     if(handle->memory!= NULL) mFree(handle->memory);
@@ -169,7 +169,7 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     array->num = num;
     
     MHandle *hdl; ObjectHandle(array,ArrayCreate,hdl);
-    struct HandleArrayCreate *handle = hdl->handle;
+    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(hdl->handle);
     handle->array = array;
     
     if(num==0)
@@ -178,7 +178,7 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     }
     else if(INVALID_POINTER(data))
     {
-        handle->memory = mMalloc(num*element_size);
+        handle->memory = (char *)mMalloc(num*element_size);
         handle->num = num;
         handle->element_size = element_size;
         array->data = (void *)(handle->memory);
@@ -195,8 +195,6 @@ void mArrayRelease(MArray *array)
     
     if(!INVALID_POINTER(array->handle))
         mHandleRelease(array->handle);
-    
-    mFree(array);
 }
 
 void ArrayRedefine(MArray *array,int num,int element_size,void *data)
@@ -205,7 +203,7 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
     
     if(num <= 0) num = array->num;
     
-    struct HandleArrayCreate *handle = ((MHandle *)(array->handle->data[0]))->handle;
+    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);
     if((num!= array->num)||(element_size!=handle->element_size)) mHandleReset(array->handle);
     int same_size = (num*element_size <= array->num*handle->element_size);
     int reuse = (data==array->data);
@@ -229,7 +227,7 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
         if(handle->memory!=NULL) mFree(handle->memory);
         handle->num = num;
         handle->element_size = element_size;
-        handle->memory = mMalloc(num*element_size);
+        handle->memory = (char *)mMalloc(num*element_size);
         array->data = handle->memory;
     }
 }
@@ -239,17 +237,17 @@ struct HandleStream
     char *read;
     char *write;
 };
-void endStream(void *info) {NULL;}
+void endStream(void *info) {}
 #define HASH_Stream 0xcab28d39
 int mStreamRead(MArray *buff,void *data,int num)
 {
     mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
     
-    struct HandleArrayCreate *handle0 = ((MHandle *)(buff->handle->data[0]))->handle;
+    struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
     num = num*handle0->element_size;
     
     MHandle *hdl;ObjectHandle(buff,Stream,hdl);
-    struct HandleStream *handle = hdl->handle;
+    struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
     if(hdl->valid == 0) return MORN_FAIL;
     
     int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num-(handle->read-handle->write));
@@ -274,11 +272,11 @@ int mStreamWrite(MArray *buff,void *data,int num)
 {
     mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
     
-    struct HandleArrayCreate *handle0 = ((MHandle *)(buff->handle->data[0]))->handle;
+    struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
     num = num*handle0->element_size;
     
     MHandle *hdl;ObjectHandle(buff,Stream,hdl);
-    struct HandleStream *handle = hdl->handle;
+    struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->read = buff->dataS8;

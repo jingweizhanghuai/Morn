@@ -21,7 +21,7 @@ struct HandleWaveCreate
 };
 void endWaveCreate(void *info)
 {
-    struct HandleWaveCreate *handle = info;
+    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)info;
     mException((handle->wave == NULL),EXIT,"invalid wave");
     
     if(handle->memory != NULL)
@@ -43,7 +43,7 @@ MWave *mWaveCreate(int cn,int size,float **data)
     wave->channel = cn;
     
     MHandle *hdl; ObjectHandle(wave,WaveCreate,hdl);
-    struct HandleWaveCreate *handle = hdl->handle;
+    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(hdl->handle);
     handle->wave = wave;
     
     if((size == 0)||(cn==0))
@@ -92,7 +92,7 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     src->channel = cn;
     
     if(same_size&&reuse) return;
-    struct HandleWaveCreate *handle = ((MHandle *)(src->handle->data[0]))->handle;
+    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(((MHandle *)(src->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->size >0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     

@@ -11,8 +11,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_image.h"
 
-#define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
-#define fwrite(Data,Size,Num,Fl) mException((fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
+#define fwrite(Data,Size,Num,Fl) mException(((int)fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
 
 struct BMPHeader
 {
@@ -248,7 +248,7 @@ struct HandleImageLoad
     FILE *f;
 };
 #define HASH_ImageLoad 0x5c139120
-void endImageLoad(void *info) {NULL;}
+void endImageLoad(void *info) {}
 void mBMPLoad(const char *filename,MImage *dst)
 {
     int i,j;
@@ -256,7 +256,7 @@ void mBMPLoad(const char *filename,MImage *dst)
     
     FILE *pf=NULL; FILE *f;
     MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
-    struct HandleImageLoad *handle = hdl->handle;
+    struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else
     {

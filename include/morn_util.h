@@ -101,7 +101,7 @@ extern int *morn_log_count;
 #ifdef _MSC_VER
 #define mSleep(T) Sleep(T)
 #else
-// void usleep(int micro_seconds);
+#include <unistd.h>
 #define mSleep(T) usleep(T*1000)
 // #define mSleep(T) _sleep(T)
 #endif
@@ -298,7 +298,7 @@ void mMemFree(void *p);
 
 typedef struct MHandle
 {
-    int flag;
+    unsigned int flag;
     int valid;
     void *handle;
     void (*destruct)(void *);
@@ -375,8 +375,8 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2);
     Obj2->handle = Obj1->handle;\
     Obj1->handle = Obj_buff.handle;\
     \
-    MHandle *Hdl1= Obj1->handle->data[0];\
-    MHandle *Hdl2= Obj2->handle->data[0];\
+    MHandle *Hdl1= (MHandle *)(Obj1->handle->data[0]);\
+    MHandle *Hdl2= (MHandle *)(Obj2->handle->data[0]);\
     Obj1->handle->data[0] = Hdl2;\
     Obj2->handle->data[0] = Hdl1;\
     \
@@ -641,7 +641,8 @@ typedef struct MObject
     union
     {
         void *object;
-        MTreeNode *treenode;
+        MTreeNode  *treenode;
+        MBtreeNode *btreenode;
         MChainNode *chainnode;
         char *filename;
     };

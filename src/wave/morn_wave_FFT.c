@@ -51,7 +51,7 @@ struct HandleWaveFFT {
 }HandleWaveFFT;
 void endWaveFFT(void *info)
 {
-    struct HandleWaveFFT *handle=info;
+    struct HandleWaveFFT *handle=(struct HandleWaveFFT *)info;
     if(handle->Wre != NULL)mFree(handle->Wre);
     if(handle->Wim != NULL)mFree(handle->Wim);
     if(handle->order!=NULL)mFree(handle->order);
@@ -65,7 +65,7 @@ void mWaveFFT(MWave *src,MWave *fft)
 
     int N;
     MHandle *hdl; ObjectHandle(src,WaveFFT,hdl);
-    struct HandleWaveFFT *handle = hdl->handle;
+    struct HandleWaveFFT *handle = (struct HandleWaveFFT *)(hdl->handle);
     if(hdl->valid == 0)
     {
         mException((src->size<=4),EXIT,"invalid input");
@@ -73,12 +73,12 @@ void mWaveFFT(MWave *src,MWave *fft)
         if(handle->size != N)
         {
             handle->size = N;
-            if(handle->order!=NULL) mFree(handle->order);handle->order=mMalloc(N*sizeof(int));
+            if(handle->order!=NULL) mFree(handle->order);handle->order=(int *)mMalloc(N*sizeof(int));
             N=N>>1;handle->order[0]=0;j=1;
             for(k=N;k>0;k=k>>1) {for(i=0;i<j;i++) handle->order[i+j]=handle->order[i]+k; j=j+j;}
             
-            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=mMalloc(N*sizeof(float));
-            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=mMalloc(N*sizeof(float));
+            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=(float *)mMalloc(N*sizeof(float));
+            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=(float *)mMalloc(N*sizeof(float));
             
             double n_pi = MORN_PI/((double)N);double thta = n_pi;
             handle->Wre[0] = 1.0f; handle->Wim[0] = 0.0f;
@@ -230,19 +230,19 @@ void mWaveIFFT(MWave *fft,MWave *dst)
 
     int N;
     MHandle *hdl; ObjectHandle(fft,WaveIFFT,hdl);
-    struct HandleWaveIFFT *handle = hdl->handle;
+    struct HandleWaveIFFT *handle = (struct HandleWaveIFFT *)(hdl->handle);
     if(hdl->valid == 0)
     {
         N=fft->size;mException((N<4)||((N&(N-1))!=0),EXIT,"invalid input");
         if(handle->size != N)
         {
             handle->size = N;
-            if(handle->order!=NULL) mFree(handle->order);handle->order=mMalloc(N*sizeof(int));
+            if(handle->order!=NULL) mFree(handle->order);handle->order=(int *)mMalloc(N*sizeof(int));
             N=N>>1;handle->order[0]=0;j=1;
             for(k=N;k>0;k=k>>1) {for(i=0;i<j;i++) handle->order[i+j]=handle->order[i]+k; j=j+j;}
             
-            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=mMalloc(N*sizeof(float));
-            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=mMalloc(N*sizeof(float));
+            if(handle->Wre!=NULL) mFree(handle->Wre);handle->Wre=(float *)mMalloc(N*sizeof(float));
+            if(handle->Wim!=NULL) mFree(handle->Wim);handle->Wim=(float *)mMalloc(N*sizeof(float));
             
             double n_pi = MORN_PI/((double)N);double thta = n_pi;
             handle->Wre[0] = 1.0f; handle->Wim[0] = 0.0f;
@@ -491,7 +491,7 @@ struct HandleWaveFrequencyAnalyse
 #define HASH_WaveFrequencyAnalyse 0x77f2456d
 void endWaveFrequencyAnalyse(void *info) 
 {
-    struct HandleWaveFrequencyAnalyse *handle = info;
+    struct HandleWaveFrequencyAnalyse *handle = (struct HandleWaveFrequencyAnalyse *)info;
     
     if(handle->frequency!=NULL) mFree(handle->frequency);
     if(handle->re_mat != NULL) mMatrixRelease(handle->re_mat);
@@ -501,7 +501,7 @@ void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component
 {
     int cn,i,j;
     MHandle *hdl; ObjectHandle(src,WaveFrequencyAnalyse,hdl);
-    struct HandleWaveFrequencyAnalyse *handle = hdl->handle;
+    struct HandleWaveFrequencyAnalyse *handle = (struct HandleWaveFrequencyAnalyse *)(hdl->handle);
     if(hdl->valid ==1)
     {
         if(num <=0) num = handle->num;
@@ -521,7 +521,7 @@ void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component
         mException((handle->src_frequency<=0),EXIT,"invalid input");
         
         if(num>handle->num) {mFree(handle->frequency);handle->frequency=NULL;}
-        if(handle->frequency==NULL) handle->frequency=mMalloc(num*sizeof(float));
+        if(handle->frequency==NULL) handle->frequency=(float *)mMalloc(num*sizeof(float));
         handle->num = num;
     
         if(handle->re_mat == NULL) handle->re_mat = mMatrixCreate(num,src->size,NULL);

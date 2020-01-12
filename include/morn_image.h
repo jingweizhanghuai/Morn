@@ -210,6 +210,8 @@ void mShapeBounding(MList *shape,MList *bounding);
 void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
 void mEdgeBoundary(MList *edge,MList *polygon,float thresh);
 
+void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum);
+
 void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh);
 
 void mImageMeanFilter(MImage *src,MImage *dst,int r);

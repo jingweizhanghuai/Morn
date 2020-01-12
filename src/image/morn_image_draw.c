@@ -82,7 +82,7 @@ struct DrawPara
 };
 void PointDraw(MImagePoint *point, void *info)
 {
-    struct DrawPara *para = info;
+    struct DrawPara *para = (struct DrawPara *)info;
     MImage *dst = para->dst;
     unsigned char *color = para->color;
     int width = para->width;

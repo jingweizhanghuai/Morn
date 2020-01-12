@@ -43,7 +43,7 @@ void JPGRGBSave(MImage *src,const char *filename)
     
     jpeg_start_compress(&cinfo,TRUE);
     
-    JSAMPROW data_buff = mMalloc(img_width*3);
+    JSAMPROW data_buff = (JSAMPROW)mMalloc(img_width*3);
     for(int j=0;j<img_height;j++)
     {
         unsigned char *p0_src = src->data[0][j];
@@ -135,12 +135,12 @@ void mJPGLoad(const char *filename,MImage *dst)
     
     FILE *pf=NULL; FILE *f;
     MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
-    struct HandleImageLoad *handle = hdl->handle;
+    struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else
     {
         pf = fopen(filename, "rb");
-        mException((f == NULL),EXIT,"file %s cannot open",filename);
+        mException((pf == NULL),EXIT,"file %s cannot open",filename);
         f = pf;
     }
     
@@ -167,7 +167,7 @@ void mJPGLoad(const char *filename,MImage *dst)
     else if(cn == 3)
     {
         mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGB);
-        JSAMPROW data_buff = mMalloc(img_width*cn);
+        JSAMPROW data_buff = (JSAMPROW)mMalloc(img_width*cn);
         
         for(int j=0;j<img_height;j++)
         {

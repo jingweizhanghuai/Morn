@@ -23,8 +23,7 @@ struct HandleVideoBackground
 void endVideoBackground(void *handle)
 {
     int cn;
-    struct HandleVideoBackground *info;
-    info = (struct HandleVideoBackground *)handle;
+    struct HandleVideoBackground *info = (struct HandleVideoBackground *)handle;
 
     for(cn=0;cn<MORN_MAX_IMAGE_CN;cn++)
     {
@@ -55,7 +54,7 @@ void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh)
     mImageRedefine(bgd,src_cn,height,width,bgd->data);
     
     MHandle *hdl; ObjectHandle(src,VideoBackground,hdl);
-    struct HandleVideoBackground *handle = hdl->handle;
+    struct HandleVideoBackground *handle = (struct HandleVideoBackground *)(hdl->handle);
     if(hdl->valid == 0)
     {
         for(int k=0;k<3;k++)

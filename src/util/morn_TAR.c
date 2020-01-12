@@ -10,7 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 
 #include "morn_util.h"
-#define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
 int OctToDec(char *str)
 {
@@ -71,7 +71,7 @@ void TARFileList(FILE *f,MList *list)
         if(strcmp(magic,"ustar  ")==0)
         {
             mStringSplit(info.filename,"/",name);
-            strcpy(info.name,name->data[name->num-1]);
+            strcpy(info.name,(char *)(name->data[name->num-1]));
             // printf("info->name is %s\n",info.name);
             
             info.locate = locate;
@@ -91,7 +91,7 @@ struct HandleTARRead {
 };
 void endTARRead(void *info)
 {
-    struct HandleTARRead *handle = info;
+    struct HandleTARRead *handle = (struct HandleTARRead *)info;
     if(handle->f != NULL)
         fclose(handle->f);
     handle->f = NULL;
@@ -111,11 +111,11 @@ int TARRead(MFile *file,char *filename,char**out,int *size)
     mException(INVALID_POINTER(filename),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,TARRead,hdl);
-    struct HandleTARRead *handle = hdl->handle;
+    struct HandleTARRead *handle = (struct HandleTARRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->f != NULL) fclose(handle->f);
-        handle->f = fopen(file->object,"rb");
+        handle->f = fopen(file->filename,"rb");
         mException((handle->f==NULL),EXIT,"file cannot open");
         
         if(handle->filelist != NULL)
@@ -128,7 +128,7 @@ int TARRead(MFile *file,char *filename,char**out,int *size)
         int filesize=0;
         for(int i=0;i<handle->filelist->num;i++)
         {
-            struct TARFileInfo *fileinfo = handle->filelist->data[i];
+            struct TARFileInfo *fileinfo = (struct TARFileInfo *)(handle->filelist->data[i]);
             filesize = MAX(filesize,fileinfo->size);
         }
         if(filesize > handle->filesize)
@@ -136,7 +136,7 @@ int TARRead(MFile *file,char *filename,char**out,int *size)
             handle->filesize = filesize;
             if(handle->filedata != NULL)
                 mFree(handle->filedata);
-            handle->filedata = mMalloc(filesize);
+            handle->filedata = (char *)mMalloc(filesize);
         }
         
         hdl->valid = 1;
@@ -146,7 +146,7 @@ int TARRead(MFile *file,char *filename,char**out,int *size)
     
     for(int i=0;i<list->num;i++)
     {
-        struct TARFileInfo *fileinfo = list->data[i];
+        struct TARFileInfo *fileinfo = (struct TARFileInfo *)(list->data[i]);
         int flag = strcmp(filename,fileinfo->filename);
         if(flag!=0) flag = strcmp(filename,fileinfo->name);
         

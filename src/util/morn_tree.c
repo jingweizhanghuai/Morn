@@ -48,12 +48,12 @@ void mTreeRelease(MTree *tree)
 
 MTreeNode *mTreeNode(MTree *tree,void *data,int size)
 {
-    MHandle *hdl = tree->handle->data[1];
+    MHandle *hdl = (MHandle *)(tree->handle->data[1]);
     mException((hdl->flag != HASH_TreeCreate),EXIT,"invalid input tree");
-    struct HandleTreeCreate *handle =hdl->handle;
+    struct HandleTreeCreate *handle =(struct HandleTreeCreate *)(hdl->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
     
-    MTreeNode *node = mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode));
+    MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode));
     memset(node,0,sizeof(MBtreeNode));
     node->data = mMemoryWrite(handle->memory,data,size);
     
@@ -129,7 +129,7 @@ void TreeTraversal(MTreeNode *tree,void (*func)(MTreeNode *,void *),void *para,i
 }
 void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode)
 {
-    TreeTraversal(tree->object,func,para,mode);
+    TreeTraversal(tree->treenode,func,para,mode);
 }
 
 MTreeNode *TreeDecide(MTreeNode *tree,int (*func)(MTreeNode *,void *),void *para)
@@ -147,7 +147,7 @@ MTreeNode *TreeDecide(MTreeNode *tree,int (*func)(MTreeNode *,void *),void *para
 }
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para)
 {
-    return TreeDecide(tree->object,func,para);
+    return TreeDecide(tree->treenode,func,para);
 }
 
 
@@ -190,7 +190,7 @@ MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *par
             if(parent->child[i] == node) {flag = 1;continue;}
             if(flag == 0) continue;
             
-            rst = TreeSearch(parent->child[i],func,func);
+            rst = TreeSearch(parent->child[i],func,para);
             if(rst != NULL) return rst;
         }
         node = parent;

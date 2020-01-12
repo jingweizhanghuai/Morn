@@ -21,7 +21,7 @@ struct HandleMemory
     int mem_idx;
     char *pdata;
 };
-void endMemory(void *info) {NULL;}
+void endMemory(void *info) {}
 #define HASH_Memory 0x25793220
 MMemory *mMemoryCreate(int num,int size)
 {
@@ -30,7 +30,7 @@ MMemory *mMemoryCreate(int num,int size)
     
     MHandle *hdl; ObjectHandle(memory,Memory,hdl);hdl->valid = 1;
     
-    struct HandleMemory *handle = hdl->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
      
     if(size<0) {size=0;} size = ((size+15)>>4)<<4;
     if(num<0) num=0;
@@ -53,7 +53,7 @@ MMemory *mMemoryCreate(int num,int size)
         memory->num = 1;
         handle->mem_size = size+16;
         handle->mem_idx = 0;
-        handle->pdata=memory->data[0];
+        handle->pdata=(char *)(memory->data[0]);
         return memory;
     }
 }
@@ -130,9 +130,9 @@ void *mMemoryAppend(MMemory *memory,int num,int size)
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     mException(((num<=0)||(size<=0)),EXIT,"invalid input");
     
-    MHandle *hdl = memory->handle->data[0];
+    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
-    struct HandleMemory *handle = hdl->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     
     int memory_num = memory->num + 1;
     if(memory_num > handle->mem_num)
@@ -145,7 +145,7 @@ void *mMemoryAppend(MMemory *memory,int num,int size)
     }
 
     size = ((size+15)>>4)<<4;
-    char *block = mMalloc(size*num+16);
+    char *block = (char *)(mMalloc(size*num+16));
     handle->mem_size = size*num+16;
     handle->pdata=block;
     memory->data[memory->num] = block;
@@ -162,13 +162,13 @@ void mMemoryCopy(MMemory *src,void **isrc,MMemory *dst,void **idst,int num)
     {
         for(i=0;i<src->num;i++)
         {
-            char *p = mMemoryAppend(dst,1,MEMORY_SIZE(src,i));
+            char *p = (char *)mMemoryAppend(dst,1,MEMORY_SIZE(src,i));
             memcpy(p,src->data[i],MEMORY_SIZE(src,i));
         }
         return;
     }
     
-    int *shift = mMalloc(src->num*sizeof(int));
+    int *shift = (int *)mMalloc(src->num*sizeof(int));
     memset(shift,DFLT,src->num*sizeof(int));
     
     mHandleReset(dst->handle);
@@ -182,7 +182,7 @@ void mMemoryCopy(MMemory *src,void **isrc,MMemory *dst,void **idst,int num)
                 {
                     if(shift[i] == DFLT)
                     {
-                        char *p = mMemoryAppend(dst,1,MEMORY_SIZE(src,i));
+                        char *p = (char *)mMemoryAppend(dst,1,MEMORY_SIZE(src,i));
                         memcpy(p,src->data[i],MEMORY_SIZE(src,i));
                         shift[i] = p-(char *)src->data[i];
                     }
@@ -275,9 +275,9 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     
-    MHandle *hdl = memory->handle->data[0];
+    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
-    struct HandleMemory *handle = hdl->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     
     MemoryWrite_Check:
     if(handle->mem_size < size)
@@ -286,13 +286,13 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
         if(handle->mem_idx<memory->num)
         {
             handle->mem_size = MEMORY_SIZE(memory,handle->mem_idx);
-            handle->pdata = memory->data[handle->mem_idx];
+            handle->pdata = (char *)(memory->data[handle->mem_idx]);
             goto MemoryWrite_Check;
         }
         else
         {
             handle->mem_size = MAX(8192,(size<<6));
-            handle->pdata =mMemoryAppend(memory,1,handle->mem_size);
+            handle->pdata = (char *)mMemoryAppend(memory,1,handle->mem_size);
         }
     }
 

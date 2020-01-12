@@ -25,7 +25,7 @@ struct TensorResizePara
 
 void *mTensorResizePara(MFile *ini,char *name)
 {
-    struct TensorResizePara *para = mMalloc(sizeof(struct TensorResizePara));
+    struct TensorResizePara *para = (struct TensorResizePara *)mMalloc(sizeof(struct TensorResizePara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -51,7 +51,7 @@ struct HandleTensorResize
 };
 void endTensorResize(void *info)
 {
-    struct HandleTensorResize *handle = info;
+    struct HandleTensorResize *handle = (struct HandleTensorResize *)info;
     if(handle->lx !=NULL) mFree(handle->lx);
     if(handle->ly !=NULL) mFree(handle->ly);
     if(handle->wx !=NULL) mFree(handle->wx);
@@ -62,13 +62,13 @@ void endTensorResize(void *info)
 void TensorResizeSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    struct TensorResizePara *para = layer->para;
+    struct TensorResizePara *para = (struct TensorResizePara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorResize,hdl);
-    struct HandleTensorResize *handle = hdl->handle;
+    struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     
     if(para->height<=0) para->height= in->height;
     if(para->width <=0) para->width = in->width;
@@ -80,10 +80,10 @@ void TensorResizeSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     }
     
-    if(handle->lx !=NULL) {mFree(handle->lx);} handle->lx=mMalloc(para->width *sizeof(int));
-    if(handle->ly !=NULL) {mFree(handle->ly);} handle->ly=mMalloc(para->height*sizeof(int));
-    if(handle->wx !=NULL) {mFree(handle->wx);} handle->wx=mMalloc(para->width *sizeof(float));
-    if(handle->wy !=NULL) {mFree(handle->wy);} handle->wy=mMalloc(para->height*sizeof(float));
+    if(handle->lx !=NULL) {mFree(handle->lx);} handle->lx=(int   *)mMalloc(para->width *sizeof(int));
+    if(handle->ly !=NULL) {mFree(handle->ly);} handle->ly=(int   *)mMalloc(para->height*sizeof(int));
+    if(handle->wx !=NULL) {mFree(handle->wx);} handle->wx=(float *)mMalloc(para->width *sizeof(float));
+    if(handle->wy !=NULL) {mFree(handle->wy);} handle->wy=(float *)mMalloc(para->height*sizeof(float));
     
     float kx = (float)(in->width)/(float)(out->width);
     for(int i=0;i<out->width;i++)
@@ -110,14 +110,14 @@ void mTensorResizeForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Resize",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorResizePara *para = layer->para;
+    struct TensorResizePara *para = (struct TensorResizePara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
     
     TensorResizeSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorResize,hdl);
-    struct HandleTensorResize *handle = hdl->handle;
+    struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     
     int  in_size = in->width* in->height;
     int out_size =out->width*out->height;
@@ -154,13 +154,13 @@ void mTensorResizeBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Resize",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorResizePara *para = layer->para;
+    struct TensorResizePara *para = (struct TensorResizePara *)(layer->para);
     if(para->res_valid==0) return;
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorResize,hdl);
-    struct HandleTensorResize *handle = hdl->handle;
+    struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     int  in_size =res->width*res->height;

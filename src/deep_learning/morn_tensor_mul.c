@@ -21,7 +21,7 @@ struct TensorMulPara
 
 void *mTensorMulPara(MFile *ini,char *name)
 {
-    struct TensorMulPara *para = mMalloc(sizeof(struct TensorMulPara));
+    struct TensorMulPara *para = (struct TensorMulPara *)mMalloc(sizeof(struct TensorMulPara));
    
     char *value;
     
@@ -43,7 +43,7 @@ void *mTensorMulPara(MFile *ini,char *name)
 void TensorMulSet(MLayer *layer)
 {
     if(layer->state!=DFLT) return;
-    struct TensorMulPara *para = layer->para;
+    struct TensorMulPara *para = (struct TensorMulPara *)(layer->para);
     MTensor *in1 = para->prev1->tns;MTensor *res1= para->prev1->res;
     MTensor *in2 = para->prev2->tns;MTensor *res2= para->prev2->res;
     MTensor *out= layer->tns;
@@ -68,7 +68,7 @@ void mTensorMulForward(MLayer *layer)
     
     TensorMulSet(layer);
     
-    struct TensorMulPara *para = layer->para;
+    struct TensorMulPara *para = (struct TensorMulPara *)(layer->para);
     MTensor *in1 = para->prev1->tns;
     MTensor *in2 = para->prev2->tns;
     MTensor *out= layer->tns;
@@ -84,13 +84,13 @@ void mTensorMulBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Mul",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorMulPara *para = layer->para;
+    struct TensorMulPara *para = (struct TensorMulPara *)(layer->para);
     
     MTensor *in1 = para->prev1->tns;
     MTensor *in2 = para->prev2->tns;
     MTensor *res1= para->prev1->res;
     MTensor *res2= para->prev2->res;
-    MTensor *out= layer->res;
+    MTensor *out = layer->res;
     
     int size = out->height*out->width;
     for(int b=0;b<out->batch;b++)for(int i=0;i<size;i++)

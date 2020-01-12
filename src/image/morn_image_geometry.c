@@ -266,8 +266,8 @@ void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)
     float r2 = r*r;
     
     int gw = ceil((x2-x1)/grid_size);int gh = ceil((y2-y1)/grid_size);
-    MImagePoint **grid = mMalloc(gh*sizeof(MImagePoint *));
-    for(int j=0;j<gh;j++) {grid[j]=mMalloc(gw*sizeof(MImagePoint));memset(grid[j],0,gw*sizeof(MImagePoint));}
+    MImagePoint **grid = (MImagePoint **)mMalloc(gh*sizeof(MImagePoint *));
+    for(int j=0;j<gh;j++) {grid[j]=(MImagePoint *)mMalloc(gw*sizeof(MImagePoint));memset(grid[j],0,gw*sizeof(MImagePoint));}
 
     //printf("grid_size is %f,gw is %d,gh is %d\n",grid_size,gw,gh);
     mListClear(list);
@@ -278,7 +278,7 @@ void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)
 
     for(int n=0;n<list->num;n++)
     {
-        MImagePoint *p = list->data[n];
+        MImagePoint *p = (MImagePoint *)(list->data[n]);
         int num = 0;
         while(1)
         {

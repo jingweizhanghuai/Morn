@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License along with thi
 struct ActvRegister morn_actv_register[64];
 int morn_actv_register_num = 0;
 
-void mActivationRegister(char *name,float (*func)(float,float *),float (*dfunc)(float,float *))
+void mActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *))
 {
     int n = morn_actv_register_num;
     morn_actv_register_num = n+1;
@@ -160,7 +160,7 @@ struct TensorActivationPara
 };
 void *mTensorActivationPara(MFile *ini,char *name)
 {
-    struct TensorActivationPara *para = mMalloc(sizeof(struct TensorActivationPara));
+    struct TensorActivationPara *para = (struct TensorActivationPara *)mMalloc(sizeof(struct TensorActivationPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -206,7 +206,7 @@ void *mTensorActivationPara(MFile *ini,char *name)
 
 void TensorActivationSet(MLayer *layer)
 {
-    struct TensorActivationPara *para = layer->para;
+    struct TensorActivationPara *para = (struct TensorActivationPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
@@ -226,7 +226,7 @@ void mTensorActivationForward(MLayer *layer)
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Activation",mLayerType(layer)),EXIT,"invalid layer type");
     
-    struct TensorActivationPara *para = layer->para;
+    struct TensorActivationPara *para = (struct TensorActivationPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
     
@@ -248,7 +248,7 @@ void mTensorActivationBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Activation",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorActivationPara *para = layer->para;
+    struct TensorActivationPara *para = (struct TensorActivationPara *)(layer->para);
     if(para->res_valid==0) return;
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;

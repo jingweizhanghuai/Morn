@@ -263,14 +263,14 @@ uint64_t DesDecrypt(uint64_t in,uint64_t key)
 void mEncrypt(const char *in_name,const char *out_name,uint64_t key)
 {
     int i;
-    if((key==DFLT)||(key==0)) key = MORN_DESKEY;
+    if((key==(uint64_t)DFLT)||(key==0)) key = MORN_DESKEY;
     
     FILE *fr = fopen( in_name,"rb");mException((fr==NULL),EXIT,"cannot open file %s\n", in_name);
     fseek(fr,0,SEEK_END);int file_size = ftell(fr);fseek(fr,0,SEEK_SET);
     int size = (file_size>>3);mException((size==0),EXIT,"invalid file size");
     
-    uint64_t *data_in = mMalloc((size+1)*sizeof(uint64_t));
-    uint64_t *data_out= mMalloc((size+1)*sizeof(uint64_t));
+    uint64_t *data_in = (uint64_t *)mMalloc((size+1)*sizeof(uint64_t));
+    uint64_t *data_out= (uint64_t *)mMalloc((size+1)*sizeof(uint64_t));
     fread(data_in,file_size,1,fr);fclose(fr);
     
     #pragma omp parallel for
@@ -285,14 +285,14 @@ void mEncrypt(const char *in_name,const char *out_name,uint64_t key)
 void mDecrypt(const char *in_name,const char *out_name,uint64_t key)
 {
     int i;
-    if((key==DFLT)||(key==0)) key = MORN_DESKEY;
+    if((key==(uint64_t)DFLT)||(key==0)) key = MORN_DESKEY;
     
     FILE *fr = fopen( in_name,"rb");mException((fr==NULL),EXIT,"cannot open file %s\n", in_name);
     fseek(fr,0,SEEK_END);int file_size = ftell(fr);fseek(fr,0,SEEK_SET);
     int size = (file_size>>3);mException((size==0),EXIT,"invalid file size");
     
-    uint64_t *data_in = mMalloc((size+1)*sizeof(uint64_t));
-    uint64_t *data_out= mMalloc((size+1)*sizeof(uint64_t));
+    uint64_t *data_in = (uint64_t *)mMalloc((size+1)*sizeof(uint64_t));
+    uint64_t *data_out= (uint64_t *)mMalloc((size+1)*sizeof(uint64_t));
     fread(data_in,file_size,1,fr);fclose(fr);
     
     #pragma omp parallel for
@@ -310,17 +310,17 @@ struct HandleFileDecrypt
 };
 void endFileDecrypt(void *info)
 {
-    struct HandleFileDecrypt *handle = info;
+    struct HandleFileDecrypt *handle = (struct HandleFileDecrypt *)info;
     remove(handle->name_out);
 }
 #define HASH_FileDecrypt 0x528629ba
 void mFileDecrypt(MFile *file,uint64_t key)
 {
     MHandle *hdl; ObjectHandle(file,FileDecrypt,hdl);
-    struct HandleFileDecrypt *handle = hdl->handle;
+    struct HandleFileDecrypt *handle = (struct HandleFileDecrypt *)(hdl->handle);
     if(hdl->valid == 1) return;
    
-    char name_in[256];strcpy(name_in,file->object);
+    char name_in[256];strcpy(name_in,file->filename);
     
     char name[32];sprintf(handle->name_out,"./%stmp",tmpnam(name));
     mObjectRedefine(file,handle->name_out);hdl->valid = 1;
@@ -334,17 +334,17 @@ struct HandleFileEncrypt
 };
 void endFileEncrypt(void *info)
 {
-    struct HandleFileEncrypt *handle = info;
+    struct HandleFileEncrypt *handle = (struct HandleFileEncrypt *)info;
     remove(handle->name_out);
 }
 #define HASH_FileEncrypt 0x64d9b684
 void mFileEncrypt(MFile *file,uint64_t key)
 {
     MHandle *hdl; ObjectHandle(file,FileEncrypt,hdl);
-    struct HandleFileEncrypt *handle = hdl->handle;
+    struct HandleFileEncrypt *handle = (struct HandleFileEncrypt *)(hdl->handle);
     if(hdl->valid == 1) return;
    
-    char name_in[256];strcpy(name_in,file->object);
+    char name_in[256];strcpy(name_in,file->filename);
     
     char name[32];sprintf(handle->name_out,"./%stmp",tmpnam(name));
     mObjectRedefine(file,handle->name_out);hdl->valid = 1;

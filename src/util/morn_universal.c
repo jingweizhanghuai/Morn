@@ -52,9 +52,9 @@ float mNormalRand(float mean,float delta)
 
 int mCompare(const void *mem1,int size1,const void *mem2,int size2)
 {
-    if((size1<0)&&(size2<0)) return strcmp(mem1,mem2);
-    if(size1<0) size1 = strlen(mem1);
-    if(size2<0) size2 = strlen(mem2);
+    if((size1<0)&&(size2<0)) return strcmp((char *)mem1,(char *)mem2);
+    if(size1<0) size1 = strlen((char *)mem1);
+    if(size2<0) size2 = strlen((char *)mem2);
     int flag = memcmp(mem1,mem2,MIN(size1,size2));
     return (flag!=0)?flag:(size1-size2);
 }
@@ -93,18 +93,18 @@ struct HandleObjectCreate
 };
 void endObjectCreate(void *info)
 {
-    struct HandleObjectCreate *handle = info;
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)info;
     mException((handle->object == NULL),EXIT,"invalid object");
     mFree(handle->object);
 }
 #define HASH_ObjectCreate 0xbd1d8878
 MObject *mObjectCreate(const void *obj)
 {
-    MObject *object = mMalloc(sizeof(MObject));
+    MObject *object = (MObject *)mMalloc(sizeof(MObject));
     object->handle = NULL;
     
     MHandle *hdl; ObjectHandle(object,ObjectCreate,hdl);
-    struct HandleObjectCreate *handle = hdl->handle;
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(hdl->handle);
     handle->object = object;
     
     object->object = (void *)obj;
@@ -137,7 +137,7 @@ struct HandleLogSet
 };
 void endLogSet(void *info)
 {
-    struct HandleLogSet *handle = info;
+    struct HandleLogSet *handle = (struct HandleLogSet *)info;
     if(morn_log_f==handle->f)
     {
         morn_log_f = NULL;
@@ -151,7 +151,7 @@ void endLogSet(void *info)
 void mLogSet(MFile *file,int level)
 {
     MHandle *hdl; ObjectHandle(file,LogSet,hdl);
-    struct HandleLogSet *handle = hdl->handle;
+    struct HandleLogSet *handle = (struct HandleLogSet *)(hdl->handle);
     level = MAX(level,MORN_LOG_INFO);
     morn_log_level = level;
     if(hdl->valid!=0)
@@ -162,7 +162,7 @@ void mLogSet(MFile *file,int level)
     hdl->valid = 1;
     if(morn_log_f==NULL)
     {
-         handle->f = fopen(file->object,"w");morn_log_f = handle->f;
+         handle->f = fopen(file->filename,"w");morn_log_f = handle->f;
          handle->count = 0; morn_log_count = &(handle->count);
     }
 }

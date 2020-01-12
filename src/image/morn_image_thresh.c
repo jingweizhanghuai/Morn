@@ -33,9 +33,8 @@ void mImageAdaptThreshold(MImage *src,MImage *dst,int r,int thresh)
     int height = src->height;
     int width = src->width;
     
-    
     MHandle *hdl; ObjectHandle(src,ImageAdaptThreshold,hdl);
-    struct HandleImageAdaptThreshold *handle = hdl->handle;
+    struct HandleImageAdaptThreshold *handle = (struct HandleImageAdaptThreshold *)(hdl->handle);
     if(hdl->valid==0)
     {
         for(int cn=0;cn<src->channel;cn++)

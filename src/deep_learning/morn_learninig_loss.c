@@ -12,14 +12,14 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_tensor.h"
 
-void TensorSub(MTensor *in,MTensor *true,MTensor *res,int state)
+void TensorSub(MTensor *in,MTensor *tv,MTensor *res,int state)
 {
     int size = in->channel*in->height*in->width;
     for(int b=0;b<in->batch;b++)
     {
         for(int i=0;i<size;i++)
         {
-            register float data = (in->data[b][i]-true->data[b][i]);
+            register float data = (in->data[b][i]-tv->data[b][i]);
             res->data[b][i] = (state==MORN_FORWARD)?data:(res->data[b][i]+data);
         }
     }
@@ -27,19 +27,19 @@ void TensorSub(MTensor *in,MTensor *true,MTensor *res,int state)
 
 float MSE(MLayer *layer,MLayer *prev,float *error)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;
     
     int i;
-    mException((INVALID_TENSOR(in)||INVALID_TENSOR(true)),EXIT,"invalid input");
+    mException((INVALID_TENSOR(in)||INVALID_TENSOR(tv)),EXIT,"invalid input");
     
     int size = in->height*in->width*in->channel;
-    mException((true->batch!=in->batch)||(true->height*true->width*true->channel!=size),EXIT,"invalid tensor");
+    mException((tv->batch!=in->batch)||(tv->height*tv->width*tv->channel!=size),EXIT,"invalid tensor");
     
     float sum=0.0;
     for(int b = 0;b<in->batch;b++)
     {
-        float *idata = in  ->data[b];
-        float *tdata = true->data[b];
+        float *idata = in->data[b];
+        float *tdata = tv->data[b];
         
         float err = 0.0;
         
@@ -56,26 +56,26 @@ float MSE(MLayer *layer,MLayer *prev,float *error)
 
 void D_MSE(MLayer *layer,MLayer *prev)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
     int state = prev->state;
-    TensorSub(in,true,res,state);
+    TensorSub(in,tv,res,state);
 }
 
 float MAE(MLayer *layer,MLayer *prev,float *error)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;
     
     int i;
-    mException((INVALID_TENSOR(in)||INVALID_TENSOR(true)),EXIT,"invalid input");
+    mException((INVALID_TENSOR(in)||INVALID_TENSOR(tv)),EXIT,"invalid input");
     
     int size = in->height*in->width*in->channel;
-    mException((true->batch!=in->batch)||(true->height*true->width*true->channel!=size),EXIT,"invalid tensor");
+    mException((tv->batch!=in->batch)||(tv->height*tv->width*tv->channel!=size),EXIT,"invalid tensor");
    
     float sum=0.0;
     for(int b = 0;b<in->batch;b++)
     {
-        float *idata = in  ->data[b];
-        float *tdata = true->data[b];
+        float *idata = in->data[b];
+        float *tdata = tv->data[b];
         
         float err = 0.0;
         
@@ -91,16 +91,16 @@ float MAE(MLayer *layer,MLayer *prev,float *error)
 
 void D_MAE(MLayer *layer,MLayer *prev)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
     int state = prev->state;
     
     int size = in->height*in->width*in->channel;
-    mException((true->batch!=in->batch)||(true->height*true->width*true->channel!=size),EXIT,"invalid tensor");
+    mException((tv->batch!=in->batch)||(tv->height*tv->width*tv->channel!=size),EXIT,"invalid tensor");
     
     for(int b=0;b<in->batch;b++)
     {
-        float *idata = in  ->data[b];
-        float *tdata = true->data[b];
+        float *idata = in->data[b];
+        float *tdata = tv->data[b];
         for(int i=0;i<size;i++)
         {
             register float data = ((idata[i]>tdata[i])?1.0f:-1.0f);
@@ -111,20 +111,20 @@ void D_MAE(MLayer *layer,MLayer *prev)
 
 float Softmax(MLayer *layer,MLayer *prev,float *error)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;
     
     int i;
-    mException(INVALID_TENSOR(in)||INVALID_TENSOR(true),EXIT,"invalid tensor");
+    mException(INVALID_TENSOR(in)||INVALID_TENSOR(tv),EXIT,"invalid tensor");
     
     int size = in->height*in->width*in->channel;
-    mException((true->batch!=in->batch)||(true->height*true->width*true->channel!=size),EXIT,"invalid tensor");
+    mException((tv->batch!=in->batch)||(tv->height*tv->width*tv->channel!=size),EXIT,"invalid tensor");
     
     float sum = 0.0;
     
     for(int b=0;b<in->batch;b++)
     {
-        float *idata = in  ->data[b];
-        float *tdata = true->data[b];
+        float *idata = in->data[b];
+        float *tdata = tv->data[b];
         
         float err = 0.0f;
         
@@ -153,27 +153,27 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
 
 void D_Softmax(MLayer *layer,MLayer *prev)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
     int state = prev->state;
-    TensorSub(in,true,res,state);
+    TensorSub(in,tv,res,state);
 }
 
 float Logistic(MLayer *layer,MLayer *prev,float *error)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;
     int i;
-    mException(INVALID_TENSOR(in)||INVALID_TENSOR(true),EXIT,"invalid tensor");
+    mException(INVALID_TENSOR(in)||INVALID_TENSOR(tv),EXIT,"invalid tensor");
    
     int size = in->height*in->width*in->channel;
-    mException((true->batch!=in->batch)||(true->height*true->width*true->channel!=size),EXIT,"invalid tensor");
+    mException((tv->batch!=in->batch)||(tv->height*tv->width*tv->channel!=size),EXIT,"invalid tensor");
     
     float sum = 0.0;
 
-    float *e = mMalloc(size*sizeof(float));
+    float *e = (float *)mMalloc(size*sizeof(float));
     for(int b=0;b<in->batch;b++)
     {
-        float *idata = in  ->data[b];
-        float *tdata = true->data[b];
+        float *idata = in->data[b];
+        float *tdata = tv->data[b];
         
         float err = 0.0f;
         
@@ -191,15 +191,15 @@ float Logistic(MLayer *layer,MLayer *prev,float *error)
 }
 void D_Logistic(MLayer *layer,MLayer *prev)
 {
-    MTensor *true = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
+    MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
     int state = prev->state;
-    TensorSub(in,true,res,state);
+    TensorSub(in,tv,res,state);
 }
 
 struct LossRegister morn_loss_register[64];
 int morn_loss_register_num = 0;
 
-void mLossRegister(char *name,float (*loss)(MLayer *,MLayer *,float *),void (*dloss)(MLayer *,MLayer *))
+void mLossRegister(const char *name,float (*loss)(MLayer *,MLayer *,float *),void (*dloss)(MLayer *,MLayer *))
 {
     int n = morn_loss_register_num;
     morn_loss_register_num = n+1;

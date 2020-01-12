@@ -135,8 +135,7 @@ struct HandleImageCoordinateTransform
 
 void endImageCoordinateTransform(void *handle)
 {
-    struct HandleImageCoordinateTransform *info;
-    info = (struct HandleImageCoordinateTransform *)handle;
+    struct HandleImageCoordinateTransform *info = (struct HandleImageCoordinateTransform *)handle;
 
     if(info->lx != NULL) mTableRelease(info->lx);
     if(info->lx != NULL) mTableRelease(info->ly);
@@ -159,7 +158,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
 
     MHandle *hdl; ObjectHandle(src,ImageCoordinateTransform,hdl);
-    struct HandleImageCoordinateTransform *handle = hdl->handle;
+    struct HandleImageCoordinateTransform *handle = (struct HandleImageCoordinateTransform *)(hdl->handle);
     if((hdl->valid == 0)||(handle->height!=height)||(handle->width!=width)||(handle->x_func!=x_func)||(handle->y_func!=y_func))
     {
         handle->height = height;
@@ -260,7 +259,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
     int width = dst->width;
     
     MHandle *hdl; ObjectHandle(src,ImagePerspectiveCorrection,hdl);
-    struct HandleImagePerspectiveCorrection *handle = hdl->handle;
+    struct HandleImagePerspectiveCorrection *handle = (struct HandleImagePerspectiveCorrection *)(hdl->handle);
     if((hdl->valid == 0)
      ||(memcmp(ps,handle->ps,4*sizeof(MImagePoint))!=0)
      ||(memcmp(pd,handle->pd,4*sizeof(MImagePoint))!=0)
@@ -366,7 +365,7 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
     int width = dst->width;
     
     MHandle *hdl; ObjectHandle(src,ImageAffineCorrection,hdl);
-    struct HandleImageAffineCorrection *handle = hdl->handle;
+    struct HandleImageAffineCorrection *handle = (struct HandleImageAffineCorrection *)(hdl->handle);
     if((hdl->valid == 0)
      ||(memcmp(ps,handle->ps,3*sizeof(MImagePoint))!=0)
      ||(memcmp(pd,handle->pd,3*sizeof(MImagePoint))!=0)
@@ -558,7 +557,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
                 {ImageRotate270(src,dst);if(p!=dst){mImageExchange(src,dst);mImageRelease(dst);}return;}
     
     MHandle *hdl; ObjectHandle(src,ImageRotate,hdl);
-    struct HandleImageRotate *handle = hdl->handle;
+    struct HandleImageRotate *handle = (struct HandleImageRotate *)(hdl->handle);
     if((hdl->valid == 0)
      ||(handle->src_hold.x != scx)||(handle->src_hold.y != scy)
      ||(handle->dst_hold.x != dcx)||(handle->dst_hold.y != dcy)
@@ -698,7 +697,7 @@ struct DeformationTemplate {
     MMatrix *y;
 };
 
-void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *template)
+void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *temp)
 {
     int i,j,cn,m,n;
     float lx,ly;
@@ -710,32 +709,32 @@ void ImageDeformation(MImage *src,MImage *dst,struct DeformationTemplate *templa
     MMatrix *tx,*ty;
     int si,ei,sj,ej;
     
-    mException(INVALID_IMAGE(src)||INVALID_POINTER(template),EXIT,"invalid input");
-    mException(((template->locate_x>=src->width)||(template->locate_y>=src->height)),EXIT,"invalid template");
+    mException(INVALID_IMAGE(src)||INVALID_POINTER(temp),EXIT,"invalid input");
+    mException(((temp->locate_x>=src->width)||(temp->locate_y>=src->height)),EXIT,"invalid temp");
     
-    tx = template->x;
-    ty = template->y;
+    tx = temp->x;
+    ty = temp->y;
     
-    if(template->locate_x <0)
+    if(temp->locate_x <0)
     {
-        m=0-template->locate_x;
+        m=0-temp->locate_x;
         si=0;
     }
     else
     {
         m=0;
-        si=template->locate_x;
+        si=temp->locate_x;
     }
     ei = MIN(dst->width,(si+tx->col));
-    if(template->locate_y <0)
+    if(temp->locate_y <0)
     {
-        n=0-template->locate_y;
+        n=0-temp->locate_y;
         sj=0;
     }
     else
     {
         n=0;
-        sj=template->locate_y;
+        sj=temp->locate_y;
     }
     ej = MIN(dst->height,(sj+tx->row));
     
@@ -948,7 +947,7 @@ struct HandleImageReshape
 };
 void endImageReshape(void *info)
 {
-    struct HandleImageReshape *handle = info;
+    struct HandleImageReshape *handle = (struct HandleImageReshape *)info;
 
     if(handle->lx != NULL) mTableRelease(handle->lx);
     if(handle->lx != NULL) mTableRelease(handle->ly);
@@ -970,7 +969,7 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     MHandle *hdl; ObjectHandle(dst,ImageReshape,hdl);
-    struct HandleImageReshape *handle = hdl->handle;
+    struct HandleImageReshape *handle = (struct HandleImageReshape *)(hdl->handle);
     {
         if(handle->lx == NULL) handle->lx= mTableCreate(dst->height,dst->width,S16,NULL);
         else                  mTableRedefine(handle->lx,dst->height,dst->width,S16,NULL);

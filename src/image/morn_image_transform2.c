@@ -24,7 +24,7 @@ struct HandleImageTemplate
 };
 void endImageTemplate(void *info)
 {
-    struct HandleImageTemplate *handle = info;
+    struct HandleImageTemplate *handle = (struct HandleImageTemplate *)info;
     if(handle->lx != NULL) mTableRelease(handle->lx);
     if(handle->ly != NULL) mTableRelease(handle->ly);
     if(handle->w  != NULL) mTableRelease(handle->w );
@@ -38,7 +38,7 @@ void mImageLensTemplate(MObject *temp,float k,int r)
     int j;
     int height = r+r+1;int width = r+r+1;
     MHandle *hdl; ObjectHandle(temp,ImageTemplate,hdl);
-    struct HandleImageTemplate *handle = hdl->handle;
+    struct HandleImageTemplate *handle = (struct HandleImageTemplate *)(hdl->handle);
     if((handle->height!=height)||(handle->width!=width)||(strcmp(handle->type,"lens")!=0)||(handle->para[0]!=k))
         hdl->valid = 0;
     if(hdl->valid==0)
@@ -119,7 +119,7 @@ void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y)
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
     
     mException(INVALID_POINTER(temp),EXIT,"invalid input template");
-    struct HandleImageTemplate *tmp = temp->object;
+    struct HandleImageTemplate *tmp = (struct HandleImageTemplate *)(temp->object);
     mException(INVALID_POINTER(tmp),EXIT,"invalid input template");
     
     int height = tmp->height;

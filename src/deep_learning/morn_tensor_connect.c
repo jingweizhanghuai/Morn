@@ -29,7 +29,7 @@ struct TensorConnectPara
 };
 void *mTensorConnectPara(MFile *ini,char *name)
 {
-    struct TensorConnectPara *para=mMalloc(sizeof(struct TensorConnectPara));
+    struct TensorConnectPara *para=(struct TensorConnectPara *)mMalloc(sizeof(struct TensorConnectPara));
     
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -84,7 +84,7 @@ struct HandleTensorConnect
 };
 void endTensorConnect(void *info)
 {
-    struct HandleTensorConnect *handle = info;
+    struct HandleTensorConnect *handle = (struct HandleTensorConnect *)info;
     if(handle->weight != NULL) mFree(handle->weight);
     if(handle->update != NULL) mFree(handle->update);
 }
@@ -93,7 +93,7 @@ void endTensorConnect(void *info)
 void TensorConnectSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    struct TensorConnectPara *para = layer->para;
+    struct TensorConnectPara *para = (struct TensorConnectPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
@@ -103,7 +103,7 @@ void TensorConnectSet(MLayer *layer)
     int data_size = weight_height*weight_width;
     
     MHandle *hdl; ObjectHandle(out,TensorConnect,hdl);
-    struct HandleTensorConnect *handle = hdl->handle;
+    struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     
     mTensorRedefine(out,in->batch,para->channel,para->height,para->width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -112,12 +112,12 @@ void TensorConnectSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
         
         if(handle->update != NULL) mFree(handle->update);
-        handle->update =mMalloc(data_size*sizeof(float));
+        handle->update =(float *)mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
     
     if(handle->weight != NULL) mFree(handle->weight);
-    handle->weight =mMalloc(data_size*sizeof(float));
+    handle->weight =(float *)mMalloc(data_size*sizeof(float));
     
     if(morn_network_parafile==NULL)
     {
@@ -137,14 +137,14 @@ void mTensorConnectForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Connect",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorConnectPara *para = layer->para;
+    struct TensorConnectPara *para = (struct TensorConnectPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
     
     TensorConnectSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorConnect,hdl);
-    struct HandleTensorConnect *handle = hdl->handle;
+    struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     
     float *weight_data= handle->weight;
     int weight_height= out->height*out->width*out->channel;
@@ -173,13 +173,13 @@ void mTensorConnectBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Connect",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorConnectPara *para = layer->para;
+    struct TensorConnectPara *para = (struct TensorConnectPara *)(layer->para);
     MTensor *in  = para->prev->tns;
     MTensor *res = para->prev->res;
     MTensor *out = layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorConnect,hdl);
-    struct HandleTensorConnect *handle = hdl->handle;
+    struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     mException((hdl->valid==0),EXIT,"no forward operate");
     
     int weight_height= out->height*out->width*out->channel;

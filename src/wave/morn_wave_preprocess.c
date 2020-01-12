@@ -86,7 +86,7 @@ struct HandleWaveWithWindow {
 
 void endWaveWithWindow(void *info)
 {
-    struct HandleWaveWithWindow *handle =info;
+    struct HandleWaveWithWindow *handle =(struct HandleWaveWithWindow *)info;
     if(handle->win != NULL) mWaveRelease(handle->win);
 }
 void mWaveWindow(MWave *src,MWave *dst,void (*win_func)(MWave *))
@@ -94,7 +94,7 @@ void mWaveWindow(MWave *src,MWave *dst,void (*win_func)(MWave *))
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(src,WaveWithWindow,hdl);
-    struct HandleWaveWithWindow *handle = hdl->handle;
+    struct HandleWaveWithWindow *handle = (struct HandleWaveWithWindow *)(hdl->handle);
     if((hdl->valid == 0)||(win_func != handle->win_func))
     {
         if(handle->win == NULL) handle->win = mWaveCreate(1,src->size,NULL);

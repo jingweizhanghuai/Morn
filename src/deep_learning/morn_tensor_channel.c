@@ -21,7 +21,7 @@ struct TensorMergePara
 
 void *mTensorMergePara(MFile *ini,char *name)
 {
-    struct TensorMergePara *para = mMalloc(sizeof(struct TensorMergePara));
+    struct TensorMergePara *para = (struct TensorMergePara *)mMalloc(sizeof(struct TensorMergePara));
    
     char *value;
     
@@ -43,7 +43,7 @@ void *mTensorMergePara(MFile *ini,char *name)
 void TensorMergeSet(MLayer *layer)
 {
     if(layer->state!=DFLT) return;
-    struct TensorMergePara *para = layer->para;
+    struct TensorMergePara *para = (struct TensorMergePara *)(layer->para);
     MTensor *in1 = para->prev1->tns;MTensor *res1= para->prev1->res;
     MTensor *in2 = para->prev2->tns;MTensor *res2= para->prev2->res;
     MTensor *out= layer->tns;
@@ -54,7 +54,7 @@ void TensorMergeSet(MLayer *layer)
     mException((height!=in2->height)||(width!=in2->width)||(batch!=in2->batch),EXIT,"invalid prev layer");
     
     mTensorRedefine(out,batch,in1->channel+in2->channel,height,width,NULL);
-    float **data1=mMalloc(batch*sizeof(float *));float **data2=mMalloc(batch*sizeof(float *));
+    float **data1=(float **)mMalloc(batch*sizeof(float *));float **data2=(float **)mMalloc(batch*sizeof(float *));
     for(int b=0;b<batch;b++) 
     {
         data1[b]=out->data[b];
@@ -88,7 +88,7 @@ void mTensorMergeForward(MLayer *layer)
     
     TensorMergeSet(layer);
     
-    struct TensorMergePara *para = layer->para;
+    struct TensorMergePara *para = (struct TensorMergePara *)(layer->para);
     MTensor *in1 = para->prev1->tns;
     MTensor *in2 = para->prev2->tns;
     MTensor *out= layer->tns;
@@ -109,7 +109,7 @@ void mTensorMergeBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Merge",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorMergePara *para = layer->para;
+    struct TensorMergePara *para = (struct TensorMergePara *)(layer->para);
     MTensor *res1= para->prev1->res;
     MTensor *res2= para->prev2->res;
     MTensor *out= layer->res;
@@ -147,7 +147,7 @@ struct TensorSplitPara
 
 void *mTensorSplitPara(MFile *ini,char *name)
 {
-    struct TensorSplitPara *para = mMalloc(sizeof(struct TensorSplitPara));
+    struct TensorSplitPara *para = (struct TensorSplitPara *)mMalloc(sizeof(struct TensorSplitPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -161,7 +161,7 @@ void *mTensorSplitPara(MFile *ini,char *name)
     MList *list = mListCreate(DFLT,NULL);
     mStringSplit(value,":",list);
     mException((list->num>2),EXIT,"invalid channel para");
-    if(list->num>1) para->end = atoi(list->data[1]);
+    if(list->num>1) para->end = atoi((char *)(list->data[1]));
     mListRelease(list);
     if(para->begin>para->end) {int buff=para->begin;para->begin=para->end;para->end=buff;}
     
@@ -171,7 +171,7 @@ void *mTensorSplitPara(MFile *ini,char *name)
 void TensorSplitSet(MLayer *layer)
 {
     if(layer->state!=DFLT) return;
-    struct TensorSplitPara *para = layer->para;
+    struct TensorSplitPara *para = (struct TensorSplitPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
@@ -179,7 +179,7 @@ void TensorSplitSet(MLayer *layer)
     int channel = para->end-para->begin+1;
     
     int offset = para->begin*in->height*in->width;
-    float **data = mMalloc(in->batch*sizeof(float *));
+    float **data = (float **)mMalloc(in->batch*sizeof(float *));
     
     for(int b=0;b<in->batch;b++)
         data[b] = in->data[b]+offset;
@@ -201,7 +201,7 @@ void mTensorSplitForward(MLayer *layer)
     
     TensorSplitSet(layer);
     
-    struct TensorSplitPara *para = layer->para;
+    struct TensorSplitPara *para = (struct TensorSplitPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
     
@@ -220,7 +220,7 @@ void mTensorSplitBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Split",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorSplitPara *para = layer->para;
+    struct TensorSplitPara *para = (struct TensorSplitPara *)(layer->para);
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
@@ -243,8 +243,3 @@ void mTensorSplitBackward(MLayer *layer)
     
     if(para->res_valid==1) para->prev->state = MORN_BACKWARD;
 }
-
-
-
-
-    

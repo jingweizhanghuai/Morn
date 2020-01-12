@@ -49,11 +49,11 @@ void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
         y_min = MIN(y_min,YIn[i]);
         y_max = MAX(y_max,YIn[i]);
     }
-    int   *num  =mMalloc(piece_num*8*sizeof(int)  );memset(  num,0,piece_num*8*sizeof(int)  );
-    float *sumx =mMalloc(piece_num*8*sizeof(float));memset( sumx,0,piece_num*8*sizeof(float));
-    float *sumy =mMalloc(piece_num*8*sizeof(float));memset( sumy,0,piece_num*8*sizeof(float));
-    float *sumxy=mMalloc(piece_num*8*sizeof(float));memset(sumxy,0,piece_num*8*sizeof(float));
-    float *sumx2=mMalloc(piece_num*8*sizeof(float));memset(sumx2,0,piece_num*8*sizeof(float));
+    int   *num  =(int   *)mMalloc(piece_num*8*sizeof(int)  );memset(  num,0,piece_num*8*sizeof(int)  );
+    float *sumx =(float *)mMalloc(piece_num*8*sizeof(float));memset( sumx,0,piece_num*8*sizeof(float));
+    float *sumy =(float *)mMalloc(piece_num*8*sizeof(float));memset( sumy,0,piece_num*8*sizeof(float));
+    float *sumxy=(float *)mMalloc(piece_num*8*sizeof(float));memset(sumxy,0,piece_num*8*sizeof(float));
+    float *sumx2=(float *)mMalloc(piece_num*8*sizeof(float));memset(sumx2,0,piece_num*8*sizeof(float));
     
     struct LineInfo
     {
@@ -107,19 +107,19 @@ void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
     mFree(num);mFree(sumx);mFree(sumy);mFree(sumxy);mFree(sumx2);
     
     struct LineInfo *info1,*info2;
-    info1 = list->data[0];
+    info1 = (struct LineInfo *)(list->data[0]);
     if(flag) {info1->ps.x = x_min;info1->ps.y = info1->k*x_min +info1->b;}
     else     {info1->ps.y = y_min;info1->ps.x =(y_min-info1->b)/info1->k;}
     for(i=0;i<m-1;m=m+1)
     {
-        info1 = list->data[m];
-        info2 = list->data[m+1];
+        info1 = (struct LineInfo *)(list->data[m  ]);
+        info2 = (struct LineInfo *)(list->data[m+1]);
         float x = (info2->b-info1->b)/(info1->k-info2->k);
         float y = info1->k*x+info1->b;
         info1->pe.x = x;info1->pe.y=y;
         info2->ps.x = x;info2->ps.y=y;
     }
-    info2 = list->data[m-1];
+    info2 = (struct LineInfo *)(list->data[m-1]);
     if(flag) {info2->pe.x = x_max;info2->pe.y = info2->k*x_max +info2->b;}
     else     {info2->pe.y = y_max;info2->pe.x =(y_max-info2->b)/info2->k;}
 }
@@ -689,48 +689,31 @@ void mPolyFit(float *XIn,float *YIn,int N,float *A,int k)
 
 void mExpFitLSM(float *XIn,float *YIn,int N,float *A)
 {
-    float *lny;
-    int i;
-    float answer[2];
+    float *lny = (float *)mMalloc(sizeof(float)*N);
+    for(int i=0;i<N;i++) lny[i] = log(YIn[i]);
     
-    lny = mMalloc(sizeof(float)*N);
-    for(i=0;i<N;i++)
-        lny[i] = log(YIn[i]);
-    
-    mLinearFitLSM(XIn,lny,N,answer);
-    
-    A[1] = answer[0];
-    A[0] = exp(answer[1]);
+    float answer[2]; mLinearFitLSM(XIn,lny,N,answer);
+    A[1] = answer[0]; A[0] = exp(answer[1]);
     
     mFree(lny);
 }
 
 void mExpFit(float *XIn,float *YIn,int N,float *A)
 {
-    float *lny;
-    int i;
-    float answer[2];
+    float *lny = (float *)mMalloc(sizeof(float)*N);
+    for(int i=0;i<N;i++) lny[i] = log(YIn[i]);
     
-    lny = mMalloc(sizeof(float)*N);
-    for(i=0;i<N;i++)
-        lny[i] = log(YIn[i]);
+    float answer[2];mLinearFit(XIn,lny,N,answer);
     
-    mLinearFit(XIn,lny,N,answer);
-    
-    A[1] = answer[0];
-    A[0] = exp(answer[1]);
+    A[1] = answer[0]; A[0] = exp(answer[1]);
     
     mFree(lny);
 }
 
 void mLnFitLSM(float *XIn,float *YIn,int N,float *A)
 {
-    float *lnx;
-    int i;
-    
-    lnx = mMalloc(sizeof(float)*N);
-    for(i=0;i<N;i++)
-        lnx[i] = log(XIn[i]);
+    float *lnx = (float *)mMalloc(sizeof(float)*N);
+    for(int i=0;i<N;i++) lnx[i] = log(XIn[i]);
     
     mLinearFitLSM(lnx,YIn,N,A);
     
@@ -739,12 +722,8 @@ void mLnFitLSM(float *XIn,float *YIn,int N,float *A)
 
 void mLnFit(float *XIn,float *YIn,int N,float *A)
 {
-    float *lnx;
-    int i;
-    
-    lnx = mMalloc(sizeof(float)*N);
-    for(i=0;i<N;i++)
-        lnx[i] = log(XIn[i]);
+    float *lnx = (float *)mMalloc(sizeof(float)*N);
+    for(int i=0;i<N;i++) lnx[i] = log(XIn[i]);
     
     mLinearFit(lnx,YIn,N,A);
     
@@ -753,44 +732,24 @@ void mLnFit(float *XIn,float *YIn,int N,float *A)
 
 void mPowerFitLSM(float *XIn,float *YIn,int N,float *A)
 {
-    float *lnx,*lny;
-    int i;
-    float answer[2];
+    float *lnx = (float *)mMalloc(sizeof(float)*N*2);
+    float *lny = lnx+N;
+    for(int i=0;i<N;i++){lnx[i] = log(XIn[i]);lny[i] = log(YIn[i]);}
     
-    lnx = mMalloc(sizeof(float)*N*2);
-    lny = lnx+N;
-    for(i=0;i<N;i++)
-    {
-        lnx[i] = log(XIn[i]);
-        lny[i] = log(YIn[i]);
-    }
-    
-    mLinearFitLSM(lnx,lny,N,answer);
-    
-    A[1] = answer[0];
-    A[0] = exp(answer[1]);
+    float answer[2];mLinearFitLSM(lnx,lny,N,answer);
+    A[1] = answer[0]; A[0] = exp(answer[1]);
     
     mFree(lnx);
 }
 
 void mPowerFit(float *XIn,float *YIn,int N,float *A)
 {
-    float *lnx,*lny;
-    int i;
-    float answer[2];
+    float *lnx = (float *)mMalloc(sizeof(float)*N*2);
+    float *lny = lnx+N;
+    for(int i=0;i<N;i++){lnx[i] = log(XIn[i]); lny[i] = log(YIn[i]);}
     
-    lnx = mMalloc(sizeof(float)*N*2);
-    lny = lnx+N;
-    for(i=0;i<N;i++)
-    {
-        lnx[i] = log(XIn[i]);
-        lny[i] = log(YIn[i]);
-    }
-    
-    mLinearFit(lnx,lny,N,answer);
-    
-    A[1] = answer[0];
-    A[0] = exp(answer[1]);
+    float answer[2];mLinearFit(lnx,lny,N,answer);
+    A[1] = answer[0]; A[0] = exp(answer[1]);
     
     mFree(lnx);
 }

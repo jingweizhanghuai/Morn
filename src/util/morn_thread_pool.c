@@ -45,11 +45,11 @@ struct HandleThreadPool
 };
 void endThreadPool(void *info)
 {
-    struct HandleThreadPool *handle = info;
+    struct HandleThreadPool *handle = (struct HandleThreadPool *)info;
     MList *pool = handle->pool;
     for(int i=0;i<pool->num;i++)
     {
-        struct ThreadPoolData *data = pool->data[i];
+        struct ThreadPoolData *data = (struct ThreadPoolData *)(pool->data[i]);
         while(data->state == 1) {mSleep(1);}
         data->func = NULL;
         data->state = 1;
@@ -65,12 +65,12 @@ void endThreadPool(void *info)
 
 void ThreadFunc(void *thread_data)
 {
-    struct ThreadPoolData *data = thread_data;
+    struct ThreadPoolData *data = (struct ThreadPoolData *)thread_data;
     pthread_mutex_init(&(data->mutex),NULL);
     pthread_cond_init( &(data->cond ),NULL);
 
     MHandle *hdl; ObjectHandle(data->pool,ThreadPool,hdl);
-    struct HandleThreadPool *handle = hdl->handle;
+    struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
     
     while(1)
     {
@@ -90,7 +90,7 @@ void ThreadFunc(void *thread_data)
         if(handle->buff->num==0) data->state = 0;
         else
         {
-            struct ThreadBuffData *buff_data = handle->buff->data[handle->buff->num-1];
+            struct ThreadBuffData *buff_data = (struct ThreadBuffData *)(handle->buff->data[handle->buff->num-1]);
             data->func = buff_data->func;
             data->para = buff_data->para;
             data->flag = buff_data->flag;
@@ -110,7 +110,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
     
     int i;
     MHandle *hdl; ObjectHandle(pool,ThreadPool,hdl);
-    struct HandleThreadPool *handle = hdl->handle;
+    struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
     if(hdl->valid == 0)
     {
         handle->pool = pool;
@@ -127,10 +127,10 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
         
         for(i=0;i<pool->num;i++)
         {
-            struct ThreadPoolData *data = pool->data[i];
+            struct ThreadPoolData *data = (struct ThreadPoolData *)(pool->data[i]);
             data->state=0;
             data->pool = pool;
-            mException((pthread_create(&(data->tid),NULL,(void *)ThreadFunc,(void *)data)!=0),EXIT,"error with create thread");
+            mException((pthread_create(&(data->tid),NULL,(void* (*)(void*))ThreadFunc,(void *)data)!=0),EXIT,"error with create thread");
         }
         handle->buff_valid = 1;
 
@@ -141,7 +141,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
     pthread_mutex_lock(&(handle->mutex0));
     for(i=0;i<pool->num;i++)
     {
-        struct ThreadPoolData *data = pool->data[i];
+        struct ThreadPoolData *data = (struct ThreadPoolData *)(pool->data[i]);
         if(data->state == 1) continue;
 
         data->func = func;
@@ -170,7 +170,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
         
         for(i=0;i<buff->num;i++)
         {
-            struct ThreadBuffData *p = buff->data[i];
+            struct ThreadBuffData *p = (struct ThreadBuffData *)(buff->data[i]);
             if(priority >= p->priority)
             {
                 mListElementInsert(buff,i,&buff_data,sizeof(struct ThreadBuffData));

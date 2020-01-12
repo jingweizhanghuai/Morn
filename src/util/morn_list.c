@@ -36,7 +36,7 @@ MList *mListCreate(int num,void **data)
     memset(list,0,sizeof(MList));
     
     MHandle *hdl; ObjectHandle(list,ListCreate,hdl);
-    struct HandleListCreate *handle = hdl->handle;
+    struct HandleListCreate *handle = (struct HandleListCreate *)(hdl->handle);
     handle->list = list;
     
     if(num<0) num = 0;
@@ -72,7 +72,7 @@ void mListAppend(MList *list,int n)
     
     mHandleReset(list->handle);
     
-    struct HandleListCreate *handle= ((MHandle *)(list->handle->data[0]))->handle;
+    struct HandleListCreate *handle= (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
     if(n<=handle->num) 
     {
         if(list->data!= handle->data)
@@ -106,12 +106,12 @@ void mListPlace(MList *list,void *data,int num,int size)
     
     mListAppend(list,num);
     
-    struct HandleListCreate *handle = ((MHandle *)(list->handle->data[0]))->handle;
+    struct HandleListCreate *handle = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(num,size);
     mMemoryIndex(handle->memory,num,size,list->data);
     
     if(data==NULL) return;
-    char *p=data;
+    char *p=(char *)data;
     for(int i=0;i<num;i++) {memcpy(list->data[i],p,size);p+=size;}
 }
 
@@ -119,15 +119,15 @@ struct HandleListWrite
 {
     int write_size;
 };
-void endListWrite(void *info) {NULL;}
+void endListWrite(void *info) {}
 #define HASH_ListWrite 0x40aea976
 void *mListWrite(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
     mException((n>list->num)||(INVALID_POINTER(data)),EXIT,"invalid write location");
-    if(size<=0) size = strlen(data)+1;
+    if(size<=0) size = strlen((char *)data)+1;
     
-    struct HandleListCreate *handle0 = ((MHandle *)(list->handle->data[0]))->handle;
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
     if(n<0) n = list->num;
     
     if(handle0->memory == NULL)
@@ -143,7 +143,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
     {
         list->data[n] = mMemoryWrite(handle0->memory,data,size);
         MHandle *hdl; ObjectHandle(list,ListWrite,hdl);
-        struct HandleListWrite *handle = hdl->handle;
+        struct HandleListWrite *handle = (struct HandleListWrite *)(hdl->handle);
         handle->write_size += size;
         if(handle->write_size>16384)
         {
@@ -159,14 +159,14 @@ struct HandleListRead
 {
     int order;
 };
-void endListRead(void *info) {NULL;}
+void endListRead(void *info) {}
 #define HASH_ListRead 0x537cc305
 void *mListRead(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(list,ListRead,hdl);
-    struct HandleListRead *handle = hdl->handle;
+    struct HandleListRead *handle = (struct HandleListRead *)(hdl->handle);
     if(hdl->valid == 0) handle->order = -1;
     hdl->valid = 1;
     
@@ -177,8 +177,8 @@ void *mListRead(MList *list,int n,void *data,int size)
     
     if(data!=NULL)
     {
-        if(size>0) memcpy(data,list->data[n],size);
-        else       strcpy(data,list->data[n]);
+        if(size>0) memcpy(        data,        list->data[n],size);
+        else       strcpy((char *)data,(char *)list->data[n]);
     }
     return list->data[n];
 }
@@ -205,7 +205,7 @@ void mListCopy(MList *src,MList *dst)
     
     MHandle *hdl;
     ObjectHandle(src,ListCreate,hdl);
-    struct HandleListCreate *src_handle = hdl->handle;
+    struct HandleListCreate *src_handle = (struct HandleListCreate *)(hdl->handle);
     if(src_handle->memory == NULL)
     {
         memcpy(dst->data,src->data,src->num*sizeof(void *));
@@ -213,7 +213,7 @@ void mListCopy(MList *src,MList *dst)
     }
     
     ObjectHandle(dst,ListCreate,hdl);
-    struct HandleListCreate *dst_handle = hdl->handle;
+    struct HandleListCreate *dst_handle = (struct HandleListCreate *)(hdl->handle);
     if(dst_handle->memory == NULL)
         dst_handle->memory = mMemoryCreate(DFLT,DFLT);
         
@@ -226,12 +226,12 @@ void mListMerge(MList *list1,MList *list2,MList *dst)
     
     MHandle *hdl;
     ObjectHandle(list1,ListCreate,hdl);
-    struct HandleListCreate *handle1 = hdl->handle;
+    struct HandleListCreate *handle1 = (struct HandleListCreate *)(hdl->handle);
     ObjectHandle(list2,ListCreate,hdl);
-    struct HandleListCreate *handle2 = hdl->handle;
+    struct HandleListCreate *handle2 = (struct HandleListCreate *)(hdl->handle);
     
     ObjectHandle(dst,ListCreate,hdl);
-    struct HandleListCreate *dst_handle = hdl->handle;
+    struct HandleListCreate *dst_handle = (struct HandleListCreate *)(hdl->handle);
     
     int num1 = list1->num;
     int num2 = list2->num;
@@ -338,7 +338,7 @@ int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *
 {
     mException((INVALID_POINTER(list))||(group==NULL)||(func==NULL),EXIT,"invalid input");
 
-    char *valid = mMalloc(list->num * sizeof(char));
+    char *valid = (char *)mMalloc(list->num * sizeof(char));
     memset(valid,0   ,list->num*sizeof(char));
     memset(group,DFLT,list->num*sizeof(int));
     
@@ -371,7 +371,7 @@ int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *
         }
     }
     
-    int *c = mMalloc(n *sizeof(int));
+    int *c = (int *)mMalloc(n *sizeof(int));
     int num = 0;
     for(i=0;i<n;i++)
     {
@@ -427,13 +427,13 @@ struct HandleStack
 {
     int order;
 };
-void endStack(void *info) {NULL;}
+void endStack(void *info) {}
 #define HASH_Stack 0x8c4d4c73
 void *mStackWrite(MList *stack,void *data,int size)
 {
     mException(INVALID_POINTER(stack),EXIT,"invalid stack");
     MHandle *hdl;ObjectHandle(stack,Stack,hdl);
-    struct HandleStack *handle = hdl->handle;
+    struct HandleStack *handle = (struct HandleStack *)(hdl->handle);
     if(hdl->valid == 0) handle->order = -1;
     hdl->valid = 1;
     if(handle->order==stack->num-1) return NULL;
@@ -446,7 +446,7 @@ void *mStackRead(MList *stack,void *data,int size)
 {
     mException(INVALID_POINTER(stack),EXIT,"invalid stack");
     MHandle *hdl;ObjectHandle(stack,Stack,hdl);
-    struct HandleStack *handle = hdl->handle;
+    struct HandleStack *handle = (struct HandleStack *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     if(handle->order <0) return NULL;
     
@@ -454,7 +454,7 @@ void *mStackRead(MList *stack,void *data,int size)
     handle->order -= 1;
     if(data!=NULL)
     {
-        if(size<=0) strcpy(data,p);
+        if(size<=0) strcpy((char *)data,(char *)p);
         else memcpy(data,p,size);
     }
     
@@ -465,7 +465,7 @@ int mStackSize(MList *stack)
 {
     mException(INVALID_POINTER(stack),EXIT,"invalid stack");
     MHandle *hdl;ObjectHandle(stack,Stack,hdl);
-    struct HandleStack *handle = hdl->handle;
+    struct HandleStack *handle = (struct HandleStack *)(hdl->handle);
     if(hdl->valid == 0) handle->order = -1;
     hdl->valid = 1;
     
@@ -478,14 +478,14 @@ struct HandleQueue
     int write_order;
     int flag;
 };
-void endQueue(void *info) {NULL;}
+void endQueue(void *info) {}
 #define HASH_Queue 0xd98b43dc
 
 int mQueueSize(MList *queue)
 {
     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
     MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
+    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
     if(handle->flag>0) return queue->num;
     if(handle->flag<0) return 0;
     
@@ -498,7 +498,7 @@ void *mQueueWrite(MList *queue,void *data,int size)
     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
     mException(queue->num<=0,EXIT,"invalid queue");
     MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
+    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
     if(hdl->valid == 0) {handle->read_order=0;handle->write_order=0;}
     hdl->valid = 1;
     
@@ -515,7 +515,7 @@ void *mQueueRead(MList *queue,void *data,int size)
     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
     mException(queue->num<=0,EXIT,"invalid queue");
     MHandle *hdl;ObjectHandle(queue,Queue,hdl);
-    struct HandleQueue *handle = hdl->handle;
+    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     
     if(handle->flag<0) return NULL;
@@ -526,7 +526,7 @@ void *mQueueRead(MList *queue,void *data,int size)
     
     if(data!=NULL)
     {
-        if(size<=0) strcpy(data,p);
+        if(size<=0) strcpy((char *)data,(char *)p);
         else memcpy(data,p,size);
     }
     return p;

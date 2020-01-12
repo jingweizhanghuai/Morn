@@ -18,13 +18,13 @@ struct HandleSimilarityFeature
 {
     uint32_t feature[4][63];
 };
-void endSimilarityFeature(void *info) {NULL;}
+void endSimilarityFeature(void *info) {}
 #define HASH_SimilarityFeature 0xae6941e4
 
 uint32_t *mImageSimilarityFeature(MImage *src)
 {
     MHandle *hdl; ObjectHandle(src,SimilarityFeature,hdl);
-    struct HandleSimilarityFeature *handle = hdl->handle;
+    struct HandleSimilarityFeature *handle = (struct HandleSimilarityFeature *)(hdl->handle);
     if(hdl->valid == 1) return &(handle->feature[0][0]);
     hdl->valid =1;
         

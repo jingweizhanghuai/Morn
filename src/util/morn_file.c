@@ -4,8 +4,8 @@
 
 #include "morn_math.h"
 
-#define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
-#define fwrite(Data,Size,Num,Fl) mException((fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
+#define fwrite(Data,Size,Num,Fl) mException(((int)fwrite(Data,Size,Num,Fl)!=Num),EXIT,"write file error");
 
 struct Chunk
 {
@@ -71,12 +71,12 @@ int mMORNSize(MFile *file,const char *name)
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,MORNRead,hdl);
-    struct HandleMORNRead *handle = hdl->handle;
+    struct HandleMORNRead *handle = (struct HandleMORNRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         mException(INVALID_POINTER(file->object),EXIT,"invalid input");
         if(handle->f!=NULL) fclose(handle->f);
-        handle->f = fopen(file->object,"rb");
+        handle->f = fopen((const char *)(file->object),"rb");
         if(handle->f == NULL) return 0;
        
         if(handle->list == NULL)
@@ -148,7 +148,7 @@ void mMORNRead(MFile *file,const char *name,void **data,int num,int size)
     mException((chunk_size<size*num),EXIT,"no enough data for %s,size need %d,chunk_size is %d",name,size*num,chunk_size);
     
     MHandle *hdl; ObjectHandle(file,MORNRead,hdl);
-    struct HandleMORNRead *handle = hdl->handle;
+    struct HandleMORNRead *handle = (struct HandleMORNRead *)(hdl->handle);
     
     // fseek(handle->f,handle->locate,SEEK_SET);
     
@@ -182,12 +182,12 @@ void mMORNWrite(MFile *file,const char *name,void **data,int num,int size)
     mException(INVALID_POINTER(file)||(size<=0),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,MORNWrite,hdl);
-    struct HandleMORNWrite *handle = hdl->handle;
+    struct HandleMORNWrite *handle = (struct HandleMORNWrite *)(hdl->handle);
     if(hdl->valid == 0)
     {
         mException(INVALID_POINTER(file->object),EXIT,"invalid input");
         if(handle->f!=NULL) fclose(handle->f);
-        handle->f = fopen(file->object,"wb");
+        handle->f = fopen(file->filename,"wb");
         mException((handle->f == NULL),EXIT,"file cannot open");
         handle->size = 4;
       

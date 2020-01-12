@@ -29,7 +29,7 @@ struct HandleBuffer
 };
 void endBuffer(void *info)
 {
-    struct HandleBuffer *handle = info;
+    struct HandleBuffer *handle = (struct HandleBuffer *)info;
     if(handle->order  != NULL) mFree(handle->order);
     if(handle->mutex  != NULL) mFree(handle->mutex);
     if(handle->flag   != NULL) mFree(handle->flag);
@@ -53,17 +53,17 @@ void mBufferSet(MList *buff,int buff_num,int thread_num)
     mListAppend(buff,buff_num);
     
     MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
-    struct HandleBuffer *handle = hdl->handle;
+    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->order != NULL) if(handle->buff_num < buff_num) {mFree(handle->order);handle->order = NULL;}
-        if(handle->order == NULL) handle->order = mMalloc(buff_num*sizeof(int));
+        if(handle->order == NULL) handle->order = (int *)mMalloc(buff_num*sizeof(int));
         
         if(handle->mutex != NULL) if(handle->buff_num < buff_num) {mFree(handle->mutex);handle->mutex = NULL;}
-        if(handle->mutex == NULL) handle->mutex = mMalloc(buff_num*sizeof(pthread_mutex_t));
+        if(handle->mutex == NULL) handle->mutex = (pthread_mutex_t *)mMalloc(buff_num*sizeof(pthread_mutex_t));
        
         if(handle->flag != NULL) if(handle->buff_num < buff_num) {mFree(handle->flag);handle->flag = NULL;}
-        if(handle->flag == NULL) handle->flag = mMalloc(buff_num*sizeof(int));
+        if(handle->flag == NULL) handle->flag = (int *)mMalloc(buff_num*sizeof(int));
         
         for(int i=0;i<buff_num;i++)
         {
@@ -74,13 +74,13 @@ void mBufferSet(MList *buff,int buff_num,int thread_num)
         if(handle->buff_num<buff_num) handle->buff_num = buff_num;
         
         if(handle->locate != NULL) if(handle->thread_num < thread_num) {mFree(handle->locate);handle->locate = NULL;}
-        if(handle->locate == NULL) handle->locate = mMalloc(thread_num*sizeof(int));
+        if(handle->locate == NULL) handle->locate = (int *)mMalloc(thread_num*sizeof(int));
        
         if(handle->cond != NULL) if(handle->thread_num < thread_num) {mFree(handle->cond);handle->cond = NULL;}
-        if(handle->cond == NULL) handle->cond = mMalloc(thread_num*sizeof(pthread_cond_t));
+        if(handle->cond == NULL) handle->cond = (pthread_cond_t *)mMalloc(thread_num*sizeof(pthread_cond_t));
         
         if(handle->ID != NULL) if(handle->thread_num < thread_num) {mFree(handle->ID);handle->ID = NULL;}
-        if(handle->ID == NULL) handle->ID = mMalloc(thread_num*sizeof(pthread_t));
+        if(handle->ID == NULL) handle->ID = (pthread_t *)mMalloc(thread_num*sizeof(pthread_t));
         undefined_thread=pthread_self();
         
         for(int i=0;i<thread_num;i++)
@@ -102,7 +102,7 @@ void *mBufferRead(MList *buff,int order,void *data,int size)
     mException((buff==NULL),EXIT,"invalid input buffer");
     
     MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
-    struct HandleBuffer *handle = hdl->handle;
+    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     
     mException((order>=handle->thread_num),EXIT,"invalid input");
@@ -159,7 +159,7 @@ void *mBufferRead(MList *buff,int order,void *data,int size)
     if(data!=NULL) 
     {
         if(size>0) memcpy(data,p,size);
-        else       strcpy(data,p);
+        else       strcpy((char *)data,(char *)p);
     }
     return p;
 }
@@ -169,7 +169,7 @@ void *mBufferWrite(MList *buff,int order,void *data,int size)
     mException((buff==NULL),EXIT,"invalid input buffer");
     
     MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
-    struct HandleBuffer *handle = hdl->handle;
+    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     
     mException((order>=handle->thread_num),EXIT,"invalid input");

@@ -27,7 +27,7 @@ struct HandleJSONLoad {
 };
 void endJSONLoad(void *info)
 {
-    struct HandleJSONLoad *handle = info;
+    struct HandleJSONLoad *handle = (struct HandleJSONLoad *)info;
     if(handle->file != NULL)
         mFree(handle->file);
 }
@@ -42,7 +42,7 @@ void mJSONLoad(char *filename,MTree *tree)
     fseek(f,0,SEEK_SET);
     
     MHandle *hdl; ObjectHandle(tree,JSONLoad,hdl);
-    struct HandleJSONLoad *handle = hdl->handle;
+    struct HandleJSONLoad *handle = (struct HandleJSONLoad *)(hdl->handle);
     if(hdl->valid==0)
     {
         if(handle->file!=NULL) mFree(handle->file);
@@ -63,7 +63,7 @@ void mJSONLoad(char *filename,MTree *tree)
     tree->object = mTreeNode(tree,NULL,sizeof(JSONData));
     
     MTreeNode *node = mTreeNode(tree,NULL,sizeof(JSONData));
-    mTreeNodeSet(tree->object,node,DFLT);
+    mTreeNodeSet(tree->treenode,node,DFLT);
     JSONData *data = (JSONData *)(node->data);
     data->name = handle->header;
     data->value= p;
@@ -92,7 +92,7 @@ void mJSONLoad(char *filename,MTree *tree)
             
             MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
             mTreeNodeSet(node->parent,child,DFLT);
-            data = child->data;
+            data = (JSONData *)(child->data);
             
             if(key[0]=='[') {data->name = ((JSONData *)(node->data))->name;json=&(data->value);}
             else json=&(data->name);
@@ -106,7 +106,7 @@ void mJSONLoad(char *filename,MTree *tree)
             
             MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
             mTreeNodeSet(node,child,DFLT);
-            data = child->data;
+            data = (JSONData *)(child->data);
      
             json=&(data->name);
             DeSPACE; *json=p+1;
@@ -288,7 +288,7 @@ void JSONSearch(MTreeNode *node,char **name,int n,MList *list)
     {
         for(int i=0;i<node->child_num;i++)
         {
-            JSONData *data = node->child[i]->data;
+            JSONData *data = (JSONData *)(node->child[i]->data);
             if(strcmp(data->name,name[0])==0)
                 if(data->value!=NULL)
                     mListWrite(list,DFLT,data->value,DFLT);
@@ -297,7 +297,7 @@ void JSONSearch(MTreeNode *node,char **name,int n,MList *list)
     }
     for(int i=0;i<node->child_num;i++)
     {
-        JSONData *data = node->child[i]->data;
+        JSONData *data = (JSONData *)(node->child[i]->data);
         if(strcmp(data->name,name[0])==0)
             JSONSearch(node->child[i],name+1,n-1,list);
     }
@@ -309,7 +309,7 @@ struct HandleJSONSearch
 };
 void endJSONSearch(void *info) 
 {
-    struct HandleJSONSearch *handle = info;
+    struct HandleJSONSearch *handle = (struct HandleJSONSearch *)info;
     if(handle->name!= NULL) mListRelease(handle->name);
 }
 #define HASH_JSONSearch 0x40bc5267
@@ -317,7 +317,7 @@ void mJSONSearch(MTree *tree,MList *result,char *name)
 {
     mException((tree==NULL)||(name==NULL),EXIT,"invalid input");
     MHandle *hdl; ObjectHandle(tree,JSONSearch,hdl);
-    struct HandleJSONSearch *handle = hdl->handle;
+    struct HandleJSONSearch *handle = (struct HandleJSONSearch *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->name  ==NULL) handle->name  =mListCreate(DFLT,NULL);

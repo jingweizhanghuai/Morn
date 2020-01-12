@@ -48,7 +48,7 @@ MTensor *mTensorCreate(int batch,int channel,int height,int width,float **data)
     tns->channel = channel;
     
     MHandle *hdl; ObjectHandle(tns,TensorCreate,hdl);
-    struct HandleTensorCreate *handle = hdl->handle;
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(hdl->handle);
     handle->tns = tns;
     
     int size = channel*height*width;
@@ -106,7 +106,7 @@ void mTensorRedefine(MTensor *tns,int batch,int channel,int height,int width,flo
     tns->channel = channel;
     
     if(same_size&&reuse) return;
-    struct HandleTensorCreate *handle = ((MHandle *)(tns->handle->data[0]))->handle;
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(((MHandle *)(tns->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->size >0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     

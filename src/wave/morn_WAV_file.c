@@ -177,7 +177,7 @@ void mWAVSave(MWave *src,const char *filename)
     fwrite("data",1,4,f);
     fwrite(&datasize,4,1,f);
     
-    short *buff = mMalloc(datasize);
+    short *buff = (short *)mMalloc(datasize);
     int i,n;
     for(i=0,n=0;i<src->size;i++,n=n+src->channel)for(int c=0;c<src->channel;c++)
     {
@@ -204,7 +204,7 @@ int mWAVRead(MFile *file,MWave *dst)
     mException((file==NULL)||(dst==NULL),EXIT,"invalid input");
     
     MHandle *hdl; ObjectHandle(file,WAVRead,hdl);
-    struct HandleWAVRead *handle = hdl->handle;
+    struct HandleWAVRead *handle = (struct HandleWAVRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->f!=NULL)fclose(handle->f);
@@ -317,10 +317,10 @@ int mWAVWrite(MObject *file,MWave *src)
     float frequency = mInfoGet(&(src->info),"frequency");
     
     MHandle *hdl; ObjectHandle(file,WAVWrite,hdl);
-    struct MWAVInfo *handle = hdl->handle;
+    struct MWAVInfo *handle = (struct MWAVInfo *)(hdl->handle);
     if(hdl->valid == 0)
     {
-        handle->f = fopen(file->object,"wb");
+        handle->f = fopen(file->filename,"wb");
         mException((handle->f == NULL),EXIT,"file cannot open");
         
         mException(mIsNan(frequency),EXIT,"invalid input wave sample rate");
@@ -343,7 +343,7 @@ int mWAVWrite(MObject *file,MWave *src)
         src = handle->wave;
     }
     
-    short *buff = mMalloc(src->size*src->channel*sizeof(float));
+    short *buff = (short *)mMalloc(src->size*src->channel*sizeof(float));
     int i,n;
     for(i=0,n=0;i<src->size;i++,n=n+src->channel)for(int c=0;c<src->channel;c++)
     {

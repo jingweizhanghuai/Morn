@@ -20,7 +20,7 @@ struct TensorDropoutPara
 
 void *mTensorDropoutPara(MFile *ini,char *name)
 {
-    struct TensorDropoutPara *para = mMalloc(sizeof(struct TensorDropoutPara));
+    struct TensorDropoutPara *para = (struct TensorDropoutPara *)mMalloc(sizeof(struct TensorDropoutPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -37,7 +37,7 @@ void *mTensorDropoutPara(MFile *ini,char *name)
 void TensorDropoutSet(MLayer *layer)
 {
     if(layer->state!=DFLT) return;
-    struct TensorDropoutPara *para = layer->para;
+    struct TensorDropoutPara *para = (struct TensorDropoutPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
@@ -59,7 +59,7 @@ void mTensorDropoutForward(MLayer *layer)
     layer->state = MORN_FORWARD;
     if(morn_network_flag == MORN_PREDICT) return;
     
-    struct TensorDropoutPara *para = layer->para;
+    struct TensorDropoutPara *para =  (struct TensorDropoutPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
     
@@ -83,7 +83,7 @@ void mTensorDropoutBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Droupout",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorDropoutPara *para = layer->para;
+    struct TensorDropoutPara *para =  (struct TensorDropoutPara *)(layer->para);
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
@@ -116,7 +116,7 @@ struct TensorJitterPara
 
 void *mTensorJitterPara(MFile *ini,char *name)
 {
-    struct TensorJitterPara *para = mMalloc(sizeof(struct TensorJitterPara));
+    struct TensorJitterPara *para = (struct TensorJitterPara *)mMalloc(sizeof(struct TensorJitterPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -137,7 +137,7 @@ struct HandleTensorJitter
 };
 void endTensorJitter(void *info)
 {
-    struct HandleTensorJitter *handle = info;
+    struct HandleTensorJitter *handle = (struct HandleTensorJitter *)info;
     if(handle->scale != NULL) mFree(handle->scale);
 }
 #define HASH_TensorJitter 0x745a6164
@@ -145,7 +145,7 @@ void endTensorJitter(void *info)
 void TensorJitterSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    struct TensorJitterPara *para = layer->para;
+    struct TensorJitterPara *para = (struct TensorJitterPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
@@ -158,12 +158,12 @@ void TensorJitterSet(MLayer *layer)
     }
     
     MHandle *hdl; ObjectHandle(out,TensorJitter,hdl);
-    struct HandleTensorJitter *handle = hdl->handle;
+    struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     handle->num = in->channel*in->height*in->width; if(handle->num<1024) handle->num=1024;
     handle->num = ((handle->num+in->batch-1)/in->batch)*in->batch;
     
-    if(handle->scale != NULL) mFree(handle->scale); handle->scale = mMalloc(handle->num*sizeof(float));
+    if(handle->scale != NULL) mFree(handle->scale); handle->scale = (float *)mMalloc(handle->num*sizeof(float));
     for(int i=0;i<handle->num;i++)
         handle->scale[i] = mNormalRand(1.0f,para->delta);
     
@@ -179,12 +179,12 @@ void mTensorJitterForward(MLayer *layer)
     layer->state = MORN_FORWARD;
     if(morn_network_flag == MORN_PREDICT) return;
     
-    struct TensorJitterPara *para = layer->para;
+    struct TensorJitterPara *para = (struct TensorJitterPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorJitter,hdl);
-    struct HandleTensorJitter *handle = hdl->handle;
+    struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     int size = in->channel*in->height*in->width;
     int num = handle->num/in->batch;
@@ -206,12 +206,12 @@ void mTensorJitterBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Droupout",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorJitterPara *para = layer->para;
+    struct TensorJitterPara *para = (struct TensorJitterPara *)(layer->para);
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorJitter,hdl);
-    struct HandleTensorJitter *handle = hdl->handle;
+    struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     int size = out->channel*out->height*out->width;
     int num = handle->num/out->batch;
@@ -230,17 +230,3 @@ void mTensorJitterBackward(MLayer *layer)
     
     para->prev->state = MORN_BACKWARD;
 }
-
-
-
-
-
-    
-        
-        
-    
-    
-    
-    
-    
-    

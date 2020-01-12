@@ -12,7 +12,7 @@ Morn的深度学习框架，API力求简单，深度学习函数就两个，即�
 
 #### 预测
 
-所谓预测，就是输入一个张量（或者，也可以有多个输入），然后输出一个张量（或者，也可以有多个输出）。
+所谓预测，就是输入一个（或多个）张量，然后输出一个（或多个）张量。
 
 输入的张量就是预测的对象，它可以来自图片、音频、视频（图像序列）或者兼而有之。通常开发者需要把你的原始数据（图像、音频等）转换成张量，这个过程是预测的前处理过程。
 
@@ -47,12 +47,12 @@ void mNetworkTrain(MFile *ini,char *name[],MTensor *tns[]);
 这里的训练是指执行一次正向传播和一次反向传播。当然，一个工程的训练需要不断的去：①准备数据、②正向传播、③反向传播。其中②③两步由此`mNetworkTrain`函数完成。所以开发者需要去写一个循环去执行以上三步。或者你可以试一下以下这个函数。
 
 ```c
-void NetworkTrain(MFile *ini);
+void mDeepLearningTrain(char *ini_name);
 ```
 
 使用这个函数的前提是，你已经把所需要的所有训练数据写入了.morn文件，并且在ini文件里，指定了这些文件的路径。
 
-`NetworkTrain`这个函数所执行的就是循环的：①把数据从文件里取出来，②执行`mNetworkTrain`函数训练。
+`mDeepLearningTrain`这个函数所执行的就是循环的：①把数据从文件里取出来，②执行`mNetworkTrain`函数训练。
 
 
 
@@ -61,16 +61,15 @@ void NetworkTrain(MFile *ini);
 一个至简的深度学习训练：
 
 ```c
+#include "morn_tensor.h"
 int main()
 {
-    MFile *ini = mFileCreate("./test.ini");
-    NetworkTrain(ini);
-    mFileRelease(ini);
+    mDeepLearningTrain("./test.ini");
     return 0;
 }
 ```
 
-这也许是目前最简单的深度学习训练程序，训练一个深度学习模型只需要三步，①创建一个MFile文件，②训练，③把MFile文件释放掉。
+这也许是目前最简单的深度学习训练程序，训练一个深度学习模型只需要执行一个函数`mDeepLearningTrain`。
 
 下面，以MNIST数据集（就是那个手写数字的数据集）为例：
 
@@ -118,7 +117,6 @@ error_thresh = 0.01
 coverage_ratio = 2
 update_ratio = 0.1
 train_batch = 32
-predict_batch = 1
 para_dir = ./
 para_file = test_minist.morn
 data_dir = E:\minist\train_data

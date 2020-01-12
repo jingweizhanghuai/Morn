@@ -51,15 +51,15 @@ double Caculate(char **ptr)
     
     for(int i=list->num-1;i>0;i--)
     {
-        struct CaculateInfo *cal = list->data[i];
-        struct CaculateInfo *pre = list->data[i-1];
+        struct CaculateInfo *cal = (struct CaculateInfo *)(list->data[i  ]);
+        struct CaculateInfo *pre = (struct CaculateInfo *)(list->data[i-1]);
         if(cal->type=='^') {cal->type='=';cal->value=pow(pre->value,cal->value);pre->value=cal->value;}
     }
     
     for(int i=1;i<list->num;i++)
     {
-        struct CaculateInfo *cal = list->data[i];
-        struct CaculateInfo *pre = list->data[i-1];
+        struct CaculateInfo *cal = (struct CaculateInfo *)(list->data[i  ]);
+        struct CaculateInfo *pre = (struct CaculateInfo *)(list->data[i-1]);
              if(cal->type=='=') {cal->value= pre->value;}
         else if(cal->type=='*') {cal->type='=';cal->value=pre->value*cal->value;}
         else if(cal->type=='/') {cal->type='=';cal->value=pre->value/cal->value;}
@@ -68,15 +68,15 @@ double Caculate(char **ptr)
     
     for(int i=list->num-1;i>0;i--)
     {
-        struct CaculateInfo *cal = list->data[i];
-        struct CaculateInfo *pre = list->data[i-1];
+        struct CaculateInfo *cal = (struct CaculateInfo *)(list->data[i  ]);
+        struct CaculateInfo *pre = (struct CaculateInfo *)(list->data[i-1]);
         if(cal->type=='=') {pre->value=cal->value;}
     }
     
     double rst=0;
     for(int i=0;i<list->num;i++)
     {
-        struct CaculateInfo *cal = list->data[i];
+        struct CaculateInfo *cal = (struct CaculateInfo *)(list->data[i]);
              if(cal->type=='+') rst+=cal->value;
         else if(cal->type=='-') rst-=cal->value;
     }
@@ -137,7 +137,7 @@ double GetValue(char **ptr)
 double mCaculate(char *str)
 {
     int l = strlen(str)+1; int i=0,j=0;
-    char *buff = mMalloc(l*sizeof(char)); char *p=buff;
+    char *buff = (char *)mMalloc(l*sizeof(char)); char *p=buff;
     for(;i<l;i++) if(str[i]!=' ') {buff[j]=str[i];j++;}
     double rst = Caculate(&p);
     mFree(buff);

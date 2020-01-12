@@ -37,7 +37,7 @@ struct TensorSampleConvPara
 };
 void *mTensorSampleConvPara(MFile *ini,char *name)
 {
-    struct TensorSampleConvPara *para = mMalloc(sizeof(struct TensorSampleConvPara));
+    struct TensorSampleConvPara *para = (struct TensorSampleConvPara *)mMalloc(sizeof(struct TensorSampleConvPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -104,7 +104,7 @@ struct HandleTensorSampleConv
 };
 void endTensorSampleConv(void *info)
 {
-    struct HandleTensorSampleConv *handle = info;
+    struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)info;
     if(handle->mat   != NULL) mFree(handle->mat   );
     if(handle->data  != NULL) mFree(handle->data  );
     if(handle->kernel!= NULL) mFree(handle->kernel);
@@ -116,13 +116,13 @@ void TensorSampleConvSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
     
-    struct TensorSampleConvPara *para = layer->para;
+    struct TensorSampleConvPara *para = (struct TensorSampleConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorSampleConv,hdl);
-    struct HandleTensorSampleConv *handle = hdl->handle;
+    struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
@@ -138,12 +138,12 @@ void TensorSampleConvSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
         if(handle->update != NULL) mFree(handle->update);
-        handle->update =mMalloc(data_size*sizeof(float));
+        handle->update =(float *)mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
     
     if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = mMalloc(data_size*sizeof(float));
+    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
     
     if(morn_network_parafile==NULL)
     {
@@ -158,16 +158,16 @@ void TensorSampleConvSet(MLayer *layer)
     
     int matwidth = para->knl_height*para->knl_width*in->channel+1;
     if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = mMalloc(mheight*matwidth*sizeof(float));
+    handle->mat = (float *)mMalloc(mheight*matwidth*sizeof(float));
     
     if(handle->data!=NULL) mFree(handle->data);
-    handle->data= mMalloc(mheight*(mwidth+1)*sizeof(float));
+    handle->data= (float *)mMalloc(mheight*(mwidth+1)*sizeof(float));
     
     if(handle->locate!=NULL) mFree(handle->locate);
-    handle->locate = mMalloc(mwidth*para->knl_num*sizeof(int));
+    handle->locate = (int *)mMalloc(mwidth*para->knl_num*sizeof(int));
     if(morn_network_parafile==NULL)
     {
-        char *flag = mMalloc(para->knl_height*para->knl_width*in->channel*sizeof(char));
+        char *flag = (char *)mMalloc(para->knl_height*para->knl_width*in->channel*sizeof(char));
         for(int j=0;j<para->knl_num;j++)
         {
             memset(flag,1,para->knl_height*para->knl_width*in->channel*sizeof(char));
@@ -196,7 +196,7 @@ void mTensorSampleConvForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("SampleConv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorSampleConvPara *para = layer->para;
+    struct TensorSampleConvPara *para = (struct TensorSampleConvPara *)(layer->para);
     
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
@@ -204,7 +204,7 @@ void mTensorSampleConvForward(MLayer *layer)
     TensorSampleConvSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorSampleConv,hdl);
-    struct HandleTensorSampleConv *handle = hdl->handle;
+    struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
     int mwidth = (para->knl_height*para->knl_width*in->channel)*para->sample_ratio;
@@ -244,13 +244,13 @@ void mTensorSampleConvBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("SampleConv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorSampleConvPara *para = layer->para;
+    struct TensorSampleConvPara *para = (struct TensorSampleConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorSampleConv,hdl);
-    struct HandleTensorSampleConv *handle = hdl->handle;
+    struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     int mheight = (out->height*out->width);
@@ -323,8 +323,7 @@ void mTensorSampleConvBackward(MLayer *layer)
             for(int j=0;j<mheight;j++)
             {
                 for(int i=0;i<mwidth;i++) mat_data[j*matwidth+locate[i]]+=res_data[j*mwidth+i];
-            }        
-                    
+            }
         }
         
         ConvMatDataToTensor(mat_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
@@ -428,7 +427,7 @@ struct TensorDirConvPara
 };
 void *mTensorDirConvPara(MFile *ini,char *name)
 {
-    struct TensorDirConvPara *para = mMalloc(sizeof(struct TensorDirConvPara));
+    struct TensorDirConvPara *para = (struct TensorDirConvPara *)mMalloc(sizeof(struct TensorDirConvPara));
    
     char *value = mINIRead(ini,name,"prev");
     para->prev = mNetworkLayer(ini,value);
@@ -495,7 +494,7 @@ struct HandleTensorDirConv
 };
 void endTensorDirConv(void *info)
 {
-    struct HandleTensorDirConv *handle = info;
+    struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)info;
     if(handle->mat   != NULL) mFree(handle->mat);
     if(handle->kernel!= NULL) mFree(handle->kernel);
     if(handle->update!= NULL) mFree(handle->update);
@@ -505,13 +504,13 @@ void TensorDirConvSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
     
-    struct TensorDirConvPara *para = layer->para;
+    struct TensorDirConvPara *para = (struct TensorDirConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
     MHandle *hdl; ObjectHandle(out,TensorDirConv,hdl);
-    struct HandleTensorDirConv *handle = hdl->handle;
+    struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
     int out_width = in->width /para->x_stride;
@@ -526,12 +525,12 @@ void TensorDirConvSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
         if(handle->update != NULL) mFree(handle->update);
-        handle->update =mMalloc(data_size*sizeof(float));
+        handle->update =(float *)mMalloc(data_size*sizeof(float));
         memset(handle->update,0,data_size*sizeof(float));
     }
     
     if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = mMalloc(data_size*sizeof(float));
+    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
     
     if(morn_network_parafile==NULL)
     {
@@ -545,7 +544,7 @@ void TensorDirConvSet(MLayer *layer)
     }
     
     if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = mMalloc(mheight*mwidth*sizeof(float));
+    handle->mat = (float *)mMalloc(mheight*mwidth*sizeof(float));
     
     hdl->valid = 1;
 }
@@ -554,7 +553,7 @@ void mTensorDirConvForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("DirConv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorDirConvPara *para = layer->para;
+    struct TensorDirConvPara *para = (struct TensorDirConvPara *)(layer->para);
     
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
@@ -562,7 +561,7 @@ void mTensorDirConvForward(MLayer *layer)
     TensorDirConvSet(layer);
     
     MHandle *hdl; ObjectHandle(out,TensorDirConv,hdl);
-    struct HandleTensorDirConv *handle = hdl->handle;
+    struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
     int mwidth = (para->knl_r+para->knl_r+1)*in->channel+1;
@@ -590,13 +589,13 @@ void mTensorDirConvBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("DirConv",mLayerType(layer)),EXIT,"invalid layer type");
-    struct TensorDirConvPara *para = layer->para;
+    struct TensorDirConvPara *para = (struct TensorDirConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
     MHandle *hdl; ObjectHandle(layer->tns,TensorDirConv,hdl);
-    struct HandleTensorDirConv *handle = hdl->handle;
+    struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
     int mheight = (out->height*out->width);
@@ -650,10 +649,3 @@ void mTensorDirConvBackward(MLayer *layer)
         DirConvMatDataToTensor(res_data,res,b,para->knl_r,para->dir,para->y_stride,para->x_stride);
     }
 }
-
-
-
-
-
-
-
