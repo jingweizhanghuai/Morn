@@ -195,7 +195,8 @@ char *mStringArgument(int argc,char **argv,const char *flag,int *ok)
         *ok = 0;
     return NULL;
 }
-    
+
+#define fgets(Buff,N,F) mException((fgets(Buff,N,F)==NULL),EXIT,"file read error")
 void mHelp(const char *helpfile,const char *name)
 {
     FILE *f;

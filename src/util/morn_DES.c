@@ -11,6 +11,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdint.h>
 
 #include "morn_util.h"
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
 uint8_t key_map1[56] = {
     57,49,41,33,25,17, 9,

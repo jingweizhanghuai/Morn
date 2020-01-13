@@ -8,7 +8,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "morn_Util.h"
+#include "morn_util.h"
 
 void morn_mem_test(int test_num)
 {

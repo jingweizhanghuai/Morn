@@ -39,7 +39,7 @@ void JPGRGBSave(MImage *src,const char *filename)
     cinfo.input_components = 3;  
     cinfo.in_color_space = JCS_RGB;
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo,JPEG_QUALITY,1);
+    jpeg_set_quality(&cinfo,JPEG_QUALITY,(boolean)1);
     
     jpeg_start_compress(&cinfo,TRUE);
     
@@ -94,7 +94,7 @@ void JPGGraySave(MImage *src,const char *filename)
     cinfo.input_components = 1;   //* # of color components per pixel   
     cinfo.in_color_space = JCS_GRAYSCALE;
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo,JPEG_QUALITY,1);
+    jpeg_set_quality(&cinfo,JPEG_QUALITY,(boolean)1);
     
     jpeg_start_compress(&cinfo,TRUE);
     

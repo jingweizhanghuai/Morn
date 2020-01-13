@@ -10,6 +10,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 
 #include "morn_util.h"
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
 struct KeyValue
 {

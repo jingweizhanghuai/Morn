@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "morn_Util.h"
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
 MTreeNode *mTreeNode(MTree *tree,void *data,int size);
 void mTreeSet(MTreeNode *tree,MTreeNode *child,int order);

@@ -89,6 +89,7 @@ void *mMemAlloc(int size)
     if(size >= 1024)
     {
         mem = (int *)malloc(size+sizeof(int)*4);
+        mException((mem==NULL),EXIT,"malloc error");
         mem[3] = size;mem=mem+4;
         goto Malloc_end;
     }
@@ -132,6 +133,7 @@ void *mMemAlloc(int size)
         if(morn_mem_data[i] != NULL) continue;
         
         morn_mem_data[i] = (int *)malloc(2048*sizeof(int));
+        mException((morn_mem_data[i]==NULL),EXIT,"malloc error");
         morn_mem_size[i] = size+sizeof(int);
         mem = morn_mem_data[i]+1; mem[-1]=size;
         
@@ -151,6 +153,7 @@ void *mMemAlloc(int size)
             MemCollect(i);
     }
     mem = (int *)malloc(size+sizeof(int)*4);
+    mException((mem==NULL),EXIT,"malloc error");
     mem[3] = size;mem=mem+4;
     
     Malloc_end:
@@ -679,7 +682,7 @@ void *MemoryListSet(int size,const char *file,int line,const char *func)
     element->size =  *((int *)ptr -1);
     element->state = 1;
     element->ptr = ptr;
-    *((char *)ptr + element->size-4) = -1;
+    *((int8_t *)ptr + element->size-4) = -1;
     morn_memory_valid_num++;
     morn_memory_num++;
     
@@ -704,7 +707,7 @@ void MemoryListUnset(void *ptr,const char *file,int line,const char *func)
             // printf("size is %d,element->size is %d\n",size,element->size);
             if(element->state == 1)
             {
-                if((*((char *)ptr + element->size-4) != -1)||(element->size != size))
+                if((*((int8_t *)ptr + element->size-4) != -1)||(element->size != size))
                 {
                     printf("[%s,line %d]Error: in function %s: memory over used\n",file,line,func);
                     exit(0);
