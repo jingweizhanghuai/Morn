@@ -57,15 +57,15 @@ void mListRelease(MList *list);
 
 
 
-#### 设置MList的规格
+#### 设置MList元素
 
 ```c
-void mListPlace(MList *list,int num,int size);
+void mListPlace(MList *list,void *data,int num,int size);
 ```
 
 这个函数用于设置容器的容量和每个元素的大小。
 
-设置后，list中将会有num个元素的容量，且每个元素的大小为size个字节。
+此函数可以用来讲数组元素转化成容器元素。其中data是一段连续存储的元素的首地址（例如数组的首地址），num是元素的个数，size是每个元素的大小，单位为字节。其中data可以设置为NULL，当data为NULL时，将会在list中存储num个size大小的不定元素（未经初始化的元素）。
 
 
 

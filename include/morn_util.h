@@ -143,29 +143,23 @@ extern struct timeval morn_timer_end[16];
 #endif
 
 #define EXIT DFLT
-extern int morn_layer_order[16];// = -1;
+extern pthread_t morn_layer_order[16];// = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 extern int morn_exception;// = 0;
 extern jmp_buf *morn_jump[16][8];
 extern pthread_t morn_pthread_ID[16];
+extern pthread_mutex_t morn_layer_mutex;
 #define PthreadOrder(Thread_Order) do{\
     pthread_t Thread_ID = pthread_self();\
     for(Thread_Order=0;Thread_Order<16;Thread_Order++)\
-    {\
-        if(morn_layer_order[Thread_Order]>=0)\
-            if(memcmp(&Thread_ID,morn_pthread_ID+Thread_Order,sizeof(pthread_t))==0)\
-                break;\
-    }\
+        {if(morn_layer_order[Thread_Order]>0)if(Thread_ID==morn_pthread_ID[Thread_Order])break;}\
     if(Thread_Order == 16)\
     {\
-        for(Thread_Order=0;Thread_Order<16;Thread_Order++)\
-            if(morn_layer_order[Thread_Order]<0)\
-                {morn_pthread_ID[Thread_Order] = Thread_ID;break;}\
-    }\
-    if(Thread_Order == 16)\
-    {\
-        printf("[%s,line %d]Error: in function mExceptionBegin: ",__FILE__,__LINE__);\
-        printf("invalid thread ID\n");\
-        exit(0);\
+        pthread_mutex_lock(&morn_layer_mutex);\
+        for(Thread_Order=0;Thread_Order<16;Thread_Order++){if(morn_layer_order[Thread_Order]==0) break;}\
+        if(Thread_Order == 16)\
+            {printf("[%s,line %d]Error: in function mExceptionBegin: invalid thread ID\n",__FILE__,__LINE__);exit(0);}\
+        morn_layer_order[Thread_Order]=Thread_ID;\
+        pthread_mutex_unlock(&morn_layer_mutex);\
     }\
 }while(0)
 
@@ -716,6 +710,23 @@ void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
+#define THREAD(N,FN) {void thfunc##N(void){FN;} mException(pthread_create(id+N-1,NULL,(void *)(thfunc##N) ,NULL),EXIT,"createthread failed");}
+#define ThreadRun2(F1,F2) {THREAD(1,F1);THREAD(2,F2);}
+#define ThreadRun3(F1,F2,F3) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);}
+#define ThreadRun4(F1,F2,F3,F4) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);}
+#define ThreadRun5(F1,F2,F3,F4,F5) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);}
+#define ThreadRun6(F1,F2,F3,F4,F5,F6) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);}
+#define ThreadRun7(F1,F2,F3,F4,F5,F6,F7) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);}
+#define ThreadRun8(F1,F2,F3,F4,F5,F6,F7,F8) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);}
+#define ThreadRun9(F1,F2,F3,F4,F5,F6,F7,F8,F9) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);}
+#define ThreadRun10(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);}
+#define ThreadRun11(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);}
+#define ThreadRun12(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);}
+#define ThreadRun13(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);}
+#define ThreadRun14(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);}
+#define ThreadRun15(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);}
+#define ThreadRun16(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,F16) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);THREAD(16,F16);}
+/*
 #define ThreadRun2(F1,F2) {\
     void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
     void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
@@ -881,10 +892,9 @@ void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
     void thfunc15(void) {F15;} mException(pthread_create(id+14,NULL,(void *)thfunc15,NULL),EXIT,"createthread failed");\
     void thfunc16(void) {F16;} mException(pthread_create(id+15,NULL,(void *)thfunc16,NULL),EXIT,"createthread failed");\
 }
-
-// int pthread_setconcurrency(int new_level);
+*/
 #define mThread(Num,...) {\
-    pthread_setconcurrency(16);\
+    /*pthread_setconcurrency(16);*/\
     mException((Num>16)||(Num<2),EXIT,"invalid Thread number");\
     pthread_t id[16];\
     ThreadRun##Num(__VA_ARGS__);\

@@ -222,7 +222,7 @@ void mImageGradient(MImage *src,MImage *direction,MImage *value,int r,int thresh
     else
         mImageRedefine(value,1,src->height,src->width,value->data);
     
-    thresh=thresh+thresh+thresh;
+    thresh=thresh*7;
     
     int src_cn = src->channel;
     unsigned char ***sdata = src->data;
@@ -239,7 +239,7 @@ void mImageGradient(MImage *src,MImage *direction,MImage *value,int r,int thresh
             Diff = GRADIENT4(X,Y); if(Diff > thresh) {if(Diff>Max) {Max = Diff;  Dir = 4;}}\
         }\
         direction->data[0][Y][X] = Dir;\
-        value ->data[0][Y][X] = Max/3;\
+        value ->data[0][Y][X] = Max/7;\
     }
     
     mImageRegion(src,r,ImageGradient);

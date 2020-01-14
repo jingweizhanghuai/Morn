@@ -142,30 +142,22 @@ void mImageHoughLine(MImage *src,MList *list,int thresh1,int thresh2,int thresh)
             line.b = line.r/sn[i]+cx*cs[i]/sn[i]+cy;
             // printf("k is %f,b is %f,a is %f,r is %f,tab_data is %d\n",k[m],b[m],a[m],r[m],tab_data[j][i]);
             
-            line.point1.x = 0.0f;
-            line.point1.y = line.b;
+            line.point1.x = 0.0f;line.point1.y = line.b;
             if((line.point1.y<0)||(line.point1.y>=src->height))
             {
-                line.point1.y = 0.0f;
-                line.point1.x = (0.0f-line.b)/line.k;
+                line.point1.y = 0.0f;line.point1.x = (0.0f-line.b)/line.k;
                 if((line.point1.x<0)||(line.point1.x>=src->width))
-                {
-                    line.point1.y = src->height-1;
-                    line.point1.x = (line.point1.y-line.b)/line.k;
-                }
+                    {line.point1.y = src->height-1;line.point1.x = (line.point1.y-line.b)/line.k;}
+                if((line.point1.x<0)||(line.point1.x>=src->width)) continue;
             }
             
-            line.point2.x = src->width;
-            line.point2.y = line.k*line.point2.x + line.b;
+            line.point2.x = src->width;line.point2.y = line.k*line.point2.x + line.b;
             if((line.point2.y<0)||(line.point2.y>=src->height))
             {
-                line.point2.y = src->height-1;
-                line.point2.x = (line.point2.y-line.b)/line.k;
+                line.point2.y = src->height-1;line.point2.x = (line.point2.y-line.b)/line.k;
                 if((line.point2.x<0)||(line.point2.x>=src->width))
-                {
-                    line.point2.y = 0.0f;
-                    line.point2.x = (0.0f-line.b)/line.k;
-                }
+                    {line.point2.y = 0.0f;line.point2.x = (0.0f-line.b)/line.k;}
+                if((line.point2.x<0)||(line.point2.x>=src->width)) continue;
             }
             // if((i==125)&&(j==1169))
                 // printf("line.point1 is %f,%f,line.point2 is %f,%f\n",line.point1.x,line.point1.y,line.point2.x,line.point2.y);
