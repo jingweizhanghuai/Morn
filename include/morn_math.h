@@ -165,6 +165,35 @@ double mCaculate(char *str);
 
 unsigned int mHash(const char *in,int size);
 
+typedef struct MLInt
+{
+	uint32_t data[32];
+	char sign;
+	char len;
+}MLInt;
+void mS64ToLInt(int64_t in,MLInt *a);
+int64_t mLIntToS64(MLInt *a);
+int mLIntCompare(MLInt *a,MLInt *b);
+
+void mLIntAddU32(MLInt *a,uint32_t b,MLInt *c);
+void mLIntAddS32(MLInt *a,int b,MLInt *c);
+void mLIntAdd(MLInt *a,MLInt *b,MLInt *c);
+
+void mLIntSubU32(MLInt *a,uint32_t b,MLInt *c);
+void mLIntSubS32(MLInt *a,int b,MLInt *c);
+void mLIntSub(MLInt *a,MLInt *b,MLInt *c);
+
+void mLIntMulU32(MLInt *a,uint32_t b,MLInt *c);
+void mLIntMulS32(MLInt *a,int b,MLInt *c);
+void mLIntMul(MLInt *a,MLInt *b,MLInt *c);
+
+void mLIntDivU32(MLInt *a,uint32_t b,MLInt *c,int32_t *remainder);
+void mLIntDivS32(MLInt *a,int b,MLInt *c,int *remainder);
+void mLIntDiv(MLInt *a,MLInt *b,MLInt *c,MLInt *remainder);
+
+void mLIntToString(MLInt *a,char *str);
+void mStringToLInt(char *str,MLInt *a);
+
 #ifdef __cplusplus
 }
 #endif
