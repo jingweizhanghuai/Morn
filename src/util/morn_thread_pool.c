@@ -29,7 +29,7 @@ struct ThreadBuffData
     void (*func)(void *);
     void *para;
     int *flag;
-    int priority;
+    float priority;
 };
 
 struct HandleThreadPool
@@ -102,11 +102,11 @@ void ThreadFunc(void *thread_data)
     }
 }
 
-void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int priority)
+void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float priority)
 {
     mException((pool==NULL)||(func==NULL),EXIT,"invalid input");
-    if(priority<0) priority=0x7FFFFFFF;
-    if(flag!=NULL) *flag=0;
+    if(priority<0) priority=0.0;
+    int flag0; if(flag==NULL) flag=&flag0; *flag=0;
     
     int i;
     MHandle *hdl; ObjectHandle(pool,ThreadPool,hdl);
@@ -171,7 +171,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,int prior
         for(i=0;i<buff->num;i++)
         {
             struct ThreadBuffData *p = (struct ThreadBuffData *)(buff->data[i]);
-            if(priority >= p->priority)
+            if(priority <= p->priority)
             {
                 mListElementInsert(buff,i,&buff_data,sizeof(struct ThreadBuffData));
                 break;

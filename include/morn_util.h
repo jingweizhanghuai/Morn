@@ -710,6 +710,8 @@ void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
+void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float priority);
+
 #define THREAD(N,FN) {void thfunc##N(void){FN;} mException(pthread_create(id+N-1,NULL,(void *)(thfunc##N) ,NULL),EXIT,"createthread failed");}
 #define ThreadRun2(F1,F2) {THREAD(1,F1);THREAD(2,F2);}
 #define ThreadRun3(F1,F2,F3) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);}
