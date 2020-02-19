@@ -143,26 +143,27 @@ extern struct timeval morn_timer_end[16];
 #endif
 
 #define EXIT DFLT
-extern pthread_t morn_layer_order[16];// = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-extern int morn_exception;// = 0;
-extern jmp_buf *morn_jump[16][8];
-extern pthread_t morn_pthread_ID[16];
+
+extern pthread_t morn_pthread_ID[16];//= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 extern pthread_mutex_t morn_layer_mutex;
 #define PthreadOrder(Thread_Order) do{\
     pthread_t Thread_ID = pthread_self();\
     for(Thread_Order=0;Thread_Order<16;Thread_Order++)\
-        {if(morn_layer_order[Thread_Order]>0)if(Thread_ID==morn_pthread_ID[Thread_Order])break;}\
+        {if(morn_pthread_ID[Thread_Order]>0)if(Thread_ID==morn_pthread_ID[Thread_Order])break;}\
     if(Thread_Order == 16)\
     {\
         pthread_mutex_lock(&morn_layer_mutex);\
-        for(Thread_Order=0;Thread_Order<16;Thread_Order++){if(morn_layer_order[Thread_Order]==0) break;}\
+        for(Thread_Order=0;Thread_Order<16;Thread_Order++){if(morn_pthread_ID[Thread_Order]==0) break;}\
         if(Thread_Order == 16)\
-            {printf("[%s,line %d]Error: in function mExceptionBegin: invalid thread ID\n",__FILE__,__LINE__);exit(0);}\
-        morn_layer_order[Thread_Order]=Thread_ID;\
+            {printf("[%s,line %d]Error: in function PthreadOrder: invalid thread ID\n",__FILE__,__LINE__);exit(0);}\
+        morn_pthread_ID[Thread_Order]=Thread_ID;\
         pthread_mutex_unlock(&morn_layer_mutex);\
     }\
 }while(0)
 
+extern int morn_exception;// = 0;
+extern jmp_buf *morn_jump[16][8];
+extern int morn_layer_order[16];//= {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 #define mExceptionBegin()\
 int Thread_Order; PthreadOrder(Thread_Order);\
 int Layer_order = morn_layer_order[Thread_Order]+1;\
@@ -531,75 +532,7 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
     // void *reserved;
 // }MTree;
 
-char *mStringArgument(int argc,char **argv,const char *flag,int *ok);
-/*
-#define mStringArgument1(Argc,Argv,Flag,Type,Value,defalt) do{\
-    int Flag_len,Argv_len;\
-    int I;\
-    char *P;\
-    char *Value_s;\
-    if(Flag!=NULL)\
-        Flag_len = strlen(Flag);\
-    \
-    for(I=1;I<Argc;I++)\
-    {\
-        if(Argv[I][0] == '-')\
-        {\
-            if(Flag != NULL)\
-            {\
-                Argv_len = strlen(Argv[I]);\
-                if(strspn(Argv[I],Flag)>=Flag_len)\
-                {\
-                    if(Argv_len > Flag_len)\
-                        P = Argv[I]+Flag_len;\
-                    else\
-                        P = Argv[I+1];\
-                    \
-                    break;\
-                }\
-                if(Argv_len == Flag_len)\
-                    I=I+1;\
-            }\
-        }\
-        else\
-        {\
-            if(Flag == NULL)\
-            {\
-                P = Argv[I];\
-                break;\
-            }\
-        }\
-    }\
-    if(I == Argc)\
-    {\
-        if((strcmp(#Type,"char *")==0)||(strcmp(#Type,"char*")==0))\
-        {\
-            Value_s = (char *)((int)Value);\
-            strcpy(Value_s,(char *)((int)defalt));\
-        }\
-        else if(strcmp(#Type,"int")==0)\
-            *((int *)(&Value)) = (int)defalt;\
-        else if(strcmp(#Type,"float")==0)\
-            *((float *)(&Value)) = (float)((int)defalt);\
-        else\
-            mException(1,"invalid argument Type",EXIT);\
-    }\
-    else\
-    {\
-        if(strcmp(#Type,"int")==0)\
-            *((int *)(&Value)) = atoi(P);\
-        else if(strcmp(#Type,"float")==0)\
-            *((float *)(&Value)) = atof(P);\
-        else if((strcmp(#Type,"char *")==0)||(strcmp(#Type,"char*")==0))\
-        {\
-            Value_s = (char *)((int)Value);\
-            strcpy(Value_s,P);\
-        }\
-        else\
-            mException(1,"invalid argument Type",EXIT);\
-    }\
-}while(0)
-*/
+char *mStringArgument(int argc,char **argv,const char *flag);
 
 typedef struct MChainNode
 {

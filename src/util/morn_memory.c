@@ -602,11 +602,11 @@ void AllFree(int order)
 }
 */
 
-pthread_t morn_layer_order[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int morn_layer_order[16] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 pthread_mutex_t morn_layer_mutex;
 int morn_exception = 0;
 jmp_buf *morn_jump[16][8];
-pthread_t morn_pthread_ID[16];
+pthread_t morn_pthread_ID[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 /*
 #define mExceptionBegin()\

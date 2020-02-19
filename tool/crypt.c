@@ -18,21 +18,21 @@ int main(int argc,char *argv[])
     
     char *file_in;int flag;
     {
-        file_in = mStringArgument(argc,argv,"e",NULL);
+        file_in = mStringArgument(argc,argv,"e");
         if(file_in!=NULL) flag=0;
     }
     if(file_in==NULL)
     {
-        file_in = mStringArgument(argc,argv,"d",NULL);
+        file_in = mStringArgument(argc,argv,"d");
         if(file_in!=NULL) flag=1;
     }
     mException((file_in==NULL),EXIT,"invalid input file");
     
-    char *file_out = mStringArgument(argc,argv,"o",NULL);
+    char *file_out = mStringArgument(argc,argv,"o");
     mException((file_in==NULL),EXIT,"invalid output file");
     
     uint64_t key=DFLT;
-    char *p_key = mStringArgument(argc,argv,"k",NULL);
+    char *p_key = mStringArgument(argc,argv,"k");
     if(p_key != NULL) {key=0;memcpy(&key,p_key,MIN(8,strlen(p_key)));}
     
     if(flag==0) mEncrypt(file_in,file_out,key);

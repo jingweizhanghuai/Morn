@@ -14,7 +14,6 @@ You should have received a copy of the GNU General Public License along with thi
 int mStringRegular(const char *str1,const char *str2)
 {
     int i,j;
-    
     char *p;
     
     for(i=0;;i++)
@@ -153,46 +152,26 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
     }
     dst[m] = '\0';
 }
-    
-char *mStringArgument(int argc,char **argv,const char *flag,int *ok)
-{
-    uint64_t flag_len=0,argv_len=0;
-    
-    if(!INVALID_POINTER(flag))
-        flag_len = strlen(flag);
-    
-    if(!INVALID_POINTER(ok))
-        *ok = 1;
+
+char morn_string_argument = 0;
+char *mStringArgument(int argc,char **argv,const char *flag)
+{ 
+    if(argc<=1) return NULL;
+    if(flag==NULL) return argv[0]+(argv[0][0]=='-');
+    uint64_t flag_len=strlen(flag);
     
     for(int i=1;i<argc;i++)
     {
-        if(argv[i][0] == '-')
+        if(argv[i][0] != '-') continue;
+        uint64_t argv_len = strlen(argv[i]+1);
+        if(strspn(argv[i]+1,flag)>=flag_len)
         {
-            argv_len = strlen(argv[i]+1);
-            if(flag != NULL)
-            {
-                if(strspn(argv[i]+1,flag)>=flag_len)
-                {
-                    if(argv_len > flag_len)
-                        return (argv[i]+1+flag_len);
-                    else if(i == argc-1)
-                        return NULL;
-                    else if(argv[i+1][0] != '-')
-                        return argv[i+1];
-                    else
-                        return NULL;
-                }
-            }
-            i=i+(argv_len<=1);
-        }
-        else
-        {
-            if(flag == NULL)
-                return argv[i];
+            if(argv_len > flag_len)      return argv[i]+1+flag_len+(*(argv[i]+1+flag_len)=='=');
+            else if(i == argc-1)         return &morn_string_argument;
+            else if(argv[i+1][0] != '-') return argv[i+1];
+            else                         return &morn_string_argument;
         }
     }
-    if(!INVALID_POINTER(ok))
-        *ok = 0;
     return NULL;
 }
 

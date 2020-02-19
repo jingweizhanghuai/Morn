@@ -10,11 +10,11 @@ You should have received a copy of the GNU General Public License along with thi
 #define fgets(Buff,Num,F) mException((fgets(Buff,Num,F)==NULL),EXIT,"file read error")
 
 #define HELP_INFOMATION(name) {\
-    int arg_flag;\
-    mStringArgument(argc,argv,"-help",&arg_flag);\
-    if(arg_flag) {mToolHelp(name); return 1;}\
-    mStringArgument(argc,argv,"v",&arg_flag);\
-    if(arg_flag) {mToolHelp("version"); return 1;}\
+    char *arg_flag;\
+    arg_flag=mStringArgument(argc,argv,"-help");\
+    if(arg_flag!=NULL) {mToolHelp(name); return 1;}\
+    arg_flag=mStringArgument(argc,argv,"v");\
+    if(arg_flag!=NULL) {mToolHelp("version"); return 1;}\
 }
 
 void mToolHelp(const char *name)

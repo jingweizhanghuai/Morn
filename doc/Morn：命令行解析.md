@@ -7,16 +7,66 @@
 ### 接口
 
 ```c
-char *mStringArgument(int argc,char **argv,const char *flag,int *ok)；
+char *mStringArgument(int argc,char **argv,const char *flag)；
 ```
 
 argc、argv就是main函数传入的参数，argc是参数个数，argv是参数内容（从argv[1]开始）。
 
 flag是要寻找的参数标志，这里的标志必须以字符“-”打头。
 
-ok是输出的值，如果找到了相应的参数，ok就会被置1，否则会被置0。
-
 返回值就是找到的命令参数，它是字符串格式，通常，如果参数是数值的话，还需要和`atoi`，`atof`函数一起使用。如果没有找到，返回值是NULL。
+
+例如：
+
+```c
+int main(int argc,char **argv)
+{
+    char *para = mStringArgument(argc,argv,"a");
+    if(para!=NULL) printf("para is %s\n",para);
+    else printf("no para\n");
+}
+```
+
+以上面的程序为例，可见`mStringArgument`支持以下形式的参数：
+
+```
+$ test.exe -a12345
+para is 12345
+
+$ test.exe -a 12345
+para is 12345
+
+$ test.exe -a=12345
+para is 12345
+
+$ test.exe -a
+para is
+```
+
+也即：以下三种形式的参数都是合法的，且三种方式等价：`-a12345`，`-a 12345`，`-a=12345`。
+
+对于最后一种，虽有参数，但未指定值的情况，将返回一个执行`\0`的指针，此时字符串的长度为0。
+
+对于以下两种情况：
+
+```
+$ test.exe -b=12345
+no para
+
+$ test.exe
+no para
+```
+
+即没有参数或虽有参数但是与给定的标志不匹配时，其返回值都为NULL，
+
+对于以下情况，应在程序设计时避免出现
+
+```
+$ test.exe -ab=12345
+para is b=12345
+```
+
+或许开发者的本意是参数`ab`的值为`12345`，但是对于参数解析函数来说，不能区分①参数为`ab`，值为`12345`，②参数为`a`，值为`b=12345`，这两种情况。因此应避免使用，否则将可能出错。
 
 
 

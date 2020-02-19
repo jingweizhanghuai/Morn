@@ -20,12 +20,12 @@ int main(int argc,char *argv[])
 {
     HELP_INFOMATION("imageformat");
     
-    char *file_in = mStringArgument(argc,argv,"i" ,NULL);
-    char *file_out= mStringArgument(argc,argv,"o" ,NULL);
-    char *dir_in  = mStringArgument(argc,argv,"di",NULL);
-    char *dir_out = mStringArgument(argc,argv,"do",NULL);
-    char *type_in = mStringArgument(argc,argv,"ti",NULL);
-    char *type_out= mStringArgument(argc,argv,"to",NULL);
+    char *file_in = mStringArgument(argc,argv,"i" );
+    char *file_out= mStringArgument(argc,argv,"o" );
+    char *dir_in  = mStringArgument(argc,argv,"di");
+    char *dir_out = mStringArgument(argc,argv,"do");
+    char *type_in = mStringArgument(argc,argv,"ti");
+    char *type_out= mStringArgument(argc,argv,"to");
     
     mException((file_in !=NULL)&&(dir_in !=NULL),EXIT, "input file name or dir name");
     mException((file_out!=NULL)&&(dir_out!=NULL),EXIT,"output file name or dir name");
