@@ -75,12 +75,9 @@ void mListAppend(MList *list,int n)
     struct HandleListCreate *handle= (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
     if(n<=handle->num) 
     {
-        if(list->data!= handle->data)
-        {
-            if(list->num>0)
-                memcpy(handle->data,list->data,list->num*sizeof(void *));
-            list->data = handle->data;
-        }
+        if((list->data!= handle->data)&&(list->num>0))
+            memcpy(handle->data,list->data,list->num*sizeof(void *));
+        list->data = handle->data;
         list->num = n;
         return;
     }
