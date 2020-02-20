@@ -12,13 +12,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_util.h"
 
-void mJSONLoad(char *filename,MTree *tree);
-char *mJSONName(MTreeNode *node);
-char *mJSONValue(MTreeNode *node);
-void mJSONSearch(MTree *tree,MList *result,char *name);
-MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
-
-void main()
+int main()
 {
     MTree *json=mTreeCreate();
     mJSONLoad("./test_JSON_file.json",json);
@@ -45,17 +39,48 @@ void main()
     mListRelease(score);
     printf("\n");
 
-    int func(MTreeNode *ptr,void *para)
+    struct Student
+    {
+        char *name;
+        char *sex;
+        char *course[3];
+        int score[3];
+    };
+    int func1(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
+    node = json->treenode;  // 从树根开始搜索
+    while(1)
+    {
+        struct Student student;
+        MTreeNode *student_node = mTreeSearch(node,func1,"学生",0);
+        if(student_node == NULL) break;
+        node = mTreeSearch(student_node,func1,"姓名",0);
+        student.name = mJSONValue(node);
+        node = mTreeSearch(student_node,func1,"性别",0);
+        student.sex  = mJSONValue(node);
+        node = mTreeSearch(student_node,func1,"成绩",0);
+        student.course[0] = mJSONName(node->child[0]);
+        student. score[0] = atoi(mJSONValue(node->child[0]));
+        student.course[1] = mJSONName(node->child[1]);
+        student. score[1] = atoi(mJSONValue(node->child[1]));
+        student.course[2] = mJSONName(node->child[2]);
+        student. score[2] = atoi(mJSONValue(node->child[2]));
+        printf("student name is %s,sex is %s,course0 is %s,score0 is %d,course1 is %s,score1 is %d,course2 is %s,score2 is %d\n",
+                student.name,student.sex,student.course[0],student.score[0],student.course[1],student.score[1],student.course[2],student.score[2]);
+    }
+    printf("\n");
+
+    int func2(MTreeNode *ptr,void *para)
     {return ((strcmp(mJSONName(ptr),"数学")==0)&&(atoi(mJSONValue(ptr))>=90));}
     node = json->treenode;
     while(1)
     {
-        node = mTreeSearch(node,func,NULL,0);
+        node = mTreeSearch(node,func2,NULL,0);
         if(node == NULL) break;
         printf("姓名%s\n",mJSONValue(node->parent->parent->child[0]));
     }
 
     mListRelease(list);
     mTreeRelease(json);
+    return 0;
 }
     

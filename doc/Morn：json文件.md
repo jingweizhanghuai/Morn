@@ -25,6 +25,8 @@ json文件的格式，百度一下就知道。
 
 因此，在内存中，json文件会被存储为一个MTree，关于树，你可以参考[Morn：树](Morn：树.md)
 
+Morn中，json相关函数主要是满足读取json格式配置文件的需求，因此接口只有“读”（或者叫反序列化），没有“写”（序列化）。
+
 
 
 ### 接口
@@ -143,6 +145,8 @@ mListRelease(score);
 
 除了以上接口外，其他更多的对json树节点的操作可以使用MTree的相关函数，比如遍历树的各个节点`mTreeTraversal`，搜索某个节点`mTreeSearch`等。
 
+这里重点介绍使用`mTreeSearch`函数对JSON树进行操作。
+
 下例是实现“找出所有数学成绩高于90分的学生”。
 
 ```c
@@ -154,7 +158,7 @@ int main()
     int func(MTreeNode *ptr,void *para)
     {return ((strcmp(mJSONName(ptr),"数学")==0)&&(atoi(mJSONValue(ptr))>=90));}
     
-    MTreeNode *node = json->treenode;
+    MTreeNode *node = json->treenode; // 从树根开始搜索
     while(1)
     {
         node = mTreeSearch(node,func,NULL,0);
@@ -172,6 +176,64 @@ int main()
 ```
 姓名李四
 姓名王二麻
+```
+
+
+
+下例是实现：将学生信息读入结构体中。
+
+```c
+int main()
+{
+    MTree *json=mTreeCreate();
+    mJSONLoad("./test_JSON_file.json",json);
+    
+    struct Student
+    {
+        char *name;
+        char *sex;
+        char *course[3];
+        int score[3];
+    };
+    
+    int func1(MTreeNode *ptr,void *para) 
+    {return (strcmp(mJSONName(ptr),para)==0);}
+    
+    node = json->treenode;  // 从树根开始搜索
+    while(1)
+    {
+        struct Student student;
+        MTreeNode *student_node = mTreeSearch(node,func1,"学生",0);
+        if(student_node == NULL) break;
+        node = mTreeSearch(student_node,func1,"姓名",0);
+        student.name = mJSONValue(node);
+        node = mTreeSearch(student_node,func1,"性别",0);
+        student.sex  = mJSONValue(node);
+        node = mTreeSearch(student_node,func1,"成绩",0);
+        student.course[0] = mJSONName(node->child[0]);
+        student. score[0] = atoi(mJSONValue(node->child[0]));
+        student.course[1] = mJSONName(node->child[1]);
+        student. score[1] = atoi(mJSONValue(node->child[1]));
+        student.course[2] = mJSONName(node->child[2]);
+        student. score[2] = atoi(mJSONValue(node->child[2]));
+        printf("student name is %s,sex is %s,course0 is %s,score0 is %d,course1 is %s,score1 is %d,course2 is %s,score2 is %d\n",
+               student.name,student.sex,
+               student.course[0],student.score[0],
+               student.course[1],student.score[1],
+               student.course[2],student.score[2]);
+    }
+    mTreeRelease(json);
+    return 0；
+}
+```
+
+此例中：先从树根节点开始搜索”学生“节点，再从”学生“子树开始搜索“姓名”，“性别”，“成绩”节点，并将结果赋给结构体相应的项。得到的结果为：
+
+```
+student name is 张三,sex is 男,course0 is 语文,score0 is 90,course1 is 数学,score1 is 70,course2 is 文综,score2 is 85
+student name is 李四,sex is 女,course0 is 语文,score0 is 60,course1 is 数学,score1 is 100,course2 is 理综,score2 is 95
+student name is 赵五,sex is 女,course0 is 语文,score0 is 90,course1 is 数学,score1 is 60,course2 is 文综,score2 is 52
+student name is 王二麻,sex is 男,course0 is 语文,score0 is 50,course1 is 数学,score1 is 98,course2 is 理综,score2 is 97
 ```
 
 

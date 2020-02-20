@@ -635,6 +635,11 @@ char *mINIRead(MFile *file,const char *section,const char *key);
 MList *mINIKey(MFile *file,const char *section);
 MList *mINISection(MFile *file);
 
+void mJSONLoad(char *filename,MTree *tree);
+char *mJSONName(MTreeNode *node);
+char *mJSONValue(MTreeNode *node);
+void mJSONSearch(MTree *tree,MList *result,char *name);
+
 int mMORNSize(MObject *file,const char *name);
 void mMORNRead(MObject *file,const char *name,void **data,int num,int size);
 void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
