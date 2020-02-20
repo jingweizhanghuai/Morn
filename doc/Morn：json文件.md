@@ -39,7 +39,7 @@ void mJSONLoad(const char *filename,MTree *tree);
 
 这里，filename就是json文件的路径。tree是输出的树。
 
-在使用json文件的时候，你总是需要先执行这个函数。
+**在使用json文件的时候，你总是需要先执行这个函数。**
 
 
 
@@ -57,13 +57,24 @@ char *mJSONValue(MTreeNode *node);
 例如，以下程序
 
 ```c
-printf("%s是%s\n",mJSONName(tree->treenode->child[0]),mJSONValue(tree->treenode->child[0]));
+MTreeNode *node = json->treenode->child[0];
+for(int i=0;i<node->child_num;i++)
+    printf("%s是%s\n",mJSONName(node->child[i]),mJSONValue(node->child[i]));
 ```
 
 得到的结果会是：
 
 ```
-年级是3
+年级是3         
+班级是2         
+班主任是李老师      
+任课老师是王老师     
+任课老师是张老师     
+任课老师是刘老师     
+学生是          
+学生是          
+学生是          
+学生是
 ```
 
 
@@ -71,28 +82,28 @@ printf("%s是%s\n",mJSONName(tree->treenode->child[0]),mJSONValue(tree->treenode
 #### json搜索
 
 ```c
-MList *mJSONGet(MTree *tree,char *name);
+void mJSONSearch(MTree *tree,MList *list,char *name);
 ```
 
-这个是用来获取特定节点的值。返回值是一个容器，容器里保存了所有满足要求的值（字符串）。
+这个是用来获取特定节点的值。tree是`mJSONLoad`的输出结果，list是一个用来保存搜索结果的容器，name是所搜索的节点名。
 
 例如，想获取“班主任”的值：
 
 ```c
-list = mJSONGet(json,"班主任");
-for(int i=0;i<list->num;i++) printf("班主任%d是%s\n",i,list->data[i]);
+mJSONSearch(json,list,"班主任");
+printf("班主任是%s\n",list->data[0]);
 ```
 
 得到的结果将是：
 
 ```
-班主任0是李老师
+班主任是李老师
 ```
 
 再例如，想获取“任课老师”的值：
 
 ```c
-list = mJSONGet(json,"任课老师");
+mJSONSearch(json,list,"任课老师");
 for(int i=0;i<list->num;i++) printf("任课老师%d是%s\n",i,list->data[i]);
 ```
 
@@ -104,22 +115,26 @@ for(int i=0;i<list->num;i++) printf("任课老师%d是%s\n",i,list->data[i]);
 任课老师2是刘老师
 ```
 
-再例如，想获取学生的语文成绩的值：
+再例如，想获取学生的数学成绩的值：
 
 ```c
-list = mJSONGet(json,"学生.成绩.语文");
-for(int i=0;i<list->num;i++) printf("成绩%d是%d\n",i,atoi(list->data[i]));
+MList *name = mListCreate(DFLT,NULL);mJSONSearch(json,name,"学生.姓名");
+MList *score= mListCreate(DFLT,NULL);mJSONSearch(json,score,"学生.成绩.数学");
+for(int i=0;i<list->num;i++) 
+    printf("%s的数学成绩是%d\n",name->data[i],atoi(score->data[i]));
+mListRelease(name);
+mListRelease(score);
 ```
 
-注意，因为语文成绩在树的第三层，所以这里需要用`.`分割各层的名字，即先找“学生”节点，再在其中找“成绩”节点，然后在其中找“语文”节点。
+注意，因为学生的姓名在树的第三层，数学成绩在树的第四层，所以这里需要**用`.`分割各层的名字**，即找数学成绩就需要先找“学生”节点，再在其中找“成绩”节点，然后在其中找“数学”节点。
 
-得到的结果将是：
+得到的结果是：
 
 ```
-成绩0是90
-成绩1是60
-成绩2是90
-成绩3是50
+张三的数学成绩是70
+李四的数学成绩是100
+赵五的数学成绩是60
+王二麻的数学成绩是98
 ```
 
 
@@ -161,7 +176,7 @@ int main()
 
 
 
-另外，如果你的json文件里有中文的话，注意编码方式。
+另外，如果你的json文件里有中文的话，**注意编码方式**。
 
 
 
