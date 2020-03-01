@@ -35,7 +35,7 @@ priority是函数的优先级（合法的优先级必须大于等于0），此�
 ```c
 void func(void *para)
 {
-    pthread_t ID=pthread_self();
+    int ID;PthreadOrder(ID);
     int *t = para;
     printf("func run on thread %d,sleep %dms\n",ID,*t);
     mSleep(*t);
@@ -67,20 +67,18 @@ int main()
 函数的运行结果如下：
 
 ```
-func run on thread 1,sleep 51ms  
-func run on thread 2,sleep 74ms  
-func run on thread 3,sleep 39ms  
-func run on thread 1,sleep 48ms  
-func run on thread 3,sleep 22ms  
-func run on thread 4,sleep 105ms 
-func run on thread 1,sleep 81ms  
-func run on thread 2,sleep 71ms  
-func run on thread 3,sleep 35ms  
-func run on thread 3,sleep 107ms 
-func run on thread 4,sleep 61ms  
-func run on thread 2,sleep 62ms  
-func run on thread 1,sleep 82ms  
-func run on thread 4,sleep 51ms  
+func run on thread 0,sleep 51ms
+func run on thread 1,sleep 74ms
+func run on thread 2,sleep 39ms
+func run on thread 0,sleep 48ms
+func run on thread 2,sleep 22ms
+func run on thread 3,sleep 105ms
+func run on thread 0,sleep 81ms
+func run on thread 1,sleep 71ms
+func run on thread 2,sleep 35ms
+func run on thread 2,sleep 107ms
+func run on thread 3,sleep 61ms
+func run on thread 1,sleep 62ms
 ……
 ```
 
