@@ -11,6 +11,16 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_util.h"
 
+int ElementSize(char *str)
+{
+    if(strcmp(str,"DFLT")==0) return -1;
+    int size=0;
+    if((str[0]>='0')&&(str[0]<='9')) size=atoi(str);
+    else                             size=atoi(str+1);
+    mException((size<8)||(size>128)||((size&(size-1))!=0),EXIT,"invalid element size");
+    return (size/8);
+}
+
 struct HandleTableCreate
 {
     MTable *tab;
@@ -53,21 +63,21 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
         return tab;
     }
     
-    if(!INVALID_POINTER(data))
-    {
-        tab->data = data;
-        return tab;
-    }
-    
     handle->index = (void **)mMalloc(row*sizeof(void *));
     handle->row = row;
-    
+
+    tab->data=NULL;
     if(col == 0)
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
         memset(handle->index,0,row*sizeof(void *));
     }
-    else 
+    else if(!INVALID_POINTER(data))
+    {
+        memcpy(handle->index,data,row*sizeof(void *));
+        tab->data = handle->index;
+    }
+    else if(element_size>0)
     {
         if(handle->memory == NULL) handle->memory = mMemoryCreate(row,col*element_size);
         mMemoryIndex(handle->memory,row,col*element_size,(void **)(handle->index));
@@ -92,26 +102,32 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
 {
     mException((INVALID_POINTER(tab)),EXIT,"invalid input");
     
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(tab->handle->data[0]))->handle);
     if(row<=0) row = tab->row;
     if(col<=0) col = tab->col;
+    if(element_size<=0) element_size=handle->element_size;
     
-    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(tab->handle->data[0]))->handle);
     if((row!=tab->row)||(col!=tab->col)||(element_size!=handle->element_size)) mHandleReset(tab->handle);
     int same_size = (row<=tab->row)&&(col*element_size<=tab->col*handle->element_size);
     int reuse = (data==tab->data);
     int flag = (tab->row&&tab->col);
-    tab->row = row;
-    tab->col = col;
+    tab->row = row;tab->col = col;
+    handle->element_size = element_size;
     
     if(same_size&&reuse) return;
     if(same_size&&(data==NULL)&&(handle->col>0)) return;
     
     mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->col=0;
+    if((row<=0)||(col<=0)||(element_size<=0)) 
+    {
+        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        tab->data=NULL; 
+        return;
+    }
     
-    if((row == 0)||(col==0)) {tab->data=NULL; return;}
+    if(reuse) data=NULL;
     
     if(row>handle->row)
     {
@@ -171,20 +187,21 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     MHandle *hdl; ObjectHandle(array,ArrayCreate,hdl);
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(hdl->handle);
     handle->array = array;
+    array->data = NULL;
     
     if(num==0)
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
     }
-    else if(INVALID_POINTER(data))
+    else if(!INVALID_POINTER(data))
+        array->data = data;
+    else if(element_size>0)
     {
         handle->memory = (char *)mMalloc(num*element_size);
         handle->num = num;
         handle->element_size = element_size;
         array->data = (void *)(handle->memory);
     }
-    else
-        array->data = data;
     
     return array;
 }
@@ -201,24 +218,31 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
 {
     mException(INVALID_POINTER(array),EXIT,"invalid input");
     
-    if(num <= 0) num = array->num;
-    
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);
+    if(num          <=0) num = array->num;
+    if(element_size <=0) element_size = handle->element_size;
+    
     if((num!= array->num)||(element_size!=handle->element_size)) mHandleReset(array->handle);
     int same_size = (num*element_size <= array->num*handle->element_size);
     int reuse = (data==array->data);
     int flag = (array->num>0);
     
     array->num = num;
+    handle->element_size = element_size;
     if(same_size&&reuse) return;
     if(same_size&&(data==NULL)&&(handle->num >0)) return;
     
     mException(reuse&&flag&&(handle->num==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->num=0;
+    if((num <= 0)||(element_size<=0)) 
+    {
+        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        array->data = NULL;
+        return;
+    }
     
-    if(num == 0) {array->data = NULL; return;}
+    if(reuse) data=NULL;
     
     if(data!=NULL) {handle->element_size = element_size;array->data = data;return;}
         

@@ -122,14 +122,19 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
     if(same_size&&(data==NULL)&&(handle->width >0)) return;
     mException(reuse&&flag&&(handle->width==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->width = 0;
     
     img->border = NULL;
     mInfoSet(&(img->info),"border_type",MORN_BORDER_UNDEFINED);
     
     if((height<=0)||(cn<=0)||(width<=0))
-        {memset(img->data,0,MORN_MAX_IMAGE_CN*sizeof(unsigned char*));return;}
+    {
+        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        memset(img->data,0,MORN_MAX_IMAGE_CN*sizeof(unsigned char*));
+        return;
+    }
+        
+    if(reuse) data=NULL;
     
     int col = width + 32;
     int row = height+ 16;

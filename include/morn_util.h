@@ -406,6 +406,8 @@ void mSheetElementDelete(MSheet *sheet,int row,int col);
 void mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetReorder(MSheet *sheet);
 
+int ElementSize(char *str);
+
 typedef struct MTable{
     int row;
     int col;
@@ -430,10 +432,10 @@ typedef struct MTable{
 }MTable;
 
 MTable *TableCreate(int row,int col,int element_size,void **data);
-#define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,sizeof(Type),Data)
+#define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,ElementSize(#Type),Data)
 void mTableRelease(MTable *tab);
 void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
-#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,sizeof(Type),Data)
+#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,ElementSize(#Type),Data)
 #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
 
@@ -459,10 +461,10 @@ typedef struct MArray{
     void *reserve;
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
-#define mArrayCreate(Num,Type,Data) ArrayCreate(Num,sizeof(Type),Data)
+#define mArrayCreate(Num,Type,Data) ArrayCreate(Num,ElementSize(#Type),Data)
 void mArrayRelease(MArray *array);
 void ArrayRedefine(MArray *array,int num,int element_size,void *data);
-#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,sizeof(Type),Data)
+#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,ElementSize(#Type),Data)
 
 int mRand(int floor,int ceiling);
 float mNormalRand(float mean,float delta);
@@ -591,8 +593,9 @@ void mChainRelease(MChain *chain);
 MChainNode *mChainNode(MChain *chain,void *data,int size);
 void mChainNodeInsert(MChainNode *last,MChainNode *node,MChainNode *next);
 void mChainNodeDelete(MChainNode *node);
-void mChainNodeExchange(MChainNode *node1,MChainNode *node2);
-MChain *mChainMerge(int chain_num,MChain *chain,...);
+// void mChainNodeExchange(MChainNode *node1,MChainNode *node2);
+void mChainReorder(MChain *chain);
+void mChainMerge(MChain *src1,MChain *src2,MChain *dst);
 
 MBtree *mBtreeCreate();
 void mBtreeRelease(MBtree *btree);

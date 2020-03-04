@@ -31,15 +31,15 @@ extern "C"
 #define MORN_BORDER_IMAGE     4
 #define MORN_BORDER_INVALID   5
 
-typedef struct MImageBorder
-{
-    short height;
-    short width;
-    short y1;
-    short y2;
-    short *x1;
-    short *x2;
-}MImageBorder;
+// typedef struct MImageBorder
+// {
+//     short height;
+//     short width;
+//     short y1;
+//     short y2;
+//     short *x1;
+//     short *x2;
+// }MImageBorder;
 
 typedef struct MImage {
     int channel;                         // ?????
@@ -50,7 +50,7 @@ typedef struct MImage {
     
     MList *handle;
     
-    MImageBorder *border;
+    MArray *border;
     
     MInfo info;
     void *reserve;
@@ -65,7 +65,7 @@ MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
 void mImageRedefine(MImage *img,int channel,int height,int width,unsigned char **data[]);
 void mImageRelease(MImage *img);
 
-void mImageExpand(MImage *img,int r,int border_type);
+void mImageExpand(MImage *img,int r,int expand_type);
 void mImageCopy(MImage *src,MImage *dst);
 MImage *mImageChannelSplit(MImage *src,int channel);
 
@@ -113,12 +113,13 @@ void mImageToGray(MImage *src,MImage *dst);
 
 void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para);
 
-MImageBorder *mImageBorderCreate(int height,int width,int num,...);
-void mImageBorderRelease(MImageBorder *border);
-#define ImageY1(Img) (((Img)->border==NULL)?0:(((Img)->border)->y1))
-#define ImageY2(Img) (((Img)->border==NULL)?((Img)->height):(((Img)->border)->y2))
-#define ImageX1(Img,n) (((Img)->border==NULL)?0:(((Img)->border)->x1[n]))
-#define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width):(((Img)->border)->x2[n]))
+void mImagePolygonBorder(MArray *border,int height,int width,int num,...);
+void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2);
+#define ImageY1(Img) (((Img)->border==NULL)?0:(int)(((Img)->border)->info.value[0]))
+#define ImageY2(Img) (((Img)->border==NULL)?((Img)->height):(int)(((Img)->border)->info.value[1]))
+#define ImageX1(Img,n) (((Img)->border==NULL)?0:(((Img)->border)->dataS16[n+n]))
+#define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width):(((Img)->border)->dataS16[n+n+1]))
+
 
 #define mImageExchange(Src,Dst) mObjectExchange(Src,Dst,MImage)
 #define mImageReset(Img) mHandleReset(Img->handle)

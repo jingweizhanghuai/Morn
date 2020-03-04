@@ -80,10 +80,10 @@ void mVectorRedefine(MVector *vec,int size,float *data)
     if(same_size&&(data==NULL)&&(handle->size>0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->size=0;
+    if(size <= 0) {mException((data!=NULL)&&(!reuse),EXIT,"invalid input"); vec->data = NULL; return;}
     
-    if(size == 0) {vec->data = NULL; return;}
+    if(reuse) data=NULL;
     if(data!=NULL){vec->data = data; return;}
     
     if(size>handle->size)
@@ -195,17 +195,15 @@ void mMatrixRedefine(MMatrix *mat,int row,int col,float **data)
     
     mat->row = row;
     mat->col = col;
-    
     if(same_size&&reuse) return;
     struct HandleMatrixCreate *handle= (struct HandleMatrixCreate *)(((MHandle *)(mat->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->col>0)) return;
     mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->col=0;
+    if((row == 0)||(col==0)) {mException((data!=NULL)&&(!reuse),EXIT,"invalid input"); mat->data=NULL; return;}
     
-    if((row == 0)||(col==0)) {mat->data=NULL; return;}
-    
+    if(reuse) data=NULL;
     if(row>handle->row)
     {
         if(handle->index != NULL)

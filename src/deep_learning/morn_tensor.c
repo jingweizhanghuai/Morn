@@ -110,10 +110,15 @@ void mTensorRedefine(MTensor *tns,int batch,int channel,int height,int width,flo
     if(same_size&&(data==NULL)&&(handle->size >0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
     handle->size = 0;
-    
-    if((batch == 0)||(size == 0)) {tns->data=NULL;return;}
+    if((batch == 0)||(size == 0)) 
+    {
+        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        tns->data=NULL;
+        return;
+    }
+
+    if(reuse) data=NULL;
        
     size = size +8;
 
