@@ -278,7 +278,7 @@ void mLIntToString(MLInt *a,char *str)
 {
     if(a->len ==0) {str[0]='0';str[1]=0;return;}
     if(a->sign) {str[0]='-';str++;}
-    MLInt buff = *a;int rst[33];int i;
+    MLInt buff = *a;buff.sign=0;int rst[33];int i;
     for(i=32;i>=0;i--)
     {
         mLIntDivU32(&buff,1000000000,&buff,rst+i);
@@ -292,9 +292,11 @@ void mLIntToString(MLInt *a,char *str)
 void mStringToLInt(char *str,MLInt *a)
 {
     int l = strlen(str);
+    memset(a,0,sizeof(MLInt));
+    int sign=0;
+    if(str[0]=='-') {str++;l--;sign=1;}
     uint64_t b;MLInt c;int i=0;
     char buff[10];buff[9]=0;
-    memset(a,0,sizeof(MLInt));
     for(i=0;i<l-18;i+=18)
     {
         memcpy(buff,str+i  ,9*sizeof(char));b=atoi(buff);
@@ -319,4 +321,5 @@ void mStringToLInt(char *str,MLInt *a)
     }
     mS64ToLInt(b,&c);
     mLIntAdd(a,&c,a);
+    a->sign = sign;
 }
