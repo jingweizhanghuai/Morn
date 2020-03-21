@@ -361,6 +361,20 @@ void mImageDiff(MImage *src1,MImage *src2,MImage *diff)
     }
 }
 
+void mImageThreshold(MImage *src,MImage *dst,int thresh,int value1,int value2)
+{
+    mException((INVALID_IMAGE(src)),EXIT,"invalid input");
+    mException((src->channel!=1),EXIT,"invalid input");
+    if(dst==NULL) dst=src;
+    
+    unsigned char data[256];
+    for(int i=0;i<256;i++) data[i]=(i<thresh)?((value1<0)?i:value1):((value2<0)?i:value2);
+    
+    for(int j=ImageY1(dst);j<ImageY2(dst);j++)
+        for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+            dst->data[0][j][i]=data[src->data[0][j][i]];
+}
+
 void mImageDiffThreshold(MImage *src1,MImage *src2,MImage *diff,int thresh)
 {
     mException((INVALID_IMAGE(src1)||INVALID_IMAGE(src2)),EXIT,"invalid input");
@@ -416,6 +430,38 @@ void mImageDataAdd(MImage *src1,MImage *src2,MImage *dst)
             {
                 register int data = data1[j][i]+data2[j][i];
                 dst->data[k][j][i] = (data>255)?255:data;
+            }
+    }
+}
+
+void mImageDataWeightAdd(MImage *src1,MImage *src2,MImage *dst,float w1,float w2)
+{
+    mException((INVALID_IMAGE(src1)||INVALID_IMAGE(src2)),EXIT,"invalid input");
+    mException(((src1->height != src2->height)||(src1->width != src2->width)),EXIT,"invalid input");
+    mException((src2->channel!=src1->channel)&&(src2->channel!=1),EXIT,"invalid input");
+    
+    if(INVALID_POINTER(dst)) {dst = src1;}
+    else {mImageRedefine(dst,src1->channel,src1->height,src1->width,dst->data);}
+    
+         if(!INVALID_POINTER(src1->border)) dst->border = src1->border;
+    else if(!INVALID_POINTER(src2->border)) dst->border = src2->border;
+
+    int v1[256];int v2[256];
+    for(int i=0;i<256;i++){v1[i]=(int)((float)i*w1); v2[i]=(int)((float)i*w2);}
+    
+    unsigned char **data1,**data2;
+    for(int k=0;k<dst->channel;k++)
+    {
+        data1 = src1->data[k];
+        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        
+        int j;
+        #pragma omp parallel for
+        for(j=ImageY1(dst);j<ImageY2(dst);j++)
+            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+            {
+                register int data = v1[data1[j][i]]+v2[data2[j][i]];
+                dst->data[k][j][i] = (data>255)?255:((data<0)?0:data);
             }
     }
 }
@@ -566,7 +612,7 @@ void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned
     unsigned char idata[MORN_MAX_IMAGE_CN];
     unsigned char odata[MORN_MAX_IMAGE_CN];
     int j;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
     {
         for(int cn=0;cn<src->channel;cn++) idata[cn]=src->data[cn][j][i];

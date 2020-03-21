@@ -136,104 +136,124 @@ void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
     *num = k;
 }
 
+struct HandleImageBinaryEdge
+{
+    MList *point_buff;
+    MSheet *edge_buff;
+};
+void endImageBinaryEdge(void *info)
+{
+    struct HandleImageBinaryEdge *handle = (struct HandleImageBinaryEdge *)info;
+    if(handle->point_buff!= NULL) mListRelease(handle->point_buff);
+    if(handle->edge_buff != NULL) mSheetRelease(handle->edge_buff);
+}
+#define HASH_ImageBinaryEdge 0xd7a1d30e
 void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
 {
-    
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
     mException((edge==NULL)&&(edge_rect==NULL),EXIT,"invalid input");
     
-    mImageExpand(src,2,MORN_BORDER_BLACK);
+    mImageExpand(src,7,MORN_BORDER_BLACK);
+    MHandle *hdl; ObjectHandle(src,ImageBinaryEdge,hdl);
+    struct HandleImageBinaryEdge *handle = (struct HandleImageBinaryEdge *)(hdl->handle);
+    if(hdl->valid ==0)
+    {
+        if(handle->point_buff==NULL) handle->point_buff=mListCreate(DFLT,NULL);
+        hdl->valid = 1;
+    }
+    MList *point_buff = handle->point_buff;
+    MSheet *edge_buff = edge;
+    if(edge == NULL) 
+    {
+        if(handle->edge_buff==NULL) handle->edge_buff=mSheetCreate(1,NULL,NULL);
+        edge_buff = handle->edge_buff;
+    }
     
     MImagePoint point;
     unsigned char **data = src->data[0];
-    
-    MSheet *edge_buff = edge;
-    if(edge == NULL)
-        edge_buff = mSheetCreate(1,NULL,NULL);
+
+    int data1,data2,data3,data4,data5,data6,data7,data8;
+    MImageRect rect;
+    int xmin,xmax,ymin,ymax;
     
     int k = 0;
-    for(int j=0;j<src->height;j++)
-        for(int i=0;i<src->width;i++)
+    for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
+    {
+        uint64_t *pdata = (uint64_t *)(&(data[j][ii]));
+        if(*pdata==0) continue;
+        for(int i=ii;i<ii+8;i++)
         {
             if(data[j][i]==0)  continue;
             if(data[j][i]!=255) {data[j][i] = 255; continue;}
-            if((data[j][i-1]!=0)&&(data[j-1][i]!=0)) continue;
-            if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<=255) continue;
-            // printf("i is %d,j is %d\n",i,j);
-            
+            if(data[j][i-1]!=0) continue; 
+            // if((data[j][i-1]!=0)&&(data[j+1][i-1]!=0)) continue; 
+            if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<=510) continue;
+
+            point_buff->num=0;
             int row = (edge==NULL)?0:k;
             
-            MImageRect rect;
-            rect.x1 = i; rect.x2 = i;
-            rect.y1 = j; rect.y2 = j;
-            
-            // printf("i is %d,j is %d\n",i,j);
-            
-            point.x = i; point.y = j;
-            mSheetWrite(edge_buff,row,0,&point,sizeof(MImagePoint));
-            data[j][i] = 254;
-            
-            int order = 1;
-            
-            // printf("dddddddddddddddddd(%d,%d) row is %d\n",i,j,row);
-            
             int x = i; int y = j;
+            xmin = x; xmax = x;
+            ymin = y; ymax = y;
+            point.x = x; point.y = y;
+            mSheetWrite(edge_buff,row,0,&point,sizeof(MImagePoint));
+            int order = 1;
+            data[y][x] = 254;
+            
             while(1)
             {
-                // printf("x is %d,y is %d\n",x,y);
                 #define SET_EDGE(X,Y) {\
-                    point.x = X;\
-                    point.y = Y;\
-                    if(X<rect.x1) rect.x1 = X; else if(X+1>rect.x2) rect.x2 = X+1;\
-                    if(Y<rect.y1) rect.y1 = Y; else if(Y+1>rect.y2) rect.y2 = Y+1;\
+                    x = X;y = Y;\
+                    if(x<xmin) xmin = x; else if(x>=xmax) xmax = x+1;\
+                    if(y<ymin) ymin = y; else if(y>=ymax) ymax = y+1;\
+                    point.x = x;point.y = y;\
                     mSheetWrite(edge_buff,row,order,&point,sizeof(MImagePoint));\
                     order += 1;\
-                    \
-                    data[Y][X] = 254;\
-                    x = X;\
-                    y = Y;\
-                    \
-                    flag = 1;\
+                    data[y][x] = 254;\
                 }
                 
-                int flag = 0;
-                     if((data[y  ][x-1]==255)&&((data[y-1][x-1]==0)||(data[y+1][x-1]==0))) SET_EDGE(x-1,y  )
-                else if((data[y-1][x-1]==255)&&((data[y-1][x  ]==0)||(data[y  ][x-1]==0))) SET_EDGE(x-1,y-1)
-                else if((data[y-1][x  ]==255)&&((data[y-1][x+1]==0)||(data[y-1][x-1]==0))) SET_EDGE(x  ,y-1)
-                else if((data[y-1][x+1]==255)&&((data[y  ][x+1]==0)||(data[y-1][x  ]==0))) SET_EDGE(x+1,y-1)
-                else if((data[y  ][x+1]==255)&&((data[y+1][x+1]==0)||(data[y-1][x+1]==0))) SET_EDGE(x+1,y  )
-                else if((data[y+1][x+1]==255)&&((data[y+1][x  ]==0)||(data[y  ][x+1]==0))) SET_EDGE(x+1,y+1)
-                else if((data[y+1][x  ]==255)&&((data[y+1][x-1]==0)||(data[y+1][x+1]==0))) SET_EDGE(x  ,y+1)
-                else if((data[y+1][x-1]==255)&&((data[y  ][x-1]==0)||(data[y+1][x  ]==0))) SET_EDGE(x-1,y+1)
+                data8=data[y-1][x  ];
+                data1=data[y-1][x+1];
+                data2=data[y  ][x+1];if((data1==255)&&((data2&data8)==0)) {SET_EDGE(x+1,y-1);continue;}
+                data3=data[y+1][x+1];if((data2==255)&&((data3&data1)==0)) {SET_EDGE(x+1,y  );continue;}
+                data4=data[y+1][x  ];if((data3==255)&&((data4&data2)==0)) {SET_EDGE(x+1,y+1);continue;}
+                data5=data[y+1][x-1];if((data4==255)&&((data5&data3)==0)) {SET_EDGE(x  ,y+1);continue;}
+                data6=data[y  ][x-1];if((data5==255)&&((data6&data4)==0)) {SET_EDGE(x-1,y+1);continue;}
+                data7=data[y-1][x-1];if((data6==255)&&((data7&data5)==0)) {SET_EDGE(x-1,y  );continue;}
+                                     if((data7==255)&&((data8&data6)==0)) {SET_EDGE(x-1,y-1);continue;}
+                                     if((data8==255)&&((data1&data7)==0)) {SET_EDGE(x  ,y-1);continue;}
+
+                if((ABS(x-i)<=1)&&(ABS(y-j)<=1)&&(order>4)) break;
                 
-                if(flag==0)
-                {
-                    order -= 1;
-                    if(order <= 1)
-                        break;
-                    x = ((MImagePoint *)(edge_buff->data[row][order]))->x;
-                    y = ((MImagePoint *)(edge_buff->data[row][order]))->y;
-                }
-                    
-                if((ABS(x-i)<=1)&&(ABS(y-j)<=1)&&(order>4))
-                    break;
+                int buff[2]={x,y};
+                mListWrite(point_buff,DFLT,buff,sizeof(MImagePoint));
+                
+                order -= 1;if(order <= 1) break;
+                x = ((MImagePoint *)(edge_buff->data[row][order-1]))->x;
+                y = ((MImagePoint *)(edge_buff->data[row][order-1]))->y;
             }
-            
-            // printf("dddddddddddddddddd\n");
-            
-            data[j][i] = 255;
             
             if(order>1)
             {
-                if(edge_rect!=NULL) mListWrite(edge_rect,k,&rect,sizeof(MImageRect));
+                if(edge_rect!=NULL) 
+                {
+                    mRect(&rect,xmin,ymin,xmax,ymax);
+                    mListWrite(edge_rect,k,&rect,sizeof(MImageRect));
+                }
                 edge_buff->col[row] = order;
                 k = k+1;
             }
+
+            for(int n=0;n<point_buff->num;n++)
+            {
+                int *p =point_buff->data[n];
+                data[p[1]][p[0]]=255;
+            }
+            data[j][i] = 255;
         }
+    }
     
-    edge_buff->row=k;
-    if(edge==NULL) mSheetRelease(edge_buff);
-    
+    if(edge !=NULL) edge->row=k;
     if(edge_rect!=NULL) edge_rect->num=k;
 }
 

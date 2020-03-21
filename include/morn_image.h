@@ -73,6 +73,7 @@ void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
 void mImageSub(MImage *src1,MImage *src2,MImage *dst);
 void mImageInvert(MImage *src,MImage *dst);
+void mImageDataWeightAdd(MImage *src1,MImage *src2,MImage *dst,float w1,float w2);
 
 void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned char *,void *),void *para);
 void mImageBinaryFilter(MImage *src,MImage *dst,int r,int thresh);
@@ -195,7 +196,7 @@ float mQuadrangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3,MImagePoin
 #define PointDistance(X1,Y1,X2,Y2) ((float)sqrt(((X1)-(X2))*((X1)-(X2))+((Y1)-(Y2))*((Y1)-(Y2))))
 #define mPointDistance(P1,P2) PointDistance((P1)->x,(P1)->y,(P2)->x,(P2)->y)
 double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx2,double ly2,float *vx,float *vy);
-float mPointVerticalDistance(MImagePoint *point,MList *line,MImagePoint *pedal);
+float mPointVerticalDistance(MImagePoint *point,MImagePoint *p1,MImagePoint *p2,MImagePoint *pedal);
 #define mPointInRect(Point,Rect) (((Point)->x>(Rect)->x1)&&((Point)->x<(Rect)->x2)&&((Point)->y>(Rect)->y1)&&((Point)->y<(Rect)->y2));
 int PointInPolygon(double x,double y,MList *polygon);
 int mPointInPolygon(MImagePoint *point,MList *polygon);
@@ -209,7 +210,7 @@ int mPolygonConcaveCheck(MList *polygon);
 void mShapeBounding(MList *shape,MList *bounding);
 
 void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
-void mEdgeBoundary(MList *edge,MList *polygon,float thresh);
+void mEdgeBoundary(MList *edge,MList *polygon,int thresh);
 
 void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum);
 

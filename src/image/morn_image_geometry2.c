@@ -132,26 +132,7 @@ void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,voi
     LineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[0]),stride,func,para);
 }
 
-void mPolygon(MList *polygon,int num,...)
-{
-    MImagePoint point;int data;
-    mListClear(polygon);
-    va_list para1;va_list para2;
-    va_start(para1,num);va_start(para2,num);
-    for(int i=0;i<num;i++)
-    {
-        point.x = (float)va_arg(para1,double);
-        data = (int)va_arg(para2,int);
-        if(point.x==0) point.x = (float)data;
-        
-        point.y = (float)va_arg(para1,double);
-        data = (int)va_arg(para2,int);
-        if(point.y==0) point.y = (float)data;
-        
-        mListWrite(polygon,i,&point,sizeof(MImagePoint));
-    }
-    va_end(para1);va_end(para2);
-}
+
     
 #define INTEGRAL_AREA(P1x,P1y,P2x,P2y) (((P1x)-(P2x))*((P1y)+(P2y)))
 
@@ -210,6 +191,7 @@ double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx
         double buff = (a*a+b*b);
         v_x = (c*a+b*d)/buff;
         v_y = (a*v_x-c)/b;
+        // printf("vx is %f,vy is %f\n",v_x,v_y);
         l=sqrt((px-v_x)*(px-v_x)+(py-v_y)*(py-v_y));
     }
     
@@ -219,14 +201,12 @@ double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx
     return l;
 }
 
-float mPointVerticalDistance(MImagePoint *point,MList *line,MImagePoint *pedal)
+float mPointVerticalDistance(MImagePoint *point,MImagePoint *p1,MImagePoint *p2,MImagePoint *pedal)
 {
-    MImagePoint **line_point;
-    line_point = (MImagePoint **)(line->data);
     if(pedal == NULL)
-        return PointVerticalDistance(point->x,point->y,line_point[0]->x,line_point[0]->y,line_point[1]->x,line_point[1]->y,NULL,NULL);
+        return PointVerticalDistance(point->x,point->y,p1->x,p1->y,p2->x,p2->y,NULL,NULL);
     else
-        return PointVerticalDistance(point->x,point->y,line_point[0]->x,line_point[0]->y,line_point[1]->x,line_point[1]->y,&(pedal->x),&(pedal->y));
+        return PointVerticalDistance(point->x,point->y,p1->x,p1->y,p2->x,p2->y,&(pedal->x),&(pedal->y));
 }
 
 float LineAngle(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2)
@@ -792,8 +772,8 @@ void mConvexHull(MList *point,MList *polygon)
     MImagePoint **p = (MImagePoint **)(point->data);
     
     int i;
-    int x_max = p[0]->x;int x_min = x_max;
-    int y_max = p[0]->y;int y_min = y_max;
+    float x_max = p[0]->x;float x_min = x_max;
+    float y_max = p[0]->y;float y_min = y_max;
     int i1=0;int i2=0;int i3=0;int i4=0;
     for(i=1;i<point->num;i++)
     {
@@ -854,13 +834,77 @@ void mConvexHull(MList *point,MList *polygon)
     if(pout != polygon) {mObjectExchange(polygon,point,MList);mListRelease(polygon);}
 }
 
+// void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
+// {
+//     int i,j;
+//     mException(INVALID_POINTER(edge),EXIT,"invalid input");
+//     mException((edge->num<5),EXIT,"invalid input");
+    
+//     if(thresh<0) thresh = 1;
+    
+//     if(polygon!=edge) mListAppend(polygon,edge->num);
+    
+//     // float kx,ky,b,t,v;
 
-void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
+//     MImagePoint **pi = (MImagePoint **)(edge->data);
+//     MImagePoint **po = (MImagePoint **)(polygon->data);
+//     po[0] = pi[0];int n=0;int m=0;
+//     for(i=1;i<edge->num;i++)
+//     {
+//         ky= pi[i]->x - po[n]->x;
+//         kx= pi[i]->y - po[n]->y;
+//         if((ABS(kx)<1.0f)||(ABS(ky)<1.0f)) continue;
+        
+        
+//         b = kx*po[n]->x - ky*po[n]->y;
+//         t=(kx*kx+ky*ky);
+//         v = kx*pi[i-1]->x-ky*pi[i-1]->y - b;
+//         if(v*v>t) {n++;po[n]=pi[i-1];}
+//     }
+//     polygon->num=n+1;
+
+//     int *flag=mMalloc(polygon->num*sizeof(int));
+//     memset(flag,0,polygon->num*sizeof(int));
+//     for(int 
+
+//     n=0;mListWrite(list,0,p[i-1],sizeof(MImagePoint));
+//     for(int i=2;i<polygon->num;i++)
+//     {
+//         for(int j=n+1;j<i;j++)
+//         {
+//             v = kx*pi[j]->x-ky*pi[j]->y - b;
+//             if(v*v>t) break;
+//         }
+//         if(j<i)
+//         {
+//             n++;mListWrite(list,n,p[i-1],sizeof(MImagePoint));
+//         }
+        
+        
+
+//     if(polygon != edge)
+//         for(int i=0;i<polygon->num;i++)
+//             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
+// }
+
+
+    
+
+   
+
+
+
+
+
+    
+
+
+void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
 {
     mException(INVALID_POINTER(edge),EXIT,"invalid input");
     mException((edge->num<5),EXIT,"invalid input");
     
-    if(thresh<0) thresh = 1;
+    if(thresh<=0) thresh = 1;
     
     int i,n;
     
@@ -872,8 +916,8 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
     
     polygon->data[0] = p[0];
     n=1;
-    
-    int n0=0; int n1 = 4;
+
+    int n0=0; int n1 = thresh*2;
     while(n0<edge->num-1)
     {
         ky= p[n0]->x - p[n1]->x;
@@ -889,13 +933,14 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
         if(i==n0) 
         {
             polygon->data[n] = p[n1]; n=n+1;
-            n0=n1; n1=MIN(n0+4,edge->num-1);
+            n0=n1; n1=MIN(n0+thresh+thresh,edge->num-1);
         }
     }
     polygon->num = n;
     // printf("aaaaaaaaaa n is %d\n",n);
     
     p = (MImagePoint **)(polygon->data);
+    // for(i=0;i<n;i++)printf("p[%d] is %f,%f\n",i,p[i]->x,p[i]->y);
     
     while(1)
     {
@@ -907,6 +952,8 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
         
         if(v*v>t) i=1;
         else     {i=2; polygon->data[0] = p[1];}
+        // printf("i is %d\n",i);
+        // printf("p[0] is %f,%f\n",p[0]->x,p[0]->y);
         
         n=1;
         while(i<polygon->num-1)
@@ -931,9 +978,11 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
         
         ky= p[polygon->num-2]->x - p[0]->x;
         kx= p[polygon->num-2]->y - p[0]->y; 
+        
         b = kx*p[0]->x - ky*p[0]->y;
         t =thresh*thresh*(kx*kx+ky*ky);
-        v= kx*p[polygon->num-1]->x - ky*p[polygon->num-2]->y - b;
+        v= kx*p[polygon->num-1]->x - ky*p[polygon->num-1]->y - b;
+        // printf("v is %f,t is %f\n",v,t);
         
         if(v*v>t) {polygon->data[n] = p[polygon->num-1];n=n+1;}
         
@@ -942,12 +991,18 @@ void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
             break;
         
         polygon->num = n;
+
+        // printf("aaaaaaaaaa n is %d\n",n);
+        // for(i=0;i<n;i++)printf("p[%d] is %f,%f\n",i,p[i]->x,p[i]->y);
     }
     
     if(polygon != edge)
         for(i=0;i<polygon->num;i++)
             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
 }
+
+
+
 
 // void mEdgeReshape(MList *edge_in,MList *edge_out,int thresh1,int thresh2)
 // {
