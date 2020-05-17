@@ -12,9 +12,11 @@ char *mStringArgument(int argc,char **argv,const char *flag)；
 
 argc、argv就是main函数传入的参数，argc是参数个数，argv是参数内容（从argv[1]开始）。
 
-flag是要寻找的参数标志，这里的标志必须以字符“-”打头。
+flag是要寻找的参数标志，这里的标志必须以字符“-”打头，flag可以是一个字符，也可以是多个字符。
 
-返回值就是找到的命令参数，它是字符串格式，通常，如果参数是数值的话，还需要和`atoi`，`atof`函数一起使用。如果没有找到，返回值是NULL。
+返回值就是找到的命令参数，它是字符串格式，通常，如果参数是数值的话，还需要和`atoi`，`atof`，`ssanf`等函数一起使用。
+
+如果没有找到，返回值是NULL。
 
 例如：
 
@@ -39,25 +41,28 @@ para is 12345
 $ test.exe -a=12345
 para is 12345
 
+$ test.exe -a=12345 -b=6789
+para is 12345
+
 $ test.exe -a
-para is
+para is ?
 ```
 
 也即：以下三种形式的参数都是合法的，且三种方式等价：`-a12345`，`-a 12345`，`-a=12345`。
 
-对于最后一种，虽有参数，但未指定值的情况，将返回一个执行`\0`的指针，此时字符串的长度为0。
+对于最后一种，虽有参数，但未指定值的情况，将返回一个字符串，其值为“?”。
 
 对于以下两种情况：
 
 ```
-$ test.exe -b=12345
+$ test.exe
 no para
 
-$ test.exe
+$ test.exe -b=12345
 no para
 ```
 
-即没有参数或虽有参数但是与给定的标志不匹配时，其返回值都为NULL，
+即①没有参数或②虽有参数但是与给定的标志不匹配（参数为b，指定为a），其返回值都为NULL。
 
 对于以下情况，应在程序设计时避免出现
 
@@ -70,6 +75,49 @@ para is b=12345
 
 
 
+对于多个参数有相同的标志位的，`mStringArgument`将循环读取各个参数。
+
+例如：
+
+```c
+int main(int argc,char **argv)
+{
+    char *para = mStringArgument(argc,argv,"a");
+    char *para0=para; 
+    do{
+        if(para!=NULL) printf("para is %s\n",para);
+        else {printf("no para\n");break;}
+        para = mStringArgument(argc,argv,"a");
+    }while(para!=para0);
+}
+```
+
+运行以上程序，会得到：
+
+```c
+$ test.exe -a=12 34 5
+para is 12
+para is 34
+para is 5
+
+$ test.exe -a12 -a34 -a5
+para is 12
+para is 34
+para is 5
+
+$ test.exe -a12 -a=34 -a:5
+para is 12
+para is 34
+para is 5
+    
+$ test.exe -a12 34 -b 67 89 -a5
+para is 12
+para is 34
+para is 5
+```
+
+
+
 ### 示例
 
 以[../tool/imageformat.c](../tool/imageformat.c)为例，此文件所完成的功能另见文档[Morn：图像加载和保存](Morn：图像加载和保存)。
@@ -78,12 +126,12 @@ para is b=12345
 int main(int argc,char *argv[])
 {
     ...
-    char *file_in = mStringArgument(argc,argv,"i" ,NULL);
-    char *file_out= mStringArgument(argc,argv,"o" ,NULL);
-    char *dir_in  = mStringArgument(argc,argv,"di",NULL);
-    char *dir_out = mStringArgument(argc,argv,"do",NULL);
-    char *type_in = mStringArgument(argc,argv,"ti",NULL);
-    char *type_out= mStringArgument(argc,argv,"to",NULL);
+    char *file_in = mStringArgument(argc,argv,"i" );
+    char *file_out= mStringArgument(argc,argv,"o" );
+    char *dir_in  = mStringArgument(argc,argv,"di");
+    char *dir_out = mStringArgument(argc,argv,"do");
+    char *type_in = mStringArgument(argc,argv,"ti");
+    char *type_out= mStringArgument(argc,argv,"to");
     ...
 }
 ```

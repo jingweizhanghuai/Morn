@@ -153,26 +153,39 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
     dst[m] = '\0';
 }
 
-char morn_string_argument = 0;
+char morn_string_argument[2]={'?',0};
+int morn_string_arg_idx = 0;
 char *mStringArgument(int argc,char **argv,const char *flag)
 { 
     if(argc<=1) return NULL;
     if(flag==NULL) return argv[0]+(argv[0][0]=='-');
     uint64_t flag_len=strlen(flag);
-    
-    for(int i=1;i<argc;i++)
+
+    int idx=morn_string_arg_idx+1;if(idx==argc) idx=1;
+    int i,j;i=idx;
+    while(1)
     {
-        if(argv[i][0] != '-') continue;
-        uint64_t argv_len = strlen(argv[i]+1);
-        if(strspn(argv[i]+1,flag)>=flag_len)
+        morn_string_arg_idx = i;
+        if(argv[i][0] == '-') 
         {
-            if(argv_len > flag_len)      return argv[i]+1+flag_len+(*(argv[i]+1+flag_len)=='=');
-            else if(i == argc-1)         return &morn_string_argument;
-            else if(argv[i+1][0] != '-') return argv[i+1];
-            else                         return &morn_string_argument;
+            if(strspn(argv[i]+1,flag)>=flag_len)
+            {
+                if(strlen(argv[i]) > flag_len+1)
+                    return argv[i]+1+flag_len+((*(argv[i]+1+flag_len)=='=')||(*(argv[i]+1+flag_len)==':'));
+                else if(i+1==argc)
+                    return morn_string_argument;
+                else if(argv[i+1][0]=='-')
+                    return morn_string_argument;
+            }
         }
+        else
+        {
+            for(j=i;j>=1;j--) if(argv[j][0]=='-') break;
+            if(strspn(argv[j]+1,flag)>=flag_len)
+                return argv[i];
+        }
+        i++;if(i==argc) {i=1;} if(i==idx) {return NULL;}
     }
-    return NULL;
 }
 
 #define fgets(Buff,N,F) mException((fgets(Buff,N,F)==NULL),EXIT,"file read error")
@@ -206,28 +219,3 @@ void mHelp(const char *helpfile,const char *name)
     fclose(f);
 }
     
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
