@@ -29,8 +29,8 @@ extern "C"
 #define MORN_FALSE 0
 #define MORN_TRUE  1
 
-#define MORN_FAIL    0
-#define MORN_SUCCESS 1
+#define MORN_FAIL    1
+#define MORN_SUCCESS 0
 
 typedef uint8_t  U8;
 typedef int8_t   S8;
@@ -41,6 +41,26 @@ typedef int32_t  S32;
 typedef float    F32;
 typedef double   D64;
 typedef intptr_t PTR;
+
+#define ARG(X) X
+#define _VA_ARG_NUM(A0,A1,A2,A3,A4,A5,A6,A7,N,...) ((N==1)?((#A0)[0]!=0):N)
+#define VA_ARG_NUM(...) ARG(_VA_ARG_NUM(__VA_ARGS__,8,7,6,5,4,3,2,1,0))
+#define _VA_ARG0(A0,...) (A0+0)
+#define _VA_ARG1(A0,A1,...) (A1)
+#define _VA_ARG2(A0,A1,A2,...) (A2)
+#define _VA_ARG3(A0,A1,A2,A3,...) (A3)
+#define _VA_ARG4(A0,A1,A2,A3,A4,...) (A4)
+#define _VA_ARG5(A0,A1,A2,A3,A4,A5,...) (A5)
+#define _VA_ARG6(A0,A1,A2,A3,A4,A5,A6,...) (A6)
+#define _VA_ARG7(A0,A1,A2,A3,A4,A5,A6,A7,...) (A7)
+#define VA_ARG0(...) ARG(_VA_ARG0(__VA_ARGS__,DFLT))
+#define VA_ARG1(...) ARG(_VA_ARG1(__VA_ARGS__,DFLT,DFLT))
+#define VA_ARG2(...) ARG(_VA_ARG2(__VA_ARGS__,DFLT,DFLT,DFLT))
+#define VA_ARG3(...) ARG(_VA_ARG3(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG4(...) ARG(_VA_ARG4(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG5(...) ARG(_VA_ARG5(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG6(...) ARG(_VA_ARG6(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG7(...) ARG(_VA_ARG7(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
 
 #ifndef ABS
 #define ABS(Xin) (((Xin)>0)?(Xin):(0-(Xin)))
@@ -66,6 +86,13 @@ typedef intptr_t PTR;
 #ifndef ERROR
 #define ERROR   MORN_LOG_ERROR
 #endif
+
+#ifdef _MSC_VER
+#define __thread __declspec(thread)
+#endif
+
+extern __thread char morn_filename[256];
+
 extern pthread_mutex_t file_mutex;
 extern int morn_log_level;
 extern FILE *morn_log_f;
@@ -107,9 +134,9 @@ extern int *morn_log_count;
 #endif
     
 #ifdef _MSC_VER
-extern int morn_clock_n;
-extern int morn_clock_begin[16];
-extern int morn_clock_end[16];
+extern __thread int morn_clock_n;
+extern __thread int morn_clock_begin[16];
+extern __thread int morn_clock_end[16];
 #define mTimerBegin() do{\
     morn_clock_n+= 1;\
     morn_clock_begin[morn_clock_n]=clock();\
@@ -123,9 +150,9 @@ extern int morn_clock_end[16];
 }while(0)
 #else
 #include <sys/time.h>
-extern int morn_timer_n;
-extern struct timeval morn_timer_begin[16];
-extern struct timeval morn_timer_end[16];
+extern __thread int morn_timer_n;
+extern __thread struct timeval morn_timer_begin[16];
+extern __thread struct timeval morn_timer_end[16];
 #ifdef __MINGW32__
 #define gettimeofday mingw_gettimeofday
 #endif
@@ -144,42 +171,21 @@ extern struct timeval morn_timer_end[16];
 
 #define EXIT DFLT
 
-extern pthread_t morn_pthread_ID[16];//= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-extern pthread_mutex_t morn_layer_mutex;
-#define PthreadOrder(Thread_Order) do{\
-    pthread_t Thread_ID = pthread_self();\
-    for(Thread_Order=0;Thread_Order<16;Thread_Order++)\
-        {if(morn_pthread_ID[Thread_Order]>0)if(Thread_ID==morn_pthread_ID[Thread_Order])break;}\
-    if(Thread_Order == 16)\
-    {\
-        pthread_mutex_lock(&morn_layer_mutex);\
-        for(Thread_Order=0;Thread_Order<16;Thread_Order++){if(morn_pthread_ID[Thread_Order]==0) break;}\
-        if(Thread_Order == 16)\
-            {printf("[%s,line %d]Error: in function PthreadOrder: invalid thread ID\n",__FILE__,__LINE__);exit(0);}\
-        morn_pthread_ID[Thread_Order]=Thread_ID;\
-        pthread_mutex_unlock(&morn_layer_mutex);\
-    }\
-}while(0)
-
-extern int morn_exception;// = 0;
-extern jmp_buf *morn_jump[16][8];
-extern int morn_layer_order[16];//= {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-#define mExceptionBegin()\
-int Thread_Order; PthreadOrder(Thread_Order);\
-int Layer_order = morn_layer_order[Thread_Order]+1;\
-{\
-    morn_layer_order[Thread_Order] = Layer_order;\
+extern __thread int morn_exception;
+extern __thread jmp_buf *morn_jump[32];
+extern __thread int morn_layer_order;//=-1;
+#define mExceptionBegin() do{\
+    morn_layer_order = morn_layer_order+1;\
     morn_exception = 0;\
     jmp_buf buf_jump;\
-    morn_jump[Thread_Order][Layer_order] = &buf_jump;\
-    if(setjmp(buf_jump))\
-        goto MORN_EXCEPTION_END;\
-}
+    morn_jump[morn_layer_order] = &buf_jump;\
+    if(setjmp(buf_jump)) goto MORN_EXCEPTION_END;\
+}while(0)
 
 #define mExceptionEnd()\
 {\
     MORN_EXCEPTION_END:\
-    morn_layer_order[Thread_Order] = Layer_order-1;\
+    morn_layer_order = morn_layer_order-1;\
 }
 
 #ifdef _MSC_VER
@@ -190,14 +196,11 @@ int Layer_order = morn_layer_order[Thread_Order]+1;\
 #define mException(ERROR,ID,...) do{\
     int Err = ERROR;\
     if(Err!=0) mLog(Err,__VA_ARGS__);\
-    if(Err > 0)\
+    if(Err >0)\
     {\
         morn_exception = ID;\
-        int Thread_order; PthreadOrder(Thread_order);\
-        if(morn_layer_order[Thread_order] >= 0)\
-            longjmp(*(morn_jump[Thread_order][morn_layer_order[Thread_order]]),morn_exception);\
-        else\
-            exit(0);\
+        if(morn_layer_order<0) exit(0);\
+        longjmp(*(morn_jump[morn_layer_order]),morn_exception);\
     }\
 }while(0)
 
@@ -213,15 +216,22 @@ void mInfoSet(MInfo *info,const char *name,float value);
 
 unsigned int mHash(const char *in,int size);
 
+#ifdef __cplusplus
+#define Morn int dev;struct MList *handle;MInfo info;
+#else
+typedef struct Morn
+{
+    int dev;
+    struct MList *handle;
+    MInfo info;
+}Morn;
+#endif
+
 typedef struct MList
 {
     int num;
-    
     void **data;
-    
-    struct MList *handle;
-    
-    MInfo info;
+    Morn;
     void *reserve;
 }MList;
 
@@ -239,11 +249,11 @@ void mListElementInsert(MList *list,int n,void *data,int size);
 void mListCopy(MList *src,MList *dst);
 void mListMerge(MList *list1,MList *list2,MList *dst);
 
-void mListElementOperate(MList *list,void (*func)(void *,void *),void *para);
-void mListElementScreen(MList *list,int (*func)(void *,void *),void *para);
-void mListElementSelect(MList *list,void (*func)(void *,void *,int *,int *,void *),void *para);
-int mListCluster(MList *list,int *group,int (*func)(void *,void *,void *),void *para);
-void mListSort(MList *list,int func(void *,void *,void *),void *para);
+void mListElementOperate(MList *list,void *function,void *para);
+void mListElementScreen(MList *list,void *function,void *para);
+void mListElementSelect(MList *list,void *function,void *para);
+int mListCluster(MList *list,int *group,void *function,void *para);
+void mListSort(MList *list,void *function,void *para);
 void mListReorder(MList *list);
 
 int mQueueSize(MList *queue);
@@ -257,6 +267,7 @@ void mFileList(MList *list,const char *directory,const char *regular);
 
 // extern void **morn_malloc_ptr[256];
 // extern int morn_malloc_num[256];
+extern __thread void *morn_test;
 
 #ifdef DEBUG
 void *MemoryListSet( int  size,const char *file,int line,const char *func);
@@ -276,7 +287,7 @@ void mMemFree(void *p);
     int Size0;\
     if(Pointer == NULL)\
     {\
-        Pointer = mMalloc(Size);\
+        Pointer = mMalloc(Ssize);\
     }\
     else\
     {\
@@ -289,8 +300,6 @@ void mMemFree(void *p);
     }\
 }while(0)
 
-
-
 typedef struct MHandle
 {
     unsigned int flag;
@@ -302,62 +311,10 @@ typedef struct MHandle
 MList *mHandleCreate(void);
 void mHandleRelease(MList *handle);
 void mHandleReset(MList *handle);
-#define ObjectHandle(Obj,Func,Hdl) do{\
-    Hdl = NULL;\
-    if(Obj->handle == NULL)\
-        Obj->handle = mHandleCreate();\
-    \
-    int Num = Obj->handle->num;\
-    for(int i=0;i<Num;i++)\
-    {\
-        MHandle *handle_data = (MHandle *)(Obj->handle->data[i]);\
-        if(handle_data->flag == HASH_##Func)\
-        {\
-            Hdl = handle_data;\
-            break;\
-        }\
-    }\
-    \
-    if(Hdl==NULL)\
-    {\
-        MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));\
-        Handle_context->flag = HASH_##Func;\
-        Handle_context->valid = 0;\
-        Handle_context->handle = mMalloc(sizeof(struct Handle##Func));\
-        Handle_context->destruct = end##Func;\
-        \
-        memset(Handle_context->handle,0,sizeof(struct Handle##Func));\
-        if(Num%16 == 0)\
-        {\
-            void **handle_buff = (void **)mMalloc((Num+16)*sizeof(void *));\
-            if(Num>0)\
-            {\
-                memcpy(handle_buff,Obj->handle->data,Num*sizeof(void *));\
-                mFree(Obj->handle->data);\
-            }\
-            Obj->handle->data = handle_buff;\
-        }\
-        Obj->handle->data[Num] = Handle_context;\
-        Obj->handle->num = Num+1;\
-        \
-        Hdl = (MHandle *)(Obj->handle->data[Num]);\
-    }\
-}while(0)
+MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *));
+#define mHandle(Obj,Func) GetHandle(Obj->handle,sizeof(struct Handle##Func),HASH_##Func,end##Func)
+#define mReset(Obj) mHandleReset(Obj->handle)
 
-#define MMemory MList
-MMemory *mMemoryCreate(int num,int size);
-void mMemoryRelease(MMemory *memory);
-void mMemoryDataSet(MMemory *memory,char value);
-
-int mMemorySize(MMemory *memory);
-int mMemoryCheck(MMemory *memory,void *check);
-void *mMemoryAppend(MMemory *memory,int num,int size);
-void mMemoryCollect(MMemory *memory,void **data,int num);
-void mMemoryCopy(MMemory *src,void **isrc,MMemory *dst,void **idst,int num);
-void mMemoryMerge(MMemory *mem1,MMemory *mem2,MMemory *dst);
-
-void mMemoryIndex(MMemory *memory,int num,int size,void *index[]);
-void *mMemoryWrite(MMemory *memory,void *data,int size);
     
 int mCompare(const void *mem1,int size1,const void *mem2,int size2);
 
@@ -385,13 +342,10 @@ typedef struct MSheet
 {
     int row;
     int *col;
-    
     void ***data;
     MInfo *row_info;
     
-    MList *handle;
-    
-    MInfo info;
+    Morn;
     void *reserve;
 }MSheet;
 MSheet *mSheetCreate(int row,int *col,void ***data);
@@ -406,7 +360,8 @@ void mSheetElementDelete(MSheet *sheet,int row,int col);
 void mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetReorder(MSheet *sheet);
 
-int ElementSize(char *str);
+int ElementSize(char *str,int size);
+#define mElementSize(Type) ElementSize(#Type,sizeof(Type))
 
 typedef struct MTable{
     int row;
@@ -423,25 +378,23 @@ typedef struct MTable{
         int **dataS32;
         float **dataF32;
         double **dataD64;
+        void ***dataptr;
     };
     
-    MList *handle;
-    
-    MInfo info;
+    Morn;
     void *reserve;
 }MTable;
 
 MTable *TableCreate(int row,int col,int element_size,void **data);
-#define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,ElementSize(#Type),Data)
+#define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,ElementSize(#Type,sizeof(Type)),Data)
 void mTableRelease(MTable *tab);
 void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
-#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,ElementSize(#Type),Data)
+#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,ElementSize(#Type,sizeof(Type)),Data)
 #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
 
 typedef struct MArray{
     int num;
-    
     union
     {
         void *data;
@@ -453,94 +406,32 @@ typedef struct MArray{
         int *dataS32;
         float *dataF32;
         double *dataD64;
+        void **dataptr;
     };
     
-    MList *handle;
-    
-    MInfo info;
+    Morn;
     void *reserve;
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
-#define mArrayCreate(Num,Type,Data) ArrayCreate(Num,ElementSize(#Type),Data)
+#define mArrayCreate(Num,Type,Data) ArrayCreate(Num,ElementSize(#Type,sizeof(Type)),Data)
 void mArrayRelease(MArray *array);
 void ArrayRedefine(MArray *array,int num,int element_size,void *data);
-#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,ElementSize(#Type),Data)
+#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,ElementSize(#Type,sizeof(Type)),Data)
 
 int mRand(int floor,int ceiling);
 float mNormalRand(float mean,float delta);
 
-/*
-#define MORN_LEFT_THRESHOLD      0x01
-#define MORN_RIGHT_THRESHOLD     0x02
-#define MORN_DOUBLE_THRESHOLD    -1
-typedef struct MThreshold{
-    union
-    {
-        int thresh_s32;
-        float thresh_f32;
-        float thresh;
-        unsigned char thresh_u8;
-        char thresh_s8;
-        unsigned short thresh_u16;
-        short thresh_s16;
-    };
-    
-    int mode;
-    
-    union
-    {
-        int leftvalue_s32;
-        float leftvalue_f32;
-        float leftvalue;
-        unsigned char leftvalue_u8;
-        char leftvalue_s8;
-        unsigned short leftvalue_u16;
-        short leftvalue_s16;
-    };
-    union
-    {
-        int rightvalue_s32;
-        float rightvalue_f32;
-        float rightvalue;
-        unsigned char rightvalue_u8;
-        char rightvalue_s8;
-        unsigned short rightvalue_u16;
-        short rightvalue_s16;
-    };
-}MThreshold;
-
-#define ThresholdData(data,thresh,type) ((data<=thresh->thresh_##type)?(((thresh->mode)&0x01)?(thresh->leftvalue_##type):data):(((thresh->mode)&0x02)?(thresh->rightvalue_##type):data))
-*/
-
-
-
-int mStringRegular(const char *str1,const char *str2);
-char **mStringSplit(const char *str,const char *flag,MList *list);
+// #define MORN_STRING_SPLIT_MODE(N) (((N)>0)?(N):(-1-(N)))
+// int mStringSplit(char *in,const char *flag,char **out1,char **out2,int mode);
+char **mStringSplit(const char *str_in,const char *flag,MList *list);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
 
-
-
-
-// typedef struct MTree
-// {
-    // void *data;
-    // int size;
-    
-    // int child_num;
-    // struct MTree **child;
-    // struct MTree *parent;
-    
-    // MHandleSet *handle;
-    // void *reserved;
-// }MTree;
-
-char *mStringArgument(int argc,char **argv,const char *flag);
+char *StringArgument(int argc,char **argv,const char *flag,int n,...);
+#define mStringArgument(Argc,Argv,Flag,...) StringArgument(Argc,Argv,Flag,VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__)
 
 typedef struct MChainNode
 {
     void *data;
-    // int size;
-    
     struct MChainNode *last;
     struct MChainNode *next;
 }MChainNode;
@@ -548,8 +439,6 @@ typedef struct MChainNode
 typedef struct MTreeNode
 {
     void *data;
-    // int size;
-    
     int child_num;
     struct MTreeNode **child;
     struct MTreeNode *parent;
@@ -576,9 +465,7 @@ typedef struct MObject
         char *filename;
     };
     
-    MList *handle;
-    
-    MInfo info;
+    Morn;
     void *reserved;
 }MObject;
 MObject *mObjectCreate(const void *obj);
@@ -592,7 +479,7 @@ MChain *mChainCreate();
 void mChainRelease(MChain *chain);
 MChainNode *mChainNode(MChain *chain,void *data,int size);
 void mChainNodeInsert(MChainNode *last,MChainNode *node,MChainNode *next);
-void mChainNodeDelete(MChainNode *node);
+void mChainNodeDelete(MChain *chain,MChainNode *node);
 // void mChainNodeExchange(MChainNode *node1,MChainNode *node2);
 void mChainReorder(MChain *chain);
 void mChainMerge(MChain *src1,MChain *src2,MChain *dst);
@@ -611,6 +498,30 @@ void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int 
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
 MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
 
+
+#define MORN_HOST_CPU                         0
+#define MORN_CUDA_GPU(N)       ((1<<16)+MAX(N,0))
+#define MORN_CL_CPU(N)         ((2<<16)+MAX(N,0))
+#define MORN_CL_GPU(N)         ((3<<16)+MAX(N,0))
+#define MORN_CL_ACCELERATOR(N) ((4<<16)+MAX(N,0))
+#define MMemory MList
+MMemory *mMemoryCreate(int num,int size,int dev);
+void mMemoryRelease(MMemory *memory);
+void mMemoryRedefine(MMemory *memory,int num,int size,int dev);
+void mMemoryDevice(MMemory *memory,int dev,void ***index,int batch,int row,int col);
+
+int mMemorySize(MMemory *memory);
+int mMemoryCheck(MMemory *memory,void *check);
+
+void MemoryCollect(void *data,void *mem);
+void MemoryDefrag(MMemory *memory);
+
+void *mMemoryAppend(MMemory *memory,int size);
+void mMemoryCopy(MMemory *src,void ***isrc,MMemory *dst,void ***idst,int batch,int *num);
+void mMemoryMerge(MMemory *mem1,MMemory *mem2,MMemory *dst);
+
+void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num);
+void *mMemoryWrite(MMemory *memory,void *data,int size);
 
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
 void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
@@ -638,14 +549,16 @@ char *mINIRead(MFile *file,const char *section,const char *key);
 MList *mINIKey(MFile *file,const char *section);
 MList *mINISection(MFile *file);
 
-void mJSONLoad(char *filename,MTree *tree);
+void JSONLoad(MTree *tree,char *filename);
+#define mJSONLoad(Tree,...) do{sprintf(morn_filename,__VA_ARGS__);JSONLoad(Tree,morn_filename);}while(0)
 char *mJSONName(MTreeNode *node);
 char *mJSONValue(MTreeNode *node);
 void mJSONSearch(MTree *tree,MList *result,char *name);
+MTreeNode *mJSONNode(MTree *tree,char *name);
 
-int mMORNSize(MObject *file,const char *name);
-void mMORNRead(MObject *file,const char *name,void **data,int num,int size);
-void mMORNWrite(MObject *file,const char *name,void **data,int num,int size);
+int mMORNSize(MObject *file,int ID);
+void mMORNRead(MObject *file,int ID,void **data,int num,int size);
+void mMORNWrite(MObject *file,int ID,void **data,int num,int size);
     
 #define MORN_TREE_PREORDER_TRAVERSAL DFLT
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
@@ -669,173 +582,6 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
 #define ThreadRun14(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);}
 #define ThreadRun15(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);}
 #define ThreadRun16(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,F16) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);THREAD(16,F16);}
-/*
-#define ThreadRun2(F1,F2) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun3(F1,F2,F3) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun4(F1,F2,F3,F4) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun5(F1,F2,F3,F4,F5) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun6(F1,F2,F3,F4,F5,F6) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun7(F1,F2,F3,F4,F5,F6,F7) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun8(F1,F2,F3,F4,F5,F6,F7,F8) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun9(F1,F2,F3,F4,F5,F6,F7,F8,F9) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun10(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun11(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun12(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-    void thfunc12(void) {F12;} mException(pthread_create(id+11,NULL,(void *)thfunc12,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun13(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-    void thfunc12(void) {F12;} mException(pthread_create(id+11,NULL,(void *)thfunc12,NULL),EXIT,"createthread failed");\
-    void thfunc13(void) {F13;} mException(pthread_create(id+12,NULL,(void *)thfunc13,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun14(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-    void thfunc12(void) {F12;} mException(pthread_create(id+11,NULL,(void *)thfunc12,NULL),EXIT,"createthread failed");\
-    void thfunc13(void) {F13;} mException(pthread_create(id+12,NULL,(void *)thfunc13,NULL),EXIT,"createthread failed");\
-    void thfunc14(void) {F14;} mException(pthread_create(id+13,NULL,(void *)thfunc14,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun15(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-    void thfunc12(void) {F12;} mException(pthread_create(id+11,NULL,(void *)thfunc12,NULL),EXIT,"createthread failed");\
-    void thfunc13(void) {F13;} mException(pthread_create(id+12,NULL,(void *)thfunc13,NULL),EXIT,"createthread failed");\
-    void thfunc14(void) {F14;} mException(pthread_create(id+13,NULL,(void *)thfunc14,NULL),EXIT,"createthread failed");\
-    void thfunc15(void) {F15;} mException(pthread_create(id+14,NULL,(void *)thfunc15,NULL),EXIT,"createthread failed");\
-}
-#define ThreadRun16(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,F16) {\
-    void thfunc1(void)  {F1 ;} mException(pthread_create(id+0 ,NULL,(void *)thfunc1 ,NULL),EXIT,"createthread failed");\
-    void thfunc2(void)  {F2 ;} mException(pthread_create(id+1 ,NULL,(void *)thfunc2 ,NULL),EXIT,"createthread failed");\
-    void thfunc3(void)  {F3 ;} mException(pthread_create(id+2 ,NULL,(void *)thfunc3 ,NULL),EXIT,"createthread failed");\
-    void thfunc4(void)  {F4 ;} mException(pthread_create(id+3 ,NULL,(void *)thfunc4 ,NULL),EXIT,"createthread failed");\
-    void thfunc5(void)  {F5 ;} mException(pthread_create(id+4 ,NULL,(void *)thfunc5 ,NULL),EXIT,"createthread failed");\
-    void thfunc6(void)  {F6 ;} mException(pthread_create(id+5 ,NULL,(void *)thfunc6 ,NULL),EXIT,"createthread failed");\
-    void thfunc7(void)  {F7 ;} mException(pthread_create(id+6 ,NULL,(void *)thfunc7 ,NULL),EXIT,"createthread failed");\
-    void thfunc8(void)  {F8 ;} mException(pthread_create(id+7 ,NULL,(void *)thfunc8 ,NULL),EXIT,"createthread failed");\
-    void thfunc9(void)  {F9 ;} mException(pthread_create(id+8 ,NULL,(void *)thfunc9 ,NULL),EXIT,"createthread failed");\
-    void thfunc10(void) {F10;} mException(pthread_create(id+9 ,NULL,(void *)thfunc10,NULL),EXIT,"createthread failed");\
-    void thfunc11(void) {F11;} mException(pthread_create(id+10,NULL,(void *)thfunc11,NULL),EXIT,"createthread failed");\
-    void thfunc12(void) {F12;} mException(pthread_create(id+11,NULL,(void *)thfunc12,NULL),EXIT,"createthread failed");\
-    void thfunc13(void) {F13;} mException(pthread_create(id+12,NULL,(void *)thfunc13,NULL),EXIT,"createthread failed");\
-    void thfunc14(void) {F14;} mException(pthread_create(id+13,NULL,(void *)thfunc14,NULL),EXIT,"createthread failed");\
-    void thfunc15(void) {F15;} mException(pthread_create(id+14,NULL,(void *)thfunc15,NULL),EXIT,"createthread failed");\
-    void thfunc16(void) {F16;} mException(pthread_create(id+15,NULL,(void *)thfunc16,NULL),EXIT,"createthread failed");\
-}
-*/
 #define mThread(Num,...) {\
     /*pthread_setconcurrency(16);*/\
     mException((Num>16)||(Num<2),EXIT,"invalid Thread number");\

@@ -19,6 +19,9 @@ extern "C"
 
 #define MORN_PI 3.141592653589793238462643383279502884197169399375105820974944592308
 #define MORN_E  2.718281828459045235360287471352662497757247093699959574966967627724
+#ifndef PI
+#define PI MORN_PI
+#endif
 
 #define mMathABS(x) (((x)>0)?(x):(-(x)))
 #define mMathABSDiff(x,y) (((x)>(y))?((x)-(y)):((y)-(x)))
@@ -30,6 +33,8 @@ extern "C"
 
 float mSin(float a);
 float mCos(float a);
+#define mTan(a) (mSin(a)/mCos(a))
+#define mCot(a) (mCos(a)/mSin(a))
 void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
 void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *covariance);
@@ -51,18 +56,38 @@ double mSigmoid(float x);
 typedef struct MVector{
     int size;
     float *data;
-    
-    MList *handle;
-    MInfo info;
+    Morn;
     void *reserve;
 }MVector;
 
 #define INVALID_VEC(Vec) ((((Vec) ==NULL)||((intptr_t)(Vec) == -1))?1:(((Vec)->size <= 0)||((intptr_t)((Vec)->data) <= 0)))
 
-MVector *mVectorCreate(int size,float *data);
-void mVectorSetData(MVector *vec,float *data);
+MVector *VectorCreate(int size,float *data,int dev);
+#define mVectorCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?VectorCreate(DFLT,NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?VectorCreate(VA_ARG0(__VA_ARGS__),NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?VectorCreate(VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?VectorCreate(VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__)):\
+    NULL\
+)
+
+void VectorRedefine(MVector *vec,int size,float *data,int dev);
+#define mVectorRedefine(Vec,...) do{\
+    int N=VA_ARG_NUM(__VA_ARGS__);\
+         if(N==0) VectorRedefine(Vec,DFLT,(Vec)->data,DFLT);\
+    else if(N==1) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(Vec)->data,DFLT);\
+    else if(N==2) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),DFLT);\
+    else if(N==3) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input para");\
+}while(0)
+
 void mVectorRelease(MVector *vec);
-void mVectorRedefine(MVector *vec,int size,float *data);
+
+#define mVectorData(Vec,Data) do{\
+    float *Buff;if(Vec->dev==MORN_HOST_CPU) Buff=Vec->data; else Buff=mMalloc(Vec->size*sizeof(float));\
+    for(int I=0;I<Vec->size;I++) Buff[I]=(float)(Data[I]);\
+    if(Buff!=Vec->data) {MemCopy(Vec->data,Vec->dev,Buff,MORN_HOST_CPU,Vec->size);mFree(Buff);}\
+}while(0)
     
 #define mVectorExchange(Vec1,Vec2) mObjectExchange(Vec1,Vec2,MVector)
 #define mVectorReset(Vec) mHandleReset(Vec->handle)
@@ -70,11 +95,8 @@ void mVectorRedefine(MVector *vec,int size,float *data);
 typedef struct MMatrix{
     int row;
     int col;
-    
     float **data;
-    
-    MList *handle;
-    MInfo info;
+    Morn;
     void *reserve;
 }MMatrix;
 
@@ -82,14 +104,43 @@ typedef struct MMatrix{
                                                                 ||((Mat)->col <= 0)\
                                                                 ||((Mat)->row <= 0)))
 
-MMatrix *mMatrixCreate(int row,int col,float **data);
+MMatrix *MatrixCreate(int row,int col,float **data,int dev);
+#define mMatrixCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?MatrixCreate(DFLT,DFLT,NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==4)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__)):\
+    NULL\
+)
+
 void mMatrixRelease(MMatrix *mat);
-void mMatrixRedefine(MMatrix *mat,int row,int col,float ** data);
+
+void MatrixRedefine(MMatrix *mat,int row,int col,float ** data,int dev);
+#define mMatrixRedefine(Mat,...) do{\
+    int N=VA_ARG_NUM(__VA_ARGS__);\
+         if(N==0) MatrixRedefine(Mat,DFLT,DFLT,(Mat)->data,DFLT);\
+    else if(N==2) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(Mat)->data,DFLT);\
+    else if(N==3) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),DFLT);\
+    else if(N==4) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input para");\
+}while(0)
 
 #define mMatrixExchange(Mat1,Mat2) mObjectExchange(Mat1,Mat2,MMatrix)
 #define mMatrixReset(Mat) mHandleReset(Mat->handle)
 void mMATWrite(MFile *file,MMatrix *mat,char *matname);
 void mMATRead(MFile *file,char *matname,MMatrix *mat);
+
+#define mMatrixData(Mat,Data) do{\
+    int Num = Mat->col*Mat->row;\
+    float *Buff;if(Mat->dev==MORN_HOST_CPU) Buff=&(Mat->data[0][0]);else Buff=mMalloc(Num*sizeof(float));\
+    for(int i=0;i<Num;i++) Buff[i]=(float)(Data[i]);\
+    if(Mat->dev!=MORN_HOST_CPU)\
+    {\
+        MemCopy(&(Mat->data[0][0]),Mat->dev,Buff,MORN_HOST_CPU,Num);\
+        mFree(Buff);\
+    }\
+}while(0)
+
 
 void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst);
 float mVectorMul(MVector *vec1,MVector *vec2);
@@ -161,7 +212,6 @@ U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index
 #define MAX_TENSOR_BATCH 32
 
 double mCaculate(char *str);
-
 
 unsigned int mHash(const char *in,int size);
 

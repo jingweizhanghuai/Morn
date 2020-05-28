@@ -26,12 +26,8 @@ extern "C"
 typedef struct MWave {
     int channel;
     int size;
-    
     float *data[MORN_MAX_WAVE_CN];
-    
-    MList *handle;
-    MInfo info;
-    
+    Morn;
     void *reserve;
 }MWave;
 
@@ -112,6 +108,10 @@ void mWaveAverage(MWave *src1,MWave *src2,MWave *dst);
 void mWaveScale(MWave *src,MWave *dst,float k);
 void mWaveWeightedAverage(MWave *src1,MWave *src2,MWave *dst,float weight1,float weight2);
 
+void WAVLoad(MWave *dst,const char *filename);
+void WAVSave(MWave *src,const char *filename);
+#define mWAVLoad(Wav,...) do{sprintf(morn_filename,__VA_ARGS__);WAVLoad(Wav,morn_filename);}while(0)
+#define mWAVSave(Wav,...) do{sprintf(morn_filename,__VA_ARGS__);WAVSave(Wav,morn_filename);}while(0)
 int mWAVRead(MObject *file,MWave *dst);
 int mWAVWrite(MObject *file,MWave *src);
 
@@ -166,9 +166,6 @@ typedef struct MWaveIndex {
     
     int *index;
 }MWaveIndex;
-
-
-
 
 MWaveIndex *mGetFrameIndex(int wav_size,int div_num,int div_size,float div_overlap);
 void mReleaseWaveIndex(MWaveIndex *index);

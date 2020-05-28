@@ -25,10 +25,8 @@ typedef struct MTensor{
     int channel;
     int height;
     int width;
-    
     float **data;
-    
-    MList *handle;
+    Morn;
     void *reserve;
 }MTensor;
 #define INVALID_TENSOR(Tns) ((((Tns) ==NULL)||((intptr_t)(Tns) == DFLT))?1:(((Tns)->data == NULL)||((intptr_t)((Tns)->data) == DFLT)\
@@ -36,13 +34,28 @@ typedef struct MTensor{
                                                                       ||((Tns)->width <= 0)||((Tns)->channel <= 0)\
                                                                       ||((Tns)->handle == NULL)))
 
-MTensor *mTensorCreate(int batch,int channel,int height,int width,float **data);
-void mTensorRedefine(MTensor *tns,int batch,int channel,int height,int width,float **data);
+MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int dev);
+#define mTensorCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?TensorCreate(DFLT,DFLT,DFLT,DFLT,NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==4)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==5)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==6)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__)):\
+    NULL\
+)
+void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,float **data,int dev);
+#define mTensorRedefine(Tns,...) do{\
+    int N=VA_ARG_NUM(__VA_ARGS__);\
+         if(N==0) TensorRedefine(Tns,DFLT,DFLT,DFLT,DFLT,(Tns)->data,DFLT);\
+    else if(N==4) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(Tns)->data,DFLT);\
+    else if(N==5) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),DFLT);\
+    else if(N==6) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input para");\
+}while(0)
 void mTensorRelease(MTensor *tns);
 
-void mTensorCopy(MTensor *src,MTensor *dst);
+float **mTensorBackup(MTensor *tns,int batch,int cn,int height,int width);
+void mTensorCopy(MTensor *src,MTensor *dst,int dev);
 // void *mTensorParaWrite(MList *net,void *para,int size);
-
 
 typedef struct MLayer
 {
@@ -94,6 +107,8 @@ extern struct LossRegister morn_loss_register[64];
 extern int morn_loss_register_num;
 void mLossRegister(const char *name,float (*loss)(MLayer *,MLayer *,float *),void (*dloss)(MLayer *,MLayer *));
 void mLossRegisterAll();
+
+void mDataFuncRegister(void (*func)(MVector **,char **,int,char *));
 
 // extern char *morn_network_train_data_dir;
 
@@ -163,6 +178,10 @@ void *mTensorResizePara(MFile *ini,char *name);
 void mTensorResizeForward(MLayer *layer);
 void mTensorResizeBackward(MLayer *layer);
 
+void *mTensorReshapePara(MFile *ini,char *name);
+void mTensorReshapeForward(MLayer *layer);
+void mTensorReshapeBackward(MLayer *layer);
+
 void *mTensorMulPara(MFile *ini,char *name);
 void mTensorMulForward(MLayer *layer);
 void mTensorMulBackward(MLayer *layer);
@@ -176,14 +195,14 @@ void mTensorMulBackward(MLayer *layer);
     {\
         char Para_name[64];sprintf(Para_name,"%s_%s",Layer->name,Name);\
         void *P_data = Data;\
-        mMORNWrite(morn_network_parafile,Para_name,&P_data,1,Size);\
+        mMORNWrite(morn_network_parafile,mHash(Para_name,DFLT),&P_data,1,Size);\
     }\
 }while(0)
     
 #define mNetworkParaRead(Layer,Name,Data,Size) do{\
     char Para_name[64];sprintf(Para_name,"%s_%s",Layer->name,Name);\
     void *P_data = Data;\
-    mMORNRead(morn_network_parafile,Para_name,&P_data,1,Size);\
+    mMORNRead(morn_network_parafile,mHash(Para_name,DFLT),&P_data,1,Size);\
 }while(0)
 
 #ifdef __cplusplus
