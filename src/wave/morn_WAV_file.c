@@ -97,7 +97,7 @@ void WAVInfo(struct MWAVInfo *info)
     }
 }
 
-void mWAVLoad(const char *filename,MWave *dst)
+void WAVLoad(MWave *dst,const char *filename)
 {
     mException((dst==NULL),EXIT,"invalid input");
     
@@ -145,7 +145,7 @@ void mWAVLoad(const char *filename,MWave *dst)
     fclose(info.f);
 }
 
-void mWAVSave(MWave *src,const char *filename)
+void WAVSave(MWave *src,const char *filename)
 {
     mException(INVALID_WAVE(src),EXIT,"invalid input");
     mException((src->channel >2),EXIT,"invalid input");
@@ -203,7 +203,7 @@ int mWAVRead(MFile *file,MWave *dst)
 {
     mException((file==NULL)||(dst==NULL),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,WAVRead,hdl);
+    MHandle *hdl=mHandle(file,WAVRead);
     struct HandleWAVRead *handle = (struct HandleWAVRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -316,7 +316,7 @@ int mWAVWrite(MObject *file,MWave *src)
     
     float frequency = mInfoGet(&(src->info),"frequency");
     
-    MHandle *hdl; ObjectHandle(file,WAVWrite,hdl);
+    MHandle *hdl=mHandle(file,WAVWrite);
     struct MWAVInfo *handle = (struct MWAVInfo *)(hdl->handle);
     if(hdl->valid == 0)
     {

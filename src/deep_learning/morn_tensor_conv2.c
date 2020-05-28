@@ -121,7 +121,7 @@ void TensorSampleConvSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorSampleConv,hdl);
+    MHandle *hdl=mHandle(out,TensorSampleConv);
     struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
@@ -203,7 +203,7 @@ void mTensorSampleConvForward(MLayer *layer)
     
     TensorSampleConvSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorSampleConv,hdl);
+    MHandle *hdl=mHandle(out,TensorSampleConv);
     struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
@@ -249,7 +249,7 @@ void mTensorSampleConvBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorSampleConv,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorSampleConv);
     struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
@@ -509,7 +509,7 @@ void TensorDirConvSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorDirConv,hdl);
+    MHandle *hdl=mHandle(out,TensorDirConv);
     struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
@@ -560,7 +560,7 @@ void mTensorDirConvForward(MLayer *layer)
     
     TensorDirConvSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorDirConv,hdl);
+    MHandle *hdl=mHandle(out,TensorDirConv);
     struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
@@ -594,7 +594,7 @@ void mTensorDirConvBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorDirConv,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorDirConv);
     struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

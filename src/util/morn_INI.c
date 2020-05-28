@@ -145,7 +145,7 @@ char *mINIRead(MObject *file,const char *section,const char *key)
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     mException(INVALID_POINTER(section)||INVALID_POINTER(key),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,INIRead,hdl);
+    MHandle *hdl=mHandle(file,INIRead);
     struct HandleINIRead *handle = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -174,7 +174,7 @@ char *mINIRead(MObject *file,const char *section,const char *key)
 MList *mINISection(MFile *file)
 {
     mException(INVALID_POINTER(file),EXIT,"invalid input");
-    MHandle *hdl; ObjectHandle(file,INIRead,hdl);
+    MHandle *hdl=mHandle(file,INIRead);
     struct HandleINIRead *handle = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -200,7 +200,7 @@ MList *mINIKey(MFile *file,const char *section)
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     mException(INVALID_POINTER(section),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,INIRead,hdl);
+    MHandle *hdl=mHandle(file,INIRead);
     struct HandleINIRead *handle0 = (struct HandleINIRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -210,7 +210,7 @@ MList *mINIKey(MFile *file,const char *section)
     MList  *list = handle0->list;
     MSheet *sheet= handle0->sheet;
     
-    ObjectHandle(file,INIKey,hdl);
+    hdl = mHandle(file,INIKey);
     struct HandleINIKey *handle = (struct HandleINIKey *)(hdl->handle);
     if(hdl->valid == 0)
     {

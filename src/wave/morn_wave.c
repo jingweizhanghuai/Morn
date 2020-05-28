@@ -41,8 +41,9 @@ MWave *mWaveCreate(int cn,int size,float **data)
     
     wave->size = size;
     wave->channel = cn;
-    
-    MHandle *hdl; ObjectHandle(wave,WaveCreate,hdl);
+
+    wave->handle = mHandleCreate();
+    MHandle *hdl=mHandle(wave,WaveCreate);
     struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(hdl->handle);
     handle->wave = wave;
     
@@ -54,8 +55,10 @@ MWave *mWaveCreate(int cn,int size,float **data)
     else if(INVALID_POINTER(data))
     {
         size = size +32;
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float));
-        mMemoryIndex(handle->memory,cn,size*sizeof(float),(void **)(handle->index));
+        void **index[MORN_MAX_WAVE_CN];for(int i=0;i<cn;i++) index[i]=(void **)(&(handle->index[i]));
+        
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST_CPU);
+        mMemoryIndex(handle->memory,1,size*sizeof(float),index,cn);
         handle->size = size;
         handle->channel = cn;
         
@@ -113,8 +116,10 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     if((size > handle->size)||(cn > handle->channel))
     {
         size = size +32;
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float));
-        mMemoryIndex(handle->memory,cn,size*sizeof(float),(void **)(handle->index));
+        void **index[MORN_MAX_WAVE_CN];for(int i=0;i<cn;i++) index[i]=(void **)(&(handle->index[i]));
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST_CPU);
+        else mMemoryRedefine(handle->memory,cn,size*sizeof(float),MORN_HOST_CPU);
+        mMemoryIndex(handle->memory,1,size*sizeof(float),index,cn);
         handle->size = size;
         handle->channel = cn;
     }

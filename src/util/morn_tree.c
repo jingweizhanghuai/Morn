@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License along with thi
 struct HandleTreeCreate
 {
     MMemory *memory;
+    int node_num;
 };
 void endTreeCreate(void *info)
 {
@@ -25,8 +26,7 @@ void endTreeCreate(void *info)
 MTree *mTreeCreate()
 {
     MTree *tree = mObjectCreate(NULL);
-    
-    MHandle *hdl; ObjectHandle(tree,TreeCreate,hdl);
+    mHandle(tree,TreeCreate);
     
     return tree;
 }
@@ -46,16 +46,30 @@ void mTreeRelease(MTree *tree)
     mObjectRelease(tree);
 }
 
+void _TreeMemoryCollect(MTree *tree)
+{
+    NULL;
+}
+
+#define HASH_TreeNode 0xa8930197
 MTreeNode *mTreeNode(MTree *tree,void *data,int size)
 {
     MHandle *hdl = (MHandle *)(tree->handle->data[1]);
     mException((hdl->flag != HASH_TreeCreate),EXIT,"invalid input tree");
     struct HandleTreeCreate *handle =(struct HandleTreeCreate *)(hdl->handle);
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
     
-    MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode));
-    memset(node,0,sizeof(MBtreeNode));
-    node->data = mMemoryWrite(handle->memory,data,size);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+    
+    MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode)+2*sizeof(int)+size);
+    memset(node,0,sizeof(MBtreeNode)+sizeof(int));
+    int *info = (int *)(node+1);info[0]=0;info[1]=HASH_TreeNode;
+    node->data = (info+2);if(data!=NULL) memcpy(node->data,data,size);
+
+    handle->node_num++;
+    if(handle->node_num%1024==0)
+    {
+        _TreeMemoryCollect(tree);
+    }
     
     return node;
 }
@@ -64,39 +78,31 @@ void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order)
 {
     child->parent = tree;
     
-    if(order <0)
+    int num0 = tree->child_num;
+    if(order<0) order=num0;
+    if(order>=num0)
     {
-        int i;
-        for(i=0;i<tree->child_num;i++)
-            if(tree->child[i] == NULL)
-                break;
-        order = i;
-    }
+        tree->child_num = order+1;
     
-    if(order >= tree->child_num)
-    {
-        int child_num = order+1;
-        if(tree->child == NULL)
+        int *info = (int *)(child+1);
+        mException(info[1]!=HASH_TreeNode,1,"invalid input child node");
+        if(tree->child_num>info[0])
         {
-            tree->child = (MTreeNode **)mMalloc(MAX(2,child_num)*sizeof(MTreeNode *));
-            memset(tree->child,0,MAX(2,child_num)*sizeof(MTreeNode *));
-        }
-        else if((tree->child_num < child_num)&&(child_num >2))
-        {
-            MTreeNode **buff = (MTreeNode **)mMalloc(MAX(2,child_num)*sizeof(MTreeNode *));
-            memcpy(buff,tree->child,tree->child_num*sizeof(MTreeNode *));
-            memset(buff+tree->child_num,0,(child_num-tree->child_num)*sizeof(MTreeNode *));
-            mFree(tree->child);
+                 if(info[0]==  0) info[0] =2;
+            else if(info[0]<   4) info[0] =4;
+            else if(info[0]<  16) info[0]+=4;
+            else                  info[0]+=info[0]/3;
+            info[0]=MAX(info[0],tree->child_num);
+            MTreeNode **buff = mMalloc(info[0]*sizeof(MTreeNode *));
+            if(num0>0)
+            {
+                memcpy(buff,tree->child,num0 *sizeof(MTreeNode *));
+                mFree(tree->child);
+            }
+            memset(buff+num0,0,(info[0]-num0)*sizeof(MTreeNode *));
             tree->child = buff;
         }
-        
-        tree->child_num = child_num;
     }
-    
-    if(tree->child[order] == child)
-        return;
-    
-    mException((tree->child[order]!=NULL),EXIT,"invalid operate");
     
     tree->child[order] = child;
 }

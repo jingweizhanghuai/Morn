@@ -61,7 +61,7 @@ void mImageHoughLine(MImage *src,MList *list,int thresh1,int thresh2,int thresh)
     int range = (int)(sqrt((double)(cx*cx+cy*cy)))+1;
     // printf("range is %d\n",range);
     
-    MHandle *hdl; ObjectHandle(src,ImageHoughLine,hdl);
+    MHandle *hdl=mHandle(src,ImageHoughLine);
     struct HandleImageHoughLine *handle = (struct HandleImageHoughLine *)(hdl->handle);
     if(hdl->valid==0)
     {

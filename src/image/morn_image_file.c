@@ -116,7 +116,7 @@ void BMPRGBSave(MImage *src,const char *filename)
     FILE *f = fopen(filename,"wb");
     mException((f == NULL),EXIT,"cannot open file");
     short bmptype = 0x4d42;fwrite(&bmptype,1,2,f);
-    
+
     int img_width = src->width;
     int img_height = src->height;
     int data_width = ((img_width*3+3)>>2)<<2;
@@ -144,7 +144,7 @@ void BMPRGBSave(MImage *src,const char *filename)
     {
         for(j=img_height-1;j>=0;j--)            
             for(i=0;i<img_width;i++)
-            {                
+            {
                 fwrite(src->data[0][j]+i,1,1,f);
                 fwrite(src->data[1][j]+i,1,1,f);
                 fwrite(src->data[2][j]+i,1,1,f);
@@ -249,13 +249,13 @@ struct HandleImageLoad
 };
 #define HASH_ImageLoad 0x5c139120
 void endImageLoad(void *info) {}
-void mBMPLoad(const char *filename,MImage *dst)
+void mBMPLoad(MImage *dst,const char *filename)
 {
     int i,j;
     mException(INVALID_POINTER(dst),EXIT,"invalid input");
     
     FILE *pf=NULL; FILE *f;
-    MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
+    MHandle *hdl=mHandle(dst,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else

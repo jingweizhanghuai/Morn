@@ -11,14 +11,11 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_util.h"
 
-int ElementSize(char *str)
+int ElementSize(char *str,int size)
 {
+    if(size!=sizeof(DFLT)) return size;
     if(strcmp(str,"DFLT")==0) return -1;
-    int size=0;
-    if((str[0]>='0')&&(str[0]<='9')) size=atoi(str);
-    else                             size=atoi(str+1);
-    mException((size<8)||(size>128)||((size&(size-1))!=0),EXIT,"invalid element size");
-    return (size/8);
+    return size;
 }
 
 struct HandleTableCreate
@@ -34,7 +31,7 @@ void endTableCreate(void *info)
 {
     struct HandleTableCreate *handle = (struct HandleTableCreate *)info;
     mException((handle->tab==NULL),EXIT,"invalid table");
-    
+
     if(handle->index != NULL) mFree(handle->index);
     if(handle->memory!= NULL) mMemoryRelease(handle->memory);
     
@@ -51,9 +48,9 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     
     tab->col = col;
     tab->row = row;
-    
-    MHandle *hdl; ObjectHandle(tab,TableCreate,hdl);
-    
+
+    tab->handle = mHandleCreate();
+    MHandle *hdl=mHandle(tab,TableCreate);
     struct HandleTableCreate *handle = (struct HandleTableCreate *)(hdl->handle);
     handle->tab = tab;
     
@@ -79,13 +76,15 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     }
     else if(element_size>0)
     {
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(row,col*element_size);
-        mMemoryIndex(handle->memory,row,col*element_size,(void **)(handle->index));
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST_CPU);
+        mException((handle->memory->num!=1),EXIT,"invalid table memory");
+        mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
 
         handle->col = col;
         handle->element_size = element_size;
         tab->data = handle->index;
     }
+    // else mException(1,EXIT,"invalid input");
     
     return tab;
 }
@@ -143,8 +142,10 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     
     if(data!=NULL) {memcpy(handle->index,data,row*sizeof(void *));return;}
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(row,col*element_size);
-    mMemoryIndex(handle->memory,row,col*element_size,handle->index);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST_CPU);
+    else mMemoryRedefine(handle->memory,1,row*col*element_size,MORN_HOST_CPU);
+    mException((handle->memory->num!=1),EXIT,"invalid table memory");
+    mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
     handle->col = col;
     handle->element_size = element_size;
 }
@@ -154,7 +155,7 @@ void mTableCopy(MTable *src,MTable *dst)
     struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(src->handle->data[0]))->handle);
     int element_size = handle->element_size;
     
-    TableRedefine(dst,src->row,src->col,element_size,dst->data);
+    TableRedefine(dst,src->row,src->col,element_size,(void **)(dst->dataS8));
     for(int j=0;j<src->row;j++)
         memcpy(dst->data[j],src->data[j],src->col*element_size);
 }
@@ -164,14 +165,14 @@ struct HandleArrayCreate
     MArray *array;
     int num;
     int element_size;
-    char *memory;
+    MMemory *memory;
 };
 void endArrayCreate(void *info)
 {
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)info;
     mException((handle->array == NULL),EXIT,"invalid array");
     
-    if(handle->memory!= NULL) mFree(handle->memory);
+    if(handle->memory!= NULL) mMemoryRelease(handle->memory);
     
     mFree(handle->array);
 }
@@ -183,8 +184,9 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     
     if(num<0) num = 0;
     array->num = num;
-    
-    MHandle *hdl; ObjectHandle(array,ArrayCreate,hdl);
+
+    array->handle = mHandleCreate();
+    MHandle *hdl=mHandle(array,ArrayCreate);
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(hdl->handle);
     handle->array = array;
     array->data = NULL;
@@ -197,10 +199,10 @@ MArray *ArrayCreate(int num,int element_size,void *data)
         array->data = data;
     else if(element_size>0)
     {
-        handle->memory = (char *)mMalloc(num*element_size);
+        handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST_CPU);
         handle->num = num;
         handle->element_size = element_size;
-        array->data = (void *)(handle->memory);
+        array->data = handle->memory->data[0];
     }
     
     return array;
@@ -248,11 +250,11 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
         
     if(num>handle->num)
     {
-        if(handle->memory!=NULL) mFree(handle->memory);
         handle->num = num;
         handle->element_size = element_size;
-        handle->memory = (char *)mMalloc(num*element_size);
-        array->data = handle->memory;
+        if(handle->memory==NULL) handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST_CPU);
+        else mMemoryRedefine(handle->memory,1,num*element_size,MORN_HOST_CPU);
+        array->data = handle->memory->data[0];
     }
 }
 
@@ -270,7 +272,7 @@ int mStreamRead(MArray *buff,void *data,int num)
     struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
     num = num*handle0->element_size;
     
-    MHandle *hdl;ObjectHandle(buff,Stream,hdl);
+    MHandle *hdl=mHandle(buff,Stream);
     struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
     if(hdl->valid == 0) return MORN_FAIL;
     
@@ -299,7 +301,7 @@ int mStreamWrite(MArray *buff,void *data,int num)
     struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
     num = num*handle0->element_size;
     
-    MHandle *hdl;ObjectHandle(buff,Stream,hdl);
+    MHandle *hdl=mHandle(buff,Stream);
     struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
     if(hdl->valid == 0)
     {

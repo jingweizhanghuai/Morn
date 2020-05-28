@@ -69,7 +69,7 @@ void ThreadFunc(void *thread_data)
     pthread_mutex_init(&(data->mutex),NULL);
     pthread_cond_init( &(data->cond ),NULL);
 
-    MHandle *hdl; ObjectHandle(data->pool,ThreadPool,hdl);
+    MHandle *hdl=mHandle(data->pool,ThreadPool);
     struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
     
     while(1)
@@ -109,7 +109,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
     int flag0; if(flag==NULL) flag=&flag0; *flag=0;
     
     int i;
-    MHandle *hdl; ObjectHandle(pool,ThreadPool,hdl);
+    MHandle *hdl=mHandle(pool,ThreadPool);
     struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
     if(hdl->valid == 0)
     {

@@ -37,7 +37,7 @@ void endPipeline(void *info)
 
 void *Pipeline0(MList *list,int thread)
 {
-    MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
+    MHandle *hdl=mHandle(list,Pipeline);
     struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -94,7 +94,7 @@ void *mPipeline(MList *list,int thread)
     if(thread==list->num-1) return Pipeline0(list,thread);
     
     pthread_mutex_lock(&pipeline_mutex);
-    MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
+    MHandle *hdl=mHandle(list,Pipeline);
     struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     while(handle->count==0) {mSleep(1);}
 
@@ -128,7 +128,7 @@ void mPipelineComplete(MList *list,int thread)
     if(thread==list->num-1) return;
     
     pthread_mutex_lock(&pipeline_mutex);
-    MHandle *hdl; ObjectHandle(list,Pipeline,hdl);
+    MHandle *hdl=mHandle(list,Pipeline);
     struct HandlePipeline *handle = (struct HandlePipeline *)(hdl->handle);
     mException((hdl->valid==0),EXIT,"invalid pipeline");
 

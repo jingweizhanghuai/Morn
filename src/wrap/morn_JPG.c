@@ -11,6 +11,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_image.h"
 
+#if defined MORN_USE_JPEG
 #include <jpeglib.h> 
 #define JPEG_QUALITY 100 //图片质量
 
@@ -27,7 +28,7 @@ void JPGRGBSave(MImage *src,const char *filename)
 
     int img_width = src->width;
     int img_height = src->height;
-    
+
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;  
     cinfo.err = jpeg_std_error(&jerr);
@@ -129,12 +130,12 @@ struct HandleImageLoad
 #define HASH_ImageLoad 0x5c139120
 void endImageLoad(void *info);
 
-void mJPGLoad(const char *filename,MImage *dst)
+void mJPGLoad(MImage *dst,const char *filename)
 {
     mException(INVALID_POINTER(dst),EXIT,"invalid input");
     
     FILE *pf=NULL; FILE *f;
-    MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
+    MHandle *hdl=mHandle(dst,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else
@@ -193,3 +194,5 @@ void mJPGLoad(const char *filename,MImage *dst)
     
     if(pf!=NULL) fclose(pf);
 }
+
+#endif

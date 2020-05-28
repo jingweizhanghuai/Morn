@@ -11,6 +11,101 @@ You should have received a copy of the GNU General Public License along with thi
 
 #include "morn_image.h"
 
+struct HandleImageSeperate
+{
+    MList *list;
+};
+void endImageSeperate(void *info)
+{
+    struct HandleImageSeperate *handle = (struct HandleImageSeperate *)info;
+    if(handle->list!=NULL) mListRelease(handle->list);
+}
+#define HASH_ImageSeperate 0x50c2063
+void mImageSeperate(MImage *src,MImage *dst,MImageRect *rect,MImagePoint *point,int thresh)
+{
+    int height = src->height;int width=src->width;
+    
+    MHandle *hdl=mHandle(src,ImageSeperate);
+    struct HandleImageSeperate *handle = hdl->handle;
+    if(hdl->valid==0)
+    {
+        handle->list = mListCreate(DFLT,NULL);
+        hdl->valid=1;
+    }
+    MList *list=handle->list;
+    mListClear(list);
+
+    MImageRect seprate_rect;
+    if(rect==NULL) rect = &seprate_rect;
+    
+    float k = (float)thresh/255+1.0f;
+    int grid=MIN(height/64,width/64);grid=MAX(grid,2);
+    int locate[2] = {(int)(point->y+0.5),(int)(point->x+0.5)};
+
+    mListWrite(list,DFLT,locate,2*sizeof(int));
+    unsigned char **r=src->data[2];unsigned char **g=src->data[1];unsigned char **b=src->data[0];
+    char **d = (char **)(dst->data[0]);
+
+    for(int n=0;n<list->num;n++)
+    {
+        int *l=list->data[n];int y=l[0];int x=l[1];
+        int r1=r[y][x]-thresh; int r2=r[y][x]+thresh;
+        int g1=g[y][x]-thresh; int g2=g[y][x]+thresh;
+        int b1=b[y][x]-thresh; int b2=b[y][x]+thresh;
+        float k1=((float)r[y][x]+32.0f)/((float)g[y][x]+32.0f);float k11=k1/k;float k12=k1*k;
+        float k2=((float)r[y][x]+32.0f)/((float)b[y][x]+32.0f);float k21=k2/k;float k22=k2*k;
+        float k3=((float)b[y][x]+32.0f)/((float)g[y][x]+32.0f);float k31=k3/k;float k32=k3*k;
+
+        int x1=MAX(x-grid,0);int x2=MIN(x+grid, width-1);
+        int y1=MAX(y-grid,0);int y2=MIN(y+grid,height-1);
+
+        int valid = 1;
+        for(int j=y1;j<=y2;j++)for(int i=x1;i<=x2;i++)
+        {
+            if(d[j][i]!=-1)continue;
+            if(r[j][i]<r1) {continue;} if(r[j][i]>r2) {continue;}
+            if(g[j][i]<g1) {continue;} if(g[j][i]>g2) {continue;}
+            if(b[j][i]<b1) {continue;} if(b[j][i]>b2) {continue;}
+            k1=((float)r[j][i]+32.0f)/((float)g[j][i]+32.0f);if(k1<k11) {continue;} if(k1>k12) {continue;}
+            k2=((float)r[j][i]+32.0f)/((float)b[j][i]+32.0f);if(k2<k21) {continue;} if(k2>k22) {continue;}
+            k3=((float)b[j][i]+32.0f)/((float)g[j][i]+32.0f);if(k3<k31) {continue;} if(k3>k32) {continue;}
+            valid =0; goto ImageSeperate_next;
+        }
+        ImageSeperate_next:
+        if(valid == 0) continue;
+
+        if(d[y1][x1]==1) d[y1][x1]=2;
+        if(d[y1][x2]==1) d[y1][x2]=2;
+        if(d[y2][x1]==1) d[y2][x1]=2;
+        if(d[y2][x2]==1) d[y2][x2]=2;
+        for(int j=y1;j<=y2;j++)for(int i=x1;i<=x2;i++)
+        {
+            if(d[j][i]!=0)continue;
+            d[j][i]=-1;
+            if(r[j][i]<r1) {continue;} if(r[j][i]>r2) {continue;}
+            if(g[j][i]<g1) {continue;} if(g[j][i]>g2) {continue;}
+            if(b[j][i]<b1) {continue;} if(b[j][i]>b2) {continue;}
+            k1=((float)r[j][i]+32.0f)/((float)g[j][i]+32.0f);if(k1<k11) {continue;} if(k1>k12) {continue;}
+            k2=((float)r[j][i]+32.0f)/((float)b[j][i]+32.0f);if(k2<k21) {continue;} if(k2>k22) {continue;}
+            k3=((float)b[j][i]+32.0f)/((float)g[j][i]+32.0f);if(k3<k31) {continue;} if(k3>k32) {continue;}
+            d[j][i]=1;
+            rect->x1=MIN(rect->x1,i);rect->x2=MAX(rect->x2,i);
+            rect->y1=MIN(rect->y1,j);rect->y2=MAX(rect->y2,j);
+        }
+
+        if(d[y1][x1]==1) {locate[0]=y1;locate[1]=x1;mListWrite(list,DFLT,locate,2*sizeof(int));}
+        if(d[y1][x2]==1) {locate[0]=y1;locate[1]=x2;mListWrite(list,DFLT,locate,2*sizeof(int));}
+        if(d[y2][x1]==1) {locate[0]=y2;locate[1]=x1;mListWrite(list,DFLT,locate,2*sizeof(int));}
+        if(d[y2][x2]==1) {locate[0]=y2;locate[1]=x2;mListWrite(list,DFLT,locate,2*sizeof(int));}
+    }
+
+    for(int j=MAX(rect->y1-grid,0);j<=MIN(rect->y2+grid,height-1);j++)
+    for(int i=MAX(rect->x1-grid,0);i<=MIN(rect->x2+grid,width -1);i++)
+        dst->data[0][j][i]=(d[j][i]>0)?255:0;
+}
+
+
+/*
 #define MID(X1,X2,X3) (((X1>X2)==(X2>=X3))?X2:(((X1>X2)==(X3>=X1))?X1:X3))
 #define MID_FILTER(j,i)\
 {\
@@ -113,7 +208,7 @@ void endImageSeperate(void *info)
     if(handle->img!= NULL) mImageRelease(handle->img);
 }
 #define HASH_ImageSeperate 0x50c2063
-int mImageSeperate(MImage *src,MImage *dst,MImagePoint *point,int thresh)
+int mImageSeperate1(MImage *src,MImage *dst,MImagePoint *point,int thresh)
 {
     int i,j,cn;
     int flag,valid;
@@ -436,3 +531,4 @@ int mImageSeperate0(MImage *src,MImage *dst,MImagePoint *point,int thresh)
     
     return count;
 }
+*/

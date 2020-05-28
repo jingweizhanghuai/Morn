@@ -16,7 +16,6 @@ struct HandleChainCreate
 {
     MList *memory;
 };
-
 void endChainCreate(void *info)
 {
     struct HandleChainCreate *handle = (struct HandleChainCreate *)info;
@@ -25,12 +24,11 @@ void endChainCreate(void *info)
         mMemoryRelease(handle->memory);
 }
 #define HASH_ChainCreate 0xa95525b8
- 
 MChain *mChainCreate()
 {
-    MObject *chain = mProcCreate(NULL);
+    MObject *chain = mObjectCreate(NULL);
     
-    MHandle *hdl; ObjectHandle(chain,ChainCreate,hdl);
+    MHandle *hdl=mHandle(chain,ChainCreate);
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     
     handle->memory = NULL;
@@ -48,11 +46,13 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     MHandle *hdl = (MHandle *)(chain->handle->data[1]);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
     
     MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode));
     memset(node,0,sizeof(MChainNode));
-    node->data = mMemoryWrite(handle->memory,data,size);
+    node->next=node;node->last=node;
+    
+    if(size!=0) {if(size<0) size=strlen(data); node->data = mMemoryWrite(handle->memory,data,size);}
     
     return node;
 }
@@ -75,25 +75,123 @@ void mChainNodeInsert(MChainNode *last,MChainNode *node,MChainNode *next)
     node->next = next;
 }
 
-void mChainNodeDelete(MChainNode *node)
+void mChainNodeDelete(MChain *chain,MChainNode *node)
 {
     node->last->next = node->next;
     node->next->last = node->last;
+    if(node==chain->chainnode) chain->chainnode=node->next;
 }
 
+// void mChainNodeExchange(MChainNode *node1,MChainNode *node2)
+// {
+//     MChainNode *p = node1;
+//     node1 = node2;
+//     node2 = p;
+// }
 
-
-void mChainNodeExchange(MChainNode *node1,MChainNode *node2)
+struct HandleChainReorder
 {
-    // int buff = node1->size;
-    // node1->size = node2->size;
-    // node2->size = buff;
+    MList *list;
+};
+void endChainReorder(void *info)
+{
+    struct HandleChainReorder *handle = (struct HandleChainReorder *)info;
+    if(handle->list!=NULL) mListRelease(handle->list);
+}
+#define HASH_ChainReorder 0x6d9002b9
+void mChainReorder(MChain *chain)
+{
+    mException(INVALID_POINTER(chain),EXIT,"invalid input source chain");
+    MHandle *hdl=mHandle(chain,ChainReorder);
+    struct HandleChainReorder *handle = (struct HandleChainReorder *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->list==NULL) handle->list = mListCreate(32,NULL);
+        hdl->valid = 1;
+    }
+    MList *list = handle->list;
+    MChainNode *node = chain->chainnode;
+    for(int i=0;;i++)
+    {
+        if(i>=list->num) mListAppend(list,MIN(list->num*2,list->num+1024));
+        list->data[i]=node->data;
+        node = node->next; if(node==chain->chainnode) {list->num = i;break;}
+    }
+    mListReorder(list);
+    for(int i=0;i<list->num;i++)
+    {
+        node->data = list->data[i];
+        node = node->next;
+    }
+}
+/*
+void mChainCopy(MChain *src,MChain *dst)
+{
+    mException(INVALID_POINTER(src)||INVALID_POINTER(dst),EXIT,"invalid input chain");
+    MHandle *hdl;
+    ObjectHandle(src,ChainNodeList,hdl);
+    struct HandleChainNodeList *src_handle = (struct HandleChainNodeList *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(src_handle->list==NULL) src_handle->list = mListCreate(32,NULL);
+        hdl->valid = 1;
+    }
     
-    MChainNode *p = node1;
-    node1 = node2;
-    node2 = p;
+    
+    
+    ObjectHandle(dst,ChainNodeList,hdl);
+    struct HandleChainNodeList *dst_handle = (struct HandleChainNodeList *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(dst_handle->list==NULL) dst_handle->list = mListCreate(32,NULL);
+        hdl->valid = 1;
+    }
+    
+
+    
+    
+    MList *list = handle->list;
+    MChainNode *node = chain->chainnode;
+    for(int i=0;;i++)
+    {
+        if(i>=list->num) mListAppend(list,MIN(list->num*2,list->num+1024));
+        list->data[i]=node->data;
+        node = node->next; if(node==chain->chainnode) {list->num = i;break;}
+    }
+    
+    struct HandleListCreate *src_handle = (struct HandleListCreate *)(((MHandle *)(src->handle->data[0]))->handle);
+    if(src_handle->memory == NULL)
+    {
+        memcpy(dst->data,src->data,src->num*sizeof(void *));
+        return;
+    }
+    
+    struct HandleListCreate *dst_handle = (struct HandleListCreate *)(((MHandle *)(dst->handle->data[0]))->handle);
+    if(dst_handle->memory == NULL)
+        dst_handle->memory = mMemoryCreate(DFLT,DFLT);
+        
+    mMemoryCopy(src_handle->memory,src->data,dst_handle->memory,dst->data,src->num);
+}
+*/
+void mChainMerge(MChain *src1,MChain *src2,MChain *dst)
+{
+    struct HandleChainCreate *handle1 = (struct HandleChainCreate *)(((MHandle *)(src1->handle->data[1]))->handle);
+    struct HandleChainCreate *handle2 = (struct HandleChainCreate *)(((MHandle *)(src2->handle->data[1]))->handle);
+    struct HandleChainCreate *dst_handle=(struct HandleChainCreate *)(((MHandle *)(dst->handle->data[1]))->handle);
+
+    MChainNode *node11 = src1->chainnode; MChainNode *node12 = node11->last;
+    MChainNode *node21 = src2->chainnode; MChainNode *node22 = node21->last;
+    node11->last = node22; node22->next = node11;
+    node21->last = node12; node12->next = node21;
+    src1->chainnode = NULL;src2->chainnode = NULL;
+    dst->chainnode = node11;
+
+    mMemoryMerge(handle1->memory,handle2->memory,dst_handle->memory);
+    mMemoryRelease(handle1->memory);handle1->memory = NULL;
+    mMemoryRelease(handle2->memory);handle2->memory = NULL;
 }
 
+/*
 MChain *mChainMerge(int chain_num,MChain *chain,...)
 {
     mException((chain_num <= 0),EXIT,"invalid input");
@@ -116,8 +214,7 @@ MChain *mChainMerge(int chain_num,MChain *chain,...)
         }
     }
     
-    if(chain_num == 1)
-        return chain;
+    if(chain_num == 1) return chain;
     
     MChainNode *node_last = ((MChainNode *)(chain->object))->last;
     while(1)
@@ -148,6 +245,7 @@ MChain *mChainMerge(int chain_num,MChain *chain,...)
     
     return chain;
 }
+*/
 
 
     

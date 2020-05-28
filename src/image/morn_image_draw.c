@@ -97,10 +97,10 @@ void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *colo
     MImagePoint point3;point3.x=rect->x2-1;point3.y=rect->y2-1;
     MImagePoint point4;point4.x=rect->x1  ;point4.y=rect->y2-1;
     struct DrawPara para;para.dst=dst;para.color=color;para.width=width;
-    LineTravel(&point1,&point2,1,PointDraw,&para);
-    LineTravel(&point2,&point3,1,PointDraw,&para);
-    LineTravel(&point3,&point4,1,PointDraw,&para);
-    LineTravel(&point4,&point1,1,PointDraw,&para);
+    mLineTravel(&point1,&point2,1,PointDraw,&para);
+    mLineTravel(&point2,&point3,1,PointDraw,&para);
+    mLineTravel(&point3,&point4,1,PointDraw,&para);
+    mLineTravel(&point4,&point1,1,PointDraw,&para);
     PointDraw(&point3,&para);
 }
 void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width)
@@ -112,10 +112,13 @@ void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsi
     else dst = src;
        
     struct DrawPara para;para.dst=dst;para.color=color;para.width=width;
-    LineTravel(p1,p2,1,PointDraw,&para);
+    mLineTravel(p1,p2,1,PointDraw,&para);
 }
 void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width)
 {
+    mException(shape==NULL,EXIT,"invalid shape");
+    if(shape->num==0) return;
+    
     if(INVALID_POINTER(color)) color = morn_default_color;
     
     if(width<=0)width=1;else if(width>4)width=4;
@@ -146,11 +149,11 @@ void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char
         
         mPoint(&p1,x-1.0f,cy+y0);
         mPoint(&p2,x     ,cy+y );
-        LineTravel(&p1,&p2,1,PointDraw,&para);
+        mLineTravel(&p1,&p2,1,PointDraw,&para);
         
         mPoint(&p1,x-1.0f,cy-y0);
         mPoint(&p2,x     ,cy-y );
-        LineTravel(&p1,&p2,1,PointDraw,&para);
+        mLineTravel(&p1,&p2,1,PointDraw,&para);
         
         y0=y;
     }
@@ -173,7 +176,7 @@ void mImageFillRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *colo
             memset(dst->data[cn][j]+rect->x1,color[cn],width);
 }
 
-void mImageDrawCurve(MImage *src,MImage *dst,float (*func)(float,void *),void *para,unsigned char *color,int width)
+void mImageDrawCurve(MImage *src,MImage *dst,MImageCurve *curve,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
     
@@ -182,10 +185,25 @@ void mImageDrawCurve(MImage *src,MImage *dst,float (*func)(float,void *),void *p
     else dst = src;
     
     struct DrawPara draw_para;draw_para.dst=dst;draw_para.color=color;draw_para.width=width;
-    for(int i=0;i<src->width;i++)
-    {
-        MImagePoint p1;p1.x=i  ;p1.y=func(p1.x,para);if((!isnan(p1.y))&&(!isinf(p1.y))) {if((p1.y>=0)&&(p1.y<=src->height)) {
-        MImagePoint p2;p2.x=i+1;p2.y=func(p2.x,para);if((!isnan(p2.y))&&(!isinf(p2.y))) {if((p2.y>=0)&&(p2.y<=src->height)) {
-        LineTravel(&p1,&p2,1,PointDraw,&draw_para);}}}}
-    }
+    mCurveTravel(curve,1,PointDraw,&draw_para);
+    // if(curve->type<=0)
+    // {
+    //     for(int i=MAX(curve->v1.x,0);i<MIN(curve->v2.x,src->width);i++)
+    //     {
+    //         MImagePoint p1;p1.x=i  ;p1.y=curve->curve(p1.x,curve->para);if((p1.y<0)||(p1.y>src->height)) continue;
+    //         MImagePoint p2;p2.x=i+1;p2.y=curve->curve(p2.x,curve->para);if((p2.y<0)||(p2.y>src->height)) continue;
+    //         // printf("x is %f,y is %f\n",p1.x,p1.y);
+    //         mLineTravel(&p1,&p2,1,PointDraw,&draw_para);
+    //     }
+    // }
+    // else
+    // {
+    //     for(int i=MAX(curve->v1.y,0);i<MIN(curve->v2.y,src->width);i++)
+    //     {
+    //         MImagePoint p1;p1.y=i  ;p1.x=curve->curve(p1.y,curve->para);if((p1.x<0)||(p1.x>src->width)) continue;
+    //         MImagePoint p2;p2.y=i+1;p2.x=curve->curve(p2.y,curve->para);if((p2.x<0)||(p2.x>src->width)) continue;
+    //         printf("x is %f,y is %f\n",p1.x,p1.y);
+    //         mLineTravel(&p1,&p2,1,PointDraw,&draw_para);
+    //     }
+    // }
 }

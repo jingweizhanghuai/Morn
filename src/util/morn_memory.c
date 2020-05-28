@@ -197,6 +197,22 @@ void mMemFree(void *data)
     pthread_mutex_unlock(&mem_mutex);
 }
 
+// void mMemReAlloc(void *ptr,int size)
+// {
+//     int *p = ptr;
+//     int size0 = p[-1]; if(size<=size0) return;
+    
+//     pthread_mutex_lock(&mem_mutex);
+//     for(int i=0;i<32;i++)
+//     {
+//         if(morn_mem_data[i] == NULL) continue;
+//         if(((int *)data>=morn_mem_data[i])&&((int *)data < morn_mem_data[i] + 2048))
+//         {
+            
+//         }
+//     }
+// }
+
 /*
 int morn_mem_count[32] = {0};
 void *mMalloc(int size)
@@ -602,11 +618,9 @@ void AllFree(int order)
 }
 */
 
-int morn_layer_order[16] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-pthread_mutex_t morn_layer_mutex;
-int morn_exception = 0;
-jmp_buf *morn_jump[16][8];
-pthread_t morn_pthread_ID[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+__thread int morn_layer_order = -1;
+__thread int morn_exception = 0;
+__thread jmp_buf *morn_jump[32];
 
 /*
 #define mExceptionBegin()\

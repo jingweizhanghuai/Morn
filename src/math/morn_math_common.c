@@ -152,6 +152,9 @@ float mCos(float a)
         return g_sin_caculate_LUT[x-2700];
 }
 
+// float mTan(float a) {return mSin(a)/mCos(a);}
+// float mCot(float a) {return mCos(a)/m
+
 void mMean(float *in,int num,float *sum,float *mean)
 {
     float m;

@@ -10,7 +10,9 @@ You should have received a copy of the GNU General Public License along with thi
 #include <string.h>
 
 #include "morn_image.h"
- 
+
+#if defined MORN_USE_PNG
+
 #include <png.h>
 
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
@@ -21,13 +23,13 @@ struct HandleImageLoad
 };
 #define HASH_ImageLoad 0x5c139120
 void endImageLoad(void *info);
-void mPNGLoad(const char *filename,MImage *dst)
+void mPNGLoad(MImage *dst,const char *filename)
 {
     int i,j,k;
     mException(INVALID_POINTER(dst),EXIT,"invalid input");
    
     FILE *pf=NULL; FILE *f=NULL;
-    MHandle *hdl; ObjectHandle(dst,ImageLoad,hdl);
+    MHandle *hdl=mHandle(dst,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     if(handle->f!=NULL) f=handle->f;
     else
@@ -145,10 +147,11 @@ void mPNGSave(MImage *src,const char *filename)
     png_destroy_write_struct(&png_ptr,&info_ptr); 
     fclose(f);
 }
+#endif
 
-void mImageLoad(const char *filename,MImage *img)
+void ImageLoad(MImage *img,const char *filename)
 {
-    MHandle *hdl; ObjectHandle(img,ImageLoad,hdl);
+    MHandle *hdl=mHandle(img,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     mException((handle->f!=NULL),EXIT,"invalid operate");
     handle->f = fopen(filename,"rb");
@@ -162,20 +165,24 @@ void mImageLoad(const char *filename,MImage *img)
     unsigned char bmp_flag [2] = {0x42,0x4d};
     unsigned char jpg_flag1[2] = {0xFF,0xD8};
     unsigned char jpg_flag2[2] = {0xFF,0xD9};
+
+    #if defined MORN_USE_PNG
     if(memcmp(flag,png_flag,8)==0)
     {
         fseek(handle->f,0,SEEK_SET);
-        mPNGLoad(filename,img);
+        mPNGLoad(img,filename);
         goto ImageLoad_Next;
     }
+    #endif
     
     if(memcmp(flag,bmp_flag,2)==0)
     {
         fseek(handle->f,0,SEEK_SET);
-        mBMPLoad(filename,img);
+        mBMPLoad(img,filename);
         goto ImageLoad_Next;
     }
-    
+
+    #if defined MORN_USE_JPEG
     if(memcmp(flag,jpg_flag1,2)==0)
     {
         fseek(handle->f,-2,SEEK_END);
@@ -183,10 +190,11 @@ void mImageLoad(const char *filename,MImage *img)
         if(memcmp(flag,jpg_flag2,2)==0)
         {
             fseek(handle->f,0,SEEK_SET);
-            mJPGLoad(filename,img);
+            mJPGLoad(img,filename);
             goto ImageLoad_Next;
         }
     }
+    #endif
     
     mException(1,EXIT,"invalid image format");
 
@@ -198,18 +206,23 @@ void mImageLoad(const char *filename,MImage *img)
 #ifdef __GNUC__
 #define stricmp strcasecmp
 #endif
-void mImageSave(MImage *img,const char *filename)
+void ImageSave(MImage *img,const char *filename)
 {
     char *type;
     int len = strlen(filename);
     for(type=(char *)filename+len;type>filename;type--)
         if(type[-1]=='.') break;
     mException((type==filename),EXIT,"unknown type");
-    
-         if(stricmp(type,"jpg" )==0) mJPGSave(img,filename);
-    else if(stricmp(type,"bmp" )==0) mBMPSave(img,filename);
-    else if(stricmp(type,"png" )==0) mPNGSave(img,filename);
+
+         if(stricmp(type,"bmp" )==0) mBMPSave(img,filename);
+    #if defined MORN_USE_JPEG
+    else if(stricmp(type,"jpg" )==0) mJPGSave(img,filename);
     else if(stricmp(type,"jpeg")==0) mJPGSave(img,filename);
+    #endif
+    #if defined MORN_USE_PNG
+    else if(stricmp(type,"png" )==0) mPNGSave(img,filename);
+    #endif
+    
     else mException((type==filename),EXIT,"unknown type");
 }
 

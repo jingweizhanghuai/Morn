@@ -50,17 +50,6 @@ static int WaveThresh(float *data,int size,float thresh)
 }
 
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  判断音频段是否活跃
-//
-// 参数：
-//  (I)src(NO) - 待判断的原始时域波形段
-//  (I)thresh(0.05) - 判断标准（阈值），取值应在[0,1]区间
-//
-// 返回值：
-//  判断结果，1为活跃，0为不活跃
-/////////////////////////////////////////////////////////
 int mWaveActive(MWave *src,float thresh)
 {
     int i;
@@ -78,17 +67,6 @@ int mWaveActive(MWave *src,float thresh)
     return 0;
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  获得背景声的大小
-//
-// 参数：
-//  (I)src(NO) - 待检测的原始时域波形段
-//  (O)background(No) - 检测的结果（分通道）
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveBackground(MWave *src,float *background)
 {
     float *p;
@@ -153,7 +131,7 @@ int mWaveAdaptiveActive(MWave *src,float sensibility,float thresh)
     if(sensibility == MORN_DEFAULT)
         sensibility = 0.5f;
     
-    MHandle *hdl; ObjectHandle(src,WaveAdaptiveActive,hdl);
+    MHandle *hdl=mHandle(src,WaveAdaptiveActive);
     struct HandleWaveAdaptiveActive *handle = (struct HandleWaveAdaptiveActive *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -259,7 +237,7 @@ int mWaveAdaptiveLoud(MWave *src,float sensibility,float thresh)
     if(sensibility == MORN_DEFAULT)
         sensibility = 0.5f;
     
-    MHandle *hdl; ObjectHandle(src,WaveAdaptiveLoud,hdl);
+    MHandle *hdl=mHandle(src,WaveAdaptiveLoud);
     struct HandleWaveAdaptiveLoud *handle = (struct HandleWaveAdaptiveLoud *)(hdl->handle);
     if(hdl->valid == 0)
     {

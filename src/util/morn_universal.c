@@ -13,28 +13,33 @@ You should have received a copy of the GNU General Public License along with thi
 #include <math.h>
 
 #include "morn_math.h"
- 
+
+__thread void *morn_test=NULL;
+
 #ifdef _MSC_VER
-int morn_clock_n = -1;
-int morn_clock_begin[16];
-int morn_clock_end[16];
+__thread int morn_clock_n = -1;
+__thread int morn_clock_begin[16];
+__thread int morn_clock_end[16];
 #define stricmp _stricmp
 #else
-int morn_timer_n = -1;
-struct timeval morn_timer_begin[16];
-struct timeval morn_timer_end[16];
+__thread int morn_timer_n = -1;
+__thread struct timeval morn_timer_begin[16];
+__thread struct timeval morn_timer_end[16];
 #define stricmp strcasecmp
 #endif
+
+__thread char morn_filename[256];
 
 int morn_rand_seed = -1;
 int mRand(int floor,int ceiling)
 {
-    // if(morn_rand_seed == -1)
-    // {
-        // morn_rand_seed = time(NULL)/60;
-        // srand(morn_rand_seed);
-    // }
+    if(morn_rand_seed == -1)
+    {
+        morn_rand_seed = time(NULL)/60;
+        srand(morn_rand_seed);
+    }
     if((floor==DFLT)&&( ceiling==DFLT)) {return rand();}
+    if(floor==ceiling) return floor;
     int d = ceiling-floor;
     if(d>RAND_MAX)
         return (((rand()<<15)+rand())%d)+floor;
@@ -102,8 +107,9 @@ MObject *mObjectCreate(const void *obj)
 {
     MObject *object = (MObject *)mMalloc(sizeof(MObject));
     object->handle = NULL;
-    
-    MHandle *hdl; ObjectHandle(object,ObjectCreate,hdl);
+
+    object->handle = mHandleCreate();
+    MHandle *hdl=mHandle(object,ObjectCreate);
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(hdl->handle);
     handle->object = object;
     
@@ -150,7 +156,7 @@ void endLogSet(void *info)
 #define HASH_LogSet 0xda00cd5b
 void mLogSet(MFile *file,int level)
 {
-    MHandle *hdl; ObjectHandle(file,LogSet,hdl);
+    MHandle *hdl=mHandle(file,LogSet);
     struct HandleLogSet *handle = (struct HandleLogSet *)(hdl->handle);
     level = MAX(level,MORN_LOG_INFO);
     morn_log_level = level;
@@ -206,4 +212,35 @@ void mHandleReset(MList *handle)
         MHandle *hdl = (MHandle *)(handle->data[i]);
         hdl->valid = 0;
     }
+}
+
+MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
+{
+    mException((handle==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
+    int num = handle->num;
+    for(int i=0;i<num;i++)
+    {
+        MHandle *handle_data = (MHandle *)(handle->data[i]);
+        if(handle_data->flag == hash) return handle_data;
+    }
+    
+    MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));
+    Handle_context->flag    = hash;
+    Handle_context->valid   = 0;
+    Handle_context->handle  =mMalloc(size);memset(Handle_context->handle,0,size);
+    Handle_context->destruct= end;
+    if(num%16 == 0)
+    {
+        void **handle_buff = (void **)mMalloc((num+16)*sizeof(void *));
+        if(num>0)
+        {
+            memcpy(handle_buff,handle->data,num*sizeof(void *));
+            mFree(handle->data);
+        }
+        handle->data = handle_buff;
+    }
+    handle->data[num] = Handle_context;
+    handle->num = num+1;
+    
+    return (MHandle *)(handle->data[num]);
 }

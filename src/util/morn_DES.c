@@ -317,7 +317,7 @@ void endFileDecrypt(void *info)
 #define HASH_FileDecrypt 0x528629ba
 void mFileDecrypt(MFile *file,uint64_t key)
 {
-    MHandle *hdl; ObjectHandle(file,FileDecrypt,hdl);
+    MHandle *hdl=mHandle(file,FileDecrypt);
     struct HandleFileDecrypt *handle = (struct HandleFileDecrypt *)(hdl->handle);
     if(hdl->valid == 1) return;
    
@@ -341,7 +341,7 @@ void endFileEncrypt(void *info)
 #define HASH_FileEncrypt 0x64d9b684
 void mFileEncrypt(MFile *file,uint64_t key)
 {
-    MHandle *hdl; ObjectHandle(file,FileEncrypt,hdl);
+    MHandle *hdl=mHandle(file,FileEncrypt);
     struct HandleFileEncrypt *handle = (struct HandleFileEncrypt *)(hdl->handle);
     if(hdl->valid == 1) return;
    

@@ -33,16 +33,16 @@ void endJSONLoad(void *info)
         mFree(handle->file);
 }
 #define HASH_JSONLoad 0xa59d25b3
-void mJSONLoad(char *filename,MTree *tree)
+void JSONLoad(MTree *tree,char *filename)
 {
     FILE *f = fopen(filename,"rb");
-    mException((f==NULL),EXIT,"cannot open file");
+    mException((f==NULL),EXIT,"cannot open file %s",filename);
 
     fseek(f,0,SEEK_END);
     int filesize = ftell(f);
     fseek(f,0,SEEK_SET);
     
-    MHandle *hdl; ObjectHandle(tree,JSONLoad,hdl);
+    MHandle *hdl=mHandle(tree,JSONLoad);
     struct HandleJSONLoad *handle = (struct HandleJSONLoad *)(hdl->handle);
     if(hdl->valid==0)
     {
@@ -317,15 +317,16 @@ void endJSONSearch(void *info)
 void mJSONSearch(MTree *tree,MList *result,char *name)
 {
     mException((tree==NULL)||(name==NULL),EXIT,"invalid input");
-    MHandle *hdl; ObjectHandle(tree,JSONSearch,hdl);
+    MHandle *hdl=mHandle(tree,JSONSearch);
     struct HandleJSONSearch *handle = (struct HandleJSONSearch *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->name  ==NULL) handle->name  =mListCreate(DFLT,NULL);
-
         hdl->valid = 1;
     }
+
     mStringSplit(name,".",handle->name);
+    
     mListClear(result);
     int flag=0;
     for(int i=0;i<tree->treenode->child_num;i++)
@@ -337,7 +338,14 @@ void mJSONSearch(MTree *tree,MList *result,char *name)
     if(flag)JSONSearch(tree->treenode          ,(char **)(handle->name->data),handle->name->num,result);
 }
 
+// int _JSONNode(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
+// MTreeNode *mJSONNode(MTree *tree,char *name)
+// {
+//     node = json->treenode;
+//     return mTreeSearch(node,_JSONNode,name,0);
+// }
 
+    
 
 
     

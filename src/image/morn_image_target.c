@@ -25,7 +25,7 @@ void mImageTarget(MImage *src,MImage *dst,MImageRect *rect)
 {
     int i,j;
     
-    MHandle *hdl; ObjectHandle(src,ImageTarget,hdl);
+    MHandle *hdl=mHandle(src,ImageTarget);
     struct HandleImageTarget *handle = (struct HandleImageTarget *)(hdl->handle);
     if(hdl->valid == 0)
     {

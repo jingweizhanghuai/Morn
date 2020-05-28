@@ -18,107 +18,150 @@ void TransformGrid(MImage *src,float (*x_func)(int,int,void *),float (*y_func)(i
     int i, j;
     int dst_height = w->row;
     int dst_width = w->col;
-    
+    // printf("dst_height=%d,dst_width=%d\n",dst_height,dst_width);
+
     // #pragma omp parallel for
-    for(j=0;j<dst_height;j++)
-        for(i=0;i<dst_width;i++)
+    for(j=0;j<dst_height;j++)for(i=0;i<dst_width;i++)
+    {
+        float ly = y_func(i,j,para);
+        float lx = x_func(i,j,para);
+        
+        if(lx > 0.00001f) lx -= 0.00001f;
+        if(ly > 0.00001f) ly -= 0.00001f;
+
+        short x_locate = (short)lx;
+        short y_locate = (short)ly;
+
+        if((y_locate<ImageY1(src))||(y_locate>=ImageY2(src)-1)||(x_locate<ImageX1(src,y_locate))||(lx>=ImageX2(src,y_locate)-1))
         {
-            float ly = y_func(i,j,para);
-            float lx = x_func(i,j,para);
-            
-            if(lx > 0.00001f) lx -= 0.00001f;
-            if(ly > 0.00001f) ly -= 0.00001f;
-
-            short x_locate = (short)lx;
-            short y_locate = (short)ly;
-            
-            if((y_locate<ImageY1(src))||(x_locate<ImageX1(src,y_locate))||(lx>=ImageX2(src,y_locate)-1)||(ly>=ImageY2(src)-1))
-            {
-                gridx->dataS16[j][i] = DFLT;
-                gridy->dataS16[j][i] = DFLT;
-                continue;
-            }
-
-            gridx->dataS16[j][i] = x_locate;
-            gridy->dataS16[j][i] = y_locate;
-
-            x_locate = 15-(short)((lx-(float)x_locate)*15.0f+0.5f);
-            y_locate = 15-(short)((ly-(float)y_locate)*15.0f+0.5f);
-
-            w->dataU8[j][i] = (x_locate<<4)+y_locate;
+            gridx->dataS16[j][i] = DFLT;
+            gridy->dataS16[j][i] = DFLT;
+            continue;
         }
+
+        gridx->dataS16[j][i] = x_locate;
+        gridy->dataS16[j][i] = y_locate;
+        
+        x_locate = 15-(short)((lx-(float)x_locate)*15.0f+0.5f);
+        y_locate = 15-(short)((ly-(float)y_locate)*15.0f+0.5f);
+
+        w->dataU8[j][i] = (x_locate<<4)+y_locate;
+    }
 }
 
-void GridInterpolation(MImage *src,MImage *dst,MTable *gridx,MTable *gridy,MTable *w)
+void GridInterpolation(MImage *src,MImage *dst,MTable *gridx,MTable *gridy,MTable *w,int mode)
 {
 	int i, j;
     int height = dst->height;
     int width = dst->width;
     unsigned char **s0=src->data[0];unsigned char **s1=src->data[1];unsigned char **s2=src->data[2];unsigned char **s3=src->data[3];
     unsigned char **d0=dst->data[0];unsigned char **d1=dst->data[1];unsigned char **d2=dst->data[2];unsigned char **d3=dst->data[3];
+
+    mode = ((mode | MORN_NEAREST) == MORN_NEAREST);
+        
+    #define INTERPOLATION_CACL0(C) do{\
+        d##C[j][i]=((s##C[y][x]*wx+s##C[y][x+1]*(15-wx))*wy+(s##C[y+1][x]*wx+s##C[y+1][x+1]*(15-wx))*(15-wy)+112)/225;\
+    }while(0)
+    #define INTERPOLATION_CACL1(C) do{\
+        d##C[j][i]=s##C[(wy<8)?y+1:y][(wx<8)?x+1:x];\
+    }while(0)
     
-    if(src->channel==1)
+    // printf("src->channel=%d,height=%d,width=%d\n",src->channel,height,width);
+    if((src->channel==1)&&(!mode))
     {
-        #pragma omp parallel for
+        // #pragma omp parallel for
         for(j=0;j<height;j++)for(i=0;i<width;i++)
         {
-            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0; continue;}
-            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0; continue;}
-            
-            int wx = (w->dataU8[j][i]>>4);
-            int wy = (w->dataU8[j][i]&0x0F);
-            
-            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-                     
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0; continue;}  \
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0; continue;}*/\
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);\
+            INTERPOLATION_CACL0(0);
         }
+        return;
     }
-    else if(src->channel==2)
+    if((src->channel==1)&&(mode))
     {
-        #pragma omp parallel for
+        // #pragma omp parallel for
         for(j=0;j<height;j++)for(i=0;i<width;i++)
         {
-            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}
-            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}
-            
-            int wx = (w->dataU8[j][i]>>4);
-            int wy = (w->dataU8[j][i]&0x0F);
-            
-            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d1[j][i]=((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0; continue;}  \
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0; continue;}*/\
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);\
+            INTERPOLATION_CACL1(0);
         }
+        return;
     }
-    else if(src->channel==3)
+    if((src->channel==2)&&(!mode))
     {
-        #pragma omp parallel for
+        // #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}  \
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}*/\
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);\
+            INTERPOLATION_CACL0(0);INTERPOLATION_CACL0(1);
+        }
+        return;
+    }
+    if((src->channel==2)&&(mode))
+    {
+        // #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}  \
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0; continue;}*/\
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);\
+            INTERPOLATION_CACL1(0);INTERPOLATION_CACL1(1);
+        }
+        return;
+    }
+    if((src->channel==3)&&(!mode))
+    {
+        // #pragma omp parallel for
         for(j=0;j<height;j++)for(i=0;i<width;i++)
         {
             int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}
-            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}
-            
-            int wx = (w->dataU8[j][i]>>4);
-            int wy = (w->dataU8[j][i]&0x0F);
-            
-            d0[j][i]= ((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d1[j][i]= ((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d2[j][i]= ((s2[y][x]*wx+s2[y][x+1]*(15-wx))*wy+(s2[y+1][x]*wx+s2[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}*/
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);
+            INTERPOLATION_CACL0(0);INTERPOLATION_CACL0(1);INTERPOLATION_CACL0(2);
         }
+        return;
     }
-    else //if(src->channel==4)
+    if((src->channel==3)&&(mode))
     {
-        #pragma omp parallel for
+        // #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0; continue;}*/
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);
+            INTERPOLATION_CACL1(0);INTERPOLATION_CACL1(1);INTERPOLATION_CACL1(2);
+        }
+        return;
+    }
+    if((src->channel==4)&&(!mode))
+    {
+        // #pragma omp parallel for
         for(j=0;j<height;j++)for(i=0;i<width;i++)
         {
             int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}
-            int y = gridy->dataS16[j][i];//if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}
-            
-            int wx = (w->dataU8[j][i]>>4);
-            int wy = (w->dataU8[j][i]&0x0F);
-            
-            d0[j][i]=((s0[y][x]*wx+s0[y][x+1]*(15-wx))*wy+(s0[y+1][x]*wx+s0[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d1[j][i]=((s1[y][x]*wx+s1[y][x+1]*(15-wx))*wy+(s1[y+1][x]*wx+s1[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d2[j][i]=((s2[y][x]*wx+s2[y][x+1]*(15-wx))*wy+(s2[y+1][x]*wx+s2[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
-            d3[j][i]=((s3[y][x]*wx+s3[y][x+1]*(15-wx))*wy+(s3[y+1][x]*wx+s3[y+1][x+1]*(15-wx))*(15-wy)+112)/225;
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}*/
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);
+            INTERPOLATION_CACL0(0);INTERPOLATION_CACL0(1);INTERPOLATION_CACL0(2);INTERPOLATION_CACL0(3);
         }
+        return;
+    }
+    if((src->channel==4)&&(mode))
+    {
+        // #pragma omp parallel for
+        for(j=0;j<height;j++)for(i=0;i<width;i++)
+        {
+            int x = gridx->dataS16[j][i];  if(x<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}
+            int y = gridy->dataS16[j][i];/*if(y<0) {d0[j][i] = 0;d1[j][i] = 0;d2[j][i] = 0;d3[j][i] = 0; continue;}*/
+            int wx=(w->dataU8[j][i]>>  4);int wy=(w->dataU8[j][i]&0x0F);
+            INTERPOLATION_CACL1(0);INTERPOLATION_CACL1(1);INTERPOLATION_CACL1(2);INTERPOLATION_CACL1(3);
+        }
+        return;
     }
 }
 
@@ -144,7 +187,7 @@ void endImageCoordinateTransform(void *handle)
 
 #define HASH_ImageCoordinateTransform 0x5f44c7bc
 
-void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para)
+void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,void *),float (*y_func)(int,int,void *),void *para,int mode)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
     
@@ -157,7 +200,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
 
-    MHandle *hdl; ObjectHandle(src,ImageCoordinateTransform,hdl);
+    MHandle *hdl=mHandle(src,ImageCoordinateTransform);
     struct HandleImageCoordinateTransform *handle = (struct HandleImageCoordinateTransform *)(hdl->handle);
     if((hdl->valid == 0)||(handle->height!=height)||(handle->width!=width)||(handle->x_func!=x_func)||(handle->y_func!=y_func))
     {
@@ -178,7 +221,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
         hdl->valid = 1;
     }
 
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
+    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
     
     if(p!=dst)
     {
@@ -189,7 +232,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
 
 void PerspectivePara(MImagePoint *ps,MImagePoint *pd,float *para)
 {
-    MMatrix *mat = mMatrixCreate(8,9,NULL);
+    MMatrix *mat = mMatrixCreate(8,9,NULL,DFLT);
     for(int n=0,j=0;n<4;n=n+1,j=j+2)
     {
         mat->data[j][0] = pd[n].x;               mat->data[j+1][0] = 0.0f;
@@ -241,7 +284,7 @@ void endImagePerspectiveCorrection(void *handle)
 
 #define HASH_ImagePerspectiveCorrection 0xdd819d48
 
-void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd)
+void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd,int mode)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     
@@ -258,7 +301,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
     int height = dst->height;
     int width = dst->width;
     
-    MHandle *hdl; ObjectHandle(src,ImagePerspectiveCorrection,hdl);
+    MHandle *hdl=mHandle(src,ImagePerspectiveCorrection);
     struct HandleImagePerspectiveCorrection *handle = (struct HandleImagePerspectiveCorrection *)(hdl->handle);
     if((hdl->valid == 0)
      ||(memcmp(ps,handle->ps,4*sizeof(MImagePoint))!=0)
@@ -302,8 +345,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         hdl->valid = 1;
     }
     
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
-    
+    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
     if(p!=dst)
     {
         mImageExchange(src,dst);
@@ -346,7 +388,7 @@ void endImageAffineCorrection(void *handle)
 
 #define HASH_ImageAffineCorrection 0x1670806b
 
-void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd)
+void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint *pd,int mode)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     
@@ -364,7 +406,7 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
     int height = dst->height;
     int width = dst->width;
     
-    MHandle *hdl; ObjectHandle(src,ImageAffineCorrection,hdl);
+    MHandle *hdl=mHandle(src,ImageAffineCorrection);
     struct HandleImageAffineCorrection *handle = (struct HandleImageAffineCorrection *)(hdl->handle);
     if((hdl->valid == 0)
      ||(memcmp(ps,handle->ps,3*sizeof(MImagePoint))!=0)
@@ -410,7 +452,7 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
 
         hdl->valid = 1;
     }
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
+    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
     
     
     if(p!=dst)
@@ -491,20 +533,29 @@ void endImageRotate(void *handle)
 
 #define HASH_ImageRotate 0x35b8aedf
 
-void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle)
+void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst_hold,float angle,int mode)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
-    
-    float sn = mSin(angle);
-    float cs = mCos(angle);
+    if(INVALID_POINTER(dst)) dst=src;
     
     float scx,scy,dcx,dcy;
     if(src_hold == NULL) {scx = ((float)(src->width))/2.0f; scy = ((float)(src->height))/2.0f;}
     else                 {scx = src_hold->x;                scy = src_hold->y;                }
+    int height=dst->height;int width=dst->width;
     
-    int height,width;
+    if(angle==0.0f) 
+    {
+        if(dst_hold==NULL) {mImageCopy(src,dst); return;}
+        int dx=dst_hold->x-scx;int dy=dst_hold->y-scy;
+        mImageCut(src,dst,0,src->width,0,src->height,dx,dy);
+        return;
+    }
+    
+    float sn = mSin(angle);
+    float cs = mCos(angle);
+    
     MImage *p = dst;
-    if(INVALID_POINTER(dst)||(dst==src))
+    if(dst==src)
     {
         height = (int)(src->height*ABS(cs)+src->width*ABS(sn));
         width  = (int)(src->height*ABS(sn)+src->width*ABS(cs));
@@ -517,9 +568,8 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         }
         dst = mImageCreate(src->channel,height,width,NULL);
     }
-    else if((dst->height<=0)||(dst->width<=0))
+    else if((height<=0)||(width<=0))
     {
-        mException((dst_hold != NULL)||(src_hold != NULL),EXIT,"invalid destination image");
         height = (int)(src->height*ABS(cs)+src->width*ABS(sn));
         width  = (int)(src->height*ABS(sn)+src->width*ABS(cs));
         if(dst_hold != NULL)
@@ -533,15 +583,13 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
     }
     else
         mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
+    
     mException(INVALID_IMAGE(dst),EXIT,"invalid error");
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
-    height = dst->height;
-    width = dst->width;
-    
-    if(dst_hold == NULL) {dcx = ((float)width)/2.0f;        dcy = ((float)height)/2.0f;       }
-    else                 {dcx = dst_hold->x;                dcy = dst_hold->y;                }
+    if(dst_hold == NULL) {dcx = ((float)width)/2.0f;dcy = ((float)height)/2.0f;}
+    else                 {dcx = dst_hold->x;        dcy = dst_hold->y;         }
     
     if(angle == 90.0f)
         if((scx == dcy)&&(scy == dcx))
@@ -556,7 +604,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
             if((src->width == height)&&(src->height == width))
                 {ImageRotate270(src,dst);if(p!=dst){mImageExchange(src,dst);mImageRelease(dst);}return;}
     
-    MHandle *hdl; ObjectHandle(src,ImageRotate,hdl);
+    MHandle *hdl=mHandle(src,ImageRotate);
     struct HandleImageRotate *handle = (struct HandleImageRotate *)(hdl->handle);
     if((hdl->valid == 0)
      ||(handle->src_hold.x != scx)||(handle->src_hold.y != scy)
@@ -592,7 +640,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         hdl->valid = 1;
     }
     
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
+    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
     
     if(p!=dst)
     {
@@ -954,7 +1002,7 @@ void endImageReshape(void *info)
     if(handle->w  != NULL) mTableRelease(handle->w );
 }
 #define HASH_ImageReshape 0xe21f102e
-void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
+void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point,int mode)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     
@@ -968,7 +1016,7 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
      
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
-    MHandle *hdl; ObjectHandle(dst,ImageReshape,hdl);
+    MHandle *hdl=mHandle(dst,ImageReshape);
     struct HandleImageReshape *handle = (struct HandleImageReshape *)(hdl->handle);
     {
         if(handle->lx == NULL) handle->lx= mTableCreate(dst->height,dst->width,S16,NULL);
@@ -983,7 +1031,7 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
     
     mImageReshapeTemplate(src_point,dst_point,handle->lx,handle->ly,handle->w);
     
-    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w);
+    GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
     
     if(p!=dst)
     {
@@ -994,21 +1042,3 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    

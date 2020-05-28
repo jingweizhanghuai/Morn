@@ -185,13 +185,13 @@ void endTensorConv(void *info)
 void TensorConvSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    
+    // mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorConv,hdl);
+    MHandle *hdl=mHandle(out,TensorConv);
     struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
@@ -234,15 +234,15 @@ void TensorConvSet(MLayer *layer)
 void mTensorConvForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
+    // printf("in->data[0][0]=%f\n",in->data[0][0]);
     
     TensorConvSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorConv,hdl);
+    MHandle *hdl=mHandle(out,TensorConv);
     struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     
     int mheight = (out->height*out->width);
@@ -270,13 +270,12 @@ void mTensorConvForward(MLayer *layer)
 void mTensorConvBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("Conv",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorConvPara *para = (struct TensorConvPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorConv,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorConv);
     struct HandleTensorConv *handle = (struct HandleTensorConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
@@ -303,33 +302,37 @@ void mTensorConvBackward(MLayer *layer)
                     (b==0)?para->momentum:1.0f,
                     update_data,mwidth);
     }
+    // for(int i=0;i<8;i++) printf("%f,",kernel_data[i]);
+    // printf("aaaaaaaaaaa,para->knl_num=%d,mwidth=%d\n",para->knl_num,mwidth);
     
+    if(para->res_valid)
+    {
+        if(para->prev->state == MORN_FORWARD)
+        {
+            for(int b=0;b<res->batch;b++) 
+                memset(res->data[b],0,in->height*in->width*in->channel*sizeof(float));
+            para->prev->state = MORN_BACKWARD;
+        }
+        
+        for(int b=0;b<in->batch;b++)
+        {
+            float *out_data = out->data[b];
+            
+            cblas_sgemm(CblasRowMajor,CblasTrans,CblasNoTrans,
+                        mheight,mwidth,para->knl_num,
+                        1.0f,
+                           out_data,mheight,
+                        kernel_data,mwidth,
+                    0.0,   res_data,mwidth);
+            
+            ConvMatDataToTensor(res_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
+        }
+    }
+
     cblas_saxpby(para->knl_num*mwidth,
                  (0.0f-(para->rate/(float)(in->batch))),update_data,1, 
                  (1.0f-(para->decay*para->rate))       ,kernel_data,1);
-    
-    if(para->res_valid==0) return;
-    
-    if(para->prev->state == MORN_FORWARD)
-    {
-        for(int b=0;b<res->batch;b++) 
-            memset(res->data[b],0,in->height*in->width*in->channel*sizeof(float));
-        para->prev->state = MORN_BACKWARD;
-    }
-    
-    for(int b=0;b<in->batch;b++)
-    {
-        float *out_data = out->data[b];
-        
-        cblas_sgemm(CblasRowMajor,CblasTrans,CblasNoTrans,
-                    mheight,mwidth,para->knl_num,
-                    1.0f,
-                       out_data,mheight,
-                    kernel_data,mwidth,
-                0.0,   res_data,mwidth);
-        
-        ConvMatDataToTensor(res_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
-    }
+    for(int i=0;i<2;i++) printf("%f(%d),",kernel_data[i],(update_data[i]>0));
 }
 
 void GroupConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_channel,int knl_height,int knl_width,int c_stride,int y_stride,int x_stride)
@@ -529,7 +532,7 @@ void TensorGroupConvSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorGroupConv,hdl);
+    MHandle *hdl=mHandle(out,TensorGroupConv);
     struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     
     int out_height= in->height/para->y_stride;
@@ -584,7 +587,7 @@ void mTensorGroupConvForward(MLayer *layer)
     
     TensorGroupConvSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorGroupConv,hdl);
+    MHandle *hdl=mHandle(out,TensorGroupConv);
     struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     
     int out_channel=(in->channel-para->knl_channel/2+1)/para->c_stride;
@@ -624,7 +627,7 @@ void mTensorGroupConvBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorGroupConv,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorGroupConv);
     struct HandleTensorGroupConv *handle = (struct HandleTensorGroupConv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

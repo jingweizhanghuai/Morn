@@ -16,17 +16,17 @@ struct HandleVectorCreate
 {
     MVector *vec;
     int size;
-    float *memory;
+    MMemory *memory;
 };
 void endVectorCreate(void *info)
 {
     struct HandleVectorCreate *handle = (struct HandleVectorCreate *)info;
     mException((handle->vec==NULL),EXIT,"invalid vector");
-    if(handle->memory != NULL) mFree(handle->memory);
+    if(handle->memory != NULL) mMemoryRelease(handle->memory);
     mFree(handle->vec);
 }
 #define HASH_VectorCreate 0xfc0b887c
-MVector *mVectorCreate(int size,float *data)
+MVector *VectorCreate(int size,float *data,int dev)
 {
     MVector *vec;
     vec = (MVector *)mMalloc(sizeof(MVector));
@@ -34,8 +34,11 @@ MVector *mVectorCreate(int size,float *data)
     
     if(size<0) size = 0;
     vec->size = size;
-    
-    MHandle *hdl; ObjectHandle(vec,VectorCreate,hdl);
+    if(dev<0) dev=MORN_HOST_CPU;
+    vec->dev = dev;
+
+    vec->handle = mHandleCreate();
+    MHandle *hdl=mHandle(vec,VectorCreate);
     struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(hdl->handle);
     handle->vec = vec;
     
@@ -45,9 +48,9 @@ MVector *mVectorCreate(int size,float *data)
     }
     else if(INVALID_POINTER(data))
     {
-        handle->memory = (float *)mMalloc(size*sizeof(float));
+        handle->memory = mMemoryCreate(1,size*sizeof(float),dev);
         handle->size = size;
-        vec->data = handle->memory;
+        vec->data = handle->memory->data[0];
     }
     else
         vec->data = data;
@@ -63,7 +66,7 @@ void mVectorRelease(MVector *vec)
         mHandleRelease(vec->handle);
 }
 
-void mVectorRedefine(MVector *vec,int size,float *data)
+void VectorRedefine(MVector *vec,int size,float *data,int dev)
 {
     mException(INVALID_POINTER(vec),EXIT,"invalid input");
     
@@ -71,11 +74,13 @@ void mVectorRedefine(MVector *vec,int size,float *data)
     if(size!=vec->size)mHandleReset(vec->handle);
     int same_size = (size <= vec->size);
     int reuse = (data==vec->data);
+    mException(reuse&&(dev!=vec->dev),EXIT,"invalid vector memory device");
     int flag = (vec->size >0);
     
     vec->size=size;
-    
     if(same_size&&reuse) return;
+
+    vec->dev=dev;
     struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(((MHandle *)(vec->handle->data[0]))->handle);
     if(same_size&&(data==NULL)&&(handle->size>0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
@@ -88,15 +93,16 @@ void mVectorRedefine(MVector *vec,int size,float *data)
     
     if(size>handle->size)
     {
-        if(handle->memory!=NULL) mFree(handle->memory);
-        handle->memory = (float *)mMalloc(size*sizeof(float));
         handle->size = size;
-        vec->data = handle->memory;
+        if(handle->memory==NULL) handle->memory = mMemoryCreate(1,size*sizeof(float),dev);
+        else mMemoryRedefine(handle->memory,1,size*sizeof(float),dev);
+        vec->data = handle->memory->data[0];
     }
 }
 
 void PrintMat(MMatrix *mat)
 {
+    printf("row=%d,col=%d:\n",mat->row,mat->col);
     int i,j;
     for(j=0;j<mat->row;j++)
     {
@@ -111,6 +117,7 @@ struct HandleMatrixCreate
     MMatrix *mat;
     int row;
     int col;
+    int dev;
     float **index;
     MMemory *memory;
 };
@@ -125,18 +132,21 @@ void endMatrixCreate(void *info)
     mFree(handle->mat);
 }
 #define HASH_MatrixCreate 0xe48fad76
-MMatrix *mMatrixCreate(int row,int col,float **data)
+MMatrix *MatrixCreate(int row,int col,float **data,int dev)
 {
     MMatrix *mat = (MMatrix *)mMalloc(sizeof(MMatrix));
     memset(mat,0,sizeof(MMatrix));
     
     if(col <0) col = 0;
     if(row <0) row = 0;
+    if(dev <0) dev = MORN_HOST_CPU;
     
     mat->col = col;
     mat->row = row;
-    
-    MHandle *hdl; ObjectHandle(mat,MatrixCreate,hdl);
+    mat->dev = dev;
+
+    mat->handle = mHandleCreate();
+    MHandle *hdl=mHandle(mat,MatrixCreate);
     struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)(hdl->handle);
     handle->mat = mat;
     
@@ -162,10 +172,10 @@ MMatrix *mMatrixCreate(int row,int col,float **data)
     }
     else 
     {
-        if(handle->memory == NULL)
-            handle->memory = mMemoryCreate(row,col*sizeof(float));
-        mMemoryIndex(handle->memory,row,col*sizeof(float),(void **)(handle->index));
-        
+        if(handle->memory == NULL)handle->memory = mMemoryCreate(1,row*col*sizeof(float),dev);
+        mException(handle->memory->num!=1,EXIT,"invalid image memory");
+        mMemoryIndex(handle->memory,row,col*sizeof(float),(void ***)(&(handle->index)),1);
+        handle->dev = dev;
         handle->col = col;
     }
     mat->data = handle->index;
@@ -181,22 +191,27 @@ void mMatrixRelease(MMatrix *mat)
         mHandleRelease(mat->handle);
 }
 
-void mMatrixRedefine(MMatrix *mat,int row,int col,float **data)
+void MatrixRedefine(MMatrix *mat,int row,int col,float **data,int dev)
 {
     mException((INVALID_POINTER(mat)),EXIT,"invalid input");
     
     if(row<=0) row = mat->row;
     if(col<=0) col = mat->col;
+    if(dev< 0) dev = mat->dev;
     if((row!=mat->row)||(col!=mat->col)) mHandleReset(mat->handle);
     
     int same_size=((row<=mat->row)&&(col<=mat->col));
     int reuse = (data==mat->data);
+    mException(reuse&&(dev!=mat->dev),EXIT,"invalid input data device");
     int flag=(mat->row)&&(mat->col);
     
     mat->row = row;
     mat->col = col;
     if(same_size&&reuse) return;
+    
+    mat->dev = dev;
     struct HandleMatrixCreate *handle= (struct HandleMatrixCreate *)(((MHandle *)(mat->handle->data[0]))->handle);
+    mException(reuse&&(dev!=handle->dev),EXIT,"invalid matrix memory device");
     if(same_size&&(data==NULL)&&(handle->col>0)) return;
     mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
     
@@ -219,19 +234,21 @@ void mMatrixRedefine(MMatrix *mat,int row,int col,float **data)
     
     if(data!=NULL) {memcpy(handle->index,data,row*sizeof(float *));return;}
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(row,col*sizeof(float));
-    mMemoryIndex(handle->memory,row,col*sizeof(float),(void **)(handle->index));
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*sizeof(float),dev);
+    else    mMemoryRedefine(handle->memory,1,row*col*sizeof(float),dev);
+    mMemoryIndex(handle->memory,row,col*sizeof(float),(void ***)(&(handle->index)),1);
     handle->col = col;
 }
 
 void mUnitMatrix(MMatrix *mat,int size)
 {
+    mException(mat==NULL,EXIT,"invalid input matrix");
     if(size<0)
     {
         size = mat->row;
         mException(size!=mat->col,EXIT,"invalid input");
     }
-    else mMatrixRedefine(mat,size,size,mat->data);
+    else mMatrixRedefine(mat,size,size,mat->data,DFLT);
        
     int i;
     #pragma omp parallel for
@@ -244,6 +261,8 @@ void mUnitMatrix(MMatrix *mat,int size)
 
 void mMatrixTranspose(MMatrix *mat,MMatrix *dst)
 {
+    mException(mat==NULL,EXIT,"invalid input matrix");
+    
     int i,j;
     int dst_col,dst_row;
     MMatrix *p;
@@ -254,8 +273,8 @@ void mMatrixTranspose(MMatrix *mat,MMatrix *dst)
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
     
     p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat)) dst = mMatrixCreate(dst_row,dst_col,NULL);
-    else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
+    if((INVALID_POINTER(dst))||(dst==mat)) dst = mMatrixCreate(dst_row,dst_col,NULL,mat->dev);
+    else mMatrixRedefine(dst,dst_row,dst_col,dst->data,DFLT);
     
     for(i=0;i<dst_row-8;i=i+8)
     {
@@ -296,7 +315,7 @@ void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst)
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
     if(INVALID_POINTER(dst)) dst = vec1;
-    else mVectorRedefine(dst,vec1->size,dst->data);
+    else mVectorRedefine(dst,vec1->size,dst->data,vec1->dev);
     
     for(i=0;i<vec1->size;i++)
         dst->data[i] = vec1->data[i] + vec2->data[i];
@@ -308,7 +327,7 @@ void mMatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
     #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
@@ -321,7 +340,7 @@ void mMatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
     #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
@@ -366,7 +385,7 @@ void mVectorScalarMul(MVector *vec1,MVector *vec2,MVector *dst)
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
     if(INVALID_POINTER(dst)) dst = vec1;
-    else mVectorRedefine(dst,vec1->size,dst->data);
+    else mVectorRedefine(dst,vec1->size,dst->data,vec1->dev);
     
     for(i=0;i<vec1->size;i++)
         dst->data[i] = vec1->data[i] * vec2->data[i];
@@ -391,9 +410,7 @@ void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
     int num_in;
     int num_out;
     
-    MVector *p;
-    
-    p = dst;
+    MVector *p= dst;
     
     mException((INVALID_MAT(mat)||INVALID_VEC(vec)),EXIT,"invalid input");
     
@@ -401,8 +418,8 @@ void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
     mException((vec->size != num_in),EXIT,"invalid input");
     
     num_out = mat->row;
-    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL);
-    else mVectorRedefine(dst,num_out,dst->data);
+    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL,vec->dev);
+    else mVectorRedefine(dst,num_out,dst->data,vec->dev);
        
     
     for(i=0;i<num_out;i++)
@@ -449,8 +466,8 @@ void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst)
     mException((vec->size != num_in),EXIT,"invalid input");
     
     num_out = mat->col;
-    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL);
-    else mVectorRedefine(dst,num_out,dst->data);
+    if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL,vec->dev);
+    else mVectorRedefine(dst,num_out,dst->data,vec->dev);
     
     for(i=0;i<num_out;i++)
     {
@@ -466,6 +483,14 @@ void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst)
     }
 }
 
+void mMatrixScalar(MMatrix *src,MMatrix *dst,float k,float b)
+{
+    mException((src==NULL),EXIT,"invalid input");
+    if(dst==NULL) dst=src;
+    for(int j=0;j<src->row;j++)for(int i=0;i<src->col;i++)
+        dst->data[j][i] = src->data[j][i]*k+b;
+}
+
 void mMatrixScalarMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
     int i,j;
@@ -474,7 +499,7 @@ void mMatrixScalarMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException((mat1->row != mat2->row)||(mat1->col != mat2->col),EXIT,"invalid input");
 
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
     
     for(j=0;j<mat1->row;j++)
         for(i=0;i<mat1->col;i++)
@@ -566,8 +591,8 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     int dst_row = mat1->row;
 
     MMatrix *p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col,NULL);
-    else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
+    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col,NULL,mat1->dev);
+    else mMatrixRedefine(dst,dst_row,dst_col,dst->data,DFLT);
 
     int flag = num&0x03; if(flag==0) flag = 4;
     
@@ -727,8 +752,8 @@ int mMatrixInverse(MMatrix *mat,MMatrix *inv)
     mException((mat->col != num),EXIT,"invalid operate");
     
     p = inv;
-    if((INVALID_POINTER(inv))||(inv == mat)) inv = mMatrixCreate(num,num,NULL);
-    else mMatrixRedefine(inv,num,num,inv->data);
+    if((INVALID_POINTER(inv))||(inv == mat)) inv = mMatrixCreate(num,num,NULL,mat->dev);
+    else mMatrixRedefine(inv,num,num,inv->data,DFLT);
     
     data = (double **)mMalloc((num+1)*sizeof(double *));
     data[0] = (double *)mMalloc((num+num)*num*sizeof(double));
@@ -833,7 +858,7 @@ int mLinearEquation(MMatrix *mat,float *answer)
         return 1;
     }
     
-    data = mMatrixCreate(num,num+1,NULL);
+    data = mMatrixCreate(num,num+1,NULL,mat->dev);
     for(j=0;j<num;j++)
         memcpy(data->data[j],mat->data[j],(num+1)*sizeof(float));
         

@@ -22,10 +22,11 @@ struct HandleSheetCreate
     MInfo *row_info;
     
     MMemory *memory;
+
+    MList *list;
 };
 void endSheetCreate(void *info)
 {
-    
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)info;
     mException((handle->sheet == NULL),EXIT,"invalid sheet");
     
@@ -51,8 +52,9 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
 {
     MSheet *sheet = (MSheet *)mMalloc(sizeof(MSheet));
     memset(sheet,0,sizeof(MSheet));
-    
-    MHandle *hdl; ObjectHandle(sheet,SheetCreate,hdl);
+
+    sheet->handle = mHandleCreate();
+    MHandle *hdl=mHandle(sheet,SheetCreate);
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(hdl->handle);
     handle->sheet = sheet;
     
@@ -196,8 +198,10 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
 
     void **idx = (void **)mMalloc(row*col*sizeof(void *));
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(row*col,size);
-    mMemoryIndex(handle->memory,row*col,size,idx);
+
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*size,MORN_HOST_CPU);
+    else mMemoryAppend(handle->memory,row*col*size);
+    mMemoryIndex(handle->memory,row*col,size,&idx,1);
 
     char *p_data=(char *)data;void **p_idx = idx;
     for(int j=0;j<row;j++)
@@ -209,6 +213,13 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
         } 
     }
     mFree(idx);
+}
+
+void mSheetOperate(MSheet *sheet,void (*func)(void *,void *),void *para)
+{
+    mException((sheet==NULL)||(func==NULL),EXIT,"invalid input");
+    for(int j=0;j<sheet->row;j++)for(int i=0;i<sheet->col[j];i++)
+        func(sheet->data[j][i],para);
 }
 
 struct HandleSheetWrite
@@ -234,30 +245,19 @@ void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size)
     if(col == sheet->col[row]) 
         mSheetColAppend(sheet,row,DFLT); 
     
-    if(handle0->memory == NULL)
-        handle0->memory = mMemoryCreate(DFLT,DFLT);
+    if(handle0->memory == NULL)handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
     sheet->data[row][col] = mMemoryWrite(handle0->memory,data,size);
     
     if((row!=sheet->row-1)&&(col!=sheet->col[row]-1))
     {
-        MHandle *hdl; ObjectHandle(sheet,SheetWrite,hdl);
+        MHandle *hdl=mHandle(sheet,SheetWrite);
         struct HandleSheetWrite *handle = (struct HandleSheetWrite *)(hdl->handle);
         handle->write_size += size;
         
         if(handle->write_size>16384)
         {
-            int num = 0; for(int j=0;j<sheet->row;j++) num += sheet->col[j];
-            void **index = (void **)mMalloc(sizeof(void *)*num);
-            num = 0;
-            for(int j=0;j<sheet->row;j++) 
-            {
-                memcpy(index+num,sheet->data[j],sheet->col[j]*sizeof(void *));
-                num += sheet->col[j];
-            }
-            
-            mMemoryCollect(handle0->memory,index,num);
-            handle->write_size = 0;
-            mFree(index);
+            mSheetOperate(sheet,MemoryCollect,handle0->memory);
+            MemoryDefrag(handle0->memory);
         }
     }
     return (sheet->data[row][col]);
@@ -275,7 +275,7 @@ void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size)
     mException(INVALID_POINTER(sheet),EXIT,"invalid input");
     mException((size <=0)||(INVALID_POINTER(data)),EXIT,"invalid input"); 
     
-    MHandle *hdl; ObjectHandle(sheet,SheetRead,hdl);
+    MHandle *hdl=mHandle(sheet,SheetRead);
     struct HandleSheetRead *handle = (struct HandleSheetRead *)(hdl->handle);
 
     if(row<0)
@@ -410,7 +410,7 @@ void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
     if(key_size<0) key_size = strlen((char *)key);
     if(size <0) size = strlen((char *)data);
     
-    MHandle *hdl; ObjectHandle(sheet,HashSheet,hdl);
+    MHandle *hdl=mHandle(sheet,HashSheet);
     struct HandleHashSheet *handle = (struct HandleHashSheet *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -473,7 +473,7 @@ void *mHashSheetRead(MSheet *sheet,void *key,int key_size,void *data,int size)
 
 void mHashSheetElementDelete(MSheet *sheet,void *key,int key_size)
 {
-    MHandle *hdl; ObjectHandle(sheet,HashSheet,hdl);
+    MHandle *hdl=mHandle(sheet,HashSheet);
     struct HandleHashSheet *handle = (struct HandleHashSheet *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid input sheet");
         

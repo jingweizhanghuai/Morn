@@ -37,6 +37,30 @@ void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
     A[1] = ((sumx2*sumy)-(sumx*sumxy))/((((float)N)*sumx2)-(sumx*sumx));
 }
 
+void mLinearLSMFit(MList *list,MImagePoint *p1,MImagePoint *p2)
+{
+    mException((list==NULL)||(p1==NULL)||(p2==NULL),EXIT,"invalid input list");
+    mException((list->num<2),EXIT,"sample number (which <2) is not enough.");
+
+    float **p = (float **)list->data;
+    double sumx = 0.0f;double sumy = 0.0f;
+    double sumxy= 0.0f;double sumx2= 0.0f;
+    float min=p[0][0];float max=p[0][0];
+    for(int i=0;i<list->num;i++)
+    {
+        sumx = sumx + p[i][0];sumx2 = sumx2 + p[i][0]*p[i][0];
+        sumy = sumy + p[i][1];sumxy = sumxy + p[i][0]*p[i][1];
+        min=MIN(p[i][0],min);max=MAX(p[i][0],max);
+    }
+    double N = (double)(list->num);
+    double k = ((N*sumxy)-(sumx*sumy))/((N*sumx2)-(sumx*sumx));
+    double b = ((sumx2*sumy)-(sumx*sumxy))/((N*sumx2)-(sumx*sumx));
+    p1->x=min;p1->y=k*min+b;
+    p2->x=max;p2->y=k*max+b;
+}
+
+
+
 void mPiecewiseLinearFit(float *XIn,float *YIn,int N,int piece_num,MList *list)
 {
     int i;
@@ -168,96 +192,49 @@ void mParabolaFitLSM(float *XIn,float *YIn,int N,float *A)
     mMatrixRelease(mat);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void mPolyFitLSM(float *XIn,float *YIn,int N,float *A,int k)
 {
-    int i,j;
-    float *sumx;
-    float *sumyx;
-    float sumy;
-    // float *data;
-    float x,y,X;
-    MMatrix *mat;
-    
     mException((k==0),EXIT,"degree of polynomial is 0");
     mException((N<k+1),EXIT,"sample number is not enough.");
     mException((INVALID_POINTER(XIn)||(INVALID_POINTER(YIn))),EXIT,"no input data.");
     mException((INVALID_POINTER(A)),EXIT,"answer out is NULL.");
     
-    if(k == 1)
+    double *sumx = (double *)malloc(k*2*sizeof(double));memset( sumx,0,k*2*sizeof(double));
+    double *sumyx= (double *)malloc(k  *sizeof(double));memset(sumyx,0,k  *sizeof(double));
+    double  sumy = 0;
+    MMatrix *mat = mMatrixCreate(k+1,k+2,NULL);
+    for(int i=0;i<N;i++)
     {
-        mLinearFitLSM(XIn,YIn,N,A);
-        return;
-    }
-    if(k == 2)
-    {
-        mParabolaFitLSM(XIn,YIn,N,A);
-        return;
-    }
-    
-    sumx = (float *)malloc(k*2*sizeof(float));
-    sumyx = (float *)malloc(k*sizeof(float));
-    // data = (float *)malloc((k+2)*(k+1)*sizeof(float));
-    mat = mMatrixCreate(k+1,k+2,NULL);
-    
-    for(i=0;i<k*2;i++)
-        sumx[i] = 0.0f;
-    
-    for(i=0;i<k;i++)
-        sumyx[i] = 0.0f;
-    sumy = 0.0;
-    
-    for(i=0;i<N;i++)
-    {
-        x = XIn[i];
-        y = YIn[i];
-        
-        X = 1.0f;        
-        for(j=0;j<k*2;j++)
-        {
-            X = X*x;
-            sumx[j] = sumx[j] + X;
-        }
-        
-        X = 1.0f;
-        for(j=0;j<k;j++)
-        {
-            X = X*x;
-            sumyx[j] = sumyx[j] + X*y;
-        }
-        
+        double x = XIn[i];double y = YIn[i];double data;
+        data = 1.0f;for(int j=0;j<k*2;j++){data = data*x; sumx[j] = sumx[j] + data;}
+        data = y;   for(int j=0;j<k  ;j++){data = data*x;sumyx[j] =sumyx[j] + data;}
         sumy = sumy + y;
     }
-    
-    // for(j=0;j<k*2;j++)
-        // printf("sumx%d is %f\n",j+1,sumx[j]);
-    // printf("\n\n");
-    // for(j=0;j<k;j++)
-        // printf("sumyx%d is %f\n",j+1,sumyx[j]);
-    
-    for(i=0;i<k;i++)
-        mat->data[0][i] = sumx[k-i-1];
-    
-    mat->data[0][k] = (float)N;
-    mat->data[0][k+1] = 0.0f-sumy;
-    
-    // #define DATA(x,y) data[y*(k+2)+x]
-    
-    for(j=1;j<=k;j++)
+    // for(j=0;j<k*2;j++)printf("sumx%d is %f\n",j+1,sumx[j]);
+    // for(j=0;j<k;j++)printf("sumyx%d is %f\n",j+1,sumyx[j]);
+
+    mat->data[0][0] = (float)N;
+    for(int i=0;i<k;i++) mat->data[0][i+1] = sumx[i];
+    mat->data[0][k+1] = 0.0-sumy;
+    for(int j=0;j<k;j++)
     {
-        for(i=0;i<=k;i++)
-            mat->data[j][i] = sumx[k+j-i-1];
-        
-        mat->data[j][i] = 0.0f-sumyx[j-1];
+        for(int i=0;i<=k;i++) mat->data[j+1][i] = sumx[j+i];
+        mat->data[j+1][k+1] = 0.0-sumyx[j];
     }
-    
-    // for(j=0;j<=k;j++)
-    // {
-        // printf("%d:\t",j);
-        // for(i=0;i<=k+1;i++)
-            // printf("%f\t",DATA(i,j));
-    
-        // printf("\n");
-    // }
     
     mLinearEquation(mat,A);
     
@@ -265,6 +242,117 @@ void mPolyFitLSM(float *XIn,float *YIn,int N,float *A,int k)
     free(sumyx);
     mMatrixRelease(mat);
 }
+
+float _polycurve(float x,float *para)
+{
+    int k=para[0];para=para+1;
+    float data=1;float y=para[0];
+    for(int i=1;i<=k;i++) {data=data*x;y+=para[i]*data;}
+    return y;
+}
+struct HandlePolyLSMFit
+{
+    double *sumx;
+    double *sumyx;
+    MMatrix *mat;
+};
+void endPolyLSMFit(void *info)
+{
+    struct HandlePolyLSMFit *handle = (struct HandlePolyLSMFit *)info;
+    if(handle->sumx !=NULL) mFree(handle->sumx );
+    if(handle->sumyx!=NULL) mFree(handle->sumyx);
+    if(handle->mat  !=NULL) mMatrixRelease(handle->mat);
+};
+#define HASH_PolyLSMFit 0xa258594a
+void mPolyLSMFit(MList *list,MImageCurve *curve,int k)
+{
+    mException((list==NULL),EXIT,"invalid list input");
+    mException((k<=0)||(k>15)||(list->num<=k),EXIT,"invalid k,which is %d\n",k);
+    MHandle *hdl=mHandle(list,PolyLSMFit);
+    struct HandlePolyLSMFit *handle = (struct HandlePolyLSMFit *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->sumx !=NULL) mFree(handle->sumx ); handle->sumx = (double *)mMalloc(30*sizeof(double));
+        if(handle->sumyx!=NULL) mFree(handle->sumyx); handle->sumyx= (double *)mMalloc(15*sizeof(double));
+        if(handle->mat==NULL) handle->mat = mMatrixCreate(16,17,NULL);
+    }
+    double *sumx = handle->sumx ; memset( sumx,0,k*2*sizeof(double));
+    double *sumyx= handle->sumyx; memset(sumyx,0,k  *sizeof(double));
+    double sumy=0;
+    
+    int type = curve->type;
+
+    float *p = (float *)(list->data[0]);
+    float min,max;
+    if(type<=0) {min=p[0];max=p[0];} else {min=p[1];max=p[1];}
+    for(int i=0;i<list->num;i++)
+    {
+        p = (float *)(list->data[i]);
+        double x,y,data;
+        if(type<=0) {x=p[0];y=p[1];} else {x=p[1];y=p[0];}
+        min=MIN(min,x);max=MAX(max,x);
+        
+        data = 1.0f;for(int j=0;j<k*2;j++){data = data*x; sumx[j] = sumx[j] + data;}
+        data = y;   for(int j=0;j<k  ;j++){data = data*x;sumyx[j] =sumyx[j] + data;}
+        sumy = sumy + y;
+    }
+
+    mMatrixRedefine(handle->mat,k+1,k+2,handle->mat->data);
+    MMatrix *mat = handle->mat;
+    mat->data[0][0] = (float)((double)(list->num)/sumx[1]);
+    for(int i=0;i<k;i++) mat->data[0][i+1] = (float)(sumx[i]/sumx[1]);
+    mat->data[0][k+1] = 0.0f-(float)(sumy/sumx[1]);
+    for(int j=0;j<k;j++)
+    {
+        for(int i=0;i<=k;i++) mat->data[j+1][i] = (float)(sumx[j+i]/sumx[j+2]);
+        mat->data[j+1][k+1] = 0.0f-(float)(sumyx[j]/sumx[j+2]);
+    }
+    
+    curve->para[0]=k;
+    mLinearEquation(mat,curve->para+1);
+    curve->curve = _polycurve;
+    if(type<=0) {curve->v1.x=min;curve->v1.y=_polycurve(min,curve->para);curve->v2.x=max;curve->v2.y=_polycurve(max,curve->para);}
+    else        {curve->v1.y=min;curve->v1.x=_polycurve(min,curve->para);curve->v2.y=max;curve->v2.x=_polycurve(max,curve->para);}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void mLinearFitWeight(float *XIn,float *YIn,float *WIn,int N,float *A)
 {
@@ -763,7 +851,6 @@ struct ExpFitData
     float *x;
     float *y;
     float *x_exp;
-
     int n;
 };
 float ExpFitError(void *data_in,float *para)
@@ -853,4 +940,3 @@ void mExpFit(float *XIn,float *YIn,int N,float *para_k,float *para_a)
     mFree(data);
 }
 */
-    

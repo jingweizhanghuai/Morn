@@ -178,7 +178,7 @@ void mColorConvert(MImage *src,MImage *dst,unsigned char **color_in,unsigned cha
     
     float k[4][5];
     
-    MMatrix *mat = mMatrixCreate(channel+1,channel+2,NULL);
+    MMatrix *mat = mMatrixCreate(channel+1,channel+2,NULL,DFLT);
     float **data = mat->data;
     for(n=0;n<channel+1;n++)
     {
@@ -771,7 +771,7 @@ int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh)
     
     int i,j,cn;
     
-    MHandle *hdl; ObjectHandle(src,ColorCluster,hdl);
+    MHandle *hdl=mHandle(src,ColorCluster);
     struct HandleColorCluster *handle = (struct HandleColorCluster *)(hdl->handle);
     if(hdl->valid == 0)
     {

@@ -50,12 +50,63 @@ void mTrainDataGenerate(void *in ,void  (*in_func)(void *,MTensor **,void *),voi
 }
 */
 
+
+
+struct HandleMORNTensor
+{
+    char dir[256];
+    MList *filelist;
+};
+void endMORNTensor(void *info)
+{
+    struct HandleMORNTensor *handle = (struct HandleMORNTensor *)info;
+    if(handle->filelist !=NULL) mListRelease(handle->filelist);
+}
+#define HASH_MORNTensor 0x3b817786
+void MORNTensor(MVector **data,char **name,int number,char *dir)
+{
+    if(number<=0)number=1;
+    mException((data[0]==NULL),EXIT,"invalid input");
+    
+    MHandle *hdl = mHandle(data[0],MORNTensor);
+    struct HandleMORNTensor *handle= (struct HandleMORNTensor *)(hdl->handle);
+    if((hdl->valid == 0)||(strcmp(dir,handle->dir)!=0))
+    {
+        handle->filelist = mListCreate(DFLT,NULL);
+        mFileList(handle->filelist,dir,"*.morn");
+        strcpy(handle->dir,dir);
+        hdl->valid = 1;
+    }
+
+    char filename[256];
+    int n = mRand(0,handle->filelist->num);
+    sprintf(filename,"%s/%s",dir,(char *)(handle->filelist->data[n]));
+    MFile *file = mFileCreate(filename);
+    for(int i=0;i<number;i++)
+    {
+        // printf("name[i]=%s,data[i]->size=%d\n",name[i],data[i]->size);
+        mException((INVALID_POINTER(data[i])||(INVALID_POINTER(name[i]))),EXIT,"invalid input");
+        mMORNRead(file,mHash(name[i],DFLT),(void **)&(data[i]->data),1,(data[i]->size)*sizeof(float));
+    }
+    mFileRelease(file);
+}
+
+void (*morn_datafunc)(MVector **,char **,int,char *)=NULL;
+void mDataFuncRegister(void (*func)(MVector **,char **,int,char *))
+{
+    morn_datafunc = func;
+}
+
 struct HandleTrainData
 {
     MList *net;
-    
+
     char *data_dir;
-    MList *filelist;
+    
+    MVector **datain;
+    char **namein;
+    MList *layer;
+    void (*func)(MVector **,char **,int,char *);
     
     int batch;
     int train_batch;
@@ -67,17 +118,22 @@ struct HandleTrainData
 void endTrainData(void *info)
 {
     struct HandleTrainData *handle = (struct HandleTrainData *)info;
-    if(handle->filelist != NULL)
-        mListRelease(handle->filelist);
+    if(handle->layer!=NULL)
+    {
+        for(int i=0;i<handle->layer->num;i++) mVectorRelease(handle->datain[i]);
+        mFree(handle->datain);
+        mFree(handle->namein);
+        mListRelease(handle->layer);
+    }
 }
 #define HASH_TrainData 0xeef2f995
 void mTrainData(MFile *ini)
 {
-    MHandle *hdl; ObjectHandle(ini,TrainData,hdl);
+    MHandle *hdl=mHandle(ini,TrainData);
     struct HandleTrainData *handle = (struct HandleTrainData *)(hdl->handle);
     if(hdl->valid == 0)
     {
-        handle->net = mNetworkGenerate(ini);
+        if(handle->net==NULL) handle->net = mNetworkGenerate(ini);
         
         char *value;
         
@@ -99,9 +155,20 @@ void mTrainData(MFile *ini)
         handle->train_batch = (int)(((float)(handle->batch))*coverage_ratio+0.5);
         handle->update = (int)(handle->train_batch * update_ratio + 0.5);
         if(handle->update < 1) handle->update = 1;
-        
+
         handle->index_input = mTensorRegisterIndex("Input" );
         handle->index_output= mTensorRegisterIndex("Output");
+        if(handle->layer==NULL) handle->layer=mListCreate(DFLT,NULL);
+        else
+        {
+            if(handle->datain!=NULL) 
+            {
+                for(int i=0;i<handle->layer->num;i++) mVectorRelease(handle->datain[i]);
+                mFree(handle->datain);
+                mFree(handle->namein);
+            }
+        }
+        mListClear(handle->layer);
         
         for(int i=0;i<handle->net->num;i++)
         {
@@ -111,37 +178,42 @@ void mTrainData(MFile *ini)
             value=mINIRead(ini,layer->name,"channel");mException((value==NULL),EXIT,"no input channel");int channel=atoi(value);
             value=mINIRead(ini,layer->name,"height" );mException((value==NULL),EXIT,"no input height" );int height =atoi(value);
             value=mINIRead(ini,layer->name,"width"  );mException((value==NULL),EXIT,"no input width"  );int width  =atoi(value);
-            
-            mTensorRedefine(layer->tns,handle->train_batch,channel,height,width,NULL);
+
+            if(layer->tns==NULL) mTensorCreate(handle->train_batch,channel,height,width,NULL);
+            else    mTensorRedefine(layer->tns,handle->train_batch,channel,height,width,layer->tns->data);
             layer->tns->batch = handle->batch;
+
+            mListWrite(handle->layer,DFLT,layer,sizeof(MLayer));
         }
-        
+
+        if(morn_datafunc == NULL) morn_datafunc = MORNTensor;
+
+        handle->datain = (MVector **)mMalloc(handle->layer->num*sizeof(MVector *));
+        handle->namein = (   char **)mMalloc(handle->layer->num*sizeof(   char *));
+        for(int i=0;i<handle->layer->num;i++) 
+        {
+            MLayer *layer= ((MLayer *)(handle->layer->data[i]));
+            MTensor *tns = layer->tns;
+            
+            handle->datain[i]=mVectorCreate(tns->channel*tns->height*tns->width,tns->data[0]);
+            handle->namein[i]=layer->name;
+        }
+
         handle->data_dir = mINIRead(ini,"para","data_dir");
         mException((handle->data_dir==NULL),EXIT,"no train data dir");
         
-        if(handle->filelist == NULL) handle->filelist = mListCreate(DFLT,NULL);
-        mListClear(handle->filelist);
-        mFileList(handle->filelist,handle->data_dir,"*.morn");
-        
+        // if(handle->filelist == NULL) handle->filelist = mListCreate(DFLT,NULL);
+        // mListClear(handle->filelist);
+        // mFileList(handle->filelist,handle->data_dir,"*.morn");
+
         for(int b=0;b<handle->train_batch;b++)
         {
-            char filename[256];
-            int n = mRand(0,handle->filelist->num);
-            sprintf(filename,"%s/%s",handle->data_dir,(char *)(handle->filelist->data[n]));
-            MFile *file = mFileCreate(filename);
-            
-            for(int i=0;i<handle->net->num;i++)
+            for(int i=0;i<handle->layer->num;i++) 
             {
-                MLayer *layer = (MLayer *)(handle->net->data[i]);
-                if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
-                
-                MTensor *tns = layer->tns;
-                void *p_data = tns->data[b];
-                int size = tns->channel*tns->height*tns->width;
-                mMORNRead(file,layer->name,&p_data,1,size*sizeof(float));
+                MLayer *layer = (MLayer *)(handle->layer->data[i]);
+                handle->datain[i]->data = layer->tns->data[b];
             }
-            
-            mFileRelease(file);
+            morn_datafunc(handle->datain,handle->namein,handle->layer->num,handle->data_dir);
         }
         
         hdl->valid = 1;
@@ -151,33 +223,20 @@ void mTrainData(MFile *ini)
     
     for(int b=0;b<handle->update;b++)
     {
-        char filename[256];
-        int n = mRand(0,handle->filelist->num);
-        sprintf(filename,"%s/%s",handle->data_dir,(char *)(handle->filelist->data[n]));
-        MFile *file = mFileCreate(filename);
-        
-        for(int i=0;i<handle->net->num;i++)
+        for(int i=0;i<handle->layer->num;i++) 
         {
-            MLayer *layer = (MLayer *)(handle->net->data[i]);
-            if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
-            
-            MTensor *tns = layer->tns;
-            void *p_data = tns->data[b];
-            int size = tns->channel*tns->height*tns->width;
-            mMORNRead(file,layer->name,&p_data,1,size*sizeof(float));
+            MLayer *layer = (MLayer *)(handle->layer->data[i]);
+            handle->datain[i]->data = layer->tns->data[b];
         }
-        
-        mFileRelease(file);
+        morn_datafunc(handle->datain,handle->namein,handle->layer->num,handle->data_dir);
     }
     
     for(int b=0;b<handle->batch;b++)
     {
         int n = mRand(0,handle->train_batch);
-        for(int i=0;i<handle->net->num;i++)
+        for(int i=0;i<handle->layer->num;i++)
         {
-            MLayer *layer = (MLayer *)(handle->net->data[i]);
-            if((layer->type_index!=handle->index_input)&&(layer->type_index!=handle->index_output)) continue;
-            
+            MLayer *layer = (MLayer *)(handle->layer->data[i]);
             MTensor *tns = layer->tns;
             
             float *buff = tns->data[b];
@@ -288,7 +347,7 @@ void endNetworkTensor(void *info)
 #define HASH_NetworkTensor 0xed589636
 void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
 {
-    MHandle *hdl; ObjectHandle(ini,NetworkTensor,hdl);
+    MHandle *hdl=mHandle(ini,NetworkTensor);
     struct HandleNetworkTensor *handle = (struct HandleNetworkTensor *)(hdl->handle);
     if(hdl->valid == 0)
     {

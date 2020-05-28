@@ -52,7 +52,7 @@ void mBufferSet(MList *buff,int buff_num,int thread_num)
     
     mListAppend(buff,buff_num);
     
-    MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
+    MHandle *hdl=mHandle(buff,Buffer);
     struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -101,7 +101,7 @@ void *mBufferRead(MList *buff,int order,void *data,int size)
 {
     mException((buff==NULL),EXIT,"invalid input buffer");
     
-    MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
+    MHandle *hdl=mHandle(buff,Buffer);
     struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     
@@ -168,7 +168,7 @@ void *mBufferWrite(MList *buff,int order,void *data,int size)
 {
     mException((buff==NULL),EXIT,"invalid input buffer");
     
-    MHandle *hdl; ObjectHandle(buff,Buffer,hdl);
+    MHandle *hdl=mHandle(buff,Buffer);
     struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     

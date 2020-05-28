@@ -102,7 +102,7 @@ void TensorConnectSet(MLayer *layer)
     int weight_width =   in->channel*  in->height*  in->width +1;
     int data_size = weight_height*weight_width;
     
-    MHandle *hdl; ObjectHandle(out,TensorConnect,hdl);
+    MHandle *hdl=mHandle(out,TensorConnect);
     struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     
     mTensorRedefine(out,in->batch,para->channel,para->height,para->width,NULL);
@@ -143,7 +143,7 @@ void mTensorConnectForward(MLayer *layer)
     
     TensorConnectSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorConnect,hdl);
+    MHandle *hdl=mHandle(out,TensorConnect);
     struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     
     float *weight_data= handle->weight;
@@ -178,7 +178,7 @@ void mTensorConnectBackward(MLayer *layer)
     MTensor *res = para->prev->res;
     MTensor *out = layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorConnect,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorConnect);
     struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
     mException((hdl->valid==0),EXIT,"no forward operate");
     
@@ -207,13 +207,8 @@ void mTensorConnectBackward(MLayer *layer)
                     
         in_data[weight_width-1] = buff;
     }
-    cblas_saxpby(weight_height*weight_width,
-                 (0.0f-(para->rate/(float)(in->batch))),update_data,1, 
-                 (1.0f-(para->decay*para->rate))       ,weight_data,1);
                 
-    if(para->res_valid==0) return;
-    
-    for(int b=0;b<in->batch;b++)
+    if(para->res_valid) for(int b=0;b<in->batch;b++)
     {
         float *res_data = res->data[b];
         float *out_data = out->data[b];
@@ -226,6 +221,11 @@ void mTensorConnectBackward(MLayer *layer)
                     ((para->prev->state==MORN_FORWARD)?0.0f:1.0f),
                        res_data,1);
     }
+
+    cblas_saxpby(weight_height*weight_width,
+                 (0.0f-(para->rate/(float)(in->batch))),update_data,1, 
+                 (1.0f-(para->decay*para->rate))       ,weight_data,1);
+    
     para->prev->state = MORN_BACKWARD;
 }
 

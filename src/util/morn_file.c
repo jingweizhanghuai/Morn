@@ -66,11 +66,11 @@ void MORNList(FILE *f,MList *list)
 }
     
 
-int mMORNSize(MFile *file,const char *name)
+int mMORNSize(MFile *file,int name)
 {
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,MORNRead,hdl);
+    MHandle *hdl=mHandle(file,MORNRead);
     struct HandleMORNRead *handle = (struct HandleMORNRead *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -98,7 +98,7 @@ int mMORNSize(MFile *file,const char *name)
         {
             fread(&(chunk.hash),1,4,handle->f);
             fread(&(chunk.size),1,4,handle->f);
-            // printf("chunk.hash is %x,chunk.size is %d\n",chunk.hash,chunk.size);
+           
             locate = locate + 4+4;
             chunk.locate = locate;
             mListWrite(handle->list,DFLT,&chunk,sizeof(struct Chunk));
@@ -114,7 +114,7 @@ int mMORNSize(MFile *file,const char *name)
         hdl->valid = 1;
     }
     
-    uint32_t hash = mHash(name,DFLT);
+    uint32_t hash = name;//mHash(name,DFLT);
     if(handle->hash!=hash)
     {
         int i;
@@ -137,7 +137,7 @@ int mMORNSize(MFile *file,const char *name)
     return handle->size;
 }
 
-void mMORNRead(MFile *file,const char *name,void **data,int num,int size)
+void mMORNRead(MFile *file,int name,void **data,int num,int size)
 {
     int chunk_size = mMORNSize(file,name);
     
@@ -145,11 +145,11 @@ void mMORNRead(MFile *file,const char *name,void **data,int num,int size)
     if((num==1)&&(size<=0)) size = chunk_size;
     else mException((size<=0),EXIT,"invalid input");
     
-    mException((chunk_size<size*num),EXIT,"no enough data for %s,size need %d,chunk_size is %d",name,size*num,chunk_size);
+    mException((chunk_size<size*num),EXIT,"no enough data for %d,size need %d,chunk_size is %d",name,size*num,chunk_size);
     
-    MHandle *hdl; ObjectHandle(file,MORNRead,hdl);
+    MHandle *hdl=mHandle(file,MORNRead);
     struct HandleMORNRead *handle = (struct HandleMORNRead *)(hdl->handle);
-    
+
     // fseek(handle->f,handle->locate,SEEK_SET);
     
     // printf("locate is %d\n",ftell(handle->f));
@@ -177,11 +177,11 @@ void endMORNWrite(void *info)
 }
 #define HASH_MORNWrite 0x2287bd92
 
-void mMORNWrite(MFile *file,const char *name,void **data,int num,int size)
+void mMORNWrite(MFile *file,int name,void **data,int num,int size)
 {
     mException(INVALID_POINTER(file)||(size<=0),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,MORNWrite,hdl);
+    MHandle *hdl=mHandle(file,MORNWrite);
     struct HandleMORNWrite *handle = (struct HandleMORNWrite *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -199,7 +199,7 @@ void mMORNWrite(MFile *file,const char *name,void **data,int num,int size)
     }
     fseek(handle->f,0,SEEK_END);
     
-    int hash = mHash(name,DFLT);
+    int hash = name;//mHash(name,DFLT);
     fwrite(&hash,1,4,handle->f);
     int chunk_size = size*num;
     

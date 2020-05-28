@@ -58,6 +58,7 @@ void endTensorMaxPool(void *info)
 void TensorMaxPoolSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
+    mException(strcmp("MaxPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
@@ -76,7 +77,7 @@ void TensorMaxPoolSet(MLayer *layer)
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
         
-        MHandle *hdl; ObjectHandle(out,TensorMaxPool,hdl);
+        MHandle *hdl=mHandle(out,TensorMaxPool);
         struct HandleTensorMaxPool *handle = (struct HandleTensorMaxPool *)(hdl->handle);
         
         int data_size = in->batch*in->channel*out_height*out_width;
@@ -90,7 +91,6 @@ void TensorMaxPoolSet(MLayer *layer)
 void mTensorMaxPoolForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("MaxPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
@@ -107,7 +107,7 @@ void mTensorMaxPoolForward(MLayer *layer)
     
     int channel= in->channel;
 
-    MHandle *hdl; ObjectHandle(out,TensorMaxPool,hdl);
+    MHandle *hdl=mHandle(out,TensorMaxPool);
     struct HandleTensorMaxPool *handle = (struct HandleTensorMaxPool *)(hdl->handle);
     
     for(int b=0;b<in->batch;b++)for(int c=0;c<channel;c++)
@@ -149,7 +149,6 @@ void mTensorMaxPoolForward(MLayer *layer)
 void mTensorMaxPoolBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("MaxPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     if(para->res_valid==0) return;
     MTensor *res= para->prev->res;
@@ -161,7 +160,7 @@ void mTensorMaxPoolBackward(MLayer *layer)
     
     int channel=res->channel;
    
-    MHandle *hdl; ObjectHandle(layer->tns,TensorMaxPool,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorMaxPool);
     struct HandleTensorMaxPool *handle = (struct HandleTensorMaxPool *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     
@@ -190,7 +189,7 @@ void mTensorMaxPoolBackward(MLayer *layer)
 void TensorAvgPoolSet(MLayer *layer)
 {
     if(layer->state != DFLT) return;
-    
+    mException(strcmp("AvgPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
@@ -199,8 +198,8 @@ void TensorAvgPoolSet(MLayer *layer)
     int out_height = in->height/para->y_stride;
     int out_width  = in->width /para->x_stride;
     
-    para->x0=(in->width /2)-((out_width -1)*para->x_stride/out_width );
-    para->y0=(in->height/2)-((out_height-1)*para->y_stride/out_height);
+    para->x0=(in->width -(out_width -1)*para->x_stride)/2;
+    para->y0=(in->height-(out_height-1)*para->y_stride)/2;
     
     mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
     if(morn_network_flag == MORN_TRAIN)
@@ -213,7 +212,6 @@ void TensorAvgPoolSet(MLayer *layer)
 void mTensorAvgPoolForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("AvgPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
@@ -240,16 +238,15 @@ void mTensorAvgPoolForward(MLayer *layer)
         for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
         {
             float sum=0.0;
-            for(int j=h-pool_height/2;j<=h-pool_height/2+pool_height;j++)
+            for(int j=h-pool_height/2;j<h-pool_height/2+pool_height;j++)
             {
                 if(j<0) y=0;else if(j>in_height) y=in_height-1;else y=j;
-                for(int i=w-pool_width/2;i<=w-pool_width/2+pool_width;i++)
+                for(int i=w-pool_width/2;i<w-pool_width/2+pool_width;i++)
                 {
                     if(i<0) x=0;else if(i>in_width) x=in_width-1;else x=i;
                     sum+=p_in[y*in_width+x];
                 }
             }
-            
             p_out[m] = sum/pool_size;
             m=m+1; 
         }
@@ -261,7 +258,6 @@ void mTensorAvgPoolForward(MLayer *layer)
 void mTensorAvgPoolBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("AvgPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     if(para->res_valid==0) return;
     MTensor *res= para->prev->res;
@@ -269,17 +265,18 @@ void mTensorAvgPoolBackward(MLayer *layer)
     
     int in_height = res->height;int in_width = res->width;
     int in_size  = in_height*in_width;
-    
-    int out_size =(in_height/para->y_stride+1)*(in_width/para->x_stride+1);
+    int out_size =out->height*out->width;
     
     int channel= out->channel;
     
     int pool_height=para->pool_height;int pool_width =para->pool_width;
+    float pool_size=(float)(pool_height*pool_width);
+    
     
     if(para->prev->state == MORN_FORWARD)
     {
         for(int b=0;b<res->batch;b++)
-            memset(res->data[b],0,res->height*res->width*res->channel*sizeof(float));
+            memset(res->data[b],0,in_size*res->channel*sizeof(float));
         para->prev->state = MORN_BACKWARD;
     }
     
@@ -287,17 +284,16 @@ void mTensorAvgPoolBackward(MLayer *layer)
     {
         float *p_out=out->data[b]+c*out_size;
         float *p_res=res->data[b]+c* in_size;
-
         int m=0;int x,y;
         for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
         {
-            for(int j=h-pool_height/2;j<=h-pool_height/2+pool_height;j++)
+            for(int j=h-pool_height/2;j<h-pool_height/2+pool_height;j++)
             {
                 if(j<0) y=0;else if(j>in_height) y=in_height-1;else y=j;
-                for(int i=w-pool_width/2;i<=w-pool_width/2+pool_width;i++)
+                for(int i=w-pool_width/2;i<w-pool_width/2+pool_width;i++)
                 {
-                    if(i<0) x=0;else if(i>in_width) x=in_width-1;else x=i;
-                    p_res[y*in_width+x] += p_out[m];
+                    if(i<0) x=0;else if(i>=in_width) x=in_width-1;else x=i;
+                    p_res[y*in_width+x] += p_out[m]/pool_size;
                 }
             }
             m=m+1;
@@ -319,6 +315,7 @@ void endTensorRandPool(void *info)
 void TensorRandPoolSet(MLayer *layer)
 {
     if(layer->state !=DFLT) return;
+    mException(strcmp("RandPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
@@ -327,22 +324,22 @@ void TensorRandPoolSet(MLayer *layer)
     int out_height = in->height/para->y_stride;
     int out_width  = in->width /para->x_stride;
     
-    para->x0=(in->width /2)-((out_width -1)*para->x_stride/out_width );
-    para->y0=(in->height/2)-((out_height-1)*para->y_stride/out_height);
+    para->x0=(in->width -(out_width -1)*para->x_stride)/2;
+    para->y0=(in->height-(out_height-1)*para->y_stride)/2;
     
     mTensorRedefine(out,in->batch,in->channel,out_height,out_width,NULL);
+    
     if(morn_network_flag == MORN_TRAIN)
     {
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     
-        MHandle *hdl; ObjectHandle(out,TensorRandPool,hdl);
+        MHandle *hdl=mHandle(out,TensorRandPool);
         struct HandleTensorRandPool *handle = (struct HandleTensorRandPool *)(hdl->handle);
     
         int data_size = in->batch*in->channel*out_height*out_width;
         if(handle->locate != NULL) mFree(handle->locate);
         handle->locate =(int *)mMalloc(data_size*sizeof(int));
-        
         hdl->valid = 1;
     }
 }
@@ -350,7 +347,6 @@ void TensorRandPoolSet(MLayer *layer)
 void mTensorRandPoolForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("RandPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
@@ -367,17 +363,17 @@ void mTensorRandPoolForward(MLayer *layer)
     
     int channel= in->channel;
     
-    MHandle *hdl; ObjectHandle(out,TensorRandPool,hdl);
+    MHandle *hdl=mHandle(out,TensorRandPool);
     struct HandleTensorRandPool *handle = (struct HandleTensorRandPool *)(hdl->handle);
     
     for(int b=0;b<in->batch;b++)for(int c=0;c<channel;c++)
     {
         int *p_locate = NULL;
-        if(morn_network_flag == MORN_PREDICT)
+        if(morn_network_flag == MORN_TRAIN)
             p_locate = handle->locate + b*channel*out_size+c*out_size;
+            
         float *p_out =out->data[b]+c*out_size;
         float *p_in  = in->data[b]+c* in_size;
-
         int m=0;
         for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
         {
@@ -386,7 +382,6 @@ void mTensorRandPoolForward(MLayer *layer)
             int i = rand%pool_width + w-pool_width /2;if(i<0) i=0; else if(i>=in_width ) i=in_width -1;
             if(p_locate!=NULL) p_locate[m] = j*in_width+i;
             p_out[m] = p_in[j*in_width+i];
-            
             m=m+1; 
         }
     }
@@ -397,7 +392,6 @@ void mTensorRandPoolForward(MLayer *layer)
 void mTensorRandPoolBackward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
-    mException(strcmp("RandPool",mLayerType(layer)),EXIT,"invalid layer type");
     struct TensorPoolPara *para = (struct TensorPoolPara *)(layer->para);
     if(para->res_valid==0) return;
     MTensor *res= para->prev->res;
@@ -409,7 +403,7 @@ void mTensorRandPoolBackward(MLayer *layer)
     
     int channel= out->channel;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorRandPool,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorRandPool);
     struct HandleTensorRandPool *handle = (struct HandleTensorRandPool *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

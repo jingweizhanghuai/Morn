@@ -37,7 +37,7 @@ void mImageLensTemplate(MObject *temp,float k,int r)
     
     int j;
     int height = r+r+1;int width = r+r+1;
-    MHandle *hdl; ObjectHandle(temp,ImageTemplate,hdl);
+    MHandle *hdl=mHandle(temp,ImageTemplate);
     struct HandleImageTemplate *handle = (struct HandleImageTemplate *)(hdl->handle);
     if((handle->height!=height)||(handle->width!=width)||(strcmp(handle->type,"lens")!=0)||(handle->para[0]!=k))
         hdl->valid = 0;
@@ -113,7 +113,7 @@ void mImageLensTemplate(MObject *temp,float k,int r)
     temp->object = handle;
 }
 
-void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y)
+void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y,int mode)
 {
     int j;
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
@@ -121,6 +121,8 @@ void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y)
     mException(INVALID_POINTER(temp),EXIT,"invalid input template");
     struct HandleImageTemplate *tmp = (struct HandleImageTemplate *)(temp->object);
     mException(INVALID_POINTER(tmp),EXIT,"invalid input template");
+
+    mode = ((mode | MORN_NEAREST) == MORN_NEAREST);
     
     int height = tmp->height;
     int width = tmp->width;
@@ -136,24 +138,19 @@ void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y)
     mImageCopy(src,dst);
     
     #pragma omp parallel for
-    for(j=y1;j<y2;j++)
+    for(j=y1;j<y2;j++)for(int i=x1;i<x2;i++)
     {
-        for(int i=x1;i<x2;i++)
-        {
-            x = xdata[j-y1][i-x1]+x1;if((x<0)||(x>=src->width -1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
-            y = ydata[j-y1][i-x1]+y1;if((y<0)||(y>=src->height-1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
-            
-            unsigned int wx = (wdata[j-y1][i-x1]&0xF0)>>4;
-            unsigned int wy = (wdata[j-y1][i-x1]&0x0F);
-            
-            for(int cn=0;cn<src->channel;cn++)
-            {
-                register int data =((src->data[cn][y  ][x  ]*wx + src->data[cn][y  ][x+1]*(15-wx))*wy
-                                   +(src->data[cn][y+1][x  ]*wx + src->data[cn][y+1][x+1]*(15-wx))*(15-wy) + 112)/225;
+        x = xdata[j-y1][i-x1]+x1;if((x<0)||(x>=src->width -1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
+        y = ydata[j-y1][i-x1]+y1;if((y<0)||(y>=src->height-1)) {for(int cn=0;cn<src->channel;cn++) dst->data[cn][j][i] = 0; continue;}
+        
+        unsigned int wx = (wdata[j-y1][i-x1]&0xF0)>>4;
+        unsigned int wy = (wdata[j-y1][i-x1]&0x0F);
 
-                dst->data[cn][j][i] = data;
-            }
-        }
+        if(!mode)for(int cn=0;cn<src->channel;cn++)
+            dst->data[cn][j][i] = ((src->data[cn][y  ][x  ]*wx + src->data[cn][y  ][x+1]*(15-wx))*wy
+                                  +(src->data[cn][y+1][x  ]*wx + src->data[cn][y+1][x+1]*(15-wx))*(15-wy) + 112)/225;
+        else for(int cn=0;cn<src->channel;cn++)
+            dst->data[cn][j][i] = src->data[cn][(wy<8)?y+1:y][(wx<8)?x+1:x];
     }
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));

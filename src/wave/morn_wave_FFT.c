@@ -64,7 +64,7 @@ void mWaveFFT(MWave *src,MWave *fft)
     // mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"invalid input");
 
     int N;
-    MHandle *hdl; ObjectHandle(src,WaveFFT,hdl);
+    MHandle *hdl=mHandle(src,WaveFFT);
     struct HandleWaveFFT *handle = (struct HandleWaveFFT *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -229,7 +229,7 @@ void mWaveIFFT(MWave *fft,MWave *dst)
     mException((mInfoGet(&(fft->info),"wave_type") != MORN_WAVE_FD),EXIT,"invalid input");
 
     int N;
-    MHandle *hdl; ObjectHandle(fft,WaveIFFT,hdl);
+    MHandle *hdl=mHandle(fft,WaveIFFT);
     struct HandleWaveIFFT *handle = (struct HandleWaveIFFT *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -500,7 +500,7 @@ void endWaveFrequencyAnalyse(void *info)
 void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component)
 {
     int cn,i,j;
-    MHandle *hdl; ObjectHandle(src,WaveFrequencyAnalyse,hdl);
+    MHandle *hdl=mHandle(src,WaveFrequencyAnalyse);
     struct HandleWaveFrequencyAnalyse *handle = (struct HandleWaveFrequencyAnalyse *)(hdl->handle);
     if(hdl->valid ==1)
     {

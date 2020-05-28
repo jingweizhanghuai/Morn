@@ -60,7 +60,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
         mImageRedefine(dst,src->channel,height,width,dst->data);
     }
 
-    MHandle *hdl; ObjectHandle(src,BinaryImageResize,hdl);
+    MHandle *hdl=mHandle(src,BinaryImageResize);
     struct HandleBinaryImageResize *handle = (struct HandleBinaryImageResize *)hdl->handle;
     if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
     {
@@ -172,7 +172,7 @@ void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
         mImageRedefine(dst,src->channel,height,width,dst->data);
     }
 
-    MHandle *hdl; ObjectHandle(src,ImageResize,hdl);
+    MHandle *hdl=mHandle(src,ImageResize);
     struct HandleImageResize *handle = (struct HandleImageResize *)(hdl->handle);
     if((hdl->valid == 0)||(handle->height != height)||(handle->width != width)||(handle->type != type))
     {

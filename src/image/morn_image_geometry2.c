@@ -42,15 +42,7 @@ int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
     return 1;
 }
 
-int mLineCrossCheck(MList *line1,MList *line2)
-{
-    MImagePoint **point1,**point2;
-    mException((line1->num !=2)||(line2->num!=2),EXIT,"invalid line");
-    point1= (MImagePoint **)(line1->data);
-    point2= (MImagePoint **)(line2->data);
-    return LineCrossCheck(point1[0]->x,point1[0]->y,point1[1]->x,point1[1]->y,
-                          point2[0]->x,point2[0]->y,point2[1]->x,point2[1]->y);
-}
+
 
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py)
 {
@@ -83,57 +75,37 @@ int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
     return 0;
 }
 
-void LineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para)
+int mLineCross(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e,MImagePoint *point)
 {
-    int i;float step;int num;
-    float x_min,x_max,y_min,y_max;
-    if(ABS(p1->x-p2->x)>ABS(p1->y-p2->y))
-    {
-        if(p1->x==p2->x) return;
-        if(p1->x<p2->x){x_min=p1->x;x_max=p2->x;y_min=p1->y;y_max=p2->y;}
-        else           {x_min=p2->x;x_max=p1->x;y_min=p2->y;y_max=p1->y;}
-        step = (p1->y-p2->y)/(p1->x-p2->x);step = step*stride;
-        num = (x_max-x_min)/stride;
-        #pragma omp parallel for
-        for(i=0;i<num;i++)
-        {
-            MImagePoint point; 
-            point.x = x_min + i*stride;
-            point.y = y_min + i*step;
-            func(&point,para);
-        }
-    }
-    else
-    {
-        if(p1->y==p2->y) return;
-        if(p1->y<p2->y){x_min=p1->x;x_max=p2->x;y_min=p1->y;y_max=p2->y;}
-        else           {x_min=p2->x;x_max=p1->x;y_min=p2->y;y_max=p1->y;}
-        step = (p1->x-p2->x)/(p1->y-p2->y);step = step*stride;
-        num = (y_max-y_min)/stride;
-        // #pragma omp parallel for
-        for(i=0;i<num;i++)
-        {
-            MImagePoint point; 
-            point.x = x_min + i*step;
-            point.y = y_min + i*stride;
-            func(&point,para);
-        }
-    }
-}
-void mLineTravel(MList *line,int stride,void (*func)(MImagePoint *,void *),void *para)
-{
-    LineTravel((MImagePoint *)(line->data[0]),(MImagePoint *)(line->data[1]),stride,func,para);
-}
-void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para)
-{
-    int i;
-    for(i=0;i<polygon->num-1;i++)
-        LineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[i+1]),stride,func,para);
-    LineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[0]),stride,func,para);
+    if(point == NULL) return LineCrossCheck(l1s->x,l1s->y,l1e->x,l1e->y,l2s->x,l2s->y,l2e->x,l2e->y);
+    return LineCrossPoint(l1s->x,l1s->y,l1e->x,l1e->y,l2s->x,l2s->y,l2e->x,l2e->y,&(point->x),&(point->y));
 }
 
+int mLineRectCrossCheck(MImagePoint *ls,MImagePoint *le,MImageRect *rect)
+{
+    if((ls->x<rect->x1)&&(le->x<rect->x1)) return 0;
+    if((ls->x>rect->x2)&&(le->x>rect->x2)) return 0;
+    if((ls->y<rect->y1)&&(le->y<rect->y1)) return 0;
+    if((ls->y>rect->y2)&&(le->y>rect->y2)) return 0;
+    if(LineCrossCheck(ls->x,ls->y,le->x,le->y,rect->x1,rect->y1,rect->x2,rect->y1)) return 1;
+    if(LineCrossCheck(ls->x,ls->y,le->x,le->y,rect->x1,rect->y1,rect->x1,rect->y2)) return 1;
+    if(LineCrossCheck(ls->x,ls->y,le->x,le->y,rect->x2,rect->y1,rect->x2,rect->y2)) return 1;
+    if(LineCrossCheck(ls->x,ls->y,le->x,le->y,rect->x1,rect->y2,rect->x2,rect->y2)) return 1;
+    return 0;
+}
 
-    
+float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e)
+{
+    MImagePoint pt;pt.x=0;pt.y=0;
+    if(l1s==NULL)l1s=&pt;
+    if(l1e==NULL)l1e=&pt;
+    if(l2s==NULL)l2s=&pt;
+    if(l2e==NULL)l2e=&pt;
+    float a1;if(l1s==l1e) a1=0;else a1=atan((l1s->y-l1e->y)/(l1s->x-l1e->x));
+    float a2;if(l2s==l2e) a2=0;else a2=atan((l2s->y-l2e->y)/(l2s->x-l2e->x));
+    return ((a1-a2)*180.0/MORN_PI);
+}
+
 #define INTEGRAL_AREA(P1x,P1y,P2x,P2y) (((P1x)-(P2x))*((P1y)+(P2y)))
 
 float mPolygonArea(MList *polygon)
@@ -369,8 +341,8 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
         }
     }
     
-    MMatrix *x_mat = mMatrixCreate(n,n,NULL);
-    MMatrix *y_mat = mMatrixCreate(n,n,NULL);
+    MMatrix *x_mat = mMatrixCreate(n,n,NULL,DFLT);
+    MMatrix *y_mat = mMatrixCreate(n,n,NULL,DFLT);
     for(int i=0;i<n;i++)
     {
         memset(x_mat->data[i],0,n*sizeof(float));
@@ -830,6 +802,12 @@ void mConvexHull(MList *point,MList *polygon)
     mListRelease(list3);
     mListRelease(list4);
     mChainRelease(chain);
+
+    if(polygon->num)
+    {
+        mListWrite(polygon,DFLT,polygon->data[0],sizeof(MImagePoint));
+        polygon->num=polygon->num-1;
+    }
     
     if(pout != polygon) {mObjectExchange(polygon,point,MList);mListRelease(polygon);}
 }
@@ -887,18 +865,94 @@ void mConvexHull(MList *point,MList *polygon)
 //             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
 // }
 
-
+void _EdgeBoundary(MList *edge,MChain *chain,MChainNode *node,float thresh)
+{
+    MImagePoint **p=(MImagePoint **)(edge->data);
+    int b=*(int *)(node->data);int e=*(int *)(node->next->data);
+    MImagePoint *pb= p[b];MImagePoint *pe= p[(e==edge->num)?0:e];
     
-
-   
-
-
-
-
-
+    float max=0;int idx;
+    for(int i=b+1;i<e;i++)
+    {
+        float l=mPointVerticalDistance(p[i],pb,pe,NULL);
+        if(l>max) {max=l;idx=i;}
+    }
+    // double k,b;
+    // double k = (double)(p[e]->y-p[b]->y)/(double)(p[e]->x-p[b]->x);
     
+    // printf("max is %f\n",max);
+    if(max<thresh) return;
+    // printf("b is %d,e=%d,idx=%d\n",b,e,idx);
+    MChainNode *node0 = mChainNode(chain,&idx,sizeof(int));
+    mChainNodeInsert(node,node0,NULL);
+    _EdgeBoundary(edge,chain,node ,thresh);
+    _EdgeBoundary(edge,chain,node0,thresh);
+}
+
+void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
+{
+    mException(edge==NULL,EXIT,"invalid input");
+    if(thresh<=0) thresh = 1;
+    
+    mListClear(polygon);
+    int num = edge->num;if(num==0) return;
+
+    MImagePoint **p=(MImagePoint **)(edge->data);
+    // printf("num=%d,p[0] is %f,%f\n",num,p[0]->x,p[0]->y);
+    
+    MChain *chain = mChainCreate();
+
+    MChainNode *node1 = mChainNode(chain,NULL,sizeof(int)); chain->chainnode=node1;
+    MChainNode *node2 = mChainNode(chain,NULL,sizeof(int)); mChainNodeInsert(node1,node2,NULL);
+    *(int *)(node2->data) = num/2;
+
+    *(int *)(node1->data) = num;
+    _EdgeBoundary(edge,chain,node2,1);
+    
+    *(int *)(node1->data) = 0;  
+    _EdgeBoundary(edge,chain,node1,1);
+
+    node1 = chain->chainnode;
+    node2 = node1->next->next;
+    while(node1!=node2)
+    {
+        int i1 = *(int *)(node1->data);
+        if(i1>=0)
+        {
+            int i2 = *(int *)(node2->data);if(i2<0) {node2 = node2->next;continue;}
+            MChainNode *node;
+            for(node=node1->next;node!=node2;node=node->next)
+            {
+                int i = *(int *)(node->data); 
+                int i0=(i<0)?(-1-i):i;
+                float l=mPointVerticalDistance(p[i0],p[i1],p[i2],NULL);
+                if(l>thresh) break;
+                else if(i>0) {*(int *)(node->data)=-1-i;}
+            }
+            if(node==node2) {node2=node2->next; continue;}
+        }
+        node1 = node1->next;if(node1==chain->chainnode) break;
+        node2 = node1->next->next;
+    }
+    node1 = chain->chainnode;
+    while(1)
+    {
+        int i = *(int *)(node1->data);
+        if(i>=0) mListWrite(polygon,DFLT,p[i],sizeof(MImagePoint));
+        node1 = node1->next;if(node1==chain->chainnode) break;
+    }
+    
+    if(polygon->num)
+    {
+        mListWrite(polygon,DFLT,polygon->data[0],sizeof(MImagePoint));
+        polygon->num=polygon->num-1;
+    }
+
+    mChainRelease(chain);
+}
 
 
+/*
 void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
 {
     mException(INVALID_POINTER(edge),EXIT,"invalid input");
@@ -1000,7 +1054,7 @@ void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
         for(i=0;i<polygon->num;i++)
             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
 }
-
+*/
 
 
 

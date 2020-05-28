@@ -23,7 +23,7 @@ void endSimilarityFeature(void *info) {}
 
 uint32_t *mImageSimilarityFeature(MImage *src)
 {
-    MHandle *hdl; ObjectHandle(src,SimilarityFeature,hdl);
+    MHandle *hdl=mHandle(src,SimilarityFeature);
     struct HandleSimilarityFeature *handle = (struct HandleSimilarityFeature *)(hdl->handle);
     if(hdl->valid == 1) return &(handle->feature[0][0]);
     hdl->valid =1;

@@ -98,7 +98,7 @@ void TensorBatchNormSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorBatchNorm,hdl);
+    MHandle *hdl=mHandle(out,TensorBatchNorm);
     struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     
     if(handle->k != NULL) {mFree(handle->k);} handle->k =(float *)mMalloc(in->channel*sizeof(float));
@@ -148,7 +148,7 @@ void mTensorBatchNormForward(MLayer *layer)
     
     TensorBatchNormSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorBatchNorm,hdl);
+    MHandle *hdl=mHandle(out,TensorBatchNorm);
     struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     
     int in_size = in->height*in->width;
@@ -205,7 +205,7 @@ void mTensorBatchNormBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorBatchNorm,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorBatchNorm);
     struct HandleTensorBatchNorm *handle = (struct HandleTensorBatchNorm *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

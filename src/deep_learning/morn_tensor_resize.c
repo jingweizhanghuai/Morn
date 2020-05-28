@@ -67,7 +67,7 @@ void TensorResizeSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorResize,hdl);
+    MHandle *hdl=mHandle(out,TensorResize);
     struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     
     if(para->height<=0) para->height= in->height;
@@ -116,7 +116,7 @@ void mTensorResizeForward(MLayer *layer)
     
     TensorResizeSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorResize,hdl);
+    MHandle *hdl=mHandle(out,TensorResize);
     struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     
     int  in_size = in->width* in->height;
@@ -124,7 +124,6 @@ void mTensorResizeForward(MLayer *layer)
     
     for(int h=0;h<out->height;h++)for(int w=0;w<out->width;w++)
     {
-        
         int out_idx = h*out->width+w;
         int in_idx1 =(handle->ly[h]  )*in->width + (handle->lx[w]  );
         int in_idx2 =(handle->ly[h]  )*in->width + (handle->lx[w]+1);
@@ -142,9 +141,6 @@ void mTensorResizeForward(MLayer *layer)
                                               +in->data[b][c*in_size+in_idx3]*w3
                                               +in->data[b][c*in_size+in_idx4]*w4;
         }
-        
-        
-        
     }
     
     layer->state = MORN_FORWARD;
@@ -159,7 +155,7 @@ void mTensorResizeBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorResize,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorResize);
     struct HandleTensorResize *handle = (struct HandleTensorResize *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

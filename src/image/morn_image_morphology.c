@@ -24,7 +24,6 @@ void mImageDilation(MImage *src,MImage *dst,int r,int stride)
         mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
     mImageExpand(src,r,MORN_BORDER_REFLECT);
-   
     
     for(int cn=0;cn<src->channel;cn++)
     {
@@ -42,7 +41,7 @@ void mImageDilation(MImage *src,MImage *dst,int r,int stride)
         
         mImageRegion(src,r,ImageDilation);
     }
-    if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
+    if(p!=dst) {mImageExchange(src,dst); mImageRelease(dst);}
 }
 
 void mImageErosion(MImage *src,MImage *dst,int r,int stride)

@@ -179,7 +179,7 @@ void TensorDeconvSet(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorDeconv,hdl);
+    MHandle *hdl=mHandle(out,TensorDeconv);
     struct HandleTensorDeconv *handle = (struct HandleTensorDeconv *)(hdl->handle);
     
     int out_height= in->height*para->y_stride;
@@ -202,8 +202,6 @@ void TensorDeconvSet(MLayer *layer)
     if(handle->kernel !=NULL) mFree(handle->kernel);
     handle->kernel = (float *)mMalloc(data_size*sizeof(float));
     
-    char name[40]; void *p_data;
-    sprintf(name,"%s_kernel",layer->name);
     if(morn_network_parafile==NULL)
     {
         float scale = sqrt(2.0f/mwidth);
@@ -211,10 +209,7 @@ void TensorDeconvSet(MLayer *layer)
             handle->kernel[i] = scale*mNormalRand(0.0f,1.0f);
     }
     else
-    {
-        p_data = handle->kernel;
-        mMORNRead(morn_network_parafile,name,&p_data,1,data_size*sizeof(float));
-    }
+        mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
     
     if(handle->mat!=NULL) mFree(handle->mat);
     handle->mat = (float *)mMalloc(mheight*mwidth*sizeof(float));
@@ -232,7 +227,7 @@ void mTensorDeconvForward(MLayer *layer)
     
     TensorDeconvSet(layer);
     
-    MHandle *hdl; ObjectHandle(out,TensorDeconv,hdl);
+    MHandle *hdl=mHandle(out,TensorDeconv);
     struct HandleTensorDeconv *handle = (struct HandleTensorDeconv *)(hdl->handle);
    
     int mheight = (out->height*out->width);
@@ -269,7 +264,7 @@ void mTensorDeconvBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out=layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorDeconv,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorDeconv);
     struct HandleTensorDeconv *handle = (struct HandleTensorDeconv *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"no forward operate");
     

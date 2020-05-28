@@ -8,6 +8,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "morn_util.h"
 
@@ -61,6 +62,48 @@ int mStringRegular(const char *str1,const char *str2)
             return 0;
     }
 }
+
+// #define MORN_STRING_SPLIT_MODE(N) (((N)>0)?(N):(-1-(N)))
+// int mStringSplit(char *in,const char *flag,char **out1,char **out2,int mode)
+// {
+//     if(in==NULL) return 0;
+//     if((mode==DFLT)||(mode==0)) mode = 1;
+    
+//     *out1=in;*out2=NULL;
+//     int l = strlen(flag);
+
+//     if(mode>0)
+//     {
+//         int n = 0;
+//         for(int i=0;in[i+l]!=0;i++)
+//         {
+//             if(strncmp(in+i,flag,l)==0)
+//             {
+//                 n++;if(n==mode)
+//                 {
+//                     in[i]=0;
+//                     *out2=in+i+l;return 1;
+//                 }
+//             }
+//         }
+//     }
+//     else
+//     {
+//         int n = -1;
+//         for(int i=strlen(in)-l;i>=0;i--)
+//         {
+//             if(strncmp(in+i,flag,l)==0)
+//             {
+//                 n--;if(n==mode)
+//                 {
+//                     in[i]=0;
+//                     *out2=in+i+l;return 1;
+//                 }
+//             }
+//         }
+//     }
+//     return 0;
+// }
 
 char **mStringSplit(const char *str_in,const char *flag,MList *list)
 {
@@ -155,10 +198,12 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
 
 char morn_string_argument[2]={'?',0};
 int morn_string_arg_idx = 0;
-char *mStringArgument(int argc,char **argv,const char *flag)
-{ 
+char *StringArgument(int argc,char **argv,const char *flag,int n,...)
+{
+    mException((n>8),EXIT,"invalid para number %d,which must less than 8",n);
     if(argc<=1) return NULL;
-    if(flag==NULL) return argv[0]+(argv[0][0]=='-');
+    char *result;
+    if(flag==NULL) {result=argv[1]+(argv[1][0]=='-'); goto nextStringArgument;}
     uint64_t flag_len=strlen(flag);
 
     int idx=morn_string_arg_idx+1;if(idx==argc) idx=1;
@@ -171,7 +216,7 @@ char *mStringArgument(int argc,char **argv,const char *flag)
             if(strspn(argv[i]+1,flag)>=flag_len)
             {
                 if(strlen(argv[i]) > flag_len+1)
-                    return argv[i]+1+flag_len+((*(argv[i]+1+flag_len)=='=')||(*(argv[i]+1+flag_len)==':'));
+                    {result=argv[i]+1+flag_len+((*(argv[i]+1+flag_len)=='=')||(*(argv[i]+1+flag_len)==':'));break;}
                 else if(i+1==argc)
                     return morn_string_argument;
                 else if(argv[i+1][0]=='-')
@@ -181,11 +226,23 @@ char *mStringArgument(int argc,char **argv,const char *flag)
         else
         {
             for(j=i;j>=1;j--) if(argv[j][0]=='-') break;
-            if(strspn(argv[j]+1,flag)>=flag_len)
-                return argv[i];
+            if(j>0) if(strspn(argv[j]+1,flag)>=flag_len) {result=argv[i];break;}
         }
         i++;if(i==argc) {i=1;} if(i==idx) {return NULL;}
     }
+
+    nextStringArgument:
+    if(n<=0) return result;
+    
+    void *value[8];memset(value+n-1,0,(9-n)*sizeof(void *));
+    va_list para;va_start(para,n);
+    char *string = (char *)va_arg(para,void *);
+    mException((!INVALID_POINTER(string))&&(n==1),EXIT,"invalid input format");
+    for(int i=0;i<n-1;i++) {value[i]=(void *)va_arg(para,void *);}
+    va_end(para);
+    
+    sscanf(result,string,value[0],value[1],value[2],value[3],value[4],value[5],value[6],value[7]);
+    return result;
 }
 
 #define fgets(Buff,N,F) mException((fgets(Buff,N,F)==NULL),EXIT,"file read error")

@@ -53,7 +53,7 @@ void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh)
     mException((INVALID_POINTER(bgd)||(bgd==src)),EXIT,"invalid input");
     mImageRedefine(bgd,src_cn,height,width,bgd->data);
     
-    MHandle *hdl; ObjectHandle(src,VideoBackground,hdl);
+    MHandle *hdl=mHandle(src,VideoBackground);
     struct HandleVideoBackground *handle = (struct HandleVideoBackground *)(hdl->handle);
     if(hdl->valid == 0)
     {

@@ -157,7 +157,7 @@ void TensorJitterSet(MLayer *layer)
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
     }
     
-    MHandle *hdl; ObjectHandle(out,TensorJitter,hdl);
+    MHandle *hdl=mHandle(out,TensorJitter);
     struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     handle->num = in->channel*in->height*in->width; if(handle->num<1024) handle->num=1024;
@@ -183,7 +183,7 @@ void mTensorJitterForward(MLayer *layer)
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
     
-    MHandle *hdl; ObjectHandle(out,TensorJitter,hdl);
+    MHandle *hdl=mHandle(out,TensorJitter);
     struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     int size = in->channel*in->height*in->width;
@@ -210,7 +210,7 @@ void mTensorJitterBackward(MLayer *layer)
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
     
-    MHandle *hdl; ObjectHandle(layer->tns,TensorJitter,hdl);
+    MHandle *hdl=mHandle(layer->tns,TensorJitter);
     struct HandleTensorJitter *handle = (struct HandleTensorJitter *)(hdl->handle);
     
     int size = out->channel*out->height*out->width;

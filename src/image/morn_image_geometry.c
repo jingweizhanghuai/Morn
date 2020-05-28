@@ -195,6 +195,87 @@ void mQuadrangle(MList *quadrangle,float x1,float y1,float x2,float y2,float x3,
     point[3]->y = y4;
 }
 
+void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para)
+{
+    int i;float step;int num;
+    float x_min,x_max,y_min,y_max;
+    // printf("p1 is %f,%f,p2 is %f,%f\n",p1->x,p1->y,p2->x,p2->y);
+    if(ABS(p1->x-p2->x)>ABS(p1->y-p2->y))
+    {
+        if(p1->x==p2->x) return;
+        if(p1->x<p2->x){x_min=p1->x;x_max=p2->x;y_min=p1->y;y_max=p2->y;}
+        else           {x_min=p2->x;x_max=p1->x;y_min=p2->y;y_max=p1->y;}
+        step = (p1->y-p2->y)/(p1->x-p2->x);step = step*stride;
+        num = (int)((x_max-x_min)/stride+0.5);num=MAX(num,1);
+        // #pragma omp parallel for
+        for(i=0;i<num;i++)
+        {
+            MImagePoint point; 
+            point.x = x_min + i*stride;
+            point.y = y_min + i*step;
+            func(&point,para);
+        }
+    }
+    else
+    {
+        if(p1->y==p2->y) return;
+        if(p1->y<p2->y){x_min=p1->x;x_max=p2->x;y_min=p1->y;y_max=p2->y;}
+        else           {x_min=p2->x;x_max=p1->x;y_min=p2->y;y_max=p1->y;}
+        step = (p1->x-p2->x)/(p1->y-p2->y);step = step*stride;
+        num = (int)((y_max-y_min)/stride+0.5);num=MAX(num,1);
+        // #pragma omp parallel for
+        for(i=0;i<num;i++)
+        {
+            MImagePoint point; 
+            point.x = x_min + i*step;
+            point.y = y_min + i*stride;
+            func(&point,para);
+        }
+    }
+}
+void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para)
+{
+    int i;
+    for(i=0;i<polygon->num-1;i++)
+        mLineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[i+1]),stride,func,para);
+    mLineTravel((MImagePoint *)(polygon->data[i]),(MImagePoint *)(polygon->data[0]),stride,func,para);
+}
+
+void mCurveTravel(MImageCurve *curve,int stride,void (*func)(MImagePoint *,void *),void *para)
+{
+    int min,max;
+    if(curve->type<=0)
+    {
+        if(curve->v1.x<curve->v2.x) {min=curve->v1.x;max=curve->v2.x;}
+        else                        {min=curve->v2.x;max=curve->v1.x;}
+        for(int i=min;i<max;i+=stride)
+        {
+            MImagePoint p1;p1.x=i  ;p1.y=curve->curve(p1.x,curve->para);
+            MImagePoint p2;p2.x=i+1;p2.y=curve->curve(p2.x,curve->para);
+            mLineTravel(&p1,&p2,stride,func,para);
+        }
+    }
+    else
+    {
+        if(curve->v1.y<curve->v2.y) {min=curve->v1.y;max=curve->v2.y;}
+        else                        {min=curve->v2.y;max=curve->v1.y;}
+        for(int i=min;i<max;i+=stride)
+        {
+            MImagePoint p1;p1.y=i  ;p1.x=curve->curve(p1.y,curve->para);
+            MImagePoint p2;p2.y=i+1;p2.x=curve->curve(p2.y,curve->para);
+            mLineTravel(&p1,&p2,stride,func,para);
+        }
+    }
+}
+
+// void mCurveToPolyLine(MImageCurve *curve,MList *line)
+// {
+//     MImage pt;
+//     if(curve->type<=0) {for(int i=curve->v1.x;i<=curve->v2.x;i++) {pt.x=i;pt.y=curve->curve(pt.x,curve->para);mListWrite(line,
+//     for(int
+// }
+
+
 /*
 void mPolygon(MList *polygon,int num,...)
 {
@@ -240,10 +321,38 @@ void mPolygon(MList *polygon,int num,...)
         data = (int)va_arg(para2,int);
         if(point.y==0) point.y = (float)data;
         
-        mListWrite(polygon,i,&point,sizeof(MImagePoint));
+        mListWrite(polygon,DFLT,&point,sizeof(MImagePoint));
     }
     va_end(para1);va_end(para2);
+    
+    mListWrite(polygon,DFLT,polygon->data[0],sizeof(MImagePoint));
+    polygon->num=polygon->num-1;
 }
+
+void mCurve(MImageCurve *curve,float i1,float i2,int type,float (*func)(float,float *),float *para)
+{
+    curve->type = type;
+    curve->curve= func;
+    memcpy(curve->para,para,16*sizeof(float));
+    printf("i1 is %f,i2 is %f\n",i1,i2);
+    if(i2<i1) {int buff=i1;i1=i2;i2=buff;}
+    if(type<=0)
+    {
+        curve->v1.x=i1;curve->v1.y=func(i1,para);
+        curve->v2.x=i2;curve->v2.y=func(i2,para);
+    }
+    else
+    {
+        curve->v1.y=i1;curve->v1.x=func(i1,para);
+        curve->v2.y=i2;curve->v2.x=func(i2,para);
+    }
+}
+
+float mCurvePoint(MImageCurve *curve,float x)
+{
+    return (curve->curve)(x,curve->para);
+}
+        
 
 void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)
 {
@@ -305,62 +414,6 @@ void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)
 
 
 /*
-MImageLine *mImageLineCreate(int x1,int y1,int x2,int y2)
-{
-    MImageLine *line;
-    line = (MImageLine *)mMalloc(sizeof(MImageLine));
-    line->handle = NULL;
-    mLineSetup(line,x1,y1,x2,y2);
-    return line;
-}
-
-void mImageLineRelease(MImageLine *line)
-{
-    if(!INVALID_POINTER(line->handle))
-        HandleRelease(line->handle);
-    
-    mFree(line);
-}
-
-
-
-void mPolygonSetup(MPolygon *polygon,int num,int x1,int y1,...)
-{
-    int i;
-    va_list para;
-    
-    mException((num<3),"invalid input",EXIT);
-    
-    if((polygon->n<num)&&(polygon->vertex == NULL))
-        mFree(polygon->vertex);
-    
-    polygon->n = num;
-    
-    polygon->vertex = (MImagePoint *)mMalloc(num*sizeof(MImagePoint));
-    polygon->vertex[0].x = x1;
-    polygon->vertex[0].y = y1;
-    
-    va_start(para,y1);
-    for(i=1;i<num;i++)
-    {
-        polygon->vertex[0].x = va_arg(para,int);
-        polygon->vertex[0].y = va_arg(para,int);
-    }
-    va_end(para);
-}    
-
-
-
-void mPolygonRelease(MPolygon *polygon)
-{
-    mException(INVALID_POINTER(polygon),"invalid input",EXIT);
-    
-    if(!INVALID_POINTER(polygon->vertex))
-        mFree(polygon->vertex);
-    
-    mFree(polygon);
-}
-
 void mPolygonDeleteVertex(MPolygon *src,MPolygon *dst,int locate)
 {
     int i;

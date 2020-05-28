@@ -53,6 +53,7 @@ void mTensorRegisterAll()
     mTensorRegister("BatchNorm" ,mTensorBatchNormPara ,mTensorBatchNormForward ,mTensorBatchNormBackward );
     mTensorRegister("Merge"     ,mTensorMergePara     ,mTensorMergeForward     ,mTensorMergeBackward     );
     mTensorRegister("Resize"    ,mTensorResizePara    ,mTensorResizeForward    ,mTensorResizeBackward    );
+    mTensorRegister("Reshape"   ,mTensorReshapePara   ,mTensorReshapeForward   ,mTensorReshapeBackward   );
     mTensorRegister("Mul"       ,mTensorMulPara       ,mTensorMulForward       ,mTensorMulBackward       );
 }
 
@@ -133,7 +134,7 @@ void endNetworkGenerate(void *info)
 
 MList *mNetworkGenerate(MFile *ini)
 {
-    MHandle *hdl; ObjectHandle(ini,NetworkGenerate,hdl);
+    MHandle *hdl=mHandle(ini,NetworkGenerate);
     struct HandleNetworkGenerate *handle = (struct HandleNetworkGenerate *)(hdl->handle);
     if(hdl->valid == 1) return (handle->net);
     
@@ -193,6 +194,7 @@ void mNetworkForward(MList *net)
     MLayer **layer = (MLayer **)(net->data);
     for(int i=0;i<net->num;i++)
     {
+        // printf("layer name is %s\n",layer[i]->name);
         (morn_tensor_register[layer[i]->type_index].forward)(layer[i]);
     }
 }
@@ -203,6 +205,7 @@ void mNetworkBackward(MList *net)
     
     for(int i=net->num-1;i>=0;i--)
     {
+        // printf("layer name is %s\n",layer[i]->name);
         (morn_tensor_register[layer[i]->type_index].backward)(layer[i]);
     }
 }

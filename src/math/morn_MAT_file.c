@@ -130,7 +130,7 @@ void endMAT(void *info)
 void mMATWrite(MFile *file,MMatrix *mat,char *mat_name)
 {
     mException(INVALID_POINTER(file),EXIT,"invalid input");
-    MHandle *hdl; ObjectHandle(file,MAT,hdl);
+    MHandle *hdl=mHandle(file,MAT);
     struct HandleMAT *handle = (struct HandleMAT *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -266,7 +266,7 @@ void MATReadData(FILE *f,char *matname,MMatrix *dst)
 
 void mMATRead(MFile *file,char *matname,MMatrix *dst)
 {
-    MHandle *hdl; ObjectHandle(file,MAT,hdl);
+    MHandle *hdl=mHandle(file,MAT);
     struct HandleMAT *handle = (struct HandleMAT *)(hdl->handle);
     mException(hdl->valid == 0,EXIT,"no mat in file");
     

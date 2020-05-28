@@ -110,7 +110,7 @@ int TARRead(MFile *file,char *filename,char**out,int *size)
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     mException(INVALID_POINTER(filename),EXIT,"invalid input");
     
-    MHandle *hdl; ObjectHandle(file,TARRead,hdl);
+    MHandle *hdl=mHandle(file,TARRead);
     struct HandleTARRead *handle = (struct HandleTARRead *)(hdl->handle);
     if(hdl->valid == 0)
     {

@@ -136,6 +136,197 @@ void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
     *num = k;
 }
 
+struct HandleImageBinaryDenoise
+{
+    int *lx;
+    int *ly;
+    int num;
+};
+void endImageBinaryDenoise(void *info)
+{
+    struct HandleImageBinaryDenoise *handle = (struct HandleImageBinaryDenoise *)info;
+    if(handle->lx != NULL) mFree(handle->lx);
+    if(handle->ly != NULL) mFree(handle->ly);
+}
+#define HASH_ImageBinaryDenoise 0x2dc7afe2
+void _BinaryDenoise(MImage *src,int *x,int y,int *num,int *lx,int *ly,int thresh)
+{
+    int i;int min,max;
+    unsigned char *data = src->data[0][y];
+
+    for(i=*x  ;i<src->width;i++) {if(data[i]==0) break;if(*num<thresh){lx[*num]=i;ly[*num]=y;(*num)++;}data[i]=254;} max = i;
+    for(i=*x-1;i>=0;        i--) {if(data[i]==0) break;if(*num<thresh){lx[*num]=i;ly[*num]=y;(*num)++;}data[i]=254;} min = i;
+    *x=max;
+    
+    data = src->data[0][y-1]; for(i=min;i<=max;i++) {if(data[i]==255) _BinaryDenoise(src,&i,y-1,num,lx,ly,thresh);}
+    data = src->data[0][y+1]; for(i=min;i<=max;i++) {if(data[i]==255) _BinaryDenoise(src,&i,y+1,num,lx,ly,thresh);}
+}
+void mImageBinaryDenoise(MImage *src,MImage *dst,int num_thresh)
+{
+    mException(src==NULL,EXIT,"invalid input image");
+    mException((src->channel!=1),EXIT,"invalid input image type");
+    mException((num_thresh<=0),EXIT,"invalid threshold %d",num_thresh);
+    
+    MHandle *hdl=mHandle(src,ImageBinaryDenoise);
+    struct HandleImageBinaryDenoise *handle = (struct HandleImageBinaryDenoise *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->num<num_thresh)
+        {
+            if(handle->lx!=NULL) mFree(handle->lx); handle->lx=mMalloc(num_thresh*sizeof(int));
+            if(handle->ly!=NULL) mFree(handle->ly); handle->ly=mMalloc(num_thresh*sizeof(int));
+            handle->num = num_thresh;
+        }
+        hdl->valid = 1;
+    }
+    
+    if(dst==NULL) dst=src;
+    if(src!=dst) {mImageCopy(src,dst);src=dst;}
+
+    int *lx =handle->lx;int *ly = handle->ly;
+    unsigned char **data = src->data[0];
+    for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
+    {
+        uint64_t *pdata = (uint64_t *)(&(data[j][ii]));
+        if(*pdata==0) continue;
+        if(*pdata==0xFEFEFEFEFEFEFEFE) {*pdata=0xFFFFFFFFFFFFFFFF;continue;}
+        for(int i=ii;i<ii+8;i++)
+        {
+            if(data[j][i] ==  0) continue;
+            if(data[j][i] ==254){data[j][i] =255;continue;}
+            
+            int num=0;int x=i;
+            _BinaryDenoise(src,&x,j,&num,lx,ly,num_thresh);
+            if(num<num_thresh) for(int n=0;n<num;n++) {data[ly[n]][lx[n]]=0;}
+            else data[j][i]=255;
+        }
+    }
+}
+
+// unsigned char _burr_array[256] = {0,0,0,0,0,1,0,1,0,0,0,0,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,1,0,0,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,0,1,0,0,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+void _PointDelete(unsigned char **data,int x,int y)
+{
+    // int value =(data[y-1][x-1]&0x80)+(data[y-1][x]&0x40)+(data[y-1][x+1]&0x20)
+    //           +(data[y  ][x-1]&0x01)                    +(data[y  ][x+1]&0x10)
+    //           +(data[y+1][x-1]&0x02)+(data[y+1][x]&0x04)+(data[y+1][x+1]&0x08);
+    // if(_burr_array[value] == 1) return;
+    int sum = data[y][x-1]+data[y][x+1];if(sum>255) return;
+    sum+=data[y-1][x];if(sum>255) return;
+    sum+=data[y+1][x];if(sum>255) return;
+    data[y][x]=0;
+    if(data[y-1][x-1]) _PointDelete(data,x-1,y-1);
+    if(data[y-1][x  ]) _PointDelete(data,x  ,y-1);
+    if(data[y-1][x+1]) _PointDelete(data,x+1,y-1);
+    if(data[y  ][x-1]) _PointDelete(data,x-1,y  );
+    if(data[y  ][x+1]) _PointDelete(data,x+1,y  );
+    if(data[y+1][x-1]) _PointDelete(data,x-1,y+1);
+    if(data[y+1][x  ]) _PointDelete(data,x  ,y+1);
+    if(data[y+1][x+1]) _PointDelete(data,x+1,y+1);
+}
+
+void mImageBinaryBurrRemove(MImage *src,MImage *dst)
+{
+    mException(src==NULL,EXIT,"invalid input image");
+    mException((src->channel!=1),EXIT,"invalid input image type");
+
+    if(dst==NULL) dst=src;
+    if(src!=dst) {mImageCopy(src,dst);src=dst;}
+
+    unsigned char **data = src->data[0];
+    for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
+    {
+        uint64_t *pdata = (uint64_t *)(&(data[j][ii]));
+        if(*pdata==0) continue;
+        for(int i=ii;i<ii+8;i++)
+        {
+            if(data[j][i]==0) continue;
+            _PointDelete(data,i,j);
+        }
+    }
+}
+
+struct HandleImageBinaryArea
+{
+    int x;
+    int y;
+};
+void endImageBinaryArea(void *info) {NULL;}
+#define HASH_ImageBinaryArea 0x2e4ea8f2
+void _BinaryArea(MImage *src,int *x,int y,MList *list)
+{
+    int i;int min,max;
+    unsigned char *data = src->data[0][y];
+    MImagePoint pt;pt.y=y;
+
+    for(i=*x  ;i<src->width;i++) {if(data[i]==0) break;pt.x=i;mListWrite(list,DFLT,&pt,sizeof(MImagePoint)); data[i]=254;} max = i;
+    for(i=*x-1;i>=0;        i--) {if(data[i]==0) break;pt.x=i;mListWrite(list,DFLT,&pt,sizeof(MImagePoint)); data[i]=254;} min = i;
+    *x=max;
+    
+    data = src->data[0][y-1]; for(i=min;i<=max;i++) {if(data[i]==255) _BinaryArea(src,&i,y-1,list);}
+    data = src->data[0][y+1]; for(i=min;i<=max;i++) {if(data[i]==255) _BinaryArea(src,&i,y+1,list);}
+}
+int mImageBinaryArea(MImage *src,MList *list,MImagePoint *point)
+{
+    mException(src==NULL,EXIT,"invalid input image");
+    mException((src->channel!=1),EXIT,"invalid input image type");
+    mException(list==NULL,EXIT,"invalid result list");
+    mListClear(list);
+    unsigned char **data = src->data[0];
+
+    if(point!=NULL) 
+    {
+        int x=point->x;int y=point->y;
+        if(data[y][x]!=255) return MORN_FAIL;
+        _BinaryArea(src,&x,y,list);
+        for(int i=0;i<list->num;i++)
+        {
+            MImagePoint *p=(MImagePoint *)(list->data[i]);
+            data[(int)(p->y)][(int)(p->x)]=255;
+        }
+        return MORN_SUCCESS;
+    }
+    
+    MHandle *hdl=mHandle(src,ImageBinaryArea);
+    struct HandleImageBinaryArea *handle = (struct HandleImageBinaryArea *)(hdl->handle);
+    if(hdl->valid==0){handle->x=0;handle->y=0;hdl->valid = 1;}
+    
+    for(int j=handle->y;j<src->height;j++)
+    {
+        if(j==handle->y)
+        {
+            for(int i=handle->x;i<src->width;i++) 
+            {
+                if(data[j][i] ==  0) continue;
+                if(data[j][i] ==254){data[j][i] =255;continue;}
+                int lx=i;_BinaryArea(src,&lx,j,list);
+                handle->y=j;handle->x=i+1;
+                data[j][i] = 255;
+                return MORN_SUCCESS;
+            }
+        }
+        else
+        {
+            for(int ii=0;ii<src->width;ii+=8)
+            {
+                uint64_t *pdata = (uint64_t *)(&(data[j][ii]));
+                if(*pdata==0) continue;
+                if(*pdata==0xFEFEFEFEFEFEFEFE) {*pdata=0xFFFFFFFFFFFFFFFF;continue;}
+                for(int i=ii;i<ii+8;i++)
+                {
+                    if(data[j][i] ==  0) continue;
+                    if(data[j][i] ==254){data[j][i] =255;continue;}
+                    int lx=i;_BinaryArea(src,&lx,j,list);
+                    handle->y=j;handle->x=i+1;
+                    data[j][i] = 255;
+                    return MORN_SUCCESS;
+                }
+            }
+        }
+    }
+    handle->x=0;handle->y=0;
+    return MORN_FAIL;
+}
+
 struct HandleImageBinaryEdge
 {
     MList *point_buff;
@@ -151,10 +342,11 @@ void endImageBinaryEdge(void *info)
 void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
+    mException((src->channel!=1),EXIT,"invalid input image type");
     mException((edge==NULL)&&(edge_rect==NULL),EXIT,"invalid input");
     
     mImageExpand(src,7,MORN_BORDER_BLACK);
-    MHandle *hdl; ObjectHandle(src,ImageBinaryEdge,hdl);
+    MHandle *hdl=mHandle(src,ImageBinaryEdge);
     struct HandleImageBinaryEdge *handle = (struct HandleImageBinaryEdge *)(hdl->handle);
     if(hdl->valid ==0)
     {
@@ -173,10 +365,8 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
     unsigned char **data = src->data[0];
 
     int data1,data2,data3,data4,data5,data6,data7,data8;
-    MImageRect rect;
-    int xmin,xmax,ymin,ymax;
     
-    int k = 0;
+    int row = 0;
     for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
     {
         uint64_t *pdata = (uint64_t *)(&(data[j][ii]));
@@ -190,11 +380,8 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<=510) continue;
 
             point_buff->num=0;
-            int row = (edge==NULL)?0:k;
             
             int x = i; int y = j;
-            xmin = x; xmax = x;
-            ymin = y; ymax = y;
             point.x = x; point.y = y;
             mSheetWrite(edge_buff,row,0,&point,sizeof(MImagePoint));
             int order = 1;
@@ -204,8 +391,6 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             {
                 #define SET_EDGE(X,Y) {\
                     x = X;y = Y;\
-                    if(x<xmin) xmin = x; else if(x>=xmax) xmax = x+1;\
-                    if(y<ymin) ymin = y; else if(y>=ymax) ymax = y+1;\
                     point.x = x;point.y = y;\
                     mSheetWrite(edge_buff,row,order,&point,sizeof(MImagePoint));\
                     order += 1;\
@@ -237,11 +422,23 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             {
                 if(edge_rect!=NULL) 
                 {
-                    mRect(&rect,xmin,ymin,xmax,ymax);
-                    mListWrite(edge_rect,k,&rect,sizeof(MImageRect));
+                    float xmin=i;float xmax=i;float ymin=j;float ymax=j;
+                    for(int n=0;n<order;n++)
+                    {
+                        MImagePoint *pt=edge_buff->data[row][n];
+                        if(pt->x<xmin) xmin=pt->x;else if(pt->x>xmax) xmax=pt->x;
+                        if(pt->y<ymin) ymin=pt->y;else if(pt->y>ymax) ymax=pt->y;
+                    }
+                    for(int n=0;n<point_buff->num;n++)
+                    {
+                        int *p =point_buff->data[n];
+                        if(p[0]<xmin) xmin=p[0];else if(p[0]>xmax) xmax=p[0];
+                        if(p[1]<ymin) ymin=p[1];else if(p[1]>ymax) ymax=p[1];
+                    }
+                    MImageRect rect;mRect(&rect,xmin,ymin,xmax,ymax);
+                    mListWrite(edge_rect,row,&rect,sizeof(MImageRect));
                 }
-                edge_buff->col[row] = order;
-                k = k+1;
+                if(edge!=NULL) {edge_buff->col[row] = order; row++;}
             }
 
             for(int n=0;n<point_buff->num;n++)
@@ -252,34 +449,28 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             data[j][i] = 255;
         }
     }
-    
-    if(edge !=NULL) edge->row=k;
-    if(edge_rect!=NULL) edge_rect->num=k;
 }
 
-void mImageBinaryFilter(MImage *src,MImage *dst,int r,int thresh)
+void mImageBinaryFilter(MImage *src,MImage *dst,int r,float threshold1,float threshold2)
 {
-    if(thresh < 0) thresh = 0;
-    mException(INVALID_IMAGE(src)||(thresh>8),EXIT,"invalid input");
+    mException(INVALID_IMAGE(src),EXIT,"invalid input");
     
     MImage *p = dst;
-    if((INVALID_POINTER(dst))||(dst==src))
-        dst = mImageCreate(1,src->height,src->width,NULL);
-    else
-        mImageRedefine(dst,1,src->height,src->width,dst->data);
-
+    if((INVALID_POINTER(dst))||(dst==src)) dst = mImageCreate(1,src->height,src->width,NULL);
+    else                                   mImageRedefine(dst,1,src->height,src->width,dst->data);
+    
     unsigned char **sdata = src->data[0];
     unsigned char **ddata = dst->data[0];
-    int thresh1 = thresh*255;
-    int thresh2 = (8-thresh)*255;
+    float a=(r+r+1)*(r+r+1);
+    int thresh1 = threshold1*a*255;int thresh2 = threshold2*a*255;
     
     #define BinaryFilter(X,Y) {\
-        int Sum = sdata[Y-r][X-r] + sdata[Y-r][X] + sdata[Y-r][X+r] \
-                + sdata[Y  ][X-r] +               + sdata[Y  ][X+r] \
-                + sdata[Y+r][X-r] + sdata[Y+r][X] + sdata[Y+r][X+r];\
-             if(Sum <= thresh1) ddata[Y][X] = 0;\
-        else if(Sum >= thresh2) ddata[Y][X] = 255;\
-        else                    ddata[Y][X] = sdata[Y][X];\
+        int Sum=0;\
+        for(int j=Y-r;j<=Y+r;j++)for(int i=X-r;i<X+r;i++)\
+            Sum+=sdata[j-r][i-r];\
+             if(Sum < thresh1) ddata[Y][X] = 0;\
+        else if(Sum > thresh2) ddata[Y][X] = 255;\
+        else                   ddata[Y][X] = sdata[Y][X];\
     }
     
     mImageRegion(src,r,BinaryFilter);

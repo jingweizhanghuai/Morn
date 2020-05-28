@@ -150,7 +150,7 @@ void TensorOutputSet(MLayer *layer)
     
     if(morn_network_flag == MORN_PREDICT)
     {
-        mTensorCopy(in,out);
+        mTensorCopy(in,out,DFLT);
         mTensorRedefine(in,in->batch,in->channel,in->height,in->width,out->data);
     }
     else
@@ -178,6 +178,8 @@ void mTensorOutputBackward(MLayer *layer)
     struct TensorOutputPara *para = (struct TensorOutputPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
+    printf("in is %f,out is %f,flag=%d\n",in->data[0][0],out->data[0][0],(in->data[0][0]>in->data[0][1])==(out->data[0][0]>out->data[0][1]));
+    // printf("in is %f,out is %f,flag=%d\n",in->data[1][0],out->data[1][0],(in->data[1][0]>in->data[1][1])==(out->data[1][0]>out->data[1][1]));
     
     morn_network_error = 0.0f;
     
@@ -187,7 +189,7 @@ void mTensorOutputBackward(MLayer *layer)
     
     float network_error = para->loss(layer,para->prev,NULL);
     
-    MHandle *hdl; ObjectHandle(out,TensorOutput,hdl);
+    MHandle *hdl=mHandle(out,TensorOutput);
     struct HandleTensorOutput *handle = (struct HandleTensorOutput *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -205,7 +207,7 @@ void mTensorOutputBackward(MLayer *layer)
         handle->idx = 0;
     }
     morn_network_error = handle->sum/32.0f;
-    // printf("network_error is %f\t",network_error);
+    printf("network_error is %f\t",network_error);
 
     if(para->dloss != NULL)
     {
@@ -218,6 +220,6 @@ void mTensorOutputBackward(MLayer *layer)
         printf("filename is %s\n",morn_network_para_filename);
         morn_network_parafile = mFileCreate(morn_network_para_filename);
     }
-    
+    // printf("aaaaaaaaaaaaaaaa\n");
     para->prev->state = MORN_BACKWARD;
 }

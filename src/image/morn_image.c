@@ -8,6 +8,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <math.h>
 
 #include "morn_image.h"
@@ -20,22 +21,29 @@ struct HandleImageCreate
     int width;
     unsigned char **index;
     MMemory *memory;
+
+    // int backup_cn;
+    // int backup_height;
+    // int backup_width;
+    unsigned char **backup_index;
+    MMemory *backup_memory;
+    unsigned char **backup_data[MORN_MAX_IMAGE_CN];
 };
 void endImageCreate(void *info) 
 {
     struct HandleImageCreate *handle = (struct HandleImageCreate *)info;
     mException((handle->img == NULL),EXIT,"invalid image");
    
-    if(!INVALID_POINTER(handle->index))
-        mFree(handle->index);
+    if(!INVALID_POINTER(handle->index )) mFree(handle->index);
+    if(!INVALID_POINTER(handle->memory)) mMemoryRelease(handle->memory);
+
+    if(!INVALID_POINTER(handle->backup_index )) mFree(handle->backup_index);
+    if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
     
-    if(!INVALID_POINTER(handle->memory))
-        mMemoryRelease(handle->memory);
-  
     mFree(handle->img);
 }
 #define HASH_ImageCreate 0xccb34f86
-MImage *mImageCreate(int cn,int height,int width,unsigned char **data[])
+MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
 {
     if(cn <0) {cn = 0;} if(height <0) {height = 0;} if(width <0) {width = 0;}
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input");
@@ -47,8 +55,9 @@ MImage *mImageCreate(int cn,int height,int width,unsigned char **data[])
          if(cn==1) mInfoSet(&(img->info),"image_type",MORN_IMAGE_GRAY);
     else if(cn==3) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGB);
     else if(cn==4) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGBA);
-   
-    MHandle *hdl; ObjectHandle(img,ImageCreate,hdl);
+
+    img->handle = mHandleCreate();
+    MHandle *hdl=mHandle(img,ImageCreate);
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
     
@@ -79,8 +88,9 @@ MImage *mImageCreate(int cn,int height,int width,unsigned char **data[])
         return img;
     }
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(cn*row,col*sizeof(unsigned char));
-    mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void **)(handle->index));
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+    mException(handle->memory->num!=1,EXIT,"invalid image memory");
+    mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
     handle->width = width;
     
     for(int i=0;i<cn*row;i++) handle->index[i] = &(handle->index[i][16]);
@@ -91,13 +101,13 @@ MImage *mImageCreate(int cn,int height,int width,unsigned char **data[])
     return img;
 }
 
-void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[])
+void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[])
 {
     mException((INVALID_POINTER(img)),EXIT,"invalid input");
     
-    if(cn<=0)       cn     = img->channel;
-    if(height <= 0) height = img->height;
-    if(width<=0)    width  = img->width;
+    if(cn<=0)                 cn    =img->channel;
+    if(height <= 0)           height=img->height;
+    if(width<=0)              width =img->width;
     
     if((cn!=img->channel)||(height!=img->height)||(width!=img->width)) mHandleReset(img->handle);
     
@@ -105,7 +115,6 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
     int reuse = (data==img->data);
     int flag = (img->channel&&img->height&&img->width);
     
-    mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input channel");
     if(cn!= img->channel)
     {
              if(cn==1) mInfoSet(&(img->info),"image_type",MORN_IMAGE_GRAY);
@@ -113,13 +122,15 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
         else if(cn==4) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGBA);
     }
     
+    mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input channel");
     img->channel = cn;
     img->height = height;
     img->width = width;
     
     if(same_size&&reuse) return;
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
-    if(same_size&&(data==NULL)&&(handle->width >0)) return;
+    if(same_size&&INVALID_POINTER(data)&&(handle->width >0)) return;
+    // 
     mException(reuse&&flag&&(handle->width==0),EXIT,"invalid redefine");
     
     handle->width = 0;
@@ -129,7 +140,7 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
     
     if((height<=0)||(cn<=0)||(width<=0))
     {
-        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        mException((!INVALID_POINTER(data))&&(!reuse),EXIT,"invalid input");
         memset(img->data,0,MORN_MAX_IMAGE_CN*sizeof(unsigned char*));
         return;
     }
@@ -150,16 +161,25 @@ void mImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data
         handle->height = height;
     }
     
-    if(data!=NULL)
+    if(!INVALID_POINTER(data))
     {
         memcpy(img->data,data,cn*sizeof(unsigned char **));
-        mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
+        if(data == handle->backup_data)
+        {
+            if(!INVALID_POINTER(handle->backup_index )) mFree(handle->backup_index);
+            if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
+            handle->backup_index=NULL;
+            handle->backup_memory=NULL;
+        }
+        else mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
         return;
     }
    
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(cn*row,col*sizeof(unsigned char));
-    mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void **)(handle->index));
-   
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+    else mMemoryRedefine(handle->memory,1,cn*row*col*sizeof(unsigned char),DFLT);
+    mException(handle->memory->num!=1,EXIT,"invalid image memory");
+    mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
+    
     for(int i=0;i<cn*row;i++) handle->index[i] = &(handle->index[i][16]);
     handle->width = width;
     
@@ -172,6 +192,29 @@ void mImageRelease(MImage *img)
     
     if(!INVALID_POINTER(img->handle))
         mHandleRelease(img->handle);
+}
+
+unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
+{
+    if(cn    <=0) cn    =img->channel;
+    if(height<=0) height=img->height;
+    if(width <=0) width =img->width;
+
+    int col = width + 32;
+    int row = height+ 16;
+    
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    if(handle->backup_index!=NULL) mFree(handle->backup_index);
+    handle->backup_index = (unsigned char **)mMalloc(cn*row*sizeof(unsigned char *));
+    
+    if(handle->backup_memory == NULL) handle->backup_memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+    else mMemoryRedefine(handle->backup_memory,1,cn*row*col*sizeof(unsigned char),DFLT);
+    mException(handle->backup_memory->num!=1,EXIT,"invalid image backup memory");
+    mMemoryIndex(handle->backup_memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->backup_index)),1);
+
+    for(int i=0;i<cn*row;i++) handle->backup_index[i] = &(handle->backup_index[i][16]);
+    for(int k=0;k<cn;k++) handle->backup_data[k] = handle->backup_index + k*row+8;
+    return (handle->backup_data);
 }
 
 void mImageExpand(MImage *img,int r,int border_type) 
@@ -271,54 +314,47 @@ void mImageExpand(MImage *img,int r,int border_type)
     mInfoSet(&(img->info),"border_type",border_type);
 }
 
-void ImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2)
+void ImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly)
 {
-    if((x1==0)&&(x2==img->width)&&(y1==0)&&(y2==img->height)) {mImageCopy(img,dst);return;}
-        
-    MImage *p=dst;
-    if(dst==NULL) dst = mImageCreate(img->channel,ABS(y2-y1),ABS(x2-x1),NULL);
-    else          mImageRedefine(dst,img->channel,ABS(y2-y1),ABS(x2-x1),NULL);
-    int cn=img->channel;
+    mException(INVALID_IMAGE(img)||INVALID_IMAGE(dst),EXIT,"invalid input");
+    if(lx<0) {lx=0;x1=x1-lx;} if(ly<0) {ly=0;y1=y1-ly;}
     
-    for(int j=0,y=y1;j<dst->height;j++,y+=((y2>y1)?1:-1))
-    for(int i=0,x=x1;i<dst-> width;i++,x+=((x2>x1)?1:-1))
-    {
-             if((y<0)||(y>=img->height)) {for(int c=0;c<cn;c++) dst->data[c][j][i]=0;}
-        else if((x<0)||(x>=img-> width)) {for(int c=0;c<cn;c++) dst->data[c][j][i]=0;}
-        else                             {for(int c=0;c<cn;c++) dst->data[c][j][i]=img->data[c][y][x];}
-    }
-    
-    if(p!=dst)
-    {
-        mImageExchange(img,dst);
-        mImageRelease(dst);
-    }
-}
+    if(INVALID_POINTER(dst)) dst=img;
+    unsigned char ***dst_data;
+    if(img==dst) dst_data=mImageBackup(img,DFLT,dst->height,dst->width);
+    else {mImageRedefine(dst,img->channel,DFLT,DFLT,NULL);dst_data=dst->data;}
 
-void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2)
-{
-    mException(INVALID_IMAGE(img),EXIT,"invalid input");
-    if((x1<0)||(x2>=img->width)||(x1>=x2)||(y1<0)||(y2>=img->height)||(y1>=y2))
-        {ImageCut(img,ROI,x1,x2,y1,y2);return;}
-    
-    if(INVALID_POINTER(ROI)) ROI=img;
-    else mImageRedefine(ROI,img->channel,y2-y1,x2-x1,ROI->data);
-    
+    int height = ABS(y1-y2);int width = ABS(x1-x2);
     // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
-    int i, j;
-    for(int cn=0;cn<ROI->channel;cn++)
+    int cn=img->channel;
+    for(int j=ly,y=y1;j<ly+height;j++,y+=((y2>y1)?1:-1))
     {
-        for(j=y1;j<y2;j++)
+        if(y<0) {continue;} if(y>=img->height) {continue;}
+        for(int i=lx,x=x1;i<lx+width;i++,x+=((x2>x1)?1:-1))
         {
-            i = j-y1;
-            memmove(ROI->data[cn][i],img->data[cn][j]+x1,(x2-x1)*sizeof(unsigned char));
+            if(x<0) {continue;} if(x>=img-> width) {continue;}
+            // if(img->data[0][y][x]==0) continue;
+            for(int c=0;c<cn;c++) dst->data[c][j][i]=img->data[c][y][x];
         }
     }
+
+    if(img==dst) mImageRedefine(img,DFLT,DFLT,DFLT,dst_data);
+}
+
+void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2,int lx,int ly)
+{
+    mException(INVALID_IMAGE(img)||INVALID_IMAGE(ROI),EXIT,"invalid input");
+    if(lx<0) {lx=0;x1=x1-lx;} if(ly<0) {ly=0;y1=y1-ly;}
+    int flag = (x1<0)||(x2>=img->width)||(x1>=x2)||(y1<0)||(y2>=img->height)||(y1>=y2)||((img==ROI)&&(ly<y1));
     
-    ROI->border = NULL;
-    mInfoSet(&(ROI->info),"image_type",mInfoGet(&(img->info),"image_type"));
-    ROI->width = x2-x1;
-    ROI->height = y2-y1;
+    if(flag){ImageCut(img,ROI,x1,x2,y1,y2,lx,ly);return;}
+        
+    if(INVALID_POINTER(ROI)) ROI=img;
+    else mImageRedefine(ROI,img->channel,DFLT,DFLT,ROI->data);
+    
+    // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
+    for(int j=y1;j<y2;j++)for(int cn=0;cn<ROI->channel;cn++)
+        memmove(ROI->data[cn][ly+j-y1]+lx,img->data[cn][j]+x1,MIN((ROI->width-lx),(x2-x1))*sizeof(unsigned char));
 }
 
 void mImageCopy(MImage *src,MImage *dst)
@@ -361,18 +397,20 @@ void mImageDiff(MImage *src1,MImage *src2,MImage *diff)
     }
 }
 
-void mImageThreshold(MImage *src,MImage *dst,int thresh,int value1,int value2)
+void mImageThreshold(MImage *src,MImage *dst,int *thresh,int value1,int value2)
 {
     mException((INVALID_IMAGE(src)),EXIT,"invalid input");
-    mException((src->channel!=1),EXIT,"invalid input");
-    if(dst==NULL) dst=src;
-    
-    unsigned char data[256];
-    for(int i=0;i<256;i++) data[i]=(i<thresh)?((value1<0)?i:value1):((value2<0)?i:value2);
+    if(INVALID_POINTER(dst)) dst=src;
+    if(value1<0) value1=0;
+    if(value2<0) value2=255;
     
     for(int j=ImageY1(dst);j<ImageY2(dst);j++)
         for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-            dst->data[0][j][i]=data[src->data[0][j][i]];
+        {
+            int c;for(c=0;c<src->channel;c++) if(src->data[c][j][i]<thresh[c]) break;
+            dst->data[0][j][i]=(c==src->channel)?value2:value1;
+        }
+    dst->channel = 1;
 }
 
 void mImageDiffThreshold(MImage *src1,MImage *src2,MImage *diff,int thresh)
@@ -624,37 +662,44 @@ void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned
     dst->border = src->border;
 }
 
-
 struct HandleImageChannelSplit
 {
-    MImage *img[MORN_MAX_IMAGE_CN];
+    int flag[64];
+    MImage *img[64];
+    int n;
 };
 void endImageChannelSplit(void *info)
 {
     struct HandleImageChannelSplit *handle = (struct HandleImageChannelSplit *)info;
-    for(int i=0;i<MORN_MAX_IMAGE_CN;i++)
+    for(int i=0;i<64;i++)
     {
         if(handle->img[i]!=NULL)
             mImageRelease(handle->img[i]);
     }
 }
 #define HASH_ImageChannelSplit 0x41e09e5b
-MImage *mImageChannelSplit(MImage *src,int cn)
+MImage *mImageChannelSplit(MImage *src,int num,...)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
-    mException((cn>=src->channel),EXIT,"invalid input");
+    mException((num>=4),EXIT,"invalid input");
      
-    MHandle *hdl; ObjectHandle(src,ImageChannelSplit,hdl);
+    MHandle *hdl=mHandle(src,ImageChannelSplit);
     struct HandleImageChannelSplit *handle = (struct HandleImageChannelSplit *)(hdl->handle);
     hdl->valid = 1;
+
+    int cn[4]={0,0,0,0}; unsigned char **data[4];
+    va_list para;
+    va_start(para,num);
+    for(int i=0;i<num;i++) {cn[i]=va_arg(para,int);mException((cn[i]>=4),EXIT,"invalid input channel");}
+    va_end(para);
     
-    if(handle->img[cn]==NULL)
-        handle->img[cn] = mImageCreate(1,DFLT,DFLT,NULL);
-    handle->img[cn]->height = src->height;
-    handle->img[cn]->width  = src->width ;
-    handle->img[cn]->channel= 1;
-    handle->img[cn]->data[0]= src->data[cn];
-    return handle->img[cn];
+    int flag = ((cn[0]+1)<<24)+((cn[1]+1)<<16)+((cn[2]+1)<<8)+(cn[3]+1);
+    for(int i=0;i<handle->n;i++) if(flag==handle->flag[i]) return handle->img[i];
+
+    int n=handle->n;
+    handle->img [n]=mImageCreate(num,src->height,src->width,data);
+    handle->flag[n]=flag;
+    handle->n=n+1;
+    return handle->img[n];
 }
-    
-    
+

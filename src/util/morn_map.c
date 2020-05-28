@@ -166,7 +166,7 @@ void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int v
     memcpy(data+2          ,key  ,key_size  );
     memcpy(data+2+mkey_size,value,value_size);
     
-    MHandle *hdl; ObjectHandle(map,Map,hdl);
+    MHandle *hdl=mHandle(map,Map);
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -220,7 +220,7 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
 {
     if(key_size<=0) key_size = strlen((char *)key);
     
-    MHandle *hdl; ObjectHandle(map,Map,hdl);
+    MHandle *hdl=mHandle(map,Map);
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     
@@ -239,7 +239,7 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
     }
     return (data+2+mkey_size);
 }
-
+/*
 void mMapDelete(MChain *map,const void *key,int key_size)
 {
     int i;
@@ -299,5 +299,5 @@ void mMapDelete(MChain *map,const void *key,int key_size)
     mChainNodeDelete(cnode);
     handle->num -=1;
 }
-
+*/
 
