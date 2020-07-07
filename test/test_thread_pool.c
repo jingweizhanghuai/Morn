@@ -13,19 +13,11 @@ You should have received a copy of the GNU General Public License along with thi
 
 void func(void *para)
 {
-    pthread_t ID=pthread_self();
+    int ID;PthreadOrder(ID);
     int *t = para;
     printf("func run on thread %d,sleep %dms\n",ID,*t);
     mSleep(*t);
 }
-
-// int main1()
-// {
-//     int t[4];t[0]=mRand(10,100);t[1]=mRand(10,100);t[2]=mRand(10,100);t[3]=mRand(10,100);
-//     mThread(4,func(t),func(t+1),func(t+2),func(t+3));
-//     return 1;
-// }
-
 
 int main()
 {
@@ -44,10 +36,3 @@ int main()
     // 释放线程池
     mListRelease(pool);
 }
-    
-
-
-
-
-
-    

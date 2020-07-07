@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License along with thi
 int main()
 {
     MTree *json=mTreeCreate();
-    mJSONLoad("./test_JSON_file.json",json);
+    mJSONLoad(json,"./test_JSON_file.json");
 
     MTreeNode *node = json->treenode->child[0];
     for(int i=0;i<node->child_num;i++)

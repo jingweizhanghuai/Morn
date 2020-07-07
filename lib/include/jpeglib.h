@@ -41,7 +41,6 @@ extern "C" {
 #define JPEG_LIB_VERSION_MAJOR  9
 #define JPEG_LIB_VERSION_MINOR  2
 
-
 /* Various constants determining the sizes of things.
  * All of these are specified by the JPEG standard,
  * so don't change them if you want to be compatible.

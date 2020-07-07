@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -19,200 +17,152 @@ You should have received a copy of the GNU General Public License along with thi
     // void *value;
 // }MMapData;
 
+inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
+{
+    if(size1!=size2) return (size1-size2);
+    if(size1==4)     return ((*((uint32_t *)mem1))-(*((uint32_t *)mem2)));
+    if(size1==8)     return ((*((uint64_t *)mem1))-(*((uint64_t *)mem2)));
+                     return memcmp(mem1,mem2,size1);
+}
+
 struct HandleMap
 {
-    MBtreeNode *btree;
-    int btree_num;
-    MChainNode *begin;
-    MChainNode *end;
-    int     num;
-    int     count;
+    int num;
+    MChainNode **list;
+    int list_num;
 };
+void endMap(struct HandleMap *handle)
+{
+    if(handle->list!=NULL) mFree(handle->list);
+}
 #define HASH_Map 0x8630f641
 
-void BtreeGenerate(struct HandleMap *handle)
+void _MapListAppend(struct HandleMap *handle)
 {
-    int i,j;
-    MBtreeNode *btree;
-    int num = handle->num;
+    MChainNode *node0 = handle->list[0];
+
+    int list_num =handle->list_num;
+    // printf("list_num=%d,handle->num=%d\n",list_num,handle->num);
+    if(list_num*2<handle->num) 
+    {
+        handle->list_num = list_num*2+1;
+        list_num=handle->list_num;
+        if(list_num>128)
+        {
+            mFree(handle->list);
+            handle->list = (MChainNode **)mMalloc((list_num+1)*sizeof(MChainNode *));
+        }
+    }
+    MChainNode **list = handle->list;
     
-    int n=1;for(i=0;;i++){int c = 2*(n+1)-1;if(c>num) break;n = c;}
-    float step = (float)n/(float)num;
- 
-    if(n!=handle->btree_num)
+    float k=(float)(list_num)/(float)(handle->num);
+    MChainNode *node = node0;
+    for(int i=0;i<handle->num;i++)
     {
-        if(n>127)
-        {
-            mFree(handle->btree);
-            handle->btree = (MBtreeNode *)mMalloc(n*sizeof(MBtreeNode));
-        }
-        handle->btree_num = n;
-        btree = handle->btree;
-        
-        int s = (n+1)>>2;
-        int idx0 = n>>1;
-        for(i=0;s>=1;i++)
-        {
-            for(j=idx0;j<n;j=j+s+s+s+s)
-            {
-                btree[j].left = &(btree[j-s]);
-                btree[j].right= &(btree[j+s]);
-            }
-            idx0=idx0-s;
-            s=s>>1;
-        }
-        for(j=0;j<n;j=j+2)
-        {
-            btree[j].left = NULL;
-            btree[j].right= NULL;
-        }
+        list[(int)(k*i)]=node;
+        node = node->next;
     }
-    btree = handle->btree;
-    MChainNode *cnode = handle->begin;
-    for(i=0;i<num;i++)
-    {
-        btree[(int)(i*step)].data = cnode;
-        cnode=cnode->next;
-    }
+    list[       0]=node0;
+    list[list_num]=node0;
 }
 
-MChainNode *MapNode(struct HandleMap *handle,const void *key,int key_size,int *flag_out)
+MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *flag)
 {
-    int i;
-    *flag_out = 0;
+    MChainNode **list=handle->list;
+    int step = (handle->list_num+1)/4;
+    int n=handle->list_num/2;
     
-    MBtreeNode *bnode = &(handle->btree[(handle->btree_num)>>1]);
-    MChainNode *cnode = (MChainNode *)(bnode->data);
-    int *data = (int *)(cnode->data);
-    int flag= mCompare(data+2,data[0],key,key_size);
-    while(bnode->left != NULL)
-    {
-        if(flag>0) bnode = bnode->left;
-        else       bnode = bnode->right;
-        cnode = (MChainNode *)(bnode->data);data = (int *)(cnode->data);
-        flag = mCompare(data+2,data[0],key,key_size);
-        if(flag == 0) return cnode;
-    }
+    *flag = 1;
+    MChainNode *node = list[n];
+    int *data = (int *)(node->data);
+    int f = _Compare(data+2,data[0],key,key_size);
+    // printf("n=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
     
-    MChainNode *p=cnode;
-    int flag0=flag;
-    for(i=1;;i++)
+    if(f==0) {*flag=n; return node;}
+    while(step!=0)
     {
-        if(flag>0)
-        {
-            if(cnode==handle->begin) 
-            {
-                data = (int *)(cnode->data);
-                flag= mCompare(data+2,data[0],key,key_size);
-                break;
-            }
-            cnode = cnode->last;
-        }
-        else
-        {
-            if(cnode==handle->end) 
-            {
-                data = (int *)(cnode->data);
-                flag = mCompare(data+2,data[0],key,key_size);
-                break;
-            }
-            cnode = cnode->next;
-        }
+        if(f<0) n=n+step;
+        else    n=n-step;
         
-        data = (int *)(cnode->data);
-        flag = mCompare(data+2,data[0],key,key_size);
-        if(flag==0) return cnode;
-        if((flag<0)!=(flag0<0)) break;
+        node = list[n];
+        data = (int *)(node->data);
+        f = _Compare(data+2,data[0],key,key_size);
+        // printf("ggn=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
+        
+        if(f==0) {*flag=n; return node;}
+        step=step/2;
     }
-    *flag_out = 0-flag;
-    if(i>=8)
+
+    MChainNode *node0,*node1;
+    if(f>0) {n=n-1;node1=node;node0=list[n  ];}
+    else          {node0=node;node1=list[n+1];}
+    node=node0->next;
+
+    *flag=DFLT;
+    int count=0;
+    while(node!=node1)
     {
-        if(flag>0)
-        {
-            for(i=-1;bnode+i>=handle->btree;i--)
-            {
-                p=p->last;if(bnode[i].data==p)break;
-                p=p->last;if(bnode[i].data==p)break;
-                bnode[i].data = p;
-            }
-        }
-        else
-        {
-            for(i=1;bnode+i<handle->btree+handle->btree_num;i++)
-            {
-                p=p->next;if(bnode[i].data==p)break;
-                p=p->next;if(bnode[i].data==p)break;
-                bnode[i].data = p;
-            }
-        }
+        data = (int *)(node->data);
+        f = _Compare(data+2,data[0],key,key_size);
+        // printf("ffn=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
+        if(f==0) {*flag=-2; break;}
+        if(f >0)            break;
+        node=node->next;
+        count++;
     }
-    
-    return cnode;
+    if(count>16) _MapListAppend(handle);
+    else if(count>4)
+    {
+        if(n==0) list[1]=node1->last->last;
+        else     list[n]=node0->next->next;
+    }
+    // printf("key=%d,data=%d,flag=%d\n",((int *)key)[0],data[2],*flag);
+    return node;
 }
 
-void endMap(void *info)
-{
-    struct HandleMap *handle = (struct HandleMap *)info;
-    if(handle->btree != NULL) mFree(handle->btree);
-}
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
-    if(key_size  <=0) {key_size  = strlen((char *)key  );} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
-    if(value_size<=0) {value_size= strlen((char *)value);} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
-    
-    MChainNode *chain_node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
-    int *data = (int *)(chain_node->data);
-    data[0] = key_size;data[1]=value_size;
-    memcpy(data+2          ,key  ,key_size  );
-    memcpy(data+2+mkey_size,value,value_size);
-    
+    MChainNode *node;
+    int *data;
+
     MHandle *hdl=mHandle(map,Map);
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0)
     {
-        if(handle->btree == NULL) handle->btree = (MBtreeNode *)mMalloc(127*sizeof(MBtreeNode));
-        
-        hdl->valid = 1;
-        
-        if(handle->num == 0)
+        if(handle->list==NULL)
         {
-            map->chainnode = chain_node;
-            chain_node->next = chain_node;
-            chain_node->last = chain_node;
-            handle->begin = chain_node;
-            handle->end = chain_node;
+            handle->list=(MChainNode **)mMalloc(128*sizeof(MChainNode *));
             
-            handle->btree_num = 1;
-            MBtreeNode *btree_node = handle->btree;
-            btree_node->data = chain_node;
-            btree_node->left = NULL;
-            btree_node->right = NULL;
-            
-            handle->num = 1;
-            handle->count=1;
-            return (data+2+mkey_size);
+            node = mChainNode(map,NULL,(2+2)*sizeof(int));
+            data = (int *)(node->data);
+            data[0]=1;data[1]=1;data[2]=0;data[3]=0;
+            map->chainnode = node;
+
+            handle->list[0]=node;
+            handle->list[1]=node;
+            handle->list_num=1;
+            handle->num=1;
         }
+        hdl->valid = 1;
     }
     
-    int flag;MChainNode *cnode = MapNode(handle,key,key_size,&flag);
-    
-    if(flag==0) cnode->data=chain_node->data;
+    if(key_size  <=0) {key_size  = strlen((char *)key  );} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
+    if(value_size<=0) {value_size= strlen((char *)value);} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
+
+    node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
+    data = (int *)(node->data);
+    data[0] = key_size;data[1]=value_size;
+    memcpy(data+2          ,key  ,key_size  );
+    memcpy(data+2+mkey_size,value,value_size);
+
+    int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
+    if(flag!=DFLT) p->data = node->data;
     else
     {
-             if(flag< 0) {mChainNodeInsert(NULL,chain_node,cnode); if(handle->begin==cnode) handle->begin=chain_node;}
-        else if(flag> 0) {mChainNodeInsert(cnode,chain_node,NULL); if(handle->end  ==cnode) handle->end  =chain_node;}
-        
-        handle->num  +=1;
-        handle->count+=1;
-    
-        if(handle->count>=MAX(8,(handle->num)>>2))
-        {
-            map->chainnode = handle->begin;
-            BtreeGenerate(handle);
-            handle->count = 0;
-        }
+        handle->num++;
+        mChainNodeInsert(NULL,node,p);
+        if(handle->num>handle->list_num*2) _MapListAppend(handle);
     }
-    
     return (data+2+mkey_size);
 }
 
@@ -224,13 +174,13 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     
-    int flag;MChainNode *cnode = MapNode(handle,key,key_size,&flag);
+    int flag;MChainNode *node = _MapNode(handle,key,key_size,&flag);
     
-    if(flag!=0) return NULL;
+    if(flag==DFLT) return NULL;
     
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
     
-    int *data = (int *)(cnode->data);
+    int *data = (int *)(node->data);
     if(value!=NULL)
     {
         if(value_size <=0) value_size= data[1];
@@ -239,65 +189,23 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
     }
     return (data+2+mkey_size);
 }
-/*
-void mMapDelete(MChain *map,const void *key,int key_size)
+
+void mMapNodeDelete(MChain *map,const void *key,int key_size)
 {
-    int i;
     if(key_size<=0) key_size = strlen((char *)key);
     
-    MHandle *hdl; ObjectHandle(map,Map,hdl);
+    MHandle *hdl=mHandle(map,Map);
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return;
     
-    MBtreeNode *bnode = &(handle->btree[(handle->btree_num)>>1]);
-    MChainNode *cnode=NULL; int *data=NULL;
+    int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
+    if(n==DFLT) return;
     
-    int flag=1;int flag0;
-    while(bnode != NULL)
+    if(n>=0) handle->list[n]=node->next;
+    handle->num--;
+    if(node!=map->chainnode)
     {
-        cnode = (MChainNode *)(bnode->data);data = (int *)(cnode->data);
-        flag = mCompare(data+2,data[0],key,key_size);
-        if(flag == 0) {bnode->data=cnode->next;goto MapDelete_next;}
-        if(flag>0) bnode = bnode->left;
-        else       bnode = bnode->right;
+        node->last->next = node->next;
+        node->next->last = node->last;
     }
-    
-    flag0=flag;
-    for(i=1;i<9;i++)
-    {
-        if(flag>0)
-        {
-            if(cnode==handle->begin) 
-            {
-                data = (int *)(cnode->data);
-                flag= mCompare(data+2,data[0],key,key_size);
-                if(flag==0) goto MapDelete_next;
-            }
-            cnode = cnode->last;
-        }
-        else
-        {
-            if(cnode==handle->end) 
-            {
-                data = (int *)(cnode->data);
-                flag = mCompare(data+2,data[0],key,key_size);
-                if(flag==0) goto MapDelete_next;
-            }
-            cnode = cnode->next;
-        }
-        
-        data = (int *)(cnode->data);
-        flag = mCompare(data+2,data[0],key,key_size);
-        if(flag==0) goto MapDelete_next;
-        if((flag<0)!=(flag0<0)) return;
-    }
-    if(i==9) return;
-    MapDelete_next:
-    if(cnode==handle->begin) handle->begin= cnode->next;
-    if(cnode==handle->end  ) handle->end  = cnode->last;
-    map->chainnode = handle->begin;
-    mChainNodeDelete(cnode);
-    handle->num -=1;
 }
-*/
-

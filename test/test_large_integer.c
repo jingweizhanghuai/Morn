@@ -4,14 +4,15 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// 编译： gcc -O2 -fopenmp test_large_integer.c -I ..\include\ -L ..\lib\x64\mingw\ -lmorn -o test_large_integer.exe
+// 编译： gcc -O2 -fopenmp test_large_integer.c -I ..\include\ -I C:\ProgramFiles\CPackage\gmp\include -L ..\lib\x64\mingw\ -lmorn -L C:\ProgramFiles\CPackage\gmp\lib_x64_mingw -lgmp -o test_large_integer.exe
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "morn_math.h"
+#include "gmp.h"
 
-int main()
+int main1()
 {
     char str[200];
     MLInt a,b,c,d,e,f,g;
@@ -32,7 +33,7 @@ int main()
         mStringToLInt(b0,&b);
         mLIntToString(&b,str);printf("b is %s\n",str);
 
-        mLIntMulU32(&a,mRand(0,0x7fffffff),&c);  
+        mLIntMulU32(&a,mRand(0,0x7fffffff),&c);
         mLIntToString(&c,str);printf("c is %s\n",str);
 
         mLIntMul(&b,&c,&d);          
@@ -51,6 +52,31 @@ int main()
         int flag2=mLIntCompare(&g,&a);
         if(flag2!=0)printf("flag2 is %d\n",flag2);
     }
+    return 0;
+}
+
+int main()
+{
+    char str[128];
+    mpz_t ga,gb,gc;
+    mpz_init(ga);mpz_init(gb);mpz_init(gc);
+    
+    MLInt ma,mb,mc;
+
+    strcpy(str,"-12345678900987654321");mpz_init_set_str(ga,str,10);mStringToLInt(str,&ma);
+    strcpy(str,"98765432100123456789");mpz_init_set_str(gb,str,10);mStringToLInt(str,&mb);
+
+    mTimerBegin();
+    for(int i=0;i<1000000;i++)mpz_mul(gc, ga, gb);
+    mTimerEnd();
+    gmp_sprintf(str,"%Zd",gc);printf("c=%s\n",str);
+
+    mTimerBegin();
+    for(int i=0;i<1000000;i++)mLIntMul(&ma,&mb,&mc);
+    mTimerEnd();
+    mLIntToString(&mc,str);printf("c=%s\n",str);
+
+    mpz_clear(ga);mpz_clear(gb);mpz_clear(gc);
     return 0;
 }
 

@@ -45,7 +45,7 @@ int main()
         mImageDrawPoint(src,src,polygon1->data[i],color1,4);
     for(int i=0;i<polygon2->num;i++)
         mImageDrawPoint(src,src,polygon2->data[i],color2,4);
-    mImageSave(src,"./test_geometry_rst1.bmp");
+    mImageSave(src,"./test_geometry_rst1.png");
     
     float area1 = mPolygonArea(polygon1);
     printf("area1 is %f\n",area1);

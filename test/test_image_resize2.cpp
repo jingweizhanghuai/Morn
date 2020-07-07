@@ -9,26 +9,25 @@ You should have received a copy of the GNU General Public License along with thi
 #include <stdlib.h>
 #include <string.h>
 
-#include "opencv2/opencv.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-
 #include "morn_Image.h"
 
-using namespace cv;
+// #include "opencv2/opencv.hpp"
+// #include "opencv2/imgproc/imgproc.hpp"
+// using namespace cv;
 
 int main()
 {
     //////////////////////////////////////////////////////////////
-    mLog(INFO,"image resize using opencv");
-    Mat src = imread("../doc/test.jpg"); 
-    Mat dst;
+    // mLog(INFO,"image resize using opencv");
+    // Mat src = imread("../doc/test.jpg"); 
+    // Mat dst;
     
-    mTimerBegin();
-    for(int i=0;i<1000;i++)
-        resize(src,dst,Size(256,256),(0, 0),(0, 0),INTER_LINEAR);
-    mTimerEnd();
+    // mTimerBegin();
+    // for(int i=0;i<100;i++)
+    //     resize(src,dst,Size(256,256),(0, 0),(0, 0),INTER_LINEAR);
+    // mTimerEnd();
     
-    imwrite("./test_resize_cv.jpg",dst);
+    // imwrite("./test_resize_cv.jpg",dst);
     //////////////////////////////////////////////////////////////
     
     //////////////////////////////////////////////////////////////
@@ -38,7 +37,7 @@ int main()
     MImage *out = mImageCreate(in->channel,256,256,NULL);
     
     mTimerBegin();
-    for(int i=0;i<1000;i++)
+    for(int i=0;i<100;i++)
         mImageResize(in,out,DFLT,DFLT,DFLT);
     mTimerEnd();
     

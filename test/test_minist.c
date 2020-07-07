@@ -15,8 +15,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 void test_data()
 {
-    FILE *f_label= fopen("E:/minist/train-labels.idx1-ubyte","rb");
-    FILE *f_data = fopen("E:/minist/train-images.idx3-ubyte","rb");
+    FILE *f_label= fopen("D:/download/minist/train-labels.idx1-ubyte","rb");
+    FILE *f_data = fopen("D:/download/minist/train-images.idx3-ubyte","rb");
     
     MTensor *tns[2];
     tns[0] = mTensorCreate(1,1,28,28,NULL);
@@ -35,10 +35,10 @@ void test_data()
         fread(data,1,28*28,f_data);
         for(int i=0;i<28*28;i++) tns[0]->data[0][i]=(float)data[i]/256;
         
-        sprintf(mornname,"E:/minist/train_data/train%05d.morn",n);
+        sprintf(mornname,"D:/download/minist/train%05d.morn",n);
         MFile *morn = mFileCreate(mornname);
-        mMORNWrite(morn, "input",(void **)(tns[0]->data),1,28*28*sizeof(float));
-        mMORNWrite(morn,"output",(void **)(tns[1]->data),1,   10*sizeof(float));
+        mMORNWrite(morn,mHash( "input",DFLT),(void **)(tns[0]->data),1,28*28*sizeof(float));
+        mMORNWrite(morn,mHash("output",DFLT),(void **)(tns[1]->data),1,   10*sizeof(float));
         mFileRelease(morn);
     }
     mTensorRelease(tns[0]);
@@ -48,11 +48,36 @@ void test_data()
     return;
 }
 
+FILE *g_f_label=NULL;
+FILE *g_f_data =NULL;
+void MinistData(MVector **vec,char **name,int number,char *dir)
+{
+    mException((number!=2),EXIT,"invalid input");
+    
+    if(g_f_label==NULL)g_f_label= fopen("D:/download/minist/train-labels.idx1-ubyte","rb");
+    if(g_f_data ==NULL)g_f_data = fopen("D:/download/minist/train-images.idx3-ubyte","rb");
+    
+    MVector *in,*out;
+    if(strcmp(name[0],"input")==0){in=vec[0];out=vec[1];}
+    else                          {in=vec[1];out=vec[0];}
+
+    int n=mRand(0,6000);
+    fseek(g_f_label,8+n*sizeof(unsigned char),SEEK_SET);
+    fseek(g_f_data,16+n*28*28*sizeof(unsigned char),SEEK_SET);
+    unsigned char label;
+    unsigned char data[28*28];
+    fread(&label,1,1,g_f_label);
+    fread(data,1,28*28,g_f_data);
+    for(int i=0;i<28*28;i++) in->data[i]=(float)data[i]/256;
+    memset(out->data,0,10*sizeof(float));out->data[label]=1;
+}
+
 void test_train()
 {
-    MFile *ini = mFileCreate("./test_minist.ini");
-    NetworkTrain(ini);
-    mFileRelease(ini);
+    mDataFuncRegister(MinistData);
+    mDeeplearningTrain("./test_minist.ini");
+    if(g_f_label!=NULL) fclose(g_f_label);
+    if(g_f_data !=NULL) fclose(g_f_data );
     return;
 }
 
@@ -60,8 +85,8 @@ int test_predict()
 {
     MFile *ini = mFileCreate("./test_minist.ini");
     
-    FILE *f_label= fopen("E:/minist/t10k-labels.idx1-ubyte","rb");
-    FILE *f_data = fopen("E:/minist/t10k-images.idx3-ubyte","rb");
+    FILE *f_label= fopen("D:/download/minist/t10k-labels.idx1-ubyte","rb");
+    FILE *f_data = fopen("D:/download/minist/t10k-images.idx3-ubyte","rb");
     
     MTensor *tns[2];
     tns[0] = mTensorCreate(1,1,28,28,NULL);
@@ -77,6 +102,7 @@ int test_predict()
     int correct=0;
     for(int n=0;n<10000;n++)
     {
+        // printf("n=%d\n",n);
         fread(data,1,28*28,f_data);
         for(int i=0;i<28*28;i++) tns[0]->data[0][i]=(float)data[i]/256;
         

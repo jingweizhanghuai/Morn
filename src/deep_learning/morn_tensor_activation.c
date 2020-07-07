@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
  
 #include <stdio.h>
@@ -162,13 +160,11 @@ void *mTensorActivationPara(MFile *ini,char *name)
 {
     struct TensorActivationPara *para = (struct TensorActivationPara *)mMalloc(sizeof(struct TensorActivationPara));
    
-    char *value = mINIRead(ini,name,"prev");
-    para->prev = mNetworkLayer(ini,value);
+    para->prev = mNetworkLayer(ini,mINIRead(ini,name,"prev"));
     mException((para->prev == NULL),EXIT,"invalid prev");
-    
     para->res_valid = (strcmp("Input",mLayerType(para->prev))!=0);
     
-    value = mINIRead(ini,name,"actv_func");
+    char *value = mINIRead(ini,name,"actv_func");
     if(value != NULL) 
     {
         int i;
@@ -189,17 +185,10 @@ void *mTensorActivationPara(MFile *ini,char *name)
         para->dfunc= DReLu;
     }
     
-    value = mINIRead(ini,name,"argv0");
-    if(value != NULL) para->argv[0]= atof(value);else para->argv[0]= DFLT;
-    
-    value = mINIRead(ini,name,"argv1");
-    if(value != NULL) para->argv[1]= atof(value);else para->argv[1]= DFLT;
-    
-    value = mINIRead(ini,name,"argv2");
-    if(value != NULL) para->argv[2]= atof(value);else para->argv[2]= DFLT;
-    
-    value = mINIRead(ini,name,"argv3");
-    if(value != NULL) para->argv[3]= atof(value);else para->argv[3]= DFLT;
+    para->argv[0]=DFLT; mINIRead(ini,name,"argv0","%f",&(para->argv[0]));
+    para->argv[1]=DFLT; mINIRead(ini,name,"argv1","%f",&(para->argv[1]));
+    para->argv[2]=DFLT; mINIRead(ini,name,"argv2","%f",&(para->argv[2]));
+    para->argv[3]=DFLT; mINIRead(ini,name,"argv3","%f",&(para->argv[3]));
     
     return para;
 }

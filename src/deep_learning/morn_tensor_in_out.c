@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
  
 #include <stdio.h>
@@ -59,20 +57,18 @@ void *mTensorOutputPara(MFile *ini,char *name)
 {
     struct TensorOutputPara *para = (struct TensorOutputPara *)mMalloc(sizeof(struct TensorOutputPara));
     
-    char *value = mINIRead(ini,name,"prev");
-    para->prev = mNetworkLayer(ini,value);
+    para->prev = mNetworkLayer(ini,mINIRead(ini,name,"prev"));
     mException((para->prev == NULL),EXIT,"invalid prev");
     
-    value=mINIRead(ini,name,"height" );if(value!=NULL) para->height =atoi(value);else para->height =DFLT; 
-    value=mINIRead(ini,name,"width"  );if(value!=NULL) para->width  =atoi(value);else para->width  =DFLT;
-    value=mINIRead(ini,name,"channel");if(value!=NULL) para->channel=atoi(value);else para->channel=DFLT;
+    para->height =DFLT; mINIRead(ini,name,"height" ,"%d",&(para->height )); 
+    para->width  =DFLT; mINIRead(ini,name,"width"  ,"%d",&(para->width  ));
+    para->channel=DFLT; mINIRead(ini,name,"channel","%d",&(para->channel));
     
     if(morn_network_flag == MORN_PREDICT) return para;
     
-    value = mINIRead(ini,name,"loss");
+    char *value = mINIRead(ini,name,"loss");
     if(value == NULL) value = mINIRead(ini,"para","loss");
     mException((value == NULL),EXIT,"layer %s no loss function defined",name);
-  
     int i;for(i=0;i<morn_loss_register_num;i++)
     {
         if(strcmp(value,morn_loss_register[i].name)==0)
@@ -84,42 +80,15 @@ void *mTensorOutputPara(MFile *ini,char *name)
     }
     mException((i==morn_loss_register_num),EXIT,"invalid loss function");
     
-    value = mINIRead(ini,name,"argv0");
-    if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[0][0]),value);}
-    value = mINIRead(ini,name,"argv1");
-    if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[1][0]),value);}
-    value = mINIRead(ini,name,"argv2");
-    if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[2][0]),value);}
-    value = mINIRead(ini,name,"argv3");
-    if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[3][0]),value);}
+    value = mINIRead(ini,name,"argv0");if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[0][0]),value);}
+    value = mINIRead(ini,name,"argv1");if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[1][0]),value);}
+    value = mINIRead(ini,name,"argv2");if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[2][0]),value);}
+    value = mINIRead(ini,name,"argv3");if(value!=NULL) {mException((strlen(value)>=128),EXIT,"invalid error");strcpy(&(para->argv[3][0]),value);}
 
-    value = mINIRead(ini,name,"rate");
-    if(value != NULL) para->rate = atof(value);
-    else
-    {
-        value = mINIRead(ini,"para","rate");
-        if(value != NULL) para->rate = atof(value);
-        else              para->rate = 0.001;
-    }
-    
-    value = mINIRead(ini,name,"decay");
-    if(value != NULL) para->decay = atof(value);
-    else
-    {
-        value = mINIRead(ini,"para","decay");
-        if(value != NULL) para->decay = atof(value);
-        else              para->decay = 0.01;
-    }
+    para->rate    =0.001;if(mINIRead(ini,name,"rate"    ,"%f",&(para->rate    ))==NULL) mINIRead(ini,"para","rate"    ,"%f",&(para->rate    ));
+    para->momentum= 0.9 ;if(mINIRead(ini,name,"momentum","%f",&(para->momentum))==NULL) mINIRead(ini,"para","momentum","%f",&(para->momentum));
+    para->decay   = 0.01;if(mINIRead(ini,name,"decay"   ,"%f",&(para->decay   ))==NULL) mINIRead(ini,"para","decay"   ,"%f",&(para->decay   ));
     mException((para->decay<0.0f)||(para->decay>=1.0f),EXIT,"invalid para decay");
-    
-    value = mINIRead(ini,name,"momentum");
-    if(value != NULL) para->momentum = atof(value); 
-    else
-    {
-        value = mINIRead(ini,"para","momentum");
-        if(value != NULL) para->momentum = atof(value);
-        else              para->momentum = 0.9;
-    }
     
     return para;
 }
@@ -164,7 +133,7 @@ void mTensorOutputForward(MLayer *layer)
 {
     mException(INVALID_POINTER(layer),EXIT,"invalid input");
     mException(strcmp("Output",mLayerType(layer)),EXIT,"invalid layer type");
-    
+
     TensorOutputSet(layer);
     
     layer->state = MORN_FORWARD;
@@ -178,7 +147,7 @@ void mTensorOutputBackward(MLayer *layer)
     struct TensorOutputPara *para = (struct TensorOutputPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
-    printf("in is %f,out is %f,flag=%d\n",in->data[0][0],out->data[0][0],(in->data[0][0]>in->data[0][1])==(out->data[0][0]>out->data[0][1]));
+    printf("in is %f,out is %f,flag=%d,%d\n",in->data[0][0],out->data[0][0],(in->data[0][0]>0)==(out->data[0][0]>=0),(in->data[0][1]>0)==(out->data[0][1]>=0));
     // printf("in is %f,out is %f,flag=%d\n",in->data[1][0],out->data[1][0],(in->data[1][0]>in->data[1][1])==(out->data[1][0]>out->data[1][1]));
     
     morn_network_error = 0.0f;

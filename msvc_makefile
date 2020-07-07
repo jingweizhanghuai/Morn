@@ -1,5 +1,6 @@
 ﻿OPENMP=1
-JPG_PNG=1
+USE_PNG=1
+USE_JPEG=1
 DEBUG=0
 
 CC = cl.exe
@@ -15,6 +16,19 @@ ifeq ($(DEBUG), 1)
 CCFLAGS += -D DEBUG
 endif
 
+WRAPDEF = 
+DEPENDLIB = $(LIBDIR)/libopenblas.lib $(LIBDIR)/pthreadVC2.lib
+
+ifeq ($(USE_PNG),1)
+WRAPDEF += -D MORN_USE_PNG
+DEPENDLIB += $(LIBDIR)/libpng.lib $(LIBDIR)/zlib.lib
+endif
+
+ifeq ($(USE_JPEG),1)
+WRAPDEF += -D MORN_USE_JPEG
+DEPENDLIB += $(LIBDIR)/libjpeg.lib
+endif
+
 STATICLIB = $(LIBDIR)/libmorn.lib
 SHAREDLIB = ./tool/libmorn.dll
 
@@ -27,17 +41,10 @@ CSOURCES += $(wildcard ./src/wave/*.c)
 CSOURCES += $(wildcard ./src/image/*.c)
 # CSOURCES += $(wildcard ./src/machine_learning/*.c)
 CSOURCES += $(wildcard ./src/deep_learning/*.c)
-ifeq ($(JPG_PNG), 1) 
-CSOURCES += $(wildcard ./src/wrap/*.c)
-endif
-
 OBJS = $(patsubst %.c,%.obj,$(CSOURCES))
 
-DEPENDLIB  = $(LIBDIR)/libopenblas.lib 
-DEPENDLIB += $(LIBDIR)/libjpeg.lib
-DEPENDLIB += $(LIBDIR)/libpng.lib
-DEPENDLIB += $(LIBDIR)/zlib.lib
-DEPENDLIB += $(LIBDIR)/pthread.lib
+WRAPSOURCES = $(wildcard ./src/wrap/*.c)
+WRAPOBJS = $(patsubst %.c,%.obj,$(WRAPSOURCES))
 
 INCLUDEDIR = -I ./include -I ./lib/include -I ./lib/include/pthread
 
@@ -50,19 +57,22 @@ tool:$(TOOLEXE)
 
 static:$(STATICLIB)
 
-$(STATICLIB):$(OBJS)
-	$(LIB) /out:$(STATICLIB) $(OBJS)
+$(STATICLIB):$(OBJS) $(WRAPOBJS)
+	$(LIB) /out:$(STATICLIB) $(OBJS) $(WRAPOBJS)
 
 shared:$(SHAREDLIB)
 
-$(SHAREDLIB):$(OBJS)
+$(SHAREDLIB):$(OBJS) $(WRAPOBJS)
 	$(LINK) -DLL -out:$(SHAREDLIB) $(OBJS) $(DEPENDLIB)
 
-%.obj:%.c
+$(WRAPOBJS):%.obj:%.c
+	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -Fo"$@"
+
+$(OBJS):%.obj:%.c
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -Fo"$@"
 
-clean:
-	del /a /s .\src\*.obj
-	del /a .\tool\*.exe
-	del /a .\tool\libmorn.dll
-	del /a .\lib\x64\msvc\libmorn.lib
+#clean:
+#	del /a /s .\src\*.obj
+#	del /a .\tool\*.exe
+#	del /a .\tool\libmorn.dll
+#	del /a .\lib\x64\msvc\libmorn.lib

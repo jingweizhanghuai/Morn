@@ -28,17 +28,18 @@ void test1()
     n=9; mMapWrite(map,"nine" ,DFLT,&n,sizeof(int));
     
     int *p;
-    p = mMapRead(map,"zero" ,DFLT,NULL,DFLT);printf("zero = %d\n",*p);
-    p = mMapRead(map,"one"  ,DFLT,NULL,DFLT);printf("one  = %d\n",*p); 
-    p = mMapRead(map,"two"  ,DFLT,NULL,DFLT);printf("two  = %d\n",*p); 
-    p = mMapRead(map,"three",DFLT,NULL,DFLT);printf("three= %d\n",*p);
-    p = mMapRead(map,"four" ,DFLT,NULL,DFLT);printf("four = %d\n",*p);
-    p = mMapRead(map,"five" ,DFLT,NULL,DFLT);printf("five = %d\n",*p);
-    p = mMapRead(map,"six"  ,DFLT,NULL,DFLT);printf("six  = %d\n",*p);
-    p = mMapRead(map,"seven",DFLT,NULL,DFLT);printf("seven= %d\n",*p);
-    p = mMapRead(map,"eight",DFLT,NULL,DFLT);printf("eight= %d\n",*p);
-    p = mMapRead(map,"nine" ,DFLT,NULL,DFLT);printf("nine = %d\n",*p);
-    
+    p = mMapRead(map,"zero" ,DFLT,NULL,DFLT);if(p!=NULL)printf("zero = %d\n",*p);
+    p = mMapRead(map,"one"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("one  = %d\n",*p); 
+    p = mMapRead(map,"two"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("two  = %d\n",*p); 
+    p = mMapRead(map,"three",DFLT,NULL,DFLT);if(p!=NULL)printf("three= %d\n",*p);
+    p = mMapRead(map,"four" ,DFLT,NULL,DFLT);if(p!=NULL)printf("four = %d\n",*p);
+    p = mMapRead(map,"five" ,DFLT,NULL,DFLT);if(p!=NULL)printf("five = %d\n",*p);
+    p = mMapRead(map,"six"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("six  = %d\n",*p);
+    p = mMapRead(map,"seven",DFLT,NULL,DFLT);if(p!=NULL)printf("seven= %d\n",*p);
+    p = mMapRead(map,"eight",DFLT,NULL,DFLT);if(p!=NULL)printf("eight= %d\n",*p);
+    p = mMapRead(map,"nine" ,DFLT,NULL,DFLT);if(p!=NULL)printf("nine = %d\n",*p);
+    p = mMapRead(map,"ten"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("ten  = %d\n",*p);
+
     mChainRelease(map);
 }
 
@@ -59,16 +60,17 @@ void test2()
     n=9; mMapWrite(map,&n,sizeof(int),"nine" ,DFLT);
     
     char *p;
-    n=0; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=1; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p); 
-    n=2; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p); 
-    n=3; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=4; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=5; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=6; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=7; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=8; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=9; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
+    n=0; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=1; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p); 
+    n=2; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p); 
+    n=3; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=4; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=5; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=6; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=7; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=8; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=9; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
+    n=10;p = mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);
     
     mChainRelease(map);
 }
@@ -80,8 +82,3 @@ int main()
     printf("test2:\n");
     test2();
 }
-
-    
-    
-    
-    

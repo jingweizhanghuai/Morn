@@ -122,7 +122,7 @@ U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index
 或者，可以用：
 
 ```c
-Type mMinSubset(Type，Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
+Type mMinSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
 ```
 
 其参数Type、data_in、data_out、index_in、index_out与`mAscSort`相同，不再赘述。
@@ -167,7 +167,7 @@ U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index
 或者，可以用：
 
 ```c
-Type mMaxSubset(Type，Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
+Type mMaxSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
 ```
 
 其参数与`mMinSubset`相同，不再赘述。
@@ -250,6 +250,7 @@ void test1()
 
 这里比较了Morn的`mMinSubset`函数，和科学计算库GSL的`gsl_sort_smallest`函数。测试程序如下：
 
+
 ```c
 void test2()
 {
@@ -279,6 +280,7 @@ void test2()
 
 #### 带索引排序的性能
 这里比较的是Morn的`mAscSort`和GSL的`gsl_sort_index`函数。测试程序如下：
+
 ```c
 void test3()
 {
@@ -330,7 +332,9 @@ void test4()
 }
 ```
 这里，从1000000个随机生成的double数据中，分别取出100000、300000、500000、700000、900000个数据，测试结果如下：
+
 ![排序4](排序4.PNG)
+
 显然Morn的排序快的多。
 这里`gsl_sort_largest_index`与`mMaxSubset`也是有区别的。`gsl_sort_largest_index`只输出排序后的索引，且索引对应的数据是有序的。`mAscSort`会输出索引和数据，且数据是无序的。
 

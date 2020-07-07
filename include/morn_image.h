@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #ifndef _MORN_IMAGE_H_
@@ -22,6 +20,7 @@ extern "C"
 #define MORN_IMAGE_RGBA 4
 #define MORN_IMAGE_YUV  5
 #define MORN_IMAGE_HSV  6
+#define MORN_IMAGE_LAB  7
 
 #define MORN_BORDER_UNDEFINED DFLT
 #define MORN_BORDER_BLACK     0
@@ -49,6 +48,7 @@ typedef struct MImage {
 MImage *ImageCreate(int channel,int height,int width,unsigned char **data[]);
 #define mImageCreate(...) (\
     (VA_ARG_NUM(__VA_ARGS__)==0)?ImageCreate(DFLT,DFLT,DFLT,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?ImageCreate(DFLT,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),NULL):\
     (VA_ARG_NUM(__VA_ARGS__)==3)?ImageCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),NULL):\
     (VA_ARG_NUM(__VA_ARGS__)==4)?ImageCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),(unsigned char ***)VA_ARG3(__VA_ARGS__)):\
     NULL\
@@ -56,7 +56,7 @@ MImage *ImageCreate(int channel,int height,int width,unsigned char **data[]);
 void ImageRedefine(MImage *img,int channel,int height,int width,unsigned char **data[]);
 #define mImageRedefine(Img,...) do{\
     int N=VA_ARG_NUM(__VA_ARGS__);\
-    if(N==0) ImageRedefine(Img,DFLT,DFLT,DFLT,(Img)->data);\
+         if(N==2) ImageRedefine(Img,DFLT,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(Img)->data);\
     else if(N==3) ImageRedefine(Img,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),(Img)->data);\
     else if(N==4) ImageRedefine(Img,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),(unsigned char ***)VA_ARG3(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input para");\
@@ -67,7 +67,7 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width);
 void mImageExpand(MImage *img,int r,int expand_type);
 void mImageCopy(MImage *src,MImage *dst);
 MImage *mImageChannelSplit(MImage *src,int num,...);
-void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2,int lx,int ly);
+void mImageCut(MImage *img,MImage *ROI,int src_x1,int src_x2,int src_y1,int src_y2,int dst_x,int dst_y);
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
@@ -113,12 +113,6 @@ void mImageRGBToGray(MImage *src,MImage *dst);
 void mImageYUVToGray(MImage *src,MImage *dst);
 void mImageToGray(MImage *src,MImage *dst); 
 
-void mImagePolygonBorder(MArray *border,int height,int width,int num,...);
-void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2);
-#define ImageY1(Img) (((Img)->border==NULL)?0:(int)(((Img)->border)->info.value[0]))
-#define ImageY2(Img) (((Img)->border==NULL)?((Img)->height):(int)(((Img)->border)->info.value[1]))
-#define ImageX1(Img,n) (((Img)->border==NULL)?0:(((Img)->border)->dataS16[n+n]))
-#define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width):(((Img)->border)->dataS16[n+n+1]))
 
 
 #define mImageExchange(Src,Dst) mObjectExchange(Src,Dst,MImage)
@@ -205,7 +199,8 @@ int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,d
 int mLineCross(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e,MImagePoint *point);
 
 float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e);
-void mPolygon(MList *polygon,int num,...);
+void _PolygonSetup(MList *polygon,int num,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float x5,float y5,float x6,float y6,float x7,float y7);
+#define mPolygon(Polygon,...) _PolygonSetup(Polygon,VA_ARG_NUM(__VA_ARGS__)/2,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__),VA_ARG6(__VA_ARGS__),VA_ARG7(__VA_ARGS__),VA_ARG8(__VA_ARGS__),VA_ARG9(__VA_ARGS__),VA_ARG10(__VA_ARGS__),VA_ARG11(__VA_ARGS__),VA_ARG12(__VA_ARGS__),VA_ARG13(__VA_ARGS__),VA_ARG14(__VA_ARGS__),VA_ARG15(__VA_ARGS__))
 #define mRectArea(Rect) ((((MImageRect *)(Rect))->x2-((MImageRect *)(Rect))->x1)*(((MImageRect *)(Rect))->y2-((MImageRect *)(Rect))->y1))
 float mPolygonArea(MList *polygon);
 float TriangleArea(float x1,float y1,float x2,float y2,float x3,float y3);
@@ -225,9 +220,25 @@ float mRectIntersetArea(MImageRect *rect1,MImageRect *rect2);
 float mCircleIntersetArea(MImageCircle *circle1,MImageCircle *circle2);
 float mPolygonIntersetArea(MList *polygon1,MList *polygon2);
 int PolygonCross(MList *polygon1,MList *polygon2);
-int mPolygonCross(MList *polygon1,MList *polygon2);
+int mPolygonCrossCheck(MList *polygon1,MList *polygon2);
+#define mRectCrossCheck(Rect1,Rect2) ((MIN(Rect1->x2,Rect2->x2)>MAX(Rect1->x1,Rect2->x1))&&(MIN(Rect1->y2,Rect2->y2)>MAX(Rect1->y1,Rect2->y1)))
 int mPolygonConcaveCheck(MList *polygon);
 void mShapeBounding(MList *shape,MList *bounding);
+
+void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon);
+#define mImagePolygonBorder(Border,Height,Width,...) do{\
+    MList *Polygon=ListCreate(DFLT,NULL);\
+    mPolygon(Polygon,__VA_ARGS__);\
+    ImagePolygonBorder(Border,Height,Width,Polygon);\
+    mListRelease(Polygon);\
+}while(0)
+
+void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2);
+#define ImageY1(Img) (((Img)->border==NULL)?0:(int)(((Img)->border)->info.value[0]))
+#define ImageY2(Img) (((Img)->border==NULL)?((Img)->height):(int)(((Img)->border)->info.value[1]))
+#define ImageX1(Img,n) (((Img)->border==NULL)?0:(((Img)->border)->dataS16[n+n]))
+#define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width):(((Img)->border)->dataS16[n+n+1]))
+
 
 void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
 void mEdgeBoundary(MList *edge,MList *polygon,int thresh);

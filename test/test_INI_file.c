@@ -14,29 +14,23 @@ You should have received a copy of the GNU General Public License along with thi
 int main()
 {
     int i,j;
-    char *value;
     MFile *file = mFileCreate("./test_INI_file.ini");
     MList *student = mINISection(file);
-    MList *score = mListCreate(DFLT,NULL);
+    
     for(i=0;i<student->num;i++)
     {
-        value = mINIRead(file,student->data[i],"年级");
-        int grade = atoi(value);
-        value = mINIRead(file,student->data[i],"班级");
-        int class = atoi(value);
+        int grade;int class;
+        mINIRead(file,student->data[i],"年级","%d",&grade);
+        mINIRead(file,student->data[i],"班级","%d",&class);
         char *label = mINIRead(file,student->data[i],"类别");
         float sum=0.0f;
         for(j=1;;j++)
         {
-            char name[16];sprintf(name,"成绩%d",j);
-            value = mINIRead(file,student->data[i],name);
-            if(value==NULL) break;
-            mStringSplit(value,"(",score);
-            sum+=atof(score->data[1]);
+            char name[16];sprintf(name,"成绩%d",j);float score;
+            if(mINIRead(file,student->data[i],name,"%[^(](%f)",name,&score)==NULL) break;
+            sum+=score;
         }
-        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",
-        student->data[i],grade,class,label,sum/(j-1));
+        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",student->data[i],grade,class,label,sum/(j-1));
     }
-    mListRelease(score);
     mFileRelease(file);
 }

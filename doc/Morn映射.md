@@ -237,7 +237,7 @@ int main()
 
 测试结果如下：
 
-![](E:\morn\doc\映射.PNG)
+![](映射.PNG)
 
 可见，Morn和STL中的Map在性能上差别不大。
 

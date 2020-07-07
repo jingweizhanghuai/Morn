@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -295,11 +293,28 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     else
         mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
-    
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     int height = dst->height;
     int width = dst->width;
+
+    MImagePoint p_s[4],p_d[4]; 
+    if(ps==NULL)
+    {
+        ps=p_s;
+        mPoint(ps+0,         0,          0);
+        mPoint(ps+1,src->width,          0);
+        mPoint(ps+2,src->width,src->height);
+        mPoint(ps+3,         0,src->height);
+    }
+    if(pd==NULL)
+    {
+        pd=p_d;
+        mPoint(pd+0,    0,     0);
+        mPoint(pd+1,width,     0);
+        mPoint(pd+2,width,height);
+        mPoint(pd+3,    0,height);
+    }
     
     MHandle *hdl=mHandle(src,ImagePerspectiveCorrection);
     struct HandleImagePerspectiveCorrection *handle = (struct HandleImagePerspectiveCorrection *)(hdl->handle);
@@ -545,9 +560,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
     
     if(angle==0.0f) 
     {
-        if(dst_hold==NULL) {mImageCopy(src,dst); return;}
-        int dx=dst_hold->x-scx;int dy=dst_hold->y-scy;
-        mImageCut(src,dst,0,src->width,0,src->height,dx,dy);
+        mImageCut(src,dst,scx-width/2,scx+width/2,scy-height/2,scy+height/2,0,0);
         return;
     }
     

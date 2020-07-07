@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -131,6 +129,33 @@ void mObjectRedefine(MObject *object,const void *obj)
         mHandleReset(object->handle);
     }
 }
+
+struct HandleFileCreate
+{
+    char filename[256];
+};
+void endFileCreate(void *info) {NULL;}
+#define HASH_FileCreate 0xfdab2bff
+MFile *FileCreate(char *filename)
+{
+    MFile *file = mObjectCreate(NULL);
+    MHandle *hdl = mHandle(file,FileCreate);
+    hdl->valid=1;
+    struct HandleFileCreate *handle = hdl->handle;
+    file->filename = handle->filename;
+    strcpy(file->filename,filename);
+    return file;
+}
+
+void FileRedefine(MFile *file,char *filename)
+{
+    if(strcmp(filename,file->filename)!=0)
+    {
+        strcpy(file->filename,filename);
+        mHandleReset(file->handle);
+    }
+}
+    
  
 pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
 int morn_log_level = MORN_LOG_INFO;

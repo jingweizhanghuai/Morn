@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -21,7 +19,7 @@ struct HandleImageCreate
     int width;
     unsigned char **index;
     MMemory *memory;
-
+    
     // int backup_cn;
     // int backup_height;
     // int backup_width;
@@ -314,48 +312,66 @@ void mImageExpand(MImage *img,int r,int border_type)
     mInfoSet(&(img->info),"border_type",border_type);
 }
 
-void ImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly)
+void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly)
 {
-    mException(INVALID_IMAGE(img)||INVALID_IMAGE(dst),EXIT,"invalid input");
-    if(lx<0) {lx=0;x1=x1-lx;} if(ly<0) {ly=0;y1=y1-ly;}
+    mException(INVALID_IMAGE(img),EXIT,"invalid input");
     
+    int height = ABS(y1-y2);int width = ABS(x1-x2);
+    mException((height==0)||(width<=0),EXIT,"invalid input");
+
+    if(lx<0) {x1=(x1<x2)?(x1-lx):(x1+lx); lx=0;} else if(lx>0) {x2=(x1<x2)?(x2-lx):(x2+lx);}
+    if(ly<0) {y1=(y1<y2)?(y1-ly):(y1+ly); ly=0;} else if(ly>0) {y2=(y1<y2)?(y2-ly):(y2+ly);}
+    if((y1<0)&&(y2<0)) {return;} if((y1>=img->height)&&(y2>=img->height)) {return;}
+    if((x1<0)&&(x2<0)) {return;} if((x1>=img->width )&&(x2>=img->width )) {return;}
+    if(y1<0) {ly=ly-y1; y1=0;} else if(y2<0) {ly=ly-y2; y2=0;}
+    if(x1<0) {lx=lx-x1; x1=0;} else if(x2<0) {lx=lx-x2; x2=0;}
+    y1=MIN(y1,img->height);y2=MIN(y2,img->height);
+    x1=MIN(x1,img->width );x2=MIN(x2,img->width );
+
     if(INVALID_POINTER(dst)) dst=img;
     unsigned char ***dst_data;
-    if(img==dst) dst_data=mImageBackup(img,DFLT,dst->height,dst->width);
-    else {mImageRedefine(dst,img->channel,DFLT,DFLT,NULL);dst_data=dst->data;}
-
-    int height = ABS(y1-y2);int width = ABS(x1-x2);
-    // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
-    int cn=img->channel;
-    for(int j=ly,y=y1;j<ly+height;j++,y+=((y2>y1)?1:-1))
+    if((img==dst)&&(ly>=y1)) dst_data=mImageBackup(img,DFLT,height,width);
+    else if(dst!=img)
     {
-        if(y<0) {continue;} if(y>=img->height) {continue;}
-        for(int i=lx,x=x1;i<lx+width;i++,x+=((x2>x1)?1:-1))
-        {
-            if(x<0) {continue;} if(x>=img-> width) {continue;}
-            // if(img->data[0][y][x]==0) continue;
-            for(int c=0;c<cn;c++) dst->data[c][j][i]=img->data[c][y][x];
-        }
+        mImageRedefine(dst,img->channel,height,width);
+        dst_data=dst->data;
     }
+    else dst_data=img->data;
+    
+    int h = ABS(y1-y2);int w = ABS(x1-x2);
+    if((h==0)||(w==0)) return;
+    
+    // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d,lx=%d,ly=%d,height=%d,width=%d,h=%d,w=%d\n",x1,x2,y1,y2,lx,ly,height,width,h,w);
+    for(int c=0;c<img->channel;c++)
+        for(int j=ly,y=y1;j<ly+h;j++,y+=((y2>y1)?1:-1))
+        {
+            if(x1<x2) 
+                memcpy(dst->data[c][j]+lx,img->data[c][y]+x1,w*sizeof(unsigned char));
+            else
+                {for(int i=lx,x=x1;i<lx+w;i++,x--) dst->data[c][j][i]=img->data[c][y][x];}
+        }
 
-    if(img==dst) mImageRedefine(img,DFLT,DFLT,DFLT,dst_data);
+    if(img==dst) mImageRedefine(dst,DFLT,height,width,dst_data);
 }
 
-void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2,int lx,int ly)
-{
-    mException(INVALID_IMAGE(img)||INVALID_IMAGE(ROI),EXIT,"invalid input");
-    if(lx<0) {lx=0;x1=x1-lx;} if(ly<0) {ly=0;y1=y1-ly;}
-    int flag = (x1<0)||(x2>=img->width)||(x1>=x2)||(y1<0)||(y2>=img->height)||(y1>=y2)||((img==ROI)&&(ly<y1));
+// void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2,int lx,int ly)
+// {
+//     mException(INVALID_IMAGE(img),EXIT,"invalid input");
+
+//     int flag = (x1<0)||(x2>=img->width)||(x1>=x2)||(y1<0)||(y2>=img->height)||(y1>=y2)||((img==ROI)&&(ly<y1));
+//     if(flag){ImageCut(img,ROI,x1,x2,y1,y2,lx,ly);return;}
+
+//     int height=y2-y1;int width =x2-x1;
+//     if(INVALID_POINTER(ROI)) ROI=img;
+//     else mImageRedefine(ROI,img->channel,height,width);
     
-    if(flag){ImageCut(img,ROI,x1,x2,y1,y2,lx,ly);return;}
-        
-    if(INVALID_POINTER(ROI)) ROI=img;
-    else mImageRedefine(ROI,img->channel,DFLT,DFLT,ROI->data);
+//     if(lx<0) {x1=x1-lx;lx=0;} else if(lx>0) {x2=x2-lx;}
+//     if(ly<0) {y1=y1-ly;ly=0;} else if(ly>0) {y2=y2-ly;}
     
-    // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
-    for(int j=y1;j<y2;j++)for(int cn=0;cn<ROI->channel;cn++)
-        memmove(ROI->data[cn][ly+j-y1]+lx,img->data[cn][j]+x1,MIN((ROI->width-lx),(x2-x1))*sizeof(unsigned char));
-}
+//     // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
+//     for(int j=y1;j<y2;j++)for(int cn=0;cn<ROI->channel;cn++)
+//         memmove(ROI->data[cn][ly+j-y1]+lx,img->data[cn][j]+x1,MIN((ROI->width-lx),(x2-x1))*sizeof(unsigned char));
+// }
 
 void mImageCopy(MImage *src,MImage *dst)
 {

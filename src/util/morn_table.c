@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -114,14 +112,14 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     handle->element_size = element_size;
     
     if(same_size&&reuse) return;
-    if(same_size&&(data==NULL)&&(handle->col>0)) return;
+    if(same_size&&(INVALID_POINTER(data))&&(handle->col>0)) return;
     
     mException(reuse&&flag&&(handle->col==0),EXIT,"invalid redefine");
     
     handle->col=0;
     if((row<=0)||(col<=0)||(element_size<=0)) 
     {
-        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        mException((!INVALID_POINTER(data))&&(!reuse),EXIT,"invalid input");
         tab->data=NULL; 
         return;
     }
@@ -140,7 +138,7 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     }
     tab->data = handle->index;
     
-    if(data!=NULL) {memcpy(handle->index,data,row*sizeof(void *));return;}
+    if(!INVALID_POINTER(data)) {memcpy(handle->index,data,row*sizeof(void *));return;}
     
     if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST_CPU);
     else mMemoryRedefine(handle->memory,1,row*col*element_size,MORN_HOST_CPU);
@@ -232,21 +230,21 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
     array->num = num;
     handle->element_size = element_size;
     if(same_size&&reuse) return;
-    if(same_size&&(data==NULL)&&(handle->num >0)) return;
+    if(same_size&&(INVALID_POINTER(data))&&(handle->num >0)) return;
     
     mException(reuse&&flag&&(handle->num==0),EXIT,"invalid redefine");
     
     handle->num=0;
     if((num <= 0)||(element_size<=0)) 
     {
-        mException((data!=NULL)&&(!reuse),EXIT,"invalid input");
+        mException((!INVALID_POINTER(data))&&(!reuse),EXIT,"invalid input");
         array->data = NULL;
         return;
     }
     
     if(reuse) data=NULL;
     
-    if(data!=NULL) {handle->element_size = element_size;array->data = data;return;}
+    if(!INVALID_POINTER(data)) {handle->element_size = element_size;array->data = data;return;}
         
     if(num>handle->num)
     {

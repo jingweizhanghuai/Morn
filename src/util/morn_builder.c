@@ -1,3 +1,8 @@
+/*
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
+
 #include <stdio.h>
 #include <Stdlib.h>
 #include <string.h>
@@ -130,10 +135,11 @@ void mPCLoad(char *filename,MList *out)
             char *p1;char *p2=pinfo[1];
             while(1)
             {
-                int ok=mStringSplit(p2," ",&p1,&p2,DFLT);
-                sprintf(buff,"%c%s",MORN_PC_Cflags,p1);
+                p1=strstr(p2," ");if(p1!=NULL) {*p1=0;p1++;}
+                sprintf(buff,"%c%s",MORN_PC_Cflags,p2);
                 mListWrite(out,DFLT,buff,8);
-                if(!ok) break;
+                if(p1==NULL) break;
+                p2=p1;
             }
         }
         else if(memcmp(pinfo[0],"Libs.private",12)==0)
@@ -141,10 +147,11 @@ void mPCLoad(char *filename,MList *out)
             char *p1;char *p2=pinfo[1];
             while(1)
             {
-                int ok=mStringSplit(p2," ",&p1,&p2,DFLT);
-                sprintf(buff,"%c%s",MORN_PC_Libs_private,p1);
+                p1=strstr(p2," ");if(p1!=NULL) {*p1=0;p1++;}
+                sprintf(buff,"%c%s",MORN_PC_Libs_private,p2);
                 mListWrite(out,DFLT,buff,8);
-                if(!ok) break;
+                if(p1==NULL) break;
+                p2=p1;
             }
         }
         else if(memcmp(pinfo[0],"Libs",4)==0)
@@ -152,10 +159,11 @@ void mPCLoad(char *filename,MList *out)
             char *p1;char *p2=pinfo[1];
             while(1)
             {
-                int ok=mStringSplit(p2," ",&p1,&p2,DFLT);
-                sprintf(buff,"%c%s",MORN_PC_Libs,p1);
+                p1=strstr(p2," ");if(p1!=NULL) {*p1=0;p1++;}
+                sprintf(buff,"%c%s",MORN_PC_Libs,p2);
                 mListWrite(out,DFLT,buff,8);
-                if(!ok) break;
+                if(p1==NULL) break;
+                p2=p1;
             }
         }
     }

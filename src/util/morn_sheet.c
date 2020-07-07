@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -23,7 +21,7 @@ struct HandleSheetCreate
     
     MMemory *memory;
 
-    MList *list;
+    // MList *list;
 };
 void endSheetCreate(void *info)
 {
@@ -48,7 +46,7 @@ void endSheetCreate(void *info)
     mFree(handle->sheet);
 }
 #define HASH_SheetCreate 0x3cb067ca
-MSheet *mSheetCreate(int row,int *col,void ***data)
+MSheet *SheetCreate(int row,int *col,void ***data)
 {
     MSheet *sheet = (MSheet *)mMalloc(sizeof(MSheet));
     memset(sheet,0,sizeof(MSheet));
@@ -64,7 +62,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
     
     if(row == 0) 
     {
-        mException((col != NULL)||(data!= NULL),EXIT,"invalid input");
+        mException((!INVALID_POINTER(col))||(!INVALID_POINTER(data)),EXIT,"invalid input");
         sheet->col = NULL;
         sheet->data = NULL;
         sheet->row_info = NULL;
@@ -76,7 +74,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
     handle->col     = (int *   )mMalloc(row*sizeof(int));
     handle->row_info= (MInfo * )mMalloc(row*sizeof(MInfo));
     memset(handle->row_info,0,row*sizeof(MInfo));
-    if(col!= NULL)
+    if(!INVALID_POINTER(col))
     {
         for(int j=0;j<row;j++)
         {
@@ -91,7 +89,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
             handle->col[j] = col[j];
             handle->num[j] = col[j];
             
-            if(data != NULL)
+            if(!INVALID_POINTER(data))
                 memcpy(handle->data[j],data[j],col[j]*sizeof(void *));
             else
                 memset(handle->data[j],0      ,col[j]*sizeof(void *));
@@ -99,7 +97,7 @@ MSheet *mSheetCreate(int row,int *col,void ***data)
     }
     else
     {
-        mException((data!=NULL),EXIT,"invalid input");
+        mException((!INVALID_POINTER(data)),EXIT,"invalid input");
         memset(handle->data,0,row*sizeof(void **));
         memset(handle->num ,0,row*sizeof(int));
         memset(handle->col ,0,row*sizeof(int));

@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #ifndef _MORN_UNIVERSAL_H_
@@ -43,24 +41,40 @@ typedef double   D64;
 typedef intptr_t PTR;
 
 #define ARG(X) X
-#define _VA_ARG_NUM(A0,A1,A2,A3,A4,A5,A6,A7,N,...) ((N==1)?((#A0)[0]!=0):N)
-#define VA_ARG_NUM(...) ARG(_VA_ARG_NUM(__VA_ARGS__,8,7,6,5,4,3,2,1,0))
-#define _VA_ARG0(A0,...) (A0+0)
-#define _VA_ARG1(A0,A1,...) (A1)
-#define _VA_ARG2(A0,A1,A2,...) (A2)
-#define _VA_ARG3(A0,A1,A2,A3,...) (A3)
-#define _VA_ARG4(A0,A1,A2,A3,A4,...) (A4)
-#define _VA_ARG5(A0,A1,A2,A3,A4,A5,...) (A5)
-#define _VA_ARG6(A0,A1,A2,A3,A4,A5,A6,...) (A6)
-#define _VA_ARG7(A0,A1,A2,A3,A4,A5,A6,A7,...) (A7)
-#define VA_ARG0(...) ARG(_VA_ARG0(__VA_ARGS__,DFLT))
-#define VA_ARG1(...) ARG(_VA_ARG1(__VA_ARGS__,DFLT,DFLT))
-#define VA_ARG2(...) ARG(_VA_ARG2(__VA_ARGS__,DFLT,DFLT,DFLT))
-#define VA_ARG3(...) ARG(_VA_ARG3(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT))
-#define VA_ARG4(...) ARG(_VA_ARG4(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT))
-#define VA_ARG5(...) ARG(_VA_ARG5(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
-#define VA_ARG6(...) ARG(_VA_ARG6(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
-#define VA_ARG7(...) ARG(_VA_ARG7(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define _VA_ARG_NUM(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,N,M,...) ((N==M+1)?((N==1)?((#A0)[0]!=0):N):DFLT)
+#define VA_ARG_NUM(...) ARG(_VA_ARG_NUM(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,-1))
+#define _VA_ARG0(A0,...) A0
+#define _VA_ARG1(A0,A1,...) A1
+#define _VA_ARG2(A0,A1,A2,...) A2
+#define _VA_ARG3(A0,A1,A2,A3,...) A3
+#define _VA_ARG4(A0,A1,A2,A3,A4,...) A4
+#define _VA_ARG5(A0,A1,A2,A3,A4,A5,...) A5
+#define _VA_ARG6(A0,A1,A2,A3,A4,A5,A6,...) A6
+#define _VA_ARG7(A0,A1,A2,A3,A4,A5,A6,A7,...) A7
+#define _VA_ARG8(A0,A1,A2,A3,A4,A5,A6,A7,A8,...) A8
+#define _VA_ARG9(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,...) A9
+#define _VA_ARG10(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,...) A10
+#define _VA_ARG11(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,...) A11
+#define _VA_ARG12(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,...) A12
+#define _VA_ARG13(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,...) A13
+#define _VA_ARG14(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,...) A14
+#define _VA_ARG15(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,...) A15
+#define VA_ARG0(...)  ARG(_VA_ARG0(__VA_ARGS__,DFLT)+0)
+#define VA_ARG1(...)  ARG(_VA_ARG1(__VA_ARGS__,DFLT,DFLT))
+#define VA_ARG2(...)  ARG(_VA_ARG2(__VA_ARGS__,DFLT,DFLT,DFLT))
+#define VA_ARG3(...)  ARG(_VA_ARG3(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG4(...)  ARG(_VA_ARG4(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG5(...)  ARG(_VA_ARG5(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG6(...)  ARG(_VA_ARG6(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG7(...)  ARG(_VA_ARG7(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG8(...)  ARG(_VA_ARG8(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG9(...)  ARG(_VA_ARG9(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG10(...) ARG(_VA_ARG10(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG11(...) ARG(_VA_ARG11(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG12(...) ARG(_VA_ARG12(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG13(...) ARG(_VA_ARG13(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG14(...) ARG(_VA_ARG14(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
+#define VA_ARG15(...) ARG(_VA_ARG15(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT,DFLT))
 
 #ifndef ABS
 #define ABS(Xin) (((Xin)>0)?(Xin):(0-(Xin)))
@@ -235,7 +249,13 @@ typedef struct MList
     void *reserve;
 }MList;
 
-MList *mListCreate(int num,void **data);
+MList *ListCreate(int num,void **data);
+#define mListCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?ListCreate(DFLT,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?ListCreate(VA_ARG0(__VA_ARGS__),NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?ListCreate(VA_ARG0(__VA_ARGS__),(void **)VA_ARG1(__VA_ARGS__)):\
+    NULL\
+)
 void mListRelease(MList *list);
 void mListAppend(MList *list,int num);
 void mListPlace(MList *list,void *data,int num,int size);
@@ -312,7 +332,7 @@ MList *mHandleCreate(void);
 void mHandleRelease(MList *handle);
 void mHandleReset(MList *handle);
 MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *));
-#define mHandle(Obj,Func) GetHandle(Obj->handle,sizeof(struct Handle##Func),HASH_##Func,end##Func)
+#define mHandle(Obj,Func) GetHandle(Obj->handle,sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
 #define mReset(Obj) mHandleReset(Obj->handle)
 
     
@@ -348,7 +368,14 @@ typedef struct MSheet
     Morn;
     void *reserve;
 }MSheet;
-MSheet *mSheetCreate(int row,int *col,void ***data);
+MSheet *SheetCreate(int row,int *col,void ***data);
+#define mSheetCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?SheetCreate(DFLT,NULL,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?SheetCreate(VA_ARG0(__VA_ARGS__),NULL,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?SheetCreate(VA_ARG0(__VA_ARGS__),(int *)VA_ARG1(__VA_ARGS__),NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?SheetCreate(VA_ARG0(__VA_ARGS__),(int *)VA_ARG1(__VA_ARGS__),(void ***)VA_ARG2(__VA_ARGS__)):\
+    NULL\
+)
 void mSheetRelease(MSheet *sheet);
 #define mSheetClear(Sheet) do{for(int Row=0;Row<Sheet->row;Row++) Sheet->col[Row]=0;Sheet->row=0;}while(0)
 void mSheetRowAppend(MSheet *sheet,int row);
@@ -386,10 +413,24 @@ typedef struct MTable{
 }MTable;
 
 MTable *TableCreate(int row,int col,int element_size,void **data);
-#define mTableCreate(Row,Col,Type,Data) TableCreate(Row,Col,ElementSize(#Type,sizeof(Type)),Data)
+#define _TableCreate(Row,Col,Type,...) (TableCreate(Row+0,Col,ElementSize(#Type,sizeof(Type)),(void **)ARG(_VA_ARG0(__VA_ARGS__,DFLT))))
+#define mTableCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?TableCreate(DFLT,DFLT,0,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?TableCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),0,NULL):\
+    ARG(_TableCreate(__VA_ARGS__,DFLT,DFLT,DFLT))\
+)
+
 void mTableRelease(MTable *tab);
+
 void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
-#define mTableRedefine(Tab,Row,Col,Type,Data) TableRedefine(Tab,Row,Col,ElementSize(#Type,sizeof(Type)),Data)
+#define _TableRedefine(Tab,Row,Col,Type,...) TableRedefine(Tab+0,Row,Col,ElementSize(#Type,sizeof(Type)),(void **)ARG(_VA_ARG0(__VA_ARGS__,DFLT)))
+#define mTableRedefine(...) do{\
+    int Num_Args = VA_ARG_NUM(__VA_ARGS__);\
+    mException((Num_Args==0)||(Num_Args==2),EXIT,"invalid input with argument number");\
+         if(Num_Args==3) TableRedefine(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),DFLT,NULL);\
+    else if(Num_Args>=4) ARG(_TableRedefine(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT));\
+}while(0)
+
 #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
 
@@ -413,10 +454,21 @@ typedef struct MArray{
     void *reserve;
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
-#define mArrayCreate(Num,Type,Data) ArrayCreate(Num,ElementSize(#Type,sizeof(Type)),Data)
+#define _ArrayCreate(Num,Type,...) (ArrayCreate(Num+0,ElementSize(#Type,sizeof(Type)),(void **)ARG(_VA_ARG0(__VA_ARGS__,DFLT))))
+#define mArrayCreate(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?ArrayCreate(DFLT,0,NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?ArrayCreate(VA_ARG0(__VA_ARGS__),0,NULL):\
+    _ArrayCreate(__VA_ARGS__,DFLT,DFLT)\
+)
 void mArrayRelease(MArray *array);
 void ArrayRedefine(MArray *array,int num,int element_size,void *data);
-#define mArrayRedefine(Array,Num,Type,Data) ArrayRedefine(Array,Num,ElementSize(#Type,sizeof(Type)),Data)
+#define _ArrayRedefine(Array,Num,Type,...) (ArrayRedefine(Array+0,Num,ElementSize(#Type,sizeof(Type)),(void **)ARG(_VA_ARG0(__VA_ARGS__,DFLT))));
+#define mArrayRedefine(...) do{\
+    int Num_Args = VA_ARG_NUM(__VA_ARGS__);\
+    mException((Num_Args==0),EXIT,"invalid input with argument number");\
+    if(Num_Args==2) ArrayRedefine(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),DFLT,NULL);\
+    else if(Num_Args>=3) ARG(_ArrayRedefine(__VA_ARGS__,DFLT,DFLT,DFLT));\
+}while(0)
 
 int mRand(int floor,int ceiling);
 float mNormalRand(float mean,float delta);
@@ -426,8 +478,8 @@ float mNormalRand(float mean,float delta);
 char **mStringSplit(const char *str_in,const char *flag,MList *list);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
 
-char *StringArgument(int argc,char **argv,const char *flag,int n,...);
-#define mStringArgument(Argc,Argv,Flag,...) StringArgument(Argc,Argv,Flag,VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__)
+char *StringArgument(int argc,char **argv,const char *flag,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6);
+#define mStringArgument(Argc,Argv,...) StringArgument(Argc,Argv,(const char *)_VA_ARG0(__VA_ARGS__,DFLT),(char *)VA_ARG1(__VA_ARGS__),(void *)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__),(void *)VA_ARG4(__VA_ARGS__),(void *)VA_ARG5(__VA_ARGS__),(void *)VA_ARG6(__VA_ARGS__),(void *)VA_ARG7(__VA_ARGS__))
 
 typedef struct MChainNode
 {
@@ -472,6 +524,8 @@ MObject *mObjectCreate(const void *obj);
 void mObjectRelease(MObject *proc);
 void mObjectRedefine(MObject *object,const void *obj);
 
+#define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
+
 #define MChain MObject
 #define MTree  MObject
 #define MBtree MObject
@@ -497,7 +551,6 @@ void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order);
 void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode);
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
 MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
-
 
 #define MORN_HOST_CPU                         0
 #define MORN_CUDA_GPU(N)       ((1<<16)+MAX(N,0))
@@ -528,9 +581,11 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
 void mMapDelete(MChain *map,const void *key,int key_size);
 
 #define MFile  MObject
-#define mFileCreate   mObjectCreate
+MFile *FileCreate(char *filename);
+#define mFileCreate(...) FileCreate(morn_filename+((sprintf(morn_filename,__VA_ARGS__))&0x0))
 #define mFileRelease  mObjectRelease
-#define mFileRedefine mObjectRedefine
+void FileRedefine(MFile *file,char *filename);
+#define mFileRedefine(...) do{sprintf(morn_filename,__VA_ARGS__);FileRedefine(morn_filename);}while(0)
 
 #define MProc  MObject
 #define mProcCreate   mObjectCreate
@@ -545,7 +600,11 @@ void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
 
-char *mINIRead(MFile *file,const char *section,const char *key);
+char *INIRead(MObject *file,const char *section,const char *key,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14);
+#define mINIRead(File,Section,...) INIRead(File,Section,(const char *)_VA_ARG0(__VA_ARGS__,DFLT), (char *)VA_ARG1(__VA_ARGS__), (void *)VA_ARG2(__VA_ARGS__), (void *)VA_ARG3(__VA_ARGS__),\
+                                                                    (void *)VA_ARG4(__VA_ARGS__), (void *)VA_ARG5(__VA_ARGS__), (void *)VA_ARG6(__VA_ARGS__), (void *)VA_ARG7(__VA_ARGS__),\
+                                                                    (void *)VA_ARG8(__VA_ARGS__), (void *)VA_ARG9(__VA_ARGS__),(void *)VA_ARG10(__VA_ARGS__),(void *)VA_ARG11(__VA_ARGS__),\
+                                                                   (void *)VA_ARG12(__VA_ARGS__),(void *)VA_ARG13(__VA_ARGS__),(void *)VA_ARG14(__VA_ARGS__),(void *)VA_ARG15(__VA_ARGS__))
 MList *mINIKey(MFile *file,const char *section);
 MList *mINISection(MFile *file);
 

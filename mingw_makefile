@@ -1,5 +1,6 @@
 OPENMP=1
-JPG_PNG=1
+USE_PNG=1
+USE_JPEG=1
 DEBUG=0
 
 CC = gcc
@@ -8,11 +9,24 @@ LIBDIR = ./lib/x64/mingw
 REMOVE = rm -rf
 
 CCFLAGS = -O2 -fPIC -Wall
-ifeq ($(OPENMP), 1) 
+ifeq ($(OPENMP), 1)
 CCFLAGS += -fopenmp
 endif
 ifeq ($(DEBUG), 1) 
 CCFLAGS += -DDEBUG
+endif
+
+WRAPDEF = 
+DEPENDLIB = -lopenblas -lm
+
+ifeq ($(USE_PNG),1)
+WRAPDEF += -DMORN_USE_PNG
+DEPENDLIB += -lpng -lz
+endif
+
+ifeq ($(USE_JPEG),1)
+WRAPDEF += -DMORN_USE_JPEG
+DEPENDLIB += -ljpeg
 endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
@@ -21,19 +35,15 @@ SHAREDLIB = ./tool/libmorn.so
 TOOLSOURCES = $(wildcard ./tool/*.c)
 TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
 
-CSOURCES  = $(wildcard ./src/util/*.c)
-CSOURCES += $(wildcard ./src/math/*.c)
-CSOURCES += $(wildcard ./src/wave/*.c)
-CSOURCES += $(wildcard ./src/image/*.c)
-# CSOURCES += $(wildcard ./src/machine_learning/*.c)
-CSOURCES += $(wildcard ./src/deep_learning/*.c)
-ifeq ($(JPG_PNG), 1) 
-CSOURCES += $(wildcard ./src/wrap/*.c)
-endif
+SOURCES  = $(wildcard ./src/util/*.c)
+SOURCES += $(wildcard ./src/math/*.c)
+SOURCES += $(wildcard ./src/wave/*.c)
+SOURCES += $(wildcard ./src/image/*.c)
+SOURCES += $(wildcard ./src/deep_learning/*.c)
+OBJS = $(patsubst %.c,%.ob,$(SOURCES))
 
-OBJS = $(patsubst %.c,%.ob,$(CSOURCES))
-
-DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
+WRAPSOURCES = $(wildcard ./src/wrap/*.c)
+WRAPOBJS = $(patsubst %.c,%.ob,$(WRAPSOURCES))
 
 INCLUDEDIR = -I ./include -I ./lib/include
 
@@ -46,15 +56,18 @@ tool:$(TOOLEXE)
 
 static:$(STATICLIB)
 
-$(STATICLIB):$(OBJS)
-	$(LIB) -rc $(STATICLIB) $(OBJS)
+$(STATICLIB):$(OBJS) $(WRAPOBJS)
+	$(LIB) -rc $(STATICLIB) $(OBJS) $(WRAPOBJS)
 
 shared:$(SHAREDLIB)
 
-$(SHAREDLIB):$(OBJS)
+$(SHAREDLIB):$(OBJS) $(WRAPOBJS)
 	$(CC) $(CCFLAGS) -shared $(OBJS) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
 
-%.ob:%.c
+$(WRAPOBJS):%.ob:%.c 
+	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@
+	
+$(OBJS):%.ob:%.c
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -o $@
 
 #clean:
@@ -63,8 +76,8 @@ $(SHAREDLIB):$(OBJS)
 #	del /a .\tool\libmorn.so
 #	del /a .\lib\x64\mingw\libmorn.a
     
-clean:
-	rm -rf $(OBJS)
-	rm -rf $(STATICLIB)
-	rm -rf $(SHAREDLIB)
-	rm -rf $(TOOLEXE)
+#clean:
+#	rddd -rf $(OBJS)
+#	rddd -rf $(STATICLIB)
+#	rddd -rf $(SHAREDLIB)
+#	rddd -rf $(TOOLEXE)

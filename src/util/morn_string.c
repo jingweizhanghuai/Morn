@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
 #include <stdio.h>
@@ -198,9 +196,8 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
 
 char morn_string_argument[2]={'?',0};
 int morn_string_arg_idx = 0;
-char *StringArgument(int argc,char **argv,const char *flag,int n,...)
+char *StringArgument(int argc,char **argv,const char *flag,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6)
 {
-    mException((n>8),EXIT,"invalid para number %d,which must less than 8",n);
     if(argc<=1) return NULL;
     char *result;
     if(flag==NULL) {result=argv[1]+(argv[1][0]=='-'); goto nextStringArgument;}
@@ -232,16 +229,8 @@ char *StringArgument(int argc,char **argv,const char *flag,int n,...)
     }
 
     nextStringArgument:
-    if(n<=0) return result;
-    
-    void *value[8];memset(value+n-1,0,(9-n)*sizeof(void *));
-    va_list para;va_start(para,n);
-    char *string = (char *)va_arg(para,void *);
-    mException((!INVALID_POINTER(string))&&(n==1),EXIT,"invalid input format");
-    for(int i=0;i<n-1;i++) {value[i]=(void *)va_arg(para,void *);}
-    va_end(para);
-    
-    sscanf(result,string,value[0],value[1],value[2],value[3],value[4],value[5],value[6],value[7]);
+    if(!INVALID_POINTER(format))
+        sscanf(result,format,p1,p2,p3,p4,p5,p6);
     return result;
 }
 

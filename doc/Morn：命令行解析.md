@@ -41,7 +41,7 @@ para is 12345
 $ test.exe -a=12345
 para is 12345
 
-$ test.exe -a=12345 -b=6789
+$ test.exe -a:12345 -b=6789
 para is 12345
 
 $ test.exe -a

@@ -1,8 +1,6 @@
 /*
-Copyright (C) 2019  Jing Lee
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
  
 #include <stdio.h>
@@ -27,17 +25,12 @@ void *mTensorResizePara(MFile *ini,char *name)
 {
     struct TensorResizePara *para = (struct TensorResizePara *)mMalloc(sizeof(struct TensorResizePara));
    
-    char *value = mINIRead(ini,name,"prev");
-    para->prev = mNetworkLayer(ini,value);
+    para->prev = mNetworkLayer(ini,mINIRead(ini,name,"prev"));
     mException((para->prev == NULL),EXIT,"invalid prev");
-    
     para->res_valid = (strcmp("Input",mLayerType(para->prev))!=0);
     
-    value = mINIRead(ini,name,"height");
-    if(value != NULL) para->height= atoi(value);else para->height= DFLT; 
-    
-    value = mINIRead(ini,name,"width");
-    if(value != NULL) para->width = atoi(value);else para->width = DFLT;
+    para->height= DFLT; mINIRead(ini,name,"height","%d",&(para->height));
+    para->width = DFLT; mINIRead(ini,name,"width" ,"%d",&(para->width ));
     
     return para;
 }
