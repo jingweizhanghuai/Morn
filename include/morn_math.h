@@ -49,6 +49,9 @@ static inline float mInf() {float a=0.0f;return -1.0f/a;}
 #define mIsNan(A) isnan(A)
 #define mIsInteger(A) (ABS(A-((int)(A+0.5f)))<0.00001f)
 
+int mPermutation(int *idx,int n,int m);
+int mCombination(int *idx,int n,int m);
+
 double mSigmoid(float x);
 
 typedef struct MVector{
