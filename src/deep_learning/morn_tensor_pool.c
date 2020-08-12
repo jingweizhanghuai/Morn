@@ -107,7 +107,7 @@ void mTensorMaxPoolForward(MLayer *layer)
 
     MHandle *hdl=mHandle(out,TensorMaxPool);
     struct HandleTensorMaxPool *handle = (struct HandleTensorMaxPool *)(hdl->handle);
-    
+
     for(int b=0;b<in->batch;b++)for(int c=0;c<channel;c++)
     {
         int *p_locate = NULL;
@@ -117,15 +117,16 @@ void mTensorMaxPoolForward(MLayer *layer)
         float *p_in  = in->data[b]+c* in_size;
         
         int m=0;
-        for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
+        for(int h=para->y0-pool_height/2;h<in_height-pool_height/2;h+=para->y_stride)
+        for(int w=para->x0-pool_width /2;w<in_width -pool_width /2;w+=para->x_stride)
         {
             int l = h*in_width+w;
             p_out[m] = p_in[l];
             
-            for(int j=h-pool_height/2;j<=h-pool_height/2+pool_height;j++)
+            for(int j=h;j<h+pool_height;j++)
             {
                 if((j<0)||(j>=in_height)) continue;
-                for(int i=w-pool_width/2;i<=w-pool_width/2+pool_width;i++)
+                for(int i=w;i<w+pool_width;i++)
                 {
                     if((i<0)||(i>=in_width)) continue;
                     if(p_in[j*in_width+i]>p_out[m])
@@ -140,6 +141,7 @@ void mTensorMaxPoolForward(MLayer *layer)
             m=m+1; 
         }
     }
+    // printf("\nout=\n");for(int ii=300;ii<500;ii++) printf("%f,",out->data[0][ii]);
     
     layer->state = MORN_FORWARD;
 }
@@ -168,6 +170,8 @@ void mTensorMaxPoolBackward(MLayer *layer)
             memset(res->data[b],0,res->height*res->width*res->channel*sizeof(float));
         para->prev->state = MORN_BACKWARD;
     }
+
+    // printf("\nmaxpooldelta=\n");for(int ii=200;ii<400;ii++) printf("%f,",out->data[0][ii]);
     
     for(int b=0;b<res->batch;b++)for(int c=0;c<channel;c++)
     {
@@ -182,6 +186,7 @@ void mTensorMaxPoolBackward(MLayer *layer)
             m=m+1;
         }
     }
+    // printf("\nmaxpooldeltaout=\n");for(int ii=200;ii<400;ii++) printf("%f,",res->data[0][ii]);
 }
 
 void TensorAvgPoolSet(MLayer *layer)
@@ -233,13 +238,14 @@ void mTensorAvgPoolForward(MLayer *layer)
 
         int m=0;
         int x,y;
-        for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
+        for(int h=para->y0-pool_height/2;h<in_height-pool_height/2;h+=para->y_stride)
+        for(int w=para->x0-pool_width /2;w<in_width -pool_width /2;w+=para->x_stride)
         {
             float sum=0.0;
-            for(int j=h-pool_height/2;j<h-pool_height/2+pool_height;j++)
+            for(int j=h;j<h+pool_height;j++)
             {
                 if(j<0) y=0;else if(j>in_height) y=in_height-1;else y=j;
-                for(int i=w-pool_width/2;i<w-pool_width/2+pool_width;i++)
+                for(int i=w;i<w+pool_width;i++)
                 {
                     if(i<0) x=0;else if(i>in_width) x=in_width-1;else x=i;
                     sum+=p_in[y*in_width+x];
@@ -283,12 +289,13 @@ void mTensorAvgPoolBackward(MLayer *layer)
         float *p_out=out->data[b]+c*out_size;
         float *p_res=res->data[b]+c* in_size;
         int m=0;int x,y;
-        for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
+        for(int h=para->y0-pool_height/2;h<in_height-pool_height/2;h+=para->y_stride)
+        for(int w=para->x0-pool_width /2;w<in_width -pool_width /2;w+=para->x_stride)
         {
-            for(int j=h-pool_height/2;j<h-pool_height/2+pool_height;j++)
+            for(int j=h;j<h+pool_height;j++)
             {
                 if(j<0) y=0;else if(j>in_height) y=in_height-1;else y=j;
-                for(int i=w-pool_width/2;i<w-pool_width/2+pool_width;i++)
+                for(int i=w;i<w+pool_width;i++)
                 {
                     if(i<0) x=0;else if(i>=in_width) x=in_width-1;else x=i;
                     p_res[y*in_width+x] += p_out[m]/pool_size;
@@ -373,11 +380,12 @@ void mTensorRandPoolForward(MLayer *layer)
         float *p_out =out->data[b]+c*out_size;
         float *p_in  = in->data[b]+c* in_size;
         int m=0;
-        for(int h=para->y0;h<in_height;h+=para->y_stride)for(int w=para->x0;w<in_width;w+=para->x_stride)
+        for(int h=para->y0-pool_height/2;h<in_height-pool_height/2;h+=para->y_stride)
+        for(int w=para->x0-pool_width /2;w<in_width -pool_width /2;w+=para->x_stride)
         {
             int rand = mRand(0,pool_size);
-            int j = rand/pool_width + h-pool_height/2;if(j<0) j=0; else if(j>=in_height) j=in_height-1;
-            int i = rand%pool_width + w-pool_width /2;if(i<0) i=0; else if(i>=in_width ) i=in_width -1;
+            int j = rand/pool_width + h;if(j<0) j=0; else if(j>=in_height) j=in_height-1;
+            int i = rand%pool_width + w;if(i<0) i=0; else if(i>=in_width ) i=in_width -1;
             if(p_locate!=NULL) p_locate[m] = j*in_width+i;
             p_out[m] = p_in[j*in_width+i];
             m=m+1; 

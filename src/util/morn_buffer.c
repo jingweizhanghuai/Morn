@@ -11,7 +11,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 int pthread_kill(pthread_t thread, int sig);
 
-struct HandleBuffer
+struct HandleFlow
 {
     int buff_num;
     int *order;
@@ -25,9 +25,9 @@ struct HandleBuffer
     
     int locate_over;
 };
-void endBuffer(void *info)
+void endFlow(void *info)
 {
-    struct HandleBuffer *handle = (struct HandleBuffer *)info;
+    struct HandleFlow *handle = (struct HandleFlow *)info;
     if(handle->order  != NULL) mFree(handle->order);
     if(handle->mutex  != NULL) mFree(handle->mutex);
     if(handle->flag   != NULL) mFree(handle->flag);
@@ -35,12 +35,12 @@ void endBuffer(void *info)
     if(handle->cond   != NULL) mFree(handle->cond);
     if(handle->ID     != NULL) mFree(handle->ID);
 }
-#define HASH_Buffer 0xcb4df739
+#define HASH_Flow 0xb8be12fb
 
 static pthread_t undefined_thread;
 #define INVALID_ID(ID) (pthread_equal((ID),undefined_thread))
 
-void mBufferSet(MList *buff,int buff_num,int thread_num)
+void mFlowSet(MList *buff,int buff_num,int thread_num)
 {
     mException((buff==NULL),EXIT,"invalid buffer");
     mException((thread_num<1),EXIT,"invalid thread num");
@@ -50,8 +50,8 @@ void mBufferSet(MList *buff,int buff_num,int thread_num)
     
     mListAppend(buff,buff_num);
     
-    MHandle *hdl=mHandle(buff,Buffer);
-    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
+    MHandle *hdl=mHandle(buff,Flow);
+    struct HandleFlow *handle = (struct HandleFlow *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->order != NULL) if(handle->buff_num < buff_num) {mFree(handle->order);handle->order = NULL;}
@@ -95,12 +95,12 @@ void mBufferSet(MList *buff,int buff_num,int thread_num)
     }
 }
 
-void *mBufferRead(MList *buff,int order,void *data,int size)
+void *mFlowRead(MList *buff,int order,void *data,int size)
 {
     mException((buff==NULL),EXIT,"invalid input buffer");
     
-    MHandle *hdl=mHandle(buff,Buffer);
-    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
+    MHandle *hdl=mHandle(buff,Flow);
+    struct HandleFlow *handle = (struct HandleFlow *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     
     mException((order>=handle->thread_num),EXIT,"invalid input");
@@ -162,12 +162,12 @@ void *mBufferRead(MList *buff,int order,void *data,int size)
     return p;
 }
 
-void *mBufferWrite(MList *buff,int order,void *data,int size)
+void *mFlowWrite(MList *buff,int order,void *data,int size)
 {
     mException((buff==NULL),EXIT,"invalid input buffer");
     
-    MHandle *hdl=mHandle(buff,Buffer);
-    struct HandleBuffer *handle = (struct HandleBuffer *)(hdl->handle);
+    MHandle *hdl=mHandle(buff,Flow);
+    struct HandleFlow *handle = (struct HandleFlow *)(hdl->handle);
     mException((hdl->valid == 0),EXIT,"invalid buffer");
     
     mException((order>=handle->thread_num),EXIT,"invalid input");
@@ -224,3 +224,5 @@ void *mBufferWrite(MList *buff,int order,void *data,int size)
     return p;
 }
 
+// struct Handle
+// void mBufferWrite(

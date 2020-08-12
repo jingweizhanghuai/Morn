@@ -276,6 +276,7 @@ int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh);
 void mImageDilation(MImage *src,MImage *dst,int r,int stride);
 void mImageErosion(MImage *src,MImage *dst,int r,int stride);
 
+void mUSBCamera(MImage *img,const char *camera_name);
 
 #ifdef __cplusplus
 }

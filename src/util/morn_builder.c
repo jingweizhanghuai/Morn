@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 
 #include <stdio.h>
-#include <Stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "morn_util.h"

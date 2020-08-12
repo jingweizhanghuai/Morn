@@ -7,7 +7,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Util.h"
+#include "morn_util.h"
 #define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
 MTreeNode *mTreeNode(MTree *tree,void *data,int size);
@@ -343,12 +343,14 @@ void mJSONSearch(MTree *tree,MList *result,char *name)
     if(flag)JSONSearch(tree->treenode          ,(char **)(handle->name->data),handle->name->num,result);
 }
 
-// int _JSONNode(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
-// MTreeNode *mJSONNode(MTree *tree,char *name)
-// {
-//     node = json->treenode;
-//     return mTreeSearch(node,_JSONNode,name,0);
-// }
+int _NodeCompare(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
+MTreeNode *JSONNode(MTreeNode *treenode,const char *name,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14)
+{
+    MTreeNode *node = mTreeSearch(treenode,_NodeCompare,(void *)name,0);
+    if((node!=NULL)&&(!INVALID_POINTER(format)))
+        sscanf(mJSONValue(node),format,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14);
+    return node;
+}
 
     
 

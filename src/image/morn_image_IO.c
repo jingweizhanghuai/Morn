@@ -6,6 +6,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 #include "morn_image.h"
 
@@ -18,8 +19,10 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #endif
 
 #define DATA_INPUT(Type,c1,c2,c3,d1,d2,d3,img_data) {\
+    int thread = MIN(omp_get_max_threads(),d1);\
     if(func==NULL)\
     {\
+        mPragma(omp parallel for num_threads(thread))\
         for(c1=0;c1<d1;c1++)\
             for(c2=0;c2<d2;c2++)\
             {\
@@ -39,6 +42,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
             }\
     }\
 }
+
 
 #define ImageDataInput(Type,img,stream,stream_type,func,para) {\
     mException(INVALID_IMAGE(img),EXIT,"invalid input image");\

@@ -147,7 +147,7 @@ void mTensorOutputBackward(MLayer *layer)
     struct TensorOutputPara *para = (struct TensorOutputPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
-    printf("in is %f,out is %f,flag=%d,%d\n",in->data[0][0],out->data[0][0],(in->data[0][0]>0)==(out->data[0][0]>=0),(in->data[0][1]>0)==(out->data[0][1]>=0));
+    // printf("in is %f,out is %f,flag=%d,%d\n",in->data[0][0],out->data[0][0],(in->data[0][0]>0)==(out->data[0][0]>=0),(in->data[0][1]>0)==(out->data[0][1]>=0));
     // printf("in is %f,out is %f,flag=%d\n",in->data[1][0],out->data[1][0],(in->data[1][0]>in->data[1][1])==(out->data[1][0]>out->data[1][1]));
     
     morn_network_error = 0.0f;
@@ -182,12 +182,11 @@ void mTensorOutputBackward(MLayer *layer)
     {
         para->dloss(layer,para->prev);
     }
-    
+
     if(PARA_SAVE)
     {
-        sprintf(morn_network_para_filename,"%s/network_para_%d.morn",morn_network_para_dir,morn_network_time);
-        printf("filename is %s\n",morn_network_para_filename);
-        morn_network_parafile = mFileCreate(morn_network_para_filename);
+        morn_network_parafile = mFileCreate("%s/network_para_%d.morn",morn_network_para_dir,morn_network_time);
+        printf("save parameter in %s\n",morn_filename);
     }
     // printf("aaaaaaaaaaaaaaaa\n");
     para->prev->state = MORN_BACKWARD;

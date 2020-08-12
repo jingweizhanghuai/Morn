@@ -80,7 +80,7 @@ void mListAppend(MList *list,int n)
     }
 
     // printf("aaaaaaaaaaaaaa\n");
-    int num = list->num + MAX(MAX(128,n-list->num),(list->num)>>2);
+    int num = list->num + MAX(MAX(128,n-list->num),(list->num)>>1);
     void **list_data = (void **)mMalloc(num*sizeof(void *));
     if(list->num>0)
         memcpy(list_data,list->data,(list->num)*sizeof(void *));
@@ -114,10 +114,10 @@ void mListPlace(MList *list,void *data,int num,int size)
     for(int i=0;i<num;i++) {memcpy(list->data[list_num+i],p,size);p+=size;}
 }
 
-void mListOperate(MList *list,void (*func)(void *,void *),void *para)
-{
-    for(int i=0;i<list->num;i++) func(list->data[i],para);
-}
+// void mListOperate(MList *list,void (*func)(void *,void *),void *para)
+// {
+//     for(int i=0;i<list->num;i++) func(list->data[i],para);
+// }
 
 struct HandleListWrite
 {
@@ -129,16 +129,21 @@ void *mListWrite(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
     mException((n>list->num),EXIT,"invalid write location %d(with list->num is %d)",n,list->num);
-    mException((INVALID_POINTER(data)),EXIT,"invalid data to write,which is %p",data);
-    if(size<0) size = strlen((char *)data)+1;
+    if(size<0)
+    {
+        mException((INVALID_POINTER(data)),EXIT,"invalid data to write,which is %p",data);
+        size = strlen((char *)data)+1;
+    }
     
     struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+
     if(n<0) n = list->num;
 
     if(handle0->memory == NULL) handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
-    void *ptr = (size>0)?mMemoryWrite(handle0->memory,data,size):NULL;
-    
-    if(n==list->num)
+    void *ptr = mMemoryWrite(handle0->memory,data,size);
+
+    int flag = (n==list->num); if(!flag) flag=(list->data[n]==NULL);
+    if(flag)
     {
         if(n<handle0->num) list->num = n+1;
         else mListAppend(list,DFLT);
@@ -150,9 +155,10 @@ void *mListWrite(MList *list,int n,void *data,int size)
         MHandle *hdl=mHandle(list,ListWrite);
         struct HandleListWrite *handle = (struct HandleListWrite *)(hdl->handle);
         handle->write_size += size;
+        
         if(handle->write_size>16384)
         {
-            mListOperate(list,MemoryCollect,handle0->memory);
+            mListElementOperate(list,MemoryCollect,handle0->memory);
             MemoryDefrag(handle0->memory);
         }
     }
@@ -162,7 +168,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
 
 struct HandleListRead
 {
-    int order;
+    int read_order;
 };
 void endListRead(void *info) {}
 #define HASH_ListRead 0x537cc305
@@ -172,11 +178,11 @@ void *mListRead(MList *list,int n,void *data,int size)
     
     MHandle *hdl=mHandle(list,ListRead);
     struct HandleListRead *handle = (struct HandleListRead *)(hdl->handle);
-    if(hdl->valid == 0) handle->order = -1;
+    if(hdl->valid == 0) handle->read_order = -1;
     hdl->valid = 1;
     
-    if(n<0) n = handle->order+1;
-    handle->order = n;
+    if(n<0) n = handle->read_order+1;
+    handle->read_order = n;
     
     if(n>=list->num) return NULL;
     

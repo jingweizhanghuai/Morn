@@ -321,6 +321,7 @@ void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly
 
     if(lx<0) {x1=(x1<x2)?(x1-lx):(x1+lx); lx=0;} else if(lx>0) {x2=(x1<x2)?(x2-lx):(x2+lx);}
     if(ly<0) {y1=(y1<y2)?(y1-ly):(y1+ly); ly=0;} else if(ly>0) {y2=(y1<y2)?(y2-ly):(y2+ly);}
+    
     if((y1<0)&&(y2<0)) {return;} if((y1>=img->height)&&(y2>=img->height)) {return;}
     if((x1<0)&&(x2<0)) {return;} if((x1>=img->width )&&(x2>=img->width )) {return;}
     if(y1<0) {ly=ly-y1; y1=0;} else if(y2<0) {ly=ly-y2; y2=0;}
@@ -328,28 +329,39 @@ void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly
     y1=MIN(y1,img->height);y2=MIN(y2,img->height);
     x1=MIN(x1,img->width );x2=MIN(x2,img->width );
 
+    int h = ABS(y1-y2);int w = ABS(x1-x2);
+    if((h==0)||(w==0)) return;
+
     if(INVALID_POINTER(dst)) dst=img;
     unsigned char ***dst_data;
-    if((img==dst)&&(ly>=y1)) dst_data=mImageBackup(img,DFLT,height,width);
-    else if(dst!=img)
+    if(dst!=img)
     {
         mImageRedefine(dst,img->channel,height,width);
         dst_data=dst->data;
     }
-    else dst_data=img->data;
-    
-    int h = ABS(y1-y2);int w = ABS(x1-x2);
-    if((h==0)||(w==0)) return;
+    else
+    {
+        if(( ly   *img->width+lx <= y1*img->width+x1)&&( ly   *img->width+lx+w <= y1*img->width+x2)
+         &&((ly+h)*img->width+lx <= y2*img->width+x1)&&((ly+h)*img->width+lx+w <= y1*img->width+x2))
+            dst_data=img->data;
+        else
+            dst_data=mImageBackup(img,DFLT,height,width);
+    }
     
     // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d,lx=%d,ly=%d,height=%d,width=%d,h=%d,w=%d\n",x1,x2,y1,y2,lx,ly,height,width,h,w);
-    for(int c=0;c<img->channel;c++)
-        for(int j=ly,y=y1;j<ly+h;j++,y+=((y2>y1)?1:-1))
-        {
-            if(x1<x2) 
+    if(x1<x2)
+    {
+        for(int c=0;c<img->channel;c++)
+            for(int j=ly,y=y1;j<ly+h;j++,y+=((y2>y1)?1:-1))
                 memcpy(dst->data[c][j]+lx,img->data[c][y]+x1,w*sizeof(unsigned char));
-            else
-                {for(int i=lx,x=x1;i<lx+w;i++,x--) dst->data[c][j][i]=img->data[c][y][x];}
-        }
+    }
+    else
+    {
+        for(int c=0;c<img->channel;c++)
+            for(int j=ly,y=y1;j<ly+h;j++,y+=((y2>y1)?1:-1))
+                for(int i=lx,x=x1;i<lx+w;i++,x--) 
+                    dst->data[c][j][i]=img->data[c][y][x];
+    }
 
     if(img==dst) mImageRedefine(dst,DFLT,height,width,dst_data);
 }

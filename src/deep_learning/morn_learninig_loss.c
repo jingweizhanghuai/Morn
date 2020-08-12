@@ -13,14 +13,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 void TensorSub(MTensor *in,MTensor *tv,MTensor *res,int state)
 {
     int size = in->channel*in->height*in->width;
-    for(int b=0;b<in->batch;b++)
+    if(state==MORN_FORWARD)
     {
-        for(int i=0;i<size;i++)
-        {
-            register float data = (in->data[b][i]-tv->data[b][i]);
-            res->data[b][i] = (state==MORN_FORWARD)?data:(res->data[b][i]+data);
-        }
+        for(int b=0;b<in->batch;b++)for(int i=0;i<size;i++)
+            res->data[b][i] = (in->data[b][i]-tv->data[b][i]);
     }
+    else
+    {
+        for(int b=0;b<in->batch;b++)for(int i=0;i<size;i++)
+            res->data[b][i]+= (in->data[b][i]-tv->data[b][i]);
+    }
+    
 }
 
 float MSE(MLayer *layer,MLayer *prev,float *error)
@@ -134,13 +137,17 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
         // #pragma omp parallel for
         for(i=0;i<size;i++)
         {
-            idata[i] = exp((idata[i]-max)/100.0f);
+            idata[i] = exp((idata[i]-max)/1.0f);
+            // printf("idata=%f\n",idata[i]);
             e_sum += idata[i];
         }
+        // printf("e_sum=%f\n",e_sum);
+        
         // #pragma omp parallel for
         for(i=0;i<size;i++)
         {
             idata[i] = idata[i]/e_sum;
+            // printf("idata=%f\n",idata[i]);
             if(tdata[i]!=0.0f) err -= tdata[i]*log(idata[i]);
         }
         sum += err;
@@ -152,8 +159,17 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
 void D_Softmax(MLayer *layer,MLayer *prev)
 {
     MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
-    int state = prev->state;
-    TensorSub(in,tv,res,state);
+    printf("aaaaaaaaaaaaa in=%p,res=%p\n",in->data[0],res->data[0]);
+    // int state = prev->state;
+    // int size = in->channel*in->height*in->width;
+    // for(int b=0;b<in->batch;b++)for(int i=0;i<size;i++)
+    // {
+    //     register float data = 2*(in->data[b][i]-tv->data[b][i]);
+    //     res->data[b][i] = (state==MORN_FORWARD)?data:(res->data[b][i]+data);
+        
+    //     printf("res->data[b][i]=%f\n",res->data[b][i]);
+    // }
+    TensorSub(in,tv,res,prev->state);
 }
 
 float Logistic(MLayer *layer,MLayer *prev,float *error)

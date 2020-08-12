@@ -137,7 +137,7 @@ void INIOpen(MObject *file,struct HandleINIRead *handle)
     }
 }
 
-char *INIRead(MObject *file,const char *section,const char *key,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14)
+char *INIRead(MObject *file,const char *section,const char *key,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14)
 {
     int i,j;
     mException(INVALID_POINTER(file),EXIT,"invalid input");

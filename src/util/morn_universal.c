@@ -44,6 +44,10 @@ int mRand(int floor,int ceiling)
     return (rand()%d)+floor;
 }
 
+
+
+
+
 float mNormalRand(float mean,float delta)
 {
     float u = mRand(1,32768)/32768.0f;
@@ -136,7 +140,7 @@ struct HandleFileCreate
 };
 void endFileCreate(void *info) {NULL;}
 #define HASH_FileCreate 0xfdab2bff
-MFile *FileCreate(char *filename)
+MFile *FileCreate(const char *filename)
 {
     MFile *file = mObjectCreate(NULL);
     MHandle *hdl = mHandle(file,FileCreate);
@@ -268,4 +272,69 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
     handle->num = num+1;
     
     return (MHandle *)(handle->data[num]);
+}
+
+__thread MObject *morn_object=NULL;
+MChain *morn_object_map;
+#ifdef _MSC_VER
+void morn_end()
+{
+    if(morn_object!=NULL) mObjectRelease(morn_object);
+    morn_object=NULL;
+
+    if(morn_object_map!=NULL)
+    {
+        MChainNode *node = morn_object_map->chainnode->next;
+        while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        mChainRelease(morn_object_map);
+    }
+    morn_object_map = NULL;
+    // printf("after main\n"); 
+}
+void morn_begin()
+{
+    morn_object=mObjectCreate(NULL);
+    morn_object_map=mChainCreate();
+    // printf("before\n");
+    atexit(morn_end);
+}
+#pragma section(".CRT$XCU",read)
+__declspec(allocate(".CRT$XCU")) void (* mornbegin)() = morn_begin;
+
+#else
+__attribute__((constructor)) void morn_begin() {
+    morn_object=mObjectCreate(NULL);
+    morn_object_map=mChainCreate();
+    // printf("before main\n"); 
+} 
+
+__attribute__((destructor)) void morn_end() {
+    if(morn_object!=NULL) mObjectRelease(morn_object);
+    morn_object=NULL;
+
+    if(morn_object_map!=NULL)
+    {
+        MChainNode *node = morn_object_map->chainnode->next;
+        while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        mChainRelease(morn_object_map);
+    }
+    morn_object_map = NULL;
+    // printf("after main\n"); 
+}
+#endif
+
+MObject *mMornObject(void *p)
+{
+    if(p==NULL) 
+    {
+        if(morn_object==NULL) morn_object=mObjectCreate(NULL);
+        return morn_object;
+    }
+    
+    MObject **pobj = mMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
+    if(pobj != NULL) return (*pobj);
+
+    MObject *obj = mObjectCreate(p);
+    pobj=mMapWrite(morn_object_map,&p,sizeof(void *),&obj,sizeof(MObject *));
+    return (*pobj);
 }

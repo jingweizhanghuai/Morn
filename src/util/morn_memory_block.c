@@ -267,12 +267,13 @@ MMemory *mMemoryCreate(int num,int size,int dev)
 
     memory->handle = mHandleCreate();
     MHandle *hdl=mHandle(memory,Memory);hdl->valid = 1;
+    if(num<0) {mException(size>0,EXIT,"invalid input"); return memory;}
     
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     if(dev<0) dev = MORN_HOST_CPU;
     handle->mem_device = dev;
+    memory->dev = dev;
     
-    if(num<0) {mException(size>0,EXIT,"invalid input"); return memory;}
     handle->mem_num = num;
     memory->num = handle->mem_num;
     
@@ -348,6 +349,8 @@ void mMemoryRedefine(MMemory *memory,int num,int size,int dev)
         if(s>0) memory->data[i]=MemAlloc(s,dev);
         handle->mem_size[i]=s;
     }
+    handle->mem_device = dev;
+    memory->dev = dev;
 }
 
 void *mMemoryAppend(MMemory *memory,int size)
@@ -359,6 +362,7 @@ void *mMemoryAppend(MMemory *memory,int size)
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     int dev = handle->mem_device;
+    mException(dev!=memory->dev,EXIT,"memory device has been changed");
     
     int memory_num = memory->num;
     mMemoryRedefine(memory,memory_num+1,DFLT,DFLT);
@@ -371,6 +375,36 @@ void *mMemoryAppend(MMemory *memory,int size)
     memory->    data[0] = MemAlloc(size,dev);
     handle->mem_size[0] = size;
     return (memory->data[0]);
+}
+
+void mMemoryClear(MMemory *memory)
+{
+    mException(INVALID_POINTER(memory),EXIT,"invalid input");
+    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
+    struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
+    int dev = handle->mem_device;
+
+    void *p = memory->data[0];int size = handle->mem_size[0];
+    for(int i=1;i<handle->mem_num;i++)
+    {
+        if(handle->mem_size[i]<=size) 
+            MemFree(memory->data[i],dev);
+        else
+        {
+            MemFree(p,dev);
+            p=memory->data[i];
+            size=handle->mem_size[i];
+        }
+    }
+    if(handle->mem_num>1)
+    {
+        memset(memory->data    ,0,(handle->mem_num)*sizeof(void *));
+        memset(handle->mem_size,0,(handle->mem_num)*sizeof(int   ));
+    }
+    memory->data    [0]=p;
+    handle->mem_size[0]=size;
+    memory->num = 1;
 }
 
 void mMemoryDevice(MMemory *memory,int dev,void ***index,int batch,int row,int col)
@@ -434,7 +468,7 @@ void MemoryCollect(void *data,void *mem)
     
     for(int i=0;i<memory->num;i++)
     {
-        if(data>memory->data[i])
+        if(data>=memory->data[i])
             if((char *)data<((char *)(memory->data[i]))+handle->mem_size[i])
                 {handle->collect_valid[i]=1;break;}
     }
@@ -654,7 +688,7 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
         if(idx>=memory->num)
         {
             mMemoryRedefine(memory,idx+1,DFLT,DFLT);
-            int s = MAX(8192,(size<<6));
+            int s = MAX(8192,handle->mem_size[idx-1]*2);//(size<<6));
             memory->data[idx] = MemAlloc(s,dev);
             handle->mem_size[idx] = s;
         }
@@ -663,7 +697,7 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
         handle->write_size=handle->mem_size[idx];
         goto MemoryWrite_Check;
     }
-
+    
     if(data!=NULL) MemCopy(handle->write_pdata,dev,data,MORN_HOST_CPU,size);
     
     char *memory_data = handle->write_pdata;

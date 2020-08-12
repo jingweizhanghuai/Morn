@@ -37,7 +37,7 @@ int main(int argc,char *argv[])
     char filename[256];
     if(file_in!=NULL)
     {
-        mImageLoad(src,file_in);
+        ImageLoad(src,file_in);
         
         if(file_out==NULL) 
         {
@@ -47,13 +47,14 @@ int main(int argc,char *argv[])
             strcpy(type,type_out);
             file_out=filename;
         }
-        mImageSave(src,file_out);
+        ImageSave(src,file_out);
         
         mImageRelease(src);
         return 1;
     }
    
     mException(dir_in==NULL,EXIT,"no input");
+    printf("data_in =%s\n",data_in);
     
     MList *list=NULL;
     list = mListCreate(DFLT,NULL);
@@ -67,10 +68,10 @@ int main(int argc,char *argv[])
         sprintf(filename,"%s/%s",dir_in,(char *)(list->data[j]));
         
         for(int i=strlen(filename);i>0;i--)if(filename[i]=='.') {type=filename+i+1;break;}
-             if(strcasecmp(type,"jpg" )==0) mImageLoad(src,filename);
-        else if(strcasecmp(type,"png" )==0) mImageLoad(src,filename);
-        else if(strcasecmp(type,"bmp" )==0) mImageLoad(src,filename);
-        else if(strcasecmp(type,"jpeg")==0) mImageLoad(src,filename);
+             if(strcasecmp(type,"jpg" )==0) ImageLoad(src,filename);
+        else if(strcasecmp(type,"png" )==0) ImageLoad(src,filename);
+        else if(strcasecmp(type,"bmp" )==0) ImageLoad(src,filename);
+        else if(strcasecmp(type,"jpeg")==0) ImageLoad(src,filename);
         else continue;
         
         printf("%s\n",filename);
@@ -82,7 +83,7 @@ int main(int argc,char *argv[])
             strcpy(type,type_out);
         }
         
-        mImageSave(src,filename);
+        ImageSave(src,filename);
     }
     
     mImageRelease(src);

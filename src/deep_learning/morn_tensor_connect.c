@@ -133,6 +133,8 @@ void mTensorConnectForward(MLayer *layer)
                0.0f,   out_data,1);
                
         in_data[weight_width-1] = buff;
+
+        // printf("\nout=\n");for(int ii=0;ii<10;ii++) printf("%f,",out_data[ii]);
     }
 
     layer->state = MORN_FORWARD;
@@ -157,7 +159,8 @@ void mTensorConnectBackward(MLayer *layer)
     float *update_data = handle->update;
     
     mNetworkParaWrite(layer,"weight",weight_data,weight_height*weight_width*sizeof(float));
-    
+
+    float beta = para->momentum;
     for(int b=0;b<in->batch;b++)
     {
         float * in_data = in->data[b];
@@ -165,23 +168,32 @@ void mTensorConnectBackward(MLayer *layer)
         
         float buff = in_data[weight_width-1];
         in_data[weight_width-1] = 1.0f;
+
+        // printf("m=%d,n=%d,k=%d\n",weight_height,weight_width,1);
+        // printf("\nconnectdelta=\n");for(int ii=0;ii<10;ii++) printf("%f,",out_data[ii]);
+        // printf("\nconnectin=\n");for(int ii=0;ii<10;ii++) printf("%f,",in_data[ii]);
+        // printf("para->momentum=%f\n",para->momentum);
         
         cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasTrans,
                     weight_height,weight_width,1,
                     1.0f,
                        out_data,1,
                         in_data,1,
-                    (b==0)?para->momentum:1.0f,
+                    beta,
                     update_data,weight_width);
-                    
+
+        // printf("\nconnectupdate=\n");for(int ii=0;ii<100;ii++) printf("%f,",update_data[ii]);
+        
         in_data[weight_width-1] = buff;
+        beta = 1.0;
     }
                 
     if(para->res_valid) for(int b=0;b<in->batch;b++)
     {
         float *res_data = res->data[b];
         float *out_data = out->data[b];
-        
+
+        // printf("\nweights=\n");for(int ii=400;ii<600;ii++) printf("%f,",weight_data[ii]);
         cblas_sgemm(CblasRowMajor,CblasTrans,CblasNoTrans,
                     weight_width,1,weight_height,
                     1.0f,
@@ -189,6 +201,7 @@ void mTensorConnectBackward(MLayer *layer)
                        out_data,1,
                     ((para->prev->state==MORN_FORWARD)?0.0f:1.0f),
                        res_data,1);
+        // printf("\ndeltaout=\n");for(int ii=400;ii<600;ii++) printf("%f,",res_data[ii]);
     }
 
     cblas_saxpby(weight_height*weight_width,

@@ -245,6 +245,14 @@ MChain *mChainMerge(int chain_num,MChain *chain,...)
 }
 */
 
+void mChainNodeOperate(MChain *chain,void *function,void *para)
+{
+    void (*func)(void *,void *) = function;
+    mException(INVALID_POINTER(chain)||(func==NULL),EXIT,"invalid input");
+    MChainNode *node = chain->chainnode;
+    do{func(node->data,para);node=node->next;}while(node!=chain->chainnode);
+}
+    
 
     
     

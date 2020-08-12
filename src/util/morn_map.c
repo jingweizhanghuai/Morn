@@ -19,10 +19,12 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
 {
-    if(size1!=size2) return (size1-size2);
-    if(size1==4)     return ((*((uint32_t *)mem1))-(*((uint32_t *)mem2)));
-    if(size1==8)     return ((*((uint64_t *)mem1))-(*((uint64_t *)mem2)));
-                     return memcmp(mem1,mem2,size1);
+    if(size1!=size2) {return (size1-size2);}
+    if(size1==4    ) {return ((*((uint32_t *)mem1))-(*((uint32_t *)mem2)));}
+    if(size1==2    ) {return ((*((uint16_t *)mem1))-(*((uint16_t *)mem2)));}
+    if(size1==8    ) {return ((*((uint64_t *)mem1))-(*((uint64_t *)mem2)));}
+    if(size1==1    ) {return ((*(( uint8_t *)mem1))-(*(( uint8_t *)mem2)));}
+                      return memcmp(mem1,mem2,size1);
 }
 
 struct HandleMap
@@ -133,9 +135,9 @@ void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int v
         {
             handle->list=(MChainNode **)mMalloc(128*sizeof(MChainNode *));
             
-            node = mChainNode(map,NULL,(2+2)*sizeof(int));
+            node = mChainNode(map,NULL,2*sizeof(int)+8+8);
             data = (int *)(node->data);
-            data[0]=1;data[1]=1;data[2]=0;data[3]=0;
+            memset(data,0,2*sizeof(int)+8+8);data[0]=1;data[1]=1;
             map->chainnode = node;
 
             handle->list[0]=node;
@@ -179,7 +181,7 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
     if(flag==DFLT) return NULL;
     
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
-    
+
     int *data = (int *)(node->data);
     if(value!=NULL)
     {
@@ -190,7 +192,43 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
     return (data+2+mkey_size);
 }
 
-void mMapNodeDelete(MChain *map,const void *key,int key_size)
+void *mMapNodeKey(MChainNode *node)
+{
+    int *data=(int *)(node->data);
+    return (void *)(data+2);
+}
+void *mMapNodeValue(MChainNode *node)
+{
+    int *data=(int *)(node->data);
+    int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
+    return (void *)(data+2+mkey_size);
+}
+int mMapNodeKeySize(MChainNode *node)
+{
+    int *data=(int *)(node->data);
+    return data[0];
+}
+int mMapNodeValueSize(MChainNode *node)
+{
+    int *data=(int *)(node->data);
+    return data[1];
+}
+
+void mMapNodeOperate(MChain *map,void *function,void *para)
+{
+    void (*func)(void *,int,void *,int,void *) = function;
+    mException(INVALID_POINTER(map)||(func==NULL),EXIT,"invalid input");
+    MChainNode *node = map->chainnode->next;
+    while(node!=map->chainnode)
+    {
+        int *data=(int *)(node->data);
+        int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
+        func((void *)(data+2),data[0],(void *)(data+2+mkey_size),data[1],para);
+        node = node->next;
+    }
+}
+
+void mMapDelete(MChain *map,const void *key,int key_size)
 {
     if(key_size<=0) key_size = strlen((char *)key);
     

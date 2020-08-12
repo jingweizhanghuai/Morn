@@ -91,15 +91,9 @@ typedef intptr_t PTR;
 #define MORN_LOG_WARNING DFLT
 #define MORN_LOG_INFO    0
 #define MORN_LOG_ERROR   1
-#ifndef WARNING
-#define WARNING MORN_LOG_WARNING
-#endif
-#ifndef INFO
-#define INFO    MORN_LOG_INFO
-#endif
-#ifndef ERROR
-#define ERROR   MORN_LOG_ERROR
-#endif
+#define MORN_WARNING MORN_LOG_WARNING
+#define MORN_INFO    MORN_LOG_INFO
+#define MORN_ERROR   MORN_LOG_ERROR
 
 #ifdef _MSC_VER
 #define __thread __declspec(thread)
@@ -140,6 +134,7 @@ extern int *morn_log_count;
 }while(0)
 
 #ifdef _MSC_VER
+#include <windows.h>
 #define mSleep(T) Sleep(T)
 #else
 #include <unistd.h>
@@ -160,7 +155,7 @@ extern __thread int morn_clock_end[16];
     float Use = ((float)(morn_clock_end[morn_clock_n]-morn_clock_begin[morn_clock_n]))*1000.0f/((float)CLOCKS_PER_SEC);\
     mException((Use<0.0f),EXIT,"invalid timer");\
     morn_clock_n -= 1;\
-    mLog(INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
+    mLog(MORN_LOG_INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
 }while(0)
 #else
 #include <sys/time.h>
@@ -179,7 +174,7 @@ extern __thread struct timeval morn_timer_end[16];
     float Use = (morn_timer_end[morn_timer_n].tv_sec - morn_timer_begin[morn_timer_n].tv_sec)*1000.0f + (morn_timer_end[morn_timer_n].tv_usec - morn_timer_begin[morn_timer_n].tv_usec)/1000.0f;\
     mException((Use<0.0f),EXIT,"invalid timer");\
     morn_timer_n -= 1;\
-    mLog(INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
+    mLog(MORN_LOG_INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
 }while(0)
 #endif
 
@@ -207,8 +202,8 @@ extern __thread int morn_layer_order;//=-1;
 #endif
 #define mError(Flag) (Flag)
 #define mWarning(Flag) (0-(Flag))
-#define mException(ERROR,ID,...) do{\
-    int Err = ERROR;\
+#define mException(Error,ID,...) do{\
+    int Err = Error;\
     if(Err!=0) mLog(Err,__VA_ARGS__);\
     if(Err >0)\
     {\
@@ -230,16 +225,16 @@ void mInfoSet(MInfo *info,const char *name,float value);
 
 unsigned int mHash(const char *in,int size);
 
-#ifdef __cplusplus
-#define Morn int dev;struct MList *handle;MInfo info;
-#else
-typedef struct Morn
-{
-    int dev;
-    struct MList *handle;
-    MInfo info;
-}Morn;
-#endif
+// #ifdef __cplusplus
+#define Morn struct{int dev;struct MList *handle;MInfo info;}
+// #else
+// typedef struct Morn
+// {
+//     int dev;
+//     struct MList *handle;
+//     MInfo info;
+// }Morn;
+// #endif
 
 typedef struct MList
 {
@@ -320,21 +315,6 @@ void mMemFree(void *p);
     }\
 }while(0)
 
-typedef struct MHandle
-{
-    unsigned int flag;
-    int valid;
-    void *handle;
-    void (*destruct)(void *);
-}MHandle;
-
-MList *mHandleCreate(void);
-void mHandleRelease(MList *handle);
-void mHandleReset(MList *handle);
-MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *));
-#define mHandle(Obj,Func) GetHandle(Obj->handle,sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
-#define mReset(Obj) mHandleReset(Obj->handle)
-
     
 int mCompare(const void *mem1,int size1,const void *mem2,int size2);
 
@@ -387,7 +367,7 @@ void mSheetElementDelete(MSheet *sheet,int row,int col);
 void mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetReorder(MSheet *sheet);
 
-int ElementSize(char *str,int size);
+int ElementSize(const char *str,int size);
 #define mElementSize(Type) ElementSize(#Type,sizeof(Type))
 
 typedef struct MTable{
@@ -479,7 +459,7 @@ char **mStringSplit(const char *str_in,const char *flag,MList *list);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
 
 char *StringArgument(int argc,char **argv,const char *flag,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6);
-#define mStringArgument(Argc,Argv,...) StringArgument(Argc,Argv,(const char *)_VA_ARG0(__VA_ARGS__,DFLT),(char *)VA_ARG1(__VA_ARGS__),(void *)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__),(void *)VA_ARG4(__VA_ARGS__),(void *)VA_ARG5(__VA_ARGS__),(void *)VA_ARG6(__VA_ARGS__),(void *)VA_ARG7(__VA_ARGS__))
+#define mStringArgument(Argc,Argv,...) StringArgument(Argc,Argv,(const char *)ARG(_VA_ARG0(__VA_ARGS__,DFLT)),(char *)VA_ARG1(__VA_ARGS__),(void *)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__),(void *)VA_ARG4(__VA_ARGS__),(void *)VA_ARG5(__VA_ARGS__),(void *)VA_ARG6(__VA_ARGS__),(void *)VA_ARG7(__VA_ARGS__))
 
 typedef struct MChainNode
 {
@@ -506,6 +486,7 @@ typedef struct MBtreeNode
 #define MORN_LEFT  0
 #define MORN_RIGHT 1
 
+
 typedef struct MObject
 {
     union
@@ -523,6 +504,25 @@ typedef struct MObject
 MObject *mObjectCreate(const void *obj);
 void mObjectRelease(MObject *proc);
 void mObjectRedefine(MObject *object,const void *obj);
+
+MObject *mMornObject(void *p);
+
+typedef struct MHandle
+{
+    unsigned int flag;
+    int valid;
+    void *handle;
+    void (*destruct)(void *);
+}MHandle;
+
+MList *mHandleCreate(void);
+void mHandleRelease(MList *handle);
+void mHandleReset(MList *handle);
+MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *));
+// #define _Object(obj) ((obj==NULL)?(((void **)(&obj)==(void **)(&morn_object))?(obj=(void *)mObjectCreate(NULL)):NULL):obj)
+#define mHandle(Obj,Func) GetHandle((Obj)->handle,sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
+#define mReset(Obj) mHandleReset(Obj->handle)
+
 
 #define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
 
@@ -579,9 +579,14 @@ void *mMemoryWrite(MMemory *memory,void *data,int size);
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
 void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
 void mMapDelete(MChain *map,const void *key,int key_size);
+void *mMapNodeKey(MChainNode *node);
+void *mMapNodeValue(MChainNode *node);
+int mMapNodeKeySize(MChainNode *node);
+int mMapNodeValueSize(MChainNode *node);
+
 
 #define MFile  MObject
-MFile *FileCreate(char *filename);
+MFile *FileCreate(const char *filename);
 #define mFileCreate(...) FileCreate(morn_filename+((sprintf(morn_filename,__VA_ARGS__))&0x0))
 #define mFileRelease  mObjectRelease
 void FileRedefine(MFile *file,char *filename);
@@ -600,11 +605,14 @@ void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
 
-char *INIRead(MObject *file,const char *section,const char *key,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14);
-#define mINIRead(File,Section,...) INIRead(File,Section,(const char *)_VA_ARG0(__VA_ARGS__,DFLT), (char *)VA_ARG1(__VA_ARGS__), (void *)VA_ARG2(__VA_ARGS__), (void *)VA_ARG3(__VA_ARGS__),\
+extern __thread char *morn_string_result;
+char *INIRead(MObject *file,const char *section,const char *key,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14);
+#define mINIRead(File,Section,...) INIRead(File,Section,(const char *)ARG(_VA_ARG0(__VA_ARGS__,DFLT)), (const char *)VA_ARG1(__VA_ARGS__), (void *)VA_ARG2(__VA_ARGS__), (void *)VA_ARG3(__VA_ARGS__),\
                                                                     (void *)VA_ARG4(__VA_ARGS__), (void *)VA_ARG5(__VA_ARGS__), (void *)VA_ARG6(__VA_ARGS__), (void *)VA_ARG7(__VA_ARGS__),\
                                                                     (void *)VA_ARG8(__VA_ARGS__), (void *)VA_ARG9(__VA_ARGS__),(void *)VA_ARG10(__VA_ARGS__),(void *)VA_ARG11(__VA_ARGS__),\
                                                                    (void *)VA_ARG12(__VA_ARGS__),(void *)VA_ARG13(__VA_ARGS__),(void *)VA_ARG14(__VA_ARGS__),(void *)VA_ARG15(__VA_ARGS__))
+// #define mINIRead(File,Section,Key,...) ((morn_string_result=INIRead(File,Section,Key))+sscanf(morn_string_result,__VA_ARGS__))
+
 MList *mINIKey(MFile *file,const char *section);
 MList *mINISection(MFile *file);
 
@@ -613,7 +621,11 @@ void JSONLoad(MTree *tree,char *filename);
 char *mJSONName(MTreeNode *node);
 char *mJSONValue(MTreeNode *node);
 void mJSONSearch(MTree *tree,MList *result,char *name);
-MTreeNode *mJSONNode(MTree *tree,char *name);
+MTreeNode *JSONNode(MTreeNode *treenode,const char *name,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14);
+#define mJSONNode(TreeNode,...) JSONNode(TreeNode,(const char *)ARG(_VA_ARG0(__VA_ARGS__,DFLT)),(const char *)VA_ARG1(__VA_ARGS__),(void *)VA_ARG2(__VA_ARGS__), (void *)VA_ARG3(__VA_ARGS__),\
+                                                                    (void *)VA_ARG4(__VA_ARGS__), (void *)VA_ARG5(__VA_ARGS__), (void *)VA_ARG6(__VA_ARGS__), (void *)VA_ARG7(__VA_ARGS__),\
+                                                                    (void *)VA_ARG8(__VA_ARGS__), (void *)VA_ARG9(__VA_ARGS__),(void *)VA_ARG10(__VA_ARGS__),(void *)VA_ARG11(__VA_ARGS__),\
+                                                                   (void *)VA_ARG12(__VA_ARGS__),(void *)VA_ARG13(__VA_ARGS__),(void *)VA_ARG14(__VA_ARGS__),(void *)VA_ARG15(__VA_ARGS__))
 
 int mMORNSize(MObject *file,int ID);
 void mMORNRead(MObject *file,int ID,void **data,int num,int size);
@@ -624,6 +636,10 @@ void mMORNWrite(MObject *file,int ID,void **data,int num,int size);
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
 void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float priority);
+
+// uint64_t mIPAddress(const char *addr);
+int mUDPSend(const char *address,void *data,int size);
+int mUDPRecive(const char *address,void *data,int size);
 
 #define THREAD(N,FN) {void thfunc##N(void){FN;} mException(pthread_create(id+N-1,NULL,(void *)(thfunc##N) ,NULL),EXIT,"createthread failed");}
 #define ThreadRun2(F1,F2) {THREAD(1,F1);THREAD(2,F2);}

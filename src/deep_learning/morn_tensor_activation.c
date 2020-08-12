@@ -228,7 +228,10 @@ void mTensorActivationForward(MLayer *layer)
         float *out_data=out->data[b];
         for(int i=0;i<size;i++)
             out_data[i] = (para->func)(in_data[i],para->argv);
+
+        
     }
+    
     
     layer->state = MORN_FORWARD;
 }

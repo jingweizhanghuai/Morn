@@ -48,7 +48,7 @@ MVector *VectorCreate(int size,float *data,int dev)
     {
         handle->memory = mMemoryCreate(1,size*sizeof(float),dev);
         handle->size = size;
-        vec->data = handle->memory->data[0];
+        vec->data = (dev==MORN_HOST_CPU)?handle->memory->data[0]:NULL;
     }
     else
         vec->data = data;
@@ -172,7 +172,8 @@ MMatrix *MatrixCreate(int row,int col,float **data,int dev)
     {
         if(handle->memory == NULL)handle->memory = mMemoryCreate(1,row*col*sizeof(float),dev);
         mException(handle->memory->num!=1,EXIT,"invalid image memory");
-        mMemoryIndex(handle->memory,row,col*sizeof(float),(void ***)(&(handle->index)),1);
+        if(dev==MORN_HOST_CPU)mMemoryIndex(handle->memory,row,col*sizeof(float),(void ***)(&(handle->index)),1);
+        else handle->index = NULL;
         handle->dev = dev;
         handle->col = col;
     }

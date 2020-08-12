@@ -249,3 +249,132 @@ unsigned int mHash(const char *in,int size)
     
     return out;
 }
+
+struct HandlePermutation
+{
+    int *idx;
+    int *flag;
+    int num;
+    int total;
+};
+void endPermutation(struct HandlePermutation *handle)
+{
+    if(handle->idx !=NULL) mFree(handle->idx );
+    if(handle->flag!=NULL) mFree(handle->flag);
+}
+#define HASH_Permutation 0xf4740f4b
+int mPermutation(int *idx,int num,int total)
+{
+    mException(INVALID_POINTER(idx),EXIT,"invalid input");
+    MHandle *hdl = mHandle(mMornObject(idx),Permutation);
+    struct HandlePermutation *handle = (struct HandlePermutation *)(hdl->handle);
+    if(hdl->valid==0)
+    {
+        if(total<0) total=num;
+        mException((num<0)||(num>total),EXIT,"invalid input combination number");
+        if((handle->idx!=NULL)&&(handle->num<num)) {mFree(handle->idx);handle->idx=NULL;}
+        if(handle->idx==NULL) handle->idx = (int *)mMalloc(num*sizeof(int));
+        if((handle->flag!=NULL)&&(handle->total<total)) {mFree(handle->flag);handle->flag=NULL;}
+        if(handle->flag==NULL) handle->flag= (int *)mMalloc(total*sizeof(int));
+        for(int i=0;i<num;i++) {handle->idx[i]=i;handle->flag[i]=1;}
+        for(int i=num;i<total;i++) handle->flag[i]=0;
+        handle->num = num;handle->total=total;
+        hdl->valid = 1;
+        
+        memcpy(idx,handle->idx,num*sizeof(int));
+        return MORN_SUCCESS;
+    }
+    else
+    {
+        mException((handle->num  !=num  )&&(num  >0),EXIT,"invalid input combination number");num  =handle->num  ;
+        mException((handle->total!=total)&&(total>0),EXIT,"invalid input combination number");total=handle->total;
+    }
+
+    int n;for(n=num-1;n>=0;n--)
+    {
+        int j = handle->idx[n];
+        handle->flag[j]=0;
+        for(j=handle->idx[n]+1;j<total;j++)
+        {
+            if(handle->flag[j]==0)
+            {
+                handle->idx[n]=j;
+                handle->flag[j]=1;
+                break;
+            }
+        }
+        if(j<total) break;
+        if(n==0) 
+        {
+            mFree(handle->idx );handle->idx =NULL;
+            mFree(handle->flag);handle->flag=NULL;
+            hdl->valid = 0;
+            return MORN_FAIL;
+        }
+    }
+    for(int i=n+1;i<num;i++)
+    {
+        for(int j=0;j<total;j++)
+        {
+            if(handle->flag[j]==0)
+            {
+                handle->idx[i]=j;
+                handle->flag[j]=1;
+                break;
+            }
+        }
+    }
+    memcpy(idx,handle->idx,num*sizeof(int));
+    return MORN_SUCCESS;
+}
+
+struct HandleCombination
+{
+    int *idx;
+    int num;
+    int total;
+};
+void endCombination(struct HandleCombination *handle)
+{
+    if(handle->idx!=NULL) mFree(handle->idx);
+}
+#define HASH_Combination 0x110249ec
+int mCombination(int *idx,int num,int total)
+{
+    mException(INVALID_POINTER(idx),EXIT,"invalid input");
+    MHandle *hdl = mHandle(mMornObject(idx),Combination);
+    struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
+    if(hdl->valid==0)
+    {
+        mException((num<0)||(num>total),EXIT,"invalid input combination number");
+        if((handle->idx!=NULL)&&(handle->num<num)) {mFree(handle->idx);handle->idx=NULL;}
+        if(handle->idx==NULL) handle->idx = (int *)mMalloc(num*sizeof(int));
+        for(int i=0;i<num;i++) handle->idx[i]=i;
+        handle->num = num;handle->total=total;
+        hdl->valid = 1;
+        
+        memcpy(idx,handle->idx,num*sizeof(int));
+        return MORN_SUCCESS;
+    }
+    else
+    {
+        mException((handle->num  !=num  )&&(num  >0),EXIT,"invalid input combination number");num  =handle->num  ;
+        mException((handle->total!=total)&&(total>0),EXIT,"invalid input combination number");total=handle->total;
+    }
+
+    int n;for(n=num-1;n>=0;n--)
+    {
+        handle->idx[n]++;
+        if(handle->idx[n]<=total-num+n) break;
+        if(n==0) 
+        {
+            mFree(handle->idx );handle->idx =NULL;
+            hdl->valid = 0;
+            return MORN_FAIL;
+        }
+    }
+    for(int i=n+1;i<num;i++) 
+        handle->idx[i]=handle->idx[i-1]+1;
+    memcpy(idx,handle->idx,num*sizeof(int));
+    return MORN_SUCCESS;
+}

@@ -9,7 +9,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_util.h"
 
-int ElementSize(char *str,int size)
+int ElementSize(const char *str,int size)
 {
     if(size!=sizeof(DFLT)) return size;
     if(strcmp(str,"DFLT")==0) return -1;

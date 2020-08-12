@@ -9,10 +9,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_image.h"
 
-#if defined MORN_USE_PNG
-    
-#include <png.h>
-
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
      
 struct HandleImageLoad
@@ -21,6 +17,10 @@ struct HandleImageLoad
 };
 #define HASH_ImageLoad 0x5c139120
 void endImageLoad(void *info);
+
+#if defined MORN_USE_PNG
+    
+#include <png.h>
 void mPNGLoad(MImage *dst,const char *filename)
 {
     int i,j,k;

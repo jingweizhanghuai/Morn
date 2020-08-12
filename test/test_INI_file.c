@@ -30,7 +30,7 @@ int main()
             if(mINIRead(file,student->data[i],name,"%[^(](%f)",name,&score)==NULL) break;
             sum+=score;
         }
-        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",student->data[i],grade,class,label,sum/(j-1));
+        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",(char *)(student->data[i]),grade,class,label,sum/(j-1));
     }
     mFileRelease(file);
 }
