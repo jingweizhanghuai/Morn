@@ -1,0 +1,19 @@
+## Morn：约定
+
+其实，Morn没有啥编程规范，也不想设置啥编程规范，如果非要说编程必须有的规则，那么就一条：
+
+
+
+### 唯一的规范
+
+**所有的mMalloc都必mFree，所有的mXxxCreate都必须mXxxRelease，所有的mXxxBegin都必须mXxxEnd。**
+
+mXxxCreate和mXxxRelease包括（但不限于）mObjectCreate和mObjectRelease，mListCreate和mListRelease，mSheetCreate和mSheetRelease，mChainCreate和mChainRelease，mTreeCreate和mTreeRelease，mVectorCreate和mVectorRelease，mMatrixCreate和mMatrixRelease，mTableCreate和mTableRelease，mWaveCreate和mWaveRelease，mImageCreate和mImageRelease，mSampleCreate和mSampleRelease，mTensorCreate和mTensorRelease等。
+
+mXxxBegin和mXxxEnd包括（但不限于）mTimerBegin和mTimerEnd，mExceptionBegin和mExceptionEnd等。
+
+这个规范更像是废话，但是有必要明确一下：
+
+* 在API的设计上，所有的mXxxCreate都必须mXxxRelease，但只要没有mXxxCreate，就不允许mXxxRelease，也就是说他们**必须成对出现**，任何mXxxCreate函数返回的对象都要通过mXxxRelease函数释放，但是只要不是mXxxCreate函数返回的对象，就不需要mXxxRelease函数对其释放。
+* 一个建议：mXxxCreate和mXxxRelease尽量在同一函数中被使用，如果做不到，那么mXxxCreate和mXxxRelease尽量在同一文件中被使用，如果还是做不到，那么mXxxCreate和mXxxRelease尽量被同一程序员使用，A程序员Create出来的对象，B程序员没有义务也不应该帮A去Release。
+* mXxxCreate和mXxxRelease只是建议在同一函数中被使用，mXxxBegin和mXxxEnd则必须在同一函数中被成对使用。
