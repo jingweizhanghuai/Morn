@@ -249,11 +249,6 @@ void mChainNodeOperate(MChain *chain,void *function,void *para)
 {
     void (*func)(void *,void *) = function;
     mException(INVALID_POINTER(chain)||(func==NULL),EXIT,"invalid input");
-    MChainNode *node = chain->chainnode;
+    MChainNode *node = chain->chainnode;if(node==NULL) return;
     do{func(node->data,para);node=node->next;}while(node!=chain->chainnode);
 }
-    
-
-    
-    
-        

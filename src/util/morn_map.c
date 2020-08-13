@@ -218,6 +218,7 @@ void mMapNodeOperate(MChain *map,void *function,void *para)
 {
     void (*func)(void *,int,void *,int,void *) = function;
     mException(INVALID_POINTER(map)||(func==NULL),EXIT,"invalid input");
+    if(map->chainnode==NULL) return;
     MChainNode *node = map->chainnode->next;
     while(node!=map->chainnode)
     {

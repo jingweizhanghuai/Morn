@@ -314,12 +314,14 @@ __attribute__((destructor)) void morn_end() {
 
     if(morn_object_map!=NULL)
     {
-        MChainNode *node = morn_object_map->chainnode->next;
-        while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        if(morn_object_map->chainnode!=NULL)
+        {
+            MChainNode *node = morn_object_map->chainnode->next;
+            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        }
         mChainRelease(morn_object_map);
     }
     morn_object_map = NULL;
-    // printf("after main\n"); 
 }
 #endif
 
@@ -337,4 +339,50 @@ MObject *mMornObject(void *p)
     MObject *obj = mObjectCreate(p);
     pobj=mMapWrite(morn_object_map,&p,sizeof(void *),&obj,sizeof(MObject *));
     return (*pobj);
+}
+
+void mTimeString(char *out,const char *format)
+{
+    mException(out==NULL,EXIT,"invalid output string");
+    time_t tv=time(NULL);
+    struct tm *t=localtime(&tv);
+    if(format==NULL) {strcpy(out,asctime(t));return;}
+
+    char *wday[7]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
+    char *month[12]={"January","February","March","April","May","June","July","August","September","October","November","December"};
+    char *awday[7]={"Sun.","Mon.","Tues.","Wed.","Thur.","Fri.y","Sat."};
+    char *amonth[12]={"Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sept.","Oct.","Nov.","Dec."};
+    
+    char str[256];strcpy(str,format);
+    intptr_t d[16];int n=0;
+    char *p,*q;
+    for(p=str;*p!=0;p++)
+    {
+        if(n>=16)break;
+        if(*p=='/') {p++;continue;}
+        if(*p=='%')
+        {
+            for(q=p+1;*q!=0;q++)
+            {
+                if((*q>='0')&&(*q<='9')) continue;
+                if(*q=='.') continue;
+                     if(*q=='Y') {d[n++]=t->tm_year+1900; *q='d';}
+                else if(*q=='M') {d[n++]=t->tm_mon+1;*q='d';}
+                else if(*q=='W') {d[n++]=t->tm_wday; *q='d';}
+                else if(*q=='D') {d[n++]=t->tm_mday; *q='d';}
+                else if(*q=='h') {d[n++]=t->tm_hour; *q='d';}
+                else if(*q=='H') {d[n++]=(t->tm_hour>12)?t->tm_hour-12:t->tm_hour; *q='d';}
+                else if(*q=='m') {d[n++]=t->tm_min ; *q='d';}
+                else if(*q=='S') {d[n++]=t->tm_sec ; *q='d';}
+                else if((q[0]=='s')&&(q[1]=='M')) {d[n++]=(intptr_t)( month[t->tm_mon ]);q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='a')&&(q[1]=='M')) {d[n++]=(intptr_t)(amonth[t->tm_mon ]);q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='s')&&(q[1]=='W')) {d[n++]=(intptr_t)(  wday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='a')&&(q[1]=='W')) {d[n++]=(intptr_t)( awday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
+                else mException(1,EXIT,"invalid format");
+                break;
+            }
+            p=q;
+        }
+    }
+    sprintf(out,str,d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],d[12],d[13],d[14],d[15]);
 }
