@@ -404,6 +404,12 @@ void mImageCopy(MImage *src,MImage *dst)
     }
 }
 
+void mImageWipe(MImage *img)
+{
+    for(int c=0;c<img->channel;c++)for(int j=0;j<img->height;j++)
+        memset(img->data[c][j],0,img->width*sizeof(unsigned char));
+}
+
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff)
 {
     mException((INVALID_IMAGE(src1)||INVALID_IMAGE(src2)),EXIT,"invalid input");
