@@ -48,7 +48,7 @@ mTimerEnd();	//结束总计时
 #### 时间日期格式化
 
 ```c
-const char *mTimeString(time_t time_value,const char *format);
+const char *mTimeString(int64_t time_value,const char *format);
 ```
 
 此函数主要是为了方便的打印时间和日期。接口中，time_value是输入的当前时间值，format是用户预设的字符串格式。返回值是一个根据format生成的字符串。
@@ -113,7 +113,7 @@ August15 2020 19:10:49 Saturday
 #### 时间日期提取
 
 ```c
-time_t mStringTime(char *in,const char *format);
+int64_t mStringTime(char *in,const char *format);
 ```
 
 显然这个函数就是`mTimeString`的逆操作。in是一个包含有时间日期信息的字符串，format是字符串的格式。其返回值是in所对应的时间值。
@@ -146,4 +146,25 @@ int main()
 1597489849
 1597489849
 ```
+
+一些应用：
+
+```c
+int main()
+{
+    printf("已经建国%d天\n",(time(NULL)-mStringTime("1949.10.1","%Y.%M.%D"))/(24*3600));
+    printf("距离2021年高考还有%d天\n",(mStringTime("2021.6.7","%Y.%M.%D")-time(NULL))/(24*3600));
+    printf("汶川大地震发生在星期%s\n",mTimeString(mStringTime("2008.5.12","%Y.%M.%D"),"%W"));
+}
+```
+
+程序的运行结果如下：
+
+```
+已经建国25886天
+距离2021年高考还有295天
+汶川大地震发生在星期1
+```
+
+值得说明的一点：`mTimeString`和`mStringTime`本质上是对标准库函数里`localtime`和`mktime`的封装，但是`mTimeString`和`mStringTime`**解决了时间值为负的问题**，使得可以使用此两函数处理1970年之前的时间点（比如1949年，但是不能超出int64_t的取值范围）。而原始的`localtime`和`mktime`不能处理1970年之前的时间。
 
