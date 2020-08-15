@@ -48,7 +48,7 @@ mTimerEnd();	//结束总计时
 #### 时间日期格式化
 
 ```c
-char *mTimeString(time_t time_value,const char *format);
+const char *mTimeString(time_t time_value,const char *format);
 ```
 
 此函数主要是为了方便的打印时间和日期。接口中，time_value是输入的当前时间值，format是用户预设的字符串格式。返回值是一个根据format生成的字符串。
