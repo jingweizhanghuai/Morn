@@ -177,7 +177,8 @@ extern __thread struct timeval morn_timer_end[16];
     mLog(MORN_LOG_INFO,"[%s,line %d]Timer: in function %s: time use is %fms",__FILE__,__LINE__,__FUNCTION__,Use);\
 }while(0)
 #endif
-void mTimeString(char *out,const char *format);
+char *mTimeString(time_t time_value,const char *format);
+time_t mStringTime(char *in,const char *format);
 
 #define EXIT DFLT
 

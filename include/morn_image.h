@@ -68,6 +68,7 @@ void mImageExpand(MImage *img,int r,int expand_type);
 void mImageCopy(MImage *src,MImage *dst);
 MImage *mImageChannelSplit(MImage *src,int num,...);
 void mImageCut(MImage *img,MImage *ROI,int src_x1,int src_x2,int src_y1,int src_y2,int dst_x,int dst_y);
+void mImageWipe(MImage *img);
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
