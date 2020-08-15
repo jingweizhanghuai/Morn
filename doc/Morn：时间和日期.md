@@ -51,7 +51,7 @@ mTimerEnd();	//结束总计时
 const char *mTimeString(int64_t time_value,const char *format);
 ```
 
-此函数主要是为了方便的打印时间和日期。接口中，time_value是输入的当前时间值，format是用户预设的字符串格式。返回值是一个根据format生成的字符串。
+此函数主要是为了方便的打印时间和日期。接口中，time_value是输入的时间值（若输入DFLT则为当前时间点），format是用户预设的字符串格式。返回值是一个根据format生成的字符串。
 
 先看一下效果：
 
@@ -74,7 +74,7 @@ int main()
 其输出结果为：
 
 ```
-Sat Aug 15 19:10:49 2020
+Sat. Aug. 15 19:10:49 2020
 2020.8.15 19:10:49
 August15 2020 19:10:49 Saturday
 2020 Aug. 15 Sat. 19:10:49
@@ -152,6 +152,7 @@ int main()
 ```c
 int main()
 {
+    printf("今天是%s\n",mTimeString(DFLT,"%Y.%M.%D %aW"));
     printf("已经建国%d天\n",(time(NULL)-mStringTime("1949.10.1","%Y.%M.%D"))/(24*3600));
     printf("距离2021年高考还有%d天\n",(mStringTime("2021.6.7","%Y.%M.%D")-time(NULL))/(24*3600));
     printf("汶川大地震发生在星期%s\n",mTimeString(mStringTime("2008.5.12","%Y.%M.%D"),"%W"));
@@ -161,6 +162,7 @@ int main()
 程序的运行结果如下：
 
 ```
+今天是2020.8.15 Sat.
 已经建国25886天
 距离2021年高考还有295天
 汶川大地震发生在星期1
