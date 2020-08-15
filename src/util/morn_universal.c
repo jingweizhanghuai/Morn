@@ -346,7 +346,7 @@ MObject *mMornObject(void *p)
 }
 
 char morn_time_string[128];
-char *mTimeString(time_t time_value,const char *format)
+const char *mTimeString(time_t time_value,const char *format)
 {
     time_t tv=(time_value<0)?time(NULL):time_value;
     struct tm *t=localtime(&tv);
