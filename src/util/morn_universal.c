@@ -346,11 +346,18 @@ MObject *mMornObject(void *p)
 }
 
 char morn_time_string[128];
-const char *mTimeString(time_t time_value,const char *format)
+const char *mTimeString(int64_t time_value,const char *format)
 {
-    time_t tv=(time_value<0)?time(NULL):time_value;
+    int64_t tv=(time_value==DFLT)?(int64_t)time(NULL):time_value;
+    int ty = 0;
+    if(tv<0)
+    {
+        ty=(0-tv)/((366+365*3)*7*24*3600)+1;
+        tv+=ty*(366+365*3)*7*24*3600;
+        ty=ty*28;
+    }
     struct tm *t=localtime(&tv);
-    if(format==NULL) {strcpy(morn_time_string,asctime(t));return morn_time_string;}
+    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
 
     char *wday[7]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
     char *month[12]={"January","February","March","April","May","June","July","August","September","October","November","December"};
@@ -370,7 +377,7 @@ const char *mTimeString(time_t time_value,const char *format)
             {
                 if((*q>='0')&&(*q<='9')) continue;
                 // if(*q=='.') continue;
-                     if(*q=='Y') {d[n++]=t->tm_year+1900; *q='d';}
+                     if(*q=='Y') {d[n++]=t->tm_year+1900-ty; *q='d';}
                 else if(*q=='M') {d[n++]=t->tm_mon+1;*q='d';}
                 else if(*q=='W') {d[n++]=t->tm_wday; *q='d';}
                 else if(*q=='D') {d[n++]=t->tm_mday; *q='d';}
@@ -391,12 +398,12 @@ const char *mTimeString(time_t time_value,const char *format)
     return morn_time_string;
 }
 
-time_t mStringTime(char *in,const char *format)
+int64_t mStringTime(char *in,const char *format)
 {
     if(in == NULL) return time(NULL);
-    if(format==NULL) format = "%sW %sM %D %H:%m:%S %Y";
+    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
 
-    int day=0,month=0,year=0,week=0,hour=0,minute=0,second=0;
+    int day=DFLT,month=DFLT,year=DFLT,week=DFLT,hour=0,minute=0,second=0;
     char s_week[16],s_month[16];
     char *amonth[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
@@ -444,9 +451,9 @@ time_t mStringTime(char *in,const char *format)
     }
     // printf("%s\n",str);
     sscanf(in,str,ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7],ptr[8],ptr[9],ptr[10],ptr[11],ptr[12],ptr[13],ptr[14],ptr[15]);
-    if(month==0) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
-    if((year==0)||(month ==0)||(day   ==0)) return DFLT;
-    if((hour==0)||(minute==0)||(second==0)) return DFLT;
+    if(month<0) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
+    if((year<0)||(month<0)||(day<0)) return DFLT;
+    int64_t td=0; if(year<1972) {td=((1972-year)*365+(1972-year)/4+(((1972-year)%4!=0)&&(month>2)))*24*3600;year=1972;}
     struct tm t;t.tm_year=year-1900; t.tm_mon=month-1;t.tm_mday=day;t.tm_hour=hour;t.tm_min=minute;t.tm_sec=second;
-    return mktime(&t);
+    return (int64_t)mktime(&t)-td;
 }
