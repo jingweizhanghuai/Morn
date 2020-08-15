@@ -12,6 +12,10 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_math.h"
 
+#ifdef __GNUC__
+#define stricmp strcasecmp
+#endif
+
 __thread void *morn_test=NULL;
 
 #ifdef _MSC_VER
@@ -341,12 +345,12 @@ MObject *mMornObject(void *p)
     return (*pobj);
 }
 
-void mTimeString(char *out,const char *format)
+char morn_time_string[128];
+char *mTimeString(time_t time_value,const char *format)
 {
-    mException(out==NULL,EXIT,"invalid output string");
-    time_t tv=time(NULL);
+    time_t tv=(time_value<0)?time(NULL):time_value;
     struct tm *t=localtime(&tv);
-    if(format==NULL) {strcpy(out,asctime(t));return;}
+    if(format==NULL) {strcpy(morn_time_string,asctime(t));return morn_time_string;}
 
     char *wday[7]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
     char *month[12]={"January","February","March","April","May","June","July","August","September","October","November","December"};
@@ -365,13 +369,12 @@ void mTimeString(char *out,const char *format)
             for(q=p+1;*q!=0;q++)
             {
                 if((*q>='0')&&(*q<='9')) continue;
-                if(*q=='.') continue;
+                // if(*q=='.') continue;
                      if(*q=='Y') {d[n++]=t->tm_year+1900; *q='d';}
                 else if(*q=='M') {d[n++]=t->tm_mon+1;*q='d';}
                 else if(*q=='W') {d[n++]=t->tm_wday; *q='d';}
                 else if(*q=='D') {d[n++]=t->tm_mday; *q='d';}
-                else if(*q=='h') {d[n++]=t->tm_hour; *q='d';}
-                else if(*q=='H') {d[n++]=(t->tm_hour>12)?t->tm_hour-12:t->tm_hour; *q='d';}
+                else if(*q=='H') {d[n++]=t->tm_hour; *q='d';}
                 else if(*q=='m') {d[n++]=t->tm_min ; *q='d';}
                 else if(*q=='S') {d[n++]=t->tm_sec ; *q='d';}
                 else if((q[0]=='s')&&(q[1]=='M')) {d[n++]=(intptr_t)( month[t->tm_mon ]);q[0]='h';q[1]='s';q++;}
@@ -384,5 +387,66 @@ void mTimeString(char *out,const char *format)
             p=q;
         }
     }
-    sprintf(out,str,d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],d[12],d[13],d[14],d[15]);
+    sprintf(morn_time_string,str,d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],d[12],d[13],d[14],d[15]);
+    return morn_time_string;
+}
+
+time_t mStringTime(char *in,const char *format)
+{
+    if(in == NULL) return time(NULL);
+    if(format==NULL) format = "%sW %sM %D %H:%m:%S %Y";
+
+    int day=0,month=0,year=0,week=0,hour=0,minute=0,second=0;
+    char s_week[16],s_month[16];
+    char *amonth[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+
+    void *ptr[16];
+    char str[128];memset(str,0,128);
+    
+    const char *p,*q;
+    int n=0,m=0;
+    for(p=format;*p!=0;p++)
+    {
+        if((n>=16)||(m>=128))break;
+        str[m]=*p;m++;
+        if(*p=='/') {p++;continue;}
+        if(*p=='%')
+        {
+            for(q=p+1;*q!=0;q++)
+            {
+                if((*q>='0')&&(*q<='9')) continue;
+                // if(*q=='.') continue;
+                     if(*q=='Y') {ptr[n++]=&year  ;str[m++]='d';}
+                else if(*q=='M') {ptr[n++]=&month ;str[m++]='d';}
+                else if(*q=='W') {ptr[n++]=&week  ;str[m++]='d';}
+                else if(*q=='D') {ptr[n++]=&day   ;str[m++]='d';}
+                else if(*q=='H') {ptr[n++]=&hour  ;str[m++]='d';}
+                else if(*q=='m') {ptr[n++]=&minute;str[m++]='d';}
+                else if(*q=='S') {ptr[n++]=&second;str[m++]='d';}
+                else if(((q[0]=='s')||(q[0]=='a'))&&((q[1]=='M')||(q[1]=='W')))
+                {
+                    ptr[n++]=(q[1]=='M')?s_month:s_week;
+                    if(!q[2]) str[m++]='s';
+                    else
+                    {
+                        str[m++]='[';
+                        str[m++]='^';str[m++]='0';str[m++]='-';str[m++]='9';
+                        str[m++]='^';str[m++]=q[2];
+                        str[m++]=']';
+                    }
+                    q++;
+                }
+                else mException(1,EXIT,"invalid format");
+                break;
+            }
+            p=q;
+        }
+    }
+    // printf("%s\n",str);
+    sscanf(in,str,ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7],ptr[8],ptr[9],ptr[10],ptr[11],ptr[12],ptr[13],ptr[14],ptr[15]);
+    if(month==0) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
+    if((year==0)||(month ==0)||(day   ==0)) return DFLT;
+    if((hour==0)||(minute==0)||(second==0)) return DFLT;
+    struct tm t;t.tm_year=year-1900; t.tm_mon=month-1;t.tm_mday=day;t.tm_hour=hour;t.tm_min=minute;t.tm_sec=second;
+    return mktime(&t);
 }
