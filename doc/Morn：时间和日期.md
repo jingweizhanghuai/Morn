@@ -48,10 +48,10 @@ mTimerEnd();	//结束总计时
 #### 时间日期格式化
 
 ```c
-void mTimeString(char *out,const char *format);
+char *mTimeString(time_t time_value,const char *format);
 ```
 
-此函数主要是为了方便的打印时间和日期。接口中，out用来存放格式化的输出字符串。format是用户预设的字符串格式。
+此函数主要是为了方便的打印时间和日期。接口中，time_value是输入的当前时间值，format是用户预设的字符串格式。返回值是一个根据format生成的字符串。
 
 先看一下效果：
 
@@ -61,27 +61,25 @@ void mTimeString(char *out,const char *format);
 #include "morn_util.h"
 int main()
 {
-    char t_str[32];
-    mTimeString(t_str,NULL                                   );printf("%s"  ,t_str);
-    mTimeString(t_str,"%Y.%M.%D %H:%m:%S"                    );printf("%s\n",t_str);
-    mTimeString(t_str,"%h:%m:%S %Y.%M.%D %sW"                );printf("%s\n",t_str);
-    mTimeString(t_str,"%02H:%02m:%02S %Y.%02M.%02D %aW"      );printf("%s\n",t_str);
-    mTimeString(t_str,"%sM.%D %Y %H:%m:%S %sW"               );printf("%s\n",t_str);
-    mTimeString(t_str,"%Y %aM %D %aW %H:%m:%S"               );printf("%s\n",t_str);
-    mTimeString(t_str,"现在是%Y年%M月%D日，星期%W，%H时%m分%S秒" );printf("%s\n",t_str);
+    printf("%s",mTimeString(DFLT,NULL                               ));
+    printf("%s\n",mTimeString(DFLT,"%Y.%M.%D %H:%m:%S"              ));
+    printf("%s\n",mTimeString(DFLT,"%sM%D %Y %H:%m:%S %sW"          ));
+    printf("%s\n",mTimeString(DFLT,"%Y %aM %D %aW %H:%m:%S"         ));
+    printf("%s\n",mTimeString(DFLT,"%02H:%02m:%02S %Y.%02M.%02D %aW"));
+    printf("%s\n",mTimeString(DFLT,"%Y年%M月%D日，星期%W，%H时%m分%S秒"));
+    return 0;
 }
 ```
 
 其输出结果为：
 
 ```
-Thu Aug 13 22:28:03 2020
-2020.8.13 10:28:3
-22:28:3 2020.8.13 Thursday
-10:28:03 2020.08.13 Thur.
-August.13 2020 10:28:3 Thursday
-2020 Aug. 13 Thur. 10:28:3
-现在是2020年8月13日，星期4，10时28分3秒
+Sat Aug 15 19:10:49 2020
+2020.8.15 19:10:49
+August15 2020 19:10:49 Saturday
+2020 Aug. 15 Sat. 19:10:49
+19:10:49 2020.08.15 Sat.
+2020年8月15日，星期6，19时10分49秒
 ```
 
 如果format输入为NULL，则与C语言库函数`asctime`的输出无异。
@@ -89,12 +87,15 @@ August.13 2020 10:28:3 Thursday
 这里的重点是时间格式的设置。这里的`%Y %M %D %H %m %S`等都是格式化字符，其使用方法与C语言中`printf`系列函数的`%d %s`无异。这其中：
 
 * %Y用来输出公元纪年（year），为整数。
+
 * %M用来输出公历月份（month），为整数1至12之间。
+
 * %D用来输出公历日期（day），为整数1至31之间。
+
 * %W用来输出星期（week），为整数1至7之间。
 
 * %H用来输出小时（hour），为整数0至23之间。
-* %h用来输出小时（hour），与%H的区别在于：%h为整数0至12之间。
+
 * %m用来输出分钟（minute），为整数0至59之间，注意与%M（月份）。
 
 * %S用来输出分钟（second），为整数0至59之间。
@@ -108,3 +109,41 @@ August.13 2020 10:28:3 Thursday
 * %aW用来输出星期的英文简写（abbreviated week），为字符串，如"Sun.","Mon."等。
 
   
+
+#### 时间日期提取
+
+```c
+time_t mStringTime(char *in,const char *format);
+```
+
+显然这个函数就是`mTimeString`的逆操作。in是一个包含有时间日期信息的字符串，format是字符串的格式。其返回值是in所对应的时间值。
+
+例如：
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include "morn_util.h"
+int main()
+{
+    printf("%d\n",mStringTime("Sat Aug 15 19:10:49 2020",NULL));
+    printf("%d\n",mStringTime("2020.8.15 19:10:49","%Y.%M.%D %H:%m:%S"));
+    printf("%d\n",mStringTime("August15 2020 19:10:49 Saturday","%sM%D %Y %H:%m:%S %sW"));
+    printf("%d\n",mStringTime("2020 Aug. 15 Sat. 19:10:49","%Y %aM %D %aW %H:%m:%S"));
+    printf("%d\n",mStringTime("19:10:49 2020.08.15 Sat.","%02H:%02m:%02S %Y.%02M.%02D %aW"));
+    printf("%d\n",mStringTime("2020年8月15日，星期6，19时10分49秒","%Y年%M月%D日，星期%W，%H时%m分%S秒"));
+    return 0;
+}
+```
+
+其输出结果为：
+
+```
+1597489849
+1597489849
+1597489849
+1597489849
+1597489849
+1597489849
+```
+
