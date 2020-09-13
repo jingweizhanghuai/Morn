@@ -174,6 +174,8 @@ void mLogSet(int levelset,int output,const char *filename,int64_t filesize);
 
 由上文可以看到，程序中并非必须使用mLogSet函数，当没有使用mLogSet函数时，默认将日志打印在控制台上，日志级别为Info（Release版本）或Debug（Debug版本）。
 
+`mLogSet`通常写在程序的开头，用以配置日志参数。也可以在程序中多次调用，用以改变日志配置。
+
 以上`mLogSet`接口中：
 
 * levelset为设定的日志输出级别，当`mLog`函数中指定的日志级别大于等于此levelset时，日志才会被输出，否则被忽略。此项可设置为DFLT。
@@ -300,7 +302,7 @@ I20200913 21:14:36.839823   148 test_log2.cpp:48] : Hello glog, datai=17729, dat
 
 测试结果为：
 
-![](D:\Morn\doc\日志.PNG)
+![](日志.PNG)
 
 以上可见：
 
