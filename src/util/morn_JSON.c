@@ -38,10 +38,14 @@ void endJSONLoad(void *info)
         mFree(handle->file);
 }
 #define HASH_JSONLoad 0xa59d25b3
-void JSONLoad(MTree *tree,char *filename)
+void mJSONLoad(MTree *tree,char *filename,...)
 {
-    FILE *f = fopen(filename,"rb");
-    mException((f==NULL),EXIT,"cannot open file %s",filename);
+    va_list namepara;
+    va_start (namepara,filename);
+    vsnprintf(morn_filename,256,filename,namepara);
+    va_end(namepara);
+    FILE *f = fopen(morn_filename,"rb");
+    mException((f==NULL),EXIT,"cannot open file %s",morn_filename);
 
     fseek(f,0,SEEK_END);
     int filesize = ftell(f);
@@ -309,53 +313,36 @@ void JSONSearch(MTreeNode *node,char **name,int n,MList *list)
     }
 }
 
-struct HandleJSONSearch
-{
-    MList *name;
-};
-void endJSONSearch(void *info) 
-{
-    struct HandleJSONSearch *handle = (struct HandleJSONSearch *)info;
-    if(handle->name!= NULL) mListRelease(handle->name);
-}
-#define HASH_JSONSearch 0x40bc5267
 void mJSONSearch(MTree *tree,MList *result,char *name)
 {
     mException((tree==NULL)||(name==NULL),EXIT,"invalid input");
-    MHandle *hdl=mHandle(tree,JSONSearch);
-    struct HandleJSONSearch *handle = (struct HandleJSONSearch *)(hdl->handle);
-    if(hdl->valid == 0)
-    {
-        if(handle->name  ==NULL) handle->name  =mListCreate(DFLT,NULL);
-        hdl->valid = 1;
-    }
 
-    mStringSplit(name,".",handle->name);
+    MList *name_list = mStringSplit(name,".");
     
     mListClear(result);
     int flag=0;
     for(int i=0;i<tree->treenode->child_num;i++)
     {
         if(strcmp(mJSONName(tree->treenode->child[i]),"mornjson")==0)
-            JSONSearch(tree->treenode->child[i],(char **)(handle->name->data),handle->name->num,result);
+            JSONSearch(tree->treenode->child[i],(char **)(name_list->data),name_list->num,result);
         else flag=1;
     }
-    if(flag)JSONSearch(tree->treenode          ,(char **)(handle->name->data),handle->name->num,result);
+    if(flag)JSONSearch(tree->treenode          ,(char **)(name_list->data),name_list->num,result);
 }
 
 int _NodeCompare(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
-MTreeNode *JSONNode(MTreeNode *treenode,const char *name,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14)
+MTreeNode *m_JSONNode(MTreeNode *treenode,const char *name,const char *format,...)
 {
     MTreeNode *node = mTreeSearch(treenode,_NodeCompare,(void *)name,0);
     if((node!=NULL)&&(!INVALID_POINTER(format)))
-        sscanf(mJSONValue(node),format,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14);
+    {
+        va_list jsonpara;
+        va_start(jsonpara,format);
+        vsscanf(mJSONValue(node),format,jsonpara);
+        va_end(jsonpara);
+    }
     return node;
 }
-
-    
-
-
-    
 
 /*
 struct HandleJSONRead

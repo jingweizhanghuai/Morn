@@ -22,7 +22,7 @@ void ImageIntegration(MImage *src,MTable **dst)
     for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(dst[cn]),EXIT,"invalid input");
-        mTableRedefine(dst[cn],height+1,width+1,S32,dst[cn]->data);
+        mTableRedefine(dst[cn],height+1,width+1,sizeof(int),dst[cn]->data);
         memset(dst[cn]->dataS32[0],0,(width+1)*sizeof(float));
         
         for(j=ImageY1(src);j<ImageY2(src);j++)
@@ -52,7 +52,7 @@ void ImageIntegration2(MImage *src,MTable **dst)
     for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(dst[cn]),EXIT,"invalid input");
-        mTableRedefine(dst[cn],height+1,width+1,S32,dst[cn]->data);
+        mTableRedefine(dst[cn],height+1,width+1,sizeof(int),dst[cn]->data);
         
         memset(dst[cn]->dataS32[0],0,(width+1)*sizeof(float));
         for(j=ImageY1(src);j<ImageY2(src);j++)
@@ -93,8 +93,8 @@ void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum)
     for(cn=0;cn<src->channel;cn++)
     {
         mException(INVALID_POINTER(sum[cn])||INVALID_POINTER(sqsum[cn]),EXIT,"invalid input");
-        mTableRedefine(sum[cn]  ,height+1,width+1,S32,  sum[cn]->data);
-        mTableRedefine(sqsum[cn],height+1,width+1,S32,sqsum[cn]->data);
+        mTableRedefine(sum[cn]  ,height+1,width+1,sizeof(int),  sum[cn]->data);
+        mTableRedefine(sqsum[cn],height+1,width+1,sizeof(int),sqsum[cn]->data);
         
         memset(sum[cn]->data[0],0,(width+1)*sizeof(float));
         memset(sqsum[cn]->data[0],0,(width+1)*sizeof(float));

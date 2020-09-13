@@ -53,14 +53,16 @@ AscSortData_next:\
     if(    I  >1) AscSortData##Type(Data    ,    I  );\
     if(Num-I-1>1) AscSortData##Type(Data+I+1,Num-I-1);\
 }
-void AscSortDataD64(D64 *data,int num) {AscSortData(D64,data,num);}
-void AscSortDataF32(F32 *data,int num) {AscSortData(F32,data,num);}
-void AscSortDataS32(S32 *data,int num) {AscSortData(S32,data,num);}
-void AscSortDataU32(U32 *data,int num) {AscSortData(U32,data,num);}
-void AscSortDataS16(S16 *data,int num) {AscSortData(S16,data,num);}
+void AscSortDataU8 (U8  *data,int num) {AscSortData(U8 ,data,num);}
+void AscSortDataS8 (S8  *data,int num) {AscSortData(S8 ,data,num);}
 void AscSortDataU16(U16 *data,int num) {AscSortData(U16,data,num);}
-void AscSortDataS8 ( S8 *data,int num) {AscSortData( S8,data,num);}
-void AscSortDataU8 ( U8 *data,int num) {AscSortData( U8,data,num);}
+void AscSortDataS16(S16 *data,int num) {AscSortData(S16,data,num);}
+void AscSortDataU32(U32 *data,int num) {AscSortData(U32,data,num);}
+void AscSortDataS32(S32 *data,int num) {AscSortData(S32,data,num);}
+void AscSortDataU64(U64 *data,int num) {AscSortData(U64,data,num);}
+void AscSortDataS64(S64 *data,int num) {AscSortData(S64,data,num);}
+void AscSortDataF32(F32 *data,int num) {AscSortData(F32,data,num);}
+void AscSortDataD64(D64 *data,int num) {AscSortData(D64,data,num);}
 
 #define AscSortIndex(Type,Data,Index,Num) {\
     Type Buff;int Buff_index;\
@@ -90,16 +92,19 @@ AscSortIndex_next:\
     if(    I  >1) AscSortIndex##Type(Data    ,Index    ,    I  );\
     if(Num-I-1>1) AscSortIndex##Type(Data+I+1,Index+I+1,Num-I-1);\
 }
-void AscSortIndexD64(D64 *data,int *index,int num) {AscSortIndex(D64,data,index,num);}
-void AscSortIndexF32(F32 *data,int *index,int num) {AscSortIndex(F32,data,index,num);}
-void AscSortIndexS32(S32 *data,int *index,int num) {AscSortIndex(S32,data,index,num);}
-void AscSortIndexU32(U32 *data,int *index,int num) {AscSortIndex(U32,data,index,num);}
-void AscSortIndexS16(S16 *data,int *index,int num) {AscSortIndex(S16,data,index,num);}
+void AscSortIndexU8 (U8  *data,int *index,int num) {AscSortIndex(U8 ,data,index,num);}
+void AscSortIndexS8 (S8  *data,int *index,int num) {AscSortIndex(S8 ,data,index,num);}
 void AscSortIndexU16(U16 *data,int *index,int num) {AscSortIndex(U16,data,index,num);}
-void AscSortIndexS8 ( S8 *data,int *index,int num) {AscSortIndex( S8,data,index,num);}
-void AscSortIndexU8 ( U8 *data,int *index,int num) {AscSortIndex( U8,data,index,num);}
+void AscSortIndexS16(S16 *data,int *index,int num) {AscSortIndex(S16,data,index,num);}
+void AscSortIndexU32(U32 *data,int *index,int num) {AscSortIndex(U32,data,index,num);}
+void AscSortIndexS32(S32 *data,int *index,int num) {AscSortIndex(S32,data,index,num);}
+void AscSortIndexU64(U64 *data,int *index,int num) {AscSortIndex(U64,data,index,num);}
+void AscSortIndexS64(S64 *data,int *index,int num) {AscSortIndex(S64,data,index,num);}
+void AscSortIndexF32(F32 *data,int *index,int num) {AscSortIndex(F32,data,index,num);}
+void AscSortIndexD64(D64 *data,int *index,int num) {AscSortIndex(D64,data,index,num);}
 
-#define AscSort(Type,Data_in,Index_in,Data_out,Index_out,Num) {\
+#define AscSort(Type,DataIn,Index_in,DataOut,Index_out,Num) {\
+    Type *Data_in = (Type *)(DataIn);Type *Data_out = (Type *)(DataOut);\
     mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
     if((Data_out!=NULL)&&(Data_out!=Data_in)) {memcpy(Data_out,Data_in,Num*sizeof(Type));Data_in=Data_out;}\
     if((Index_in==NULL)&&(Index_out==NULL)) {if(Num>1) AscSortData##Type(Data_in,Num); return;}\
@@ -109,14 +114,16 @@ void AscSortIndexU8 ( U8 *data,int *index,int num) {AscSortIndex( U8,data,index,
         {memcpy(Index_out,Index_in,Num*sizeof(int));Index_in = Index_out;}\
     if(Num>1) {AscSortIndex##Type(Data_in,Index_in,Num);return;}\
 }
-void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {AscSort(D64,data_in,index_in,data_out,index_out,num);}
-void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {AscSort(F32,data_in,index_in,data_out,index_out,num);}
-void mAscSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {AscSort(S32,data_in,index_in,data_out,index_out,num);}
-void mAscSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {AscSort(S16,data_in,index_in,data_out,index_out,num);}
-void mAscSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {AscSort( S8,data_in,index_in,data_out,index_out,num);}
-void mAscSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {AscSort(U32,data_in,index_in,data_out,index_out,num);}
+void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {AscSort(U8 ,data_in,index_in,data_out,index_out,num);}
+void mAscSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {AscSort(S8 ,data_in,index_in,data_out,index_out,num);}
 void mAscSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num) {AscSort(U16,data_in,index_in,data_out,index_out,num);}
-void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {AscSort( U8,data_in,index_in,data_out,index_out,num);}
+void mAscSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {AscSort(S16,data_in,index_in,data_out,index_out,num);}
+void mAscSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {AscSort(U32,data_in,index_in,data_out,index_out,num);}
+void mAscSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {AscSort(S32,data_in,index_in,data_out,index_out,num);}
+void mAscSortU64(U64 *data_in,int *index_in,U64 *data_out,int *index_out,int num) {AscSort(U64,data_in,index_in,data_out,index_out,num);}
+void mAscSortS64(S64 *data_in,int *index_in,S64 *data_out,int *index_out,int num) {AscSort(S64,data_in,index_in,data_out,index_out,num);}
+void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {AscSort(F32,data_in,index_in,data_out,index_out,num);}
+void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {AscSort(D64,data_in,index_in,data_out,index_out,num);}
 
 
 #define DescSortData(Type,Data,Num) {\
@@ -142,14 +149,16 @@ DescSortData_next:\
     if(    I  >1) DescSortData##Type(Data    ,    I  );\
     if(Num-I-1>1) DescSortData##Type(Data+I+1,Num-I-1);\
 }
-void DescSortDataD64(D64 *data,int num) {DescSortData(D64,data,num);}
-void DescSortDataF32(F32 *data,int num) {DescSortData(F32,data,num);}
-void DescSortDataS32(S32 *data,int num) {DescSortData(S32,data,num);}
-void DescSortDataU32(U32 *data,int num) {DescSortData(U32,data,num);}
-void DescSortDataS16(S16 *data,int num) {DescSortData(S16,data,num);}
+void DescSortDataU8 (U8  *data,int num) {DescSortData(U8 ,data,num);}
+void DescSortDataS8 (S8  *data,int num) {DescSortData(S8 ,data,num);}
 void DescSortDataU16(U16 *data,int num) {DescSortData(U16,data,num);}
-void DescSortDataS8 ( S8 *data,int num) {DescSortData( S8,data,num);}
-void DescSortDataU8 ( U8 *data,int num) {DescSortData( U8,data,num);}
+void DescSortDataS16(S16 *data,int num) {DescSortData(S16,data,num);}
+void DescSortDataU32(U32 *data,int num) {DescSortData(U32,data,num);}
+void DescSortDataS32(S32 *data,int num) {DescSortData(S32,data,num);}
+void DescSortDataU64(U64 *data,int num) {DescSortData(U64,data,num);}
+void DescSortDataS64(S64 *data,int num) {DescSortData(S64,data,num);}
+void DescSortDataF32(F32 *data,int num) {DescSortData(F32,data,num);}
+void DescSortDataD64(D64 *data,int num) {DescSortData(D64,data,num);}
 
 #define DescSortIndex(Type,Data,Index,Num) {\
     Type Buff;int Buff_index;\
@@ -179,16 +188,19 @@ DescSortIndex_next:\
     if(    I  >1) DescSortIndex##Type(Data    ,Index    ,    I  );\
     if(Num-I-1>1) DescSortIndex##Type(Data+I+1,Index+I+1,Num-I-1);\
 }
-void DescSortIndexD64(D64 *data,int *index,int num) {DescSortIndex(D64,data,index,num);}
-void DescSortIndexF32(F32 *data,int *index,int num) {DescSortIndex(F32,data,index,num);}
-void DescSortIndexS32(S32 *data,int *index,int num) {DescSortIndex(S32,data,index,num);}
-void DescSortIndexU32(U32 *data,int *index,int num) {DescSortIndex(U32,data,index,num);}
-void DescSortIndexS16(S16 *data,int *index,int num) {DescSortIndex(S16,data,index,num);}
+void DescSortIndexU8 (U8  *data,int *index,int num) {DescSortIndex(U8 ,data,index,num);}
+void DescSortIndexS8 (S8  *data,int *index,int num) {DescSortIndex(S8 ,data,index,num);}
 void DescSortIndexU16(U16 *data,int *index,int num) {DescSortIndex(U16,data,index,num);}
-void DescSortIndexS8 ( S8 *data,int *index,int num) {DescSortIndex( S8,data,index,num);}
-void DescSortIndexU8 ( U8 *data,int *index,int num) {DescSortIndex( U8,data,index,num);}
+void DescSortIndexS16(S16 *data,int *index,int num) {DescSortIndex(S16,data,index,num);}
+void DescSortIndexU32(U32 *data,int *index,int num) {DescSortIndex(U32,data,index,num);}
+void DescSortIndexS32(S32 *data,int *index,int num) {DescSortIndex(S32,data,index,num);}
+void DescSortIndexU64(U64 *data,int *index,int num) {DescSortIndex(U64,data,index,num);}
+void DescSortIndexS64(S64 *data,int *index,int num) {DescSortIndex(S64,data,index,num);}
+void DescSortIndexF32(F32 *data,int *index,int num) {DescSortIndex(F32,data,index,num);}
+void DescSortIndexD64(D64 *data,int *index,int num) {DescSortIndex(D64,data,index,num);}
 
-#define DescSort(Type,Data_in,Index_in,Data_out,Index_out,Num) {\
+#define DescSort(Type,DataIn,Index_in,DataOut,Index_out,Num) {\
+    Type *Data_in = (Type *)(DataIn);Type *Data_out = (Type *)(DataOut);\
     mException((INVALID_POINTER(Data_in)),EXIT,"invalid input");\
     if((Data_out!=NULL)&&(Data_out!=Data_in)) {memcpy(Data_out,Data_in,Num*sizeof(Type));Data_in=Data_out;}\
     if((Index_in==NULL)&&(Index_out==NULL)) {if(Num>1) DescSortData##Type(Data_in,Num); return;}\
@@ -198,19 +210,23 @@ void DescSortIndexU8 ( U8 *data,int *index,int num) {DescSortIndex( U8,data,inde
         {memcpy(Index_out,Index_in,Num*sizeof(int));Index_in = Index_out;}\
     if(Num>1) {DescSortIndex##Type(Data_in,Index_in,Num);return;}\
 }
-void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {DescSort(D64,data_in,index_in,data_out,index_out,num);}
-void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {DescSort(F32,data_in,index_in,data_out,index_out,num);}
-void mDescSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {DescSort(S32,data_in,index_in,data_out,index_out,num);}
-void mDescSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {DescSort(S16,data_in,index_in,data_out,index_out,num);}
-void mDescSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {DescSort( S8,data_in,index_in,data_out,index_out,num);}
-void mDescSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {DescSort(U32,data_in,index_in,data_out,index_out,num);}
+void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {DescSort(U8 ,data_in,index_in,data_out,index_out,num);}
+void mDescSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num) {DescSort(S8 ,data_in,index_in,data_out,index_out,num);}
 void mDescSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num) {DescSort(U16,data_in,index_in,data_out,index_out,num);}
-void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num) {DescSort( U8,data_in,index_in,data_out,index_out,num);}
+void mDescSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num) {DescSort(S16,data_in,index_in,data_out,index_out,num);}
+void mDescSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num) {DescSort(U32,data_in,index_in,data_out,index_out,num);}
+void mDescSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num) {DescSort(S32,data_in,index_in,data_out,index_out,num);}
+void mDescSortU64(U64 *data_in,int *index_in,U64 *data_out,int *index_out,int num) {DescSort(U64,data_in,index_in,data_out,index_out,num);}
+void mDescSortS64(S64 *data_in,int *index_in,S64 *data_out,int *index_out,int num) {DescSort(S64,data_in,index_in,data_out,index_out,num);}
+void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num) {DescSort(F32,data_in,index_in,data_out,index_out,num);}
+void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num) {DescSort(D64,data_in,index_in,data_out,index_out,num);}
 
 #define T_D64 double
 #define T_F32 double
+#define T_S64 int64_t
+#define T_U64 uint64_t
 #define T_S32 int
-#define T_U32 U32
+#define T_U32 int
 #define T_S16 int
 #define T_U16 int
 #define T_S8  int
@@ -218,6 +234,8 @@ void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int nu
 
 #define D_D64 0.000000000001
 #define D_F32 0.000000000001
+#define D_S64 1
+#define D_U64 1
 #define D_S32 1
 #define D_U32 1
 #define D_S16 1
@@ -248,15 +266,16 @@ void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int nu
     if(I <NumOut) return DataMinSubset##Type(Data+I,NumIn-I,NumOut-I,Min2,Max );\
     return Max1;\
 }
-D64 DataMinSubsetD64(D64 *data,int num_in,int num_out,D64 max,D64 min) {DataMinSubset(D64,data,num_in,num_out,max,min);}
-F32 DataMinSubsetF32(F32 *data,int num_in,int num_out,F32 max,F32 min) {DataMinSubset(F32,data,num_in,num_out,max,min);}
-S32 DataMinSubsetS32(S32 *data,int num_in,int num_out,S32 max,S32 min) {DataMinSubset(S32,data,num_in,num_out,max,min);}
-U32 DataMinSubsetU32(U32 *data,int num_in,int num_out,U32 max,U32 min) {DataMinSubset(U32,data,num_in,num_out,max,min);}
-S16 DataMinSubsetS16(S16 *data,int num_in,int num_out,S16 max,S16 min) {DataMinSubset(S16,data,num_in,num_out,max,min);}
+U8  DataMinSubsetU8 (U8  *data,int num_in,int num_out,U8  max,U8  min) {DataMinSubset(U8 ,data,num_in,num_out,max,min);}
+S8  DataMinSubsetS8 (S8  *data,int num_in,int num_out,S8  max,S8  min) {DataMinSubset(S8 ,data,num_in,num_out,max,min);}
 U16 DataMinSubsetU16(U16 *data,int num_in,int num_out,U16 max,U16 min) {DataMinSubset(U16,data,num_in,num_out,max,min);}
- S8 DataMinSubsetS8 ( S8 *data,int num_in,int num_out, S8 max, S8 min) {DataMinSubset( S8,data,num_in,num_out,max,min);}
- U8 DataMinSubsetU8 ( U8 *data,int num_in,int num_out, U8 max, U8 min) {DataMinSubset( U8,data,num_in,num_out,max,min);}
-
+S16 DataMinSubsetS16(S16 *data,int num_in,int num_out,S16 max,S16 min) {DataMinSubset(S16,data,num_in,num_out,max,min);}
+U32 DataMinSubsetU32(U32 *data,int num_in,int num_out,U32 max,U32 min) {DataMinSubset(U32,data,num_in,num_out,max,min);}
+S32 DataMinSubsetS32(S32 *data,int num_in,int num_out,S32 max,S32 min) {DataMinSubset(S32,data,num_in,num_out,max,min);}
+U64 DataMinSubsetU64(U64 *data,int num_in,int num_out,U64 max,U64 min) {DataMinSubset(U64,data,num_in,num_out,max,min);}
+S64 DataMinSubsetS64(S64 *data,int num_in,int num_out,S64 max,S64 min) {DataMinSubset(S64,data,num_in,num_out,max,min);}
+F32 DataMinSubsetF32(F32 *data,int num_in,int num_out,F32 max,F32 min) {DataMinSubset(F32,data,num_in,num_out,max,min);}
+D64 DataMinSubsetD64(D64 *data,int num_in,int num_out,D64 max,D64 min) {DataMinSubset(D64,data,num_in,num_out,max,min);}
 
 #define IndexMinSubset(Type,Data,Index,NumIn,NumOut,Min,Max) {\
     if(Min==Max) return Max;\
@@ -283,16 +302,19 @@ U16 DataMinSubsetU16(U16 *data,int num_in,int num_out,U16 max,U16 min) {DataMinS
     return Max1;\
 }
 
-D64 IndexMinSubsetD64(D64 *data,int *index,int num_in,int num_out,D64 min,D64 max) {IndexMinSubset(D64,data,index,num_in,num_out,min,max);}
-F32 IndexMinSubsetF32(F32 *data,int *index,int num_in,int num_out,F32 min,F32 max) {IndexMinSubset(F32,data,index,num_in,num_out,min,max);}
-S32 IndexMinSubsetS32(S32 *data,int *index,int num_in,int num_out,S32 min,S32 max) {IndexMinSubset(S32,data,index,num_in,num_out,min,max);}
-U32 IndexMinSubsetU32(U32 *data,int *index,int num_in,int num_out,U32 min,U32 max) {IndexMinSubset(U32,data,index,num_in,num_out,min,max);}
-S16 IndexMinSubsetS16(S16 *data,int *index,int num_in,int num_out,S16 min,S16 max) {IndexMinSubset(S16,data,index,num_in,num_out,min,max);}
+U8  IndexMinSubsetU8 (U8  *data,int *index,int num_in,int num_out,U8  min,U8  max) {IndexMinSubset(U8 ,data,index,num_in,num_out,min,max);}
+S8  IndexMinSubsetS8 (S8  *data,int *index,int num_in,int num_out,S8  min,S8  max) {IndexMinSubset(S8 ,data,index,num_in,num_out,min,max);}
 U16 IndexMinSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 max) {IndexMinSubset(U16,data,index,num_in,num_out,min,max);}
- S8 IndexMinSubsetS8 ( S8 *data,int *index,int num_in,int num_out, S8 min, S8 max) {IndexMinSubset( S8,data,index,num_in,num_out,min,max);}
- U8 IndexMinSubsetU8 ( U8 *data,int *index,int num_in,int num_out, U8 min, U8 max) {IndexMinSubset( U8,data,index,num_in,num_out,min,max);}
+S16 IndexMinSubsetS16(S16 *data,int *index,int num_in,int num_out,S16 min,S16 max) {IndexMinSubset(S16,data,index,num_in,num_out,min,max);}
+U32 IndexMinSubsetU32(U32 *data,int *index,int num_in,int num_out,U32 min,U32 max) {IndexMinSubset(U32,data,index,num_in,num_out,min,max);}
+S32 IndexMinSubsetS32(S32 *data,int *index,int num_in,int num_out,S32 min,S32 max) {IndexMinSubset(S32,data,index,num_in,num_out,min,max);}
+U64 IndexMinSubsetU64(U64 *data,int *index,int num_in,int num_out,U64 min,U64 max) {IndexMinSubset(U64,data,index,num_in,num_out,min,max);}
+S64 IndexMinSubsetS64(S64 *data,int *index,int num_in,int num_out,S64 min,S64 max) {IndexMinSubset(S64,data,index,num_in,num_out,min,max);}
+F32 IndexMinSubsetF32(F32 *data,int *index,int num_in,int num_out,F32 min,F32 max) {IndexMinSubset(F32,data,index,num_in,num_out,min,max);}
+D64 IndexMinSubsetD64(D64 *data,int *index,int num_in,int num_out,D64 min,D64 max) {IndexMinSubset(D64,data,index,num_in,num_out,min,max);}
 
-#define MinSubset(Type,DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) {\
+#define MinSubset(Type,Data_In,IndexIn,NumIn,Data_Out,IndexOut,NumOut) {\
+    Type *DataIn=(Type *)Data_In;Type *DataOut=(Type *)Data_Out;\
     mException((DataIn==NULL),EXIT,"invalid input");\
     mException((NumOut>=NumIn)||(NumIn<=0)||(NumOut<=0),EXIT,"invalid input with number in is %d number out is %d",NumIn,NumOut);\
     \
@@ -347,17 +369,19 @@ U16 IndexMinSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
     }\
     \
     if(Buff!=DataIn) {memcpy(DataOut,Buff,NumOut*sizeof(Type));mFree(Buff);}\
-    return Thresh;\
+    return (double)Thresh;\
 }
 
-D64 mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out) {MinSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out);}
-F32 mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out) {MinSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out);}
-S32 mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out) {MinSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out);}
-U32 mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out) {MinSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out);}
-S16 mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out) {MinSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out);}
-U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out) {MinSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out);}
- S8 mMinSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out) {MinSubset( S8,data_in,index_in,num_in,data_out,index_out,num_out);}
- U8 mMinSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out) {MinSubset( U8,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out) {MinSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out) {MinSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out) {MinSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out) {MinSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out) {MinSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out) {MinSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out) {MinSubset(U64,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out) {MinSubset(S64,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out) {MinSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out) {MinSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out);}
 
 #define DataMaxSubset(Type,Data,NumIn,NumOut,Min,Max) {\
     if(Min==Max) return Min;\
@@ -382,14 +406,16 @@ U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index
     if(I <NumOut) return DataMaxSubset##Type(Data+I,NumIn-I,NumOut-I,Min,Max2);\
     return Min1;\
 }
-D64 DataMaxSubsetD64(D64 *data,int num_in,int num_out,D64 max,D64 min) {DataMaxSubset(D64,data,num_in,num_out,max,min);}
-F32 DataMaxSubsetF32(F32 *data,int num_in,int num_out,F32 max,F32 min) {DataMaxSubset(F32,data,num_in,num_out,max,min);}
-S32 DataMaxSubsetS32(S32 *data,int num_in,int num_out,S32 max,S32 min) {DataMaxSubset(S32,data,num_in,num_out,max,min);}
-U32 DataMaxSubsetU32(U32 *data,int num_in,int num_out,U32 max,U32 min) {DataMaxSubset(U32,data,num_in,num_out,max,min);}
-S16 DataMaxSubsetS16(S16 *data,int num_in,int num_out,S16 max,S16 min) {DataMaxSubset(S16,data,num_in,num_out,max,min);}
+U8  DataMaxSubsetU8 (U8  *data,int num_in,int num_out,U8  max,U8  min) {DataMaxSubset(U8 ,data,num_in,num_out,max,min);}
+S8  DataMaxSubsetS8 (S8  *data,int num_in,int num_out,S8  max,S8  min) {DataMaxSubset(S8 ,data,num_in,num_out,max,min);}
 U16 DataMaxSubsetU16(U16 *data,int num_in,int num_out,U16 max,U16 min) {DataMaxSubset(U16,data,num_in,num_out,max,min);}
- S8 DataMaxSubsetS8 ( S8 *data,int num_in,int num_out, S8 max, S8 min) {DataMaxSubset( S8,data,num_in,num_out,max,min);}
- U8 DataMaxSubsetU8 ( U8 *data,int num_in,int num_out, U8 max, U8 min) {DataMaxSubset( U8,data,num_in,num_out,max,min);}
+S16 DataMaxSubsetS16(S16 *data,int num_in,int num_out,S16 max,S16 min) {DataMaxSubset(S16,data,num_in,num_out,max,min);}
+U32 DataMaxSubsetU32(U32 *data,int num_in,int num_out,U32 max,U32 min) {DataMaxSubset(U32,data,num_in,num_out,max,min);}
+S32 DataMaxSubsetS32(S32 *data,int num_in,int num_out,S32 max,S32 min) {DataMaxSubset(S32,data,num_in,num_out,max,min);}
+U64 DataMaxSubsetU64(U64 *data,int num_in,int num_out,U64 max,U64 min) {DataMaxSubset(U64,data,num_in,num_out,max,min);}
+S64 DataMaxSubsetS64(S64 *data,int num_in,int num_out,S64 max,S64 min) {DataMaxSubset(S64,data,num_in,num_out,max,min);}
+F32 DataMaxSubsetF32(F32 *data,int num_in,int num_out,F32 max,F32 min) {DataMaxSubset(F32,data,num_in,num_out,max,min);}
+D64 DataMaxSubsetD64(D64 *data,int num_in,int num_out,D64 max,D64 min) {DataMaxSubset(D64,data,num_in,num_out,max,min);}
 
 #define IndexMaxSubset(Type,Data,Index,NumIn,NumOut,Min,Max) {\
     if(Min==Max) return Min;\
@@ -416,16 +442,19 @@ U16 DataMaxSubsetU16(U16 *data,int num_in,int num_out,U16 max,U16 min) {DataMaxS
     return Min1;\
 }
 
-D64 IndexMaxSubsetD64(D64 *data,int *index,int num_in,int num_out,D64 min,D64 max) {IndexMaxSubset(D64,data,index,num_in,num_out,min,max);}
-F32 IndexMaxSubsetF32(F32 *data,int *index,int num_in,int num_out,F32 min,F32 max) {IndexMaxSubset(F32,data,index,num_in,num_out,min,max);}
-S32 IndexMaxSubsetS32(S32 *data,int *index,int num_in,int num_out,S32 min,S32 max) {IndexMaxSubset(S32,data,index,num_in,num_out,min,max);}
-U32 IndexMaxSubsetU32(U32 *data,int *index,int num_in,int num_out,U32 min,U32 max) {IndexMaxSubset(U32,data,index,num_in,num_out,min,max);}
-S16 IndexMaxSubsetS16(S16 *data,int *index,int num_in,int num_out,S16 min,S16 max) {IndexMaxSubset(S16,data,index,num_in,num_out,min,max);}
+U8  IndexMaxSubsetU8 (U8  *data,int *index,int num_in,int num_out,U8  min,U8  max) {IndexMaxSubset(U8 ,data,index,num_in,num_out,min,max);}
+S8  IndexMaxSubsetS8 (S8  *data,int *index,int num_in,int num_out,S8  min,S8  max) {IndexMaxSubset(S8 ,data,index,num_in,num_out,min,max);}
 U16 IndexMaxSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 max) {IndexMaxSubset(U16,data,index,num_in,num_out,min,max);}
- S8 IndexMaxSubsetS8 ( S8 *data,int *index,int num_in,int num_out, S8 min, S8 max) {IndexMaxSubset( S8,data,index,num_in,num_out,min,max);}
- U8 IndexMaxSubsetU8 ( U8 *data,int *index,int num_in,int num_out, U8 min, U8 max) {IndexMaxSubset( U8,data,index,num_in,num_out,min,max);}
+S16 IndexMaxSubsetS16(S16 *data,int *index,int num_in,int num_out,S16 min,S16 max) {IndexMaxSubset(S16,data,index,num_in,num_out,min,max);}
+U32 IndexMaxSubsetU32(U32 *data,int *index,int num_in,int num_out,U32 min,U32 max) {IndexMaxSubset(U32,data,index,num_in,num_out,min,max);}
+S32 IndexMaxSubsetS32(S32 *data,int *index,int num_in,int num_out,S32 min,S32 max) {IndexMaxSubset(S32,data,index,num_in,num_out,min,max);}
+U64 IndexMaxSubsetU64(U64 *data,int *index,int num_in,int num_out,U64 min,U64 max) {IndexMaxSubset(U64,data,index,num_in,num_out,min,max);}
+S64 IndexMaxSubsetS64(S64 *data,int *index,int num_in,int num_out,S64 min,S64 max) {IndexMaxSubset(S64,data,index,num_in,num_out,min,max);}
+F32 IndexMaxSubsetF32(F32 *data,int *index,int num_in,int num_out,F32 min,F32 max) {IndexMaxSubset(F32,data,index,num_in,num_out,min,max);}
+D64 IndexMaxSubsetD64(D64 *data,int *index,int num_in,int num_out,D64 min,D64 max) {IndexMaxSubset(D64,data,index,num_in,num_out,min,max);}
 
-#define MaxSubset(Type,DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) {\
+#define MaxSubset(Type,Data_In,IndexIn,NumIn,Data_Out,IndexOut,NumOut) {\
+    Type *DataIn=(Type *)Data_In;Type *DataOut=(Type *)Data_Out;\
     mException((DataIn==NULL),EXIT,"invalid input");\
     mException((NumOut>=NumIn)||(NumIn<=0)||(NumOut<=0),EXIT,"invalid input with number in is %d number out is %d",NumIn,NumOut);\
     \
@@ -480,14 +509,16 @@ U16 IndexMaxSubsetU16(U16 *data,int *index,int num_in,int num_out,U16 min,U16 ma
     }\
     \
     if(Buff!=DataIn) {memcpy(DataOut,Buff,NumOut*sizeof(Type));mFree(Buff);}\
-    return Thresh;\
+    return (double)Thresh;\
 }
  
-D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out) {MaxSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out);}
-F32 mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out) {MaxSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out);}
-S32 mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out) {MaxSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out);}
-U32 mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out) {MaxSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out);}
-S16 mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out) {MaxSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out);}
-U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out) {MaxSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out);}
- S8 mMaxSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out) {MaxSubset( S8,data_in,index_in,num_in,data_out,index_out,num_out);}
- U8 mMaxSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out) {MaxSubset( U8,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out) {MaxSubset(U8 ,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out) {MaxSubset(S8 ,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out) {MaxSubset(U16,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out) {MaxSubset(S16,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out) {MaxSubset(U32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out) {MaxSubset(S32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out) {MaxSubset(U64,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out) {MaxSubset(S64,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out) {MaxSubset(F32,data_in,index_in,num_in,data_out,index_out,num_out);}
+double mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out) {MaxSubset(D64,data_in,index_in,num_in,data_out,index_out,num_out);}

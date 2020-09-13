@@ -63,8 +63,8 @@ void mImageHoughLine(MImage *src,MList *list,int thresh1,int thresh2,int thresh)
     struct HandleImageHoughLine *handle = (struct HandleImageHoughLine *)(hdl->handle);
     if(hdl->valid==0)
     {
-        if(handle->tab==NULL) handle->tab = mTableCreate(range*2,362,U16,NULL);
-        else                  mTableRedefine(handle->tab,range*2,362,U16,NULL);
+        if(handle->tab==NULL) handle->tab = mTableCreate(range*2,362,sizeof(unsigned short),NULL);
+        else                  mTableRedefine(handle->tab,range*2,362,sizeof(unsigned short),NULL);
         
         for(int i=0;i<362;i++)
         {

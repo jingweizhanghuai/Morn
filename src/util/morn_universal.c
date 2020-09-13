@@ -18,21 +18,29 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 __thread void *morn_test=NULL;
 
-#ifdef _MSC_VER
-__thread int morn_clock_n = -1;
-__thread int morn_clock_begin[16];
-__thread int morn_clock_end[16];
-#define stricmp _stricmp
-#else
-__thread int morn_timer_n = -1;
-__thread struct timeval morn_timer_begin[16];
-__thread struct timeval morn_timer_end[16];
-#define stricmp strcasecmp
-#endif
-
 __thread char morn_filename[256];
 
-int morn_rand_seed = -1;
+__thread int morn_data_type;
+__thread char morn_data_buff[8];
+
+void mNULL(int *p) {NULL;}
+
+static __thread int morn_thread_ID = -1;
+static int morn_thread_count = 0;
+static pthread_mutex_t morn_thread_ID_mutex = PTHREAD_MUTEX_INITIALIZER;
+int mThreadID()
+{
+    if(morn_thread_ID==-1)
+    {
+        pthread_mutex_lock(&morn_thread_ID_mutex);
+        morn_thread_count +=1;
+        morn_thread_ID = morn_thread_count;
+        pthread_mutex_unlock(&morn_thread_ID_mutex);
+    }
+    return morn_thread_ID;
+}
+
+static int morn_rand_seed = -1;
 int mRand(int floor,int ceiling)
 {
     if(morn_rand_seed == -1)
@@ -47,10 +55,6 @@ int mRand(int floor,int ceiling)
         return (((rand()<<15)+rand())%d)+floor;
     return (rand()%d)+floor;
 }
-
-
-
-
 
 float mNormalRand(float mean,float delta)
 {
@@ -144,66 +148,39 @@ struct HandleFileCreate
 };
 void endFileCreate(void *info) {NULL;}
 #define HASH_FileCreate 0xfdab2bff
-MFile *FileCreate(const char *filename)
+MFile *mFileCreate(const char *filename,...)
 {
     MFile *file = mObjectCreate(NULL);
     MHandle *hdl = mHandle(file,FileCreate);
     hdl->valid=1;
     struct HandleFileCreate *handle = hdl->handle;
     file->filename = handle->filename;
-    strcpy(file->filename,filename);
+    
+    va_list namepara;
+    va_start (namepara,filename);
+    vsnprintf(file->filename,256,filename,namepara);
+    va_end(namepara);
     return file;
 }
 
-void FileRedefine(MFile *file,char *filename)
+void mFileRedefine(MFile *file,char *filename,...)
 {
     if(strcmp(filename,file->filename)!=0)
     {
-        strcpy(file->filename,filename);
+        va_list namepara;
+        va_start (namepara,filename);
+        vsnprintf(file->filename,256,filename,namepara);
+        va_end(namepara);
         mHandleReset(file->handle);
     }
 }
-    
- 
-pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
-int morn_log_level = MORN_LOG_INFO;
-FILE *morn_log_f = NULL;
-int *morn_log_count;
-struct HandleLogSet
+
+int fsize(FILE *f)
 {
-    FILE *f;
-    int count;
-};
-void endLogSet(void *info)
-{
-    struct HandleLogSet *handle = (struct HandleLogSet *)info;
-    if(morn_log_f==handle->f)
-    {
-        morn_log_f = NULL;
-        morn_log_count = 0;
-        morn_log_level = MORN_LOG_INFO;
-    }
-    if(handle->f != NULL)
-        fclose(handle->f);
-}
-#define HASH_LogSet 0xda00cd5b
-void mLogSet(MFile *file,int level)
-{
-    MHandle *hdl=mHandle(file,LogSet);
-    struct HandleLogSet *handle = (struct HandleLogSet *)(hdl->handle);
-    level = MAX(level,MORN_LOG_INFO);
-    morn_log_level = level;
-    if(hdl->valid!=0)
-    {
-        mException((morn_log_f!=handle->f)||(morn_log_count!=&(handle->count)),EXIT,"invalid set");
-        return;
-    }
-    hdl->valid = 1;
-    if(morn_log_f==NULL)
-    {
-         handle->f = fopen(file->filename,"w");morn_log_f = handle->f;
-         handle->count = 0; morn_log_count = &(handle->count);
-    }
+    mException(f==NULL,EXIT,"invalid file");
+    int l=ftell(f);     fseek(f,0,SEEK_END);
+    int size=ftell(f)-l;fseek(f,l,SEEK_SET);
+    return size;
 }
 
 MList *mHandleCreate(void)
@@ -281,19 +258,22 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
 __thread MObject *morn_object=NULL;
 MChain *morn_object_map;
 #ifdef _MSC_VER
-void morn_end()
+void morn_end(void)
 {
+    // printf("endendendendendendendendendendend\n");
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
-
+    
     if(morn_object_map!=NULL)
     {
-        MChainNode *node = morn_object_map->chainnode->next;
-        while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        if(morn_object_map->chainnode!=NULL)
+        {
+            MChainNode *node = morn_object_map->chainnode->next;
+            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+        }
         mChainRelease(morn_object_map);
     }
     morn_object_map = NULL;
-    // printf("after main\n"); 
 }
 void morn_begin()
 {
@@ -309,13 +289,14 @@ __declspec(allocate(".CRT$XCU")) void (* mornbegin)() = morn_begin;
 __attribute__((constructor)) void morn_begin() {
     morn_object=mObjectCreate(NULL);
     morn_object_map=mChainCreate();
-    // printf("before main\n"); 
+    // printf("before main\n");
 } 
 
 __attribute__((destructor)) void morn_end() {
+    // printf("endendendendendendendendendendend\n");
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
-
+    
     if(morn_object_map!=NULL)
     {
         if(morn_object_map->chainnode!=NULL)
@@ -325,11 +306,13 @@ __attribute__((destructor)) void morn_end() {
         }
         mChainRelease(morn_object_map);
     }
+    
     morn_object_map = NULL;
 }
 #endif
 
-MObject *mMornObject(void *p)
+static int morn_object_count = 0;
+MObject *mMornObject(void *p,int size)
 {
     if(p==NULL) 
     {
@@ -337,123 +320,155 @@ MObject *mMornObject(void *p)
         return morn_object;
     }
     
+    if(size<0)size=0;
     MObject **pobj = mMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
-    if(pobj != NULL) return (*pobj);
+    int *psize = (int *)(pobj+1);
+    void *pdata = (void *)(psize+1);
+    if(pobj != NULL)
+    {
+        if(size==*psize) if(memcmp(pdata,p,size)==0) return (*pobj);
+        mObjectRelease(pobj[0]);
+        mMapDelete(morn_object_map,&p,sizeof(void *));
+    }
+    
+    morn_object_count+=1;
+    if(morn_object_count>=512)
+    {
+        MChainNode *node = morn_object_map->chainnode->next;
+        while(node!=morn_object_map->chainnode)
+        {
+            pobj = mMapNodeValue(node);psize=(int *)(pobj+1);pdata=(void *)(psize+1);
+            node = node->next;
+            if(memcmp(pobj[0]->object,pdata,*psize)!=0)
+            {
+                mObjectRelease(pobj[0]);
+                mMapDelete(morn_object_map,mMapNodeKey(node->last),sizeof(void *));
+            }
+        }
+        morn_object_count = 0;
+    }
 
     MObject *obj = mObjectCreate(p);
-    pobj=mMapWrite(morn_object_map,&p,sizeof(void *),&obj,sizeof(MObject *));
-    return (*pobj);
+    pobj=mMapWrite(morn_object_map,&p,sizeof(void *),NULL,(sizeof(MObject *)+sizeof(int)+size));
+    psize=(int *)(pobj+1);pdata=(void *)(psize+1);
+    *pobj=obj;*psize=size;memcpy(pdata,p,size);
+    
+    return obj;
 }
 
-char morn_time_string[128];
-const char *mTimeString(int64_t time_value,const char *format)
-{
-    int64_t tv=(time_value==DFLT)?(int64_t)time(NULL):time_value;
-    int ty = 0;
-    if(tv<0)
-    {
-        ty=(0-tv)/((366+365*3)*7*24*3600)+1;
-        tv+=ty*(366+365*3)*7*24*3600;
-        ty=ty*28;
-    }
-    struct tm *t=localtime(&tv);
-    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
 
-    char *wday[7]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
-    char *month[12]={"January","February","March","April","May","June","July","August","September","October","November","December"};
-    char *awday[7]={"Sun.","Mon.","Tues.","Wed.","Thur.","Fri.y","Sat."};
-    char *amonth[12]={"Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sept.","Oct.","Nov.","Dec."};
-    
-    char str[256];strcpy(str,format);
-    intptr_t d[16];int n=0;
-    char *p,*q;
-    for(p=str;*p!=0;p++)
+void _CNum(double data,char *out,int *flag)
+{
+    #if defined(__linux__)
+    int s=3;
+    int dic[17]={0x00b69be9,0x0080b8e4,0x008cbae4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00be99e7,0x00838de5,0x0087b8e4,0x00bfbae4,0x009fb4e8,0x00b982e7};
+    #elif defined(_WIN64)||defined(_WIN32)
+    int s=2;
+    int dic[17]={0x0000e3c1,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca,0x0000d9b0,0x0000a7c7,0x0000f2cd,0x0000dad2,0x0000bab8,0x0000e3b5};
+    #else
+    int s=0;
+    int dic[17]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    #endif
+
+    if(data<0) {memcpy(out,dic+15,s);out+=s;data=0.0-data;}
+    int value = (int)data;
+    double value2 = data-(double)value;
+    if(value<=10) {memcpy(out,dic+value,s);out+=s;goto cnum_next;}
+    if((value<20)&&(*flag==0)) {memcpy(out,dic+10,s);memcpy(out,dic+(value-10),s);out+=s+s;goto cnum_next;}
+
+    if(value>100000000)
     {
-        if(n>=16)break;
-        if(*p=='/') {p++;continue;}
-        if(*p=='%')
+        _CNum((double)(value/100000000),out,flag);
+        out+=strlen(out);
+        memcpy(out,dic+14,s);
+        out=out+s;
+        *flag = 1;
+        value = value%100000000;
+    }
+
+    if(value>10000)
+    {
+        _CNum((double)(value/10000),out,flag);
+        out+=strlen(out);
+        memcpy(out,dic+13,s);
+        out=out+s;
+        *flag=1;
+        value = value%10000;
+    }
+    
+    if(value>=1000) {memcpy(out,dic+(value/1000),s);memcpy(out+s,dic+12,s);out=out+s+s;*flag=1;value=value%1000;}
+    else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
+
+    if(value>=100) {memcpy(out,dic+(value/100),s);memcpy(out+s,dic+11,s);out=out+s+s;*flag=1;value=value%100;}
+    else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
+
+    if(value>=10) {memcpy(out,dic+(value/10),s);memcpy(out+s,dic+10,s);out=out+s+s;*flag=1;value=value%10;}
+    else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
+
+    if(value!=0) {memcpy(out,dic+value,s);out=out+s;}
+
+    cnum_next:
+    if(value2>0.0000001)
+    {
+        memcpy(out,dic+16,s);out=out+s;*flag=1;
+        for(int i=0;i<9;i++)
         {
-            for(q=p+1;*q!=0;q++)
-            {
-                if((*q>='0')&&(*q<='9')) continue;
-                // if(*q=='.') continue;
-                     if(*q=='Y') {d[n++]=t->tm_year+1900-ty; *q='d';}
-                else if(*q=='M') {d[n++]=t->tm_mon+1;*q='d';}
-                else if(*q=='W') {d[n++]=t->tm_wday; *q='d';}
-                else if(*q=='D') {d[n++]=t->tm_mday; *q='d';}
-                else if(*q=='H') {d[n++]=t->tm_hour; *q='d';}
-                else if(*q=='m') {d[n++]=t->tm_min ; *q='d';}
-                else if(*q=='S') {d[n++]=t->tm_sec ; *q='d';}
-                else if((q[0]=='s')&&(q[1]=='M')) {d[n++]=(intptr_t)( month[t->tm_mon ]);q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='a')&&(q[1]=='M')) {d[n++]=(intptr_t)(amonth[t->tm_mon ]);q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='s')&&(q[1]=='W')) {d[n++]=(intptr_t)(  wday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='a')&&(q[1]=='W')) {d[n++]=(intptr_t)( awday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
-                else mException(1,EXIT,"invalid format");
-                break;
-            }
-            p=q;
+            if(value2<0.0000001) {*flag=0;break;}
+            value2 = value2*10;
+            value = (int)value2;
+            value2=value2-(double)value;if(value2>0.999999) {value+=1;value2=0;}
+            memcpy(out,dic+value,s);out=out+s;
+        }
+        if(*flag)
+        {
+            value2 = value2*10;
+            value = (int)(value2+0.5);
+            memcpy(out,dic+value,s);out=out+s;
         }
     }
-    sprintf(morn_time_string,str,d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],d[12],d[13],d[14],d[15]);
-    return morn_time_string;
+    *out=0;
 }
 
-int64_t mStringTime(char *in,const char *format)
+__thread char morn_shu[256];
+const char *mShu(double data)
 {
-    if(in == NULL) return time(NULL);
-    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
-
-    int day=DFLT,month=DFLT,year=DFLT,week=DFLT,hour=0,minute=0,second=0;
-    char s_week[16],s_month[16];
-    char *amonth[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-
-    void *ptr[16];
-    char str[128];memset(str,0,128);
-    
-    const char *p,*q;
-    int n=0,m=0;
-    for(p=format;*p!=0;p++)
-    {
-        if((n>=16)||(m>=128))break;
-        str[m]=*p;m++;
-        if(*p=='/') {p++;continue;}
-        if(*p=='%')
-        {
-            for(q=p+1;*q!=0;q++)
-            {
-                if((*q>='0')&&(*q<='9')) continue;
-                // if(*q=='.') continue;
-                     if(*q=='Y') {ptr[n++]=&year  ;str[m++]='d';}
-                else if(*q=='M') {ptr[n++]=&month ;str[m++]='d';}
-                else if(*q=='W') {ptr[n++]=&week  ;str[m++]='d';}
-                else if(*q=='D') {ptr[n++]=&day   ;str[m++]='d';}
-                else if(*q=='H') {ptr[n++]=&hour  ;str[m++]='d';}
-                else if(*q=='m') {ptr[n++]=&minute;str[m++]='d';}
-                else if(*q=='S') {ptr[n++]=&second;str[m++]='d';}
-                else if(((q[0]=='s')||(q[0]=='a'))&&((q[1]=='M')||(q[1]=='W')))
-                {
-                    ptr[n++]=(q[1]=='M')?s_month:s_week;
-                    if(!q[2]) str[m++]='s';
-                    else
-                    {
-                        str[m++]='[';
-                        str[m++]='^';str[m++]='0';str[m++]='-';str[m++]='9';
-                        str[m++]='^';str[m++]=q[2];
-                        str[m++]=']';
-                    }
-                    q++;
-                }
-                else mException(1,EXIT,"invalid format");
-                break;
-            }
-            p=q;
-        }
-    }
-    // printf("%s\n",str);
-    sscanf(in,str,ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7],ptr[8],ptr[9],ptr[10],ptr[11],ptr[12],ptr[13],ptr[14],ptr[15]);
-    if(month<0) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
-    if((year<0)||(month<0)||(day<0)) return DFLT;
-    int64_t td=0; if(year<1972) {td=((1972-year)*365+(1972-year)/4+(((1972-year)%4!=0)&&(month>2)))*24*3600;year=1972;}
-    struct tm t;t.tm_year=year-1900; t.tm_mon=month-1;t.tm_mday=day;t.tm_hour=hour;t.tm_min=minute;t.tm_sec=second;
-    return (int64_t)mktime(&t)-td;
+    int flag=0;
+    _CNum(data,morn_shu,&flag);
+    return morn_shu;
 }
+
+__thread int morn_layer_order = -1;
+__thread int morn_exception = 0;
+__thread jmp_buf *morn_jump[32];
+void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...)
+{
+    if(err==0) return;
+    char msg[256];
+    va_list msgpara;
+    va_start (msgpara,message);
+    vsnprintf(msg,256,message,msgpara);
+    va_end(msgpara);
+    mLog(MORN_ERROR,"[%s,line %d,function %s]Error: %s\n",file,line,function,msg);
+    if(err >0)
+    {
+        morn_exception = ID;
+        if(morn_layer_order<0) exit(0);
+        longjmp(*(morn_jump[morn_layer_order]),morn_exception);
+    }
+}
+
+// struct FuncPara
+// {
+//     int parasize[16];
+//     int64_t para[16];
+// };
+// #define MORN_FUNC(func,...)
+// {
+//     mFunc(func,N,
+//           sizeof(
+//     struct FuncPara para##func;
+//     int N = VA_ARG_NUM(__VA_ARG__);
+//     if(N>0)
+//     {
+//         int parasize = sizeof(VA_ARG0(__VA_ARG__);mException(parasize>8,EXIT,"invalid func para");
+//         para##func->parasize = parasize;

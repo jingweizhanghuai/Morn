@@ -59,14 +59,14 @@ void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh)
         {
             for(int cn=0;cn<src_cn;cn++)
             {
-                if(handle->value[k][cn]==NULL) handle->value[k][cn]=mTableCreate(height,width,S16,NULL);
-                else                         mTableRedefine(handle->value[k][cn],height,width,S16,NULL);
+                if(handle->value[k][cn]==NULL) handle->value[k][cn]=mTableCreate(height,width,sizeof(short),NULL);
+                else                         mTableRedefine(handle->value[k][cn],height,width,sizeof(short),NULL);
                 
             }
-            if(handle->cnt[k]==NULL) handle->cnt[k]=mTableCreate(height,width,S16,NULL);
-            else                   mTableRedefine(handle->cnt[k],height,width,S16,NULL);
+            if(handle->cnt[k]==NULL) handle->cnt[k]=mTableCreate(height,width,sizeof(short),NULL);
+            else                   mTableRedefine(handle->cnt[k],height,width,sizeof(short),NULL);
             for(int j=0;j<height;j++)
-                memset(handle->cnt[k]->dataS16[j],0,width*sizeof(S16));
+                memset(handle->cnt[k]->dataS16[j],0,width*sizeof(short));
         }
         
         if(handle->hst==NULL) handle->hst = mImageCreate(src_cn,height,width,NULL);

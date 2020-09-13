@@ -16,7 +16,7 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
     mException(INVALID_POINTER(polygon),EXIT,"invalid input polygon");
     mException((polygon->num<3),EXIT,"invalid input polygon");
     mException(INVALID_POINTER(border),EXIT,"invalid input");
-    mArrayRedefine(border,height*2,S16,border->dataS16);
+    mArrayRedefine(border,height*2,sizeof(short),border->dataS16);
     
     MImagePoint **point = (MImagePoint **)(polygon->data);
     
@@ -126,7 +126,7 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
 void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2)
 {
     mException(INVALID_POINTER(border),EXIT,"invalid input");
-    mArrayRedefine(border,height*2,S16,border->dataS16);
+    mArrayRedefine(border,height*2,sizeof(short),border->dataS16);
     
     int buff;
     if(x1>x2) {buff=x1;x1=x2;x2=buff;} x1 = MAX(0,x1); x2 = MIN(width ,x2);

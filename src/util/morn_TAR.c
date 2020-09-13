@@ -37,8 +37,6 @@ void TARFileList(FILE *f,MList *list)
     char size[12];
     char magic[8];
     
-    MList *name = mListCreate(DFLT,NULL);
-    
     while(1)
     {
         if(locate >= filesize)
@@ -68,8 +66,8 @@ void TARFileList(FILE *f,MList *list)
         locate = locate + 512;
         if(strcmp(magic,"ustar  ")==0)
         {
-            mStringSplit(info.filename,"/",name);
-            strcpy(info.name,(char *)(name->data[name->num-1]));
+            MList *name=mStringSplit(info.filename,"/");
+            strncpy(info.name,(char *)(name->data[name->num-1]),59);
             // printf("info->name is %s\n",info.name);
             
             info.locate = locate;
@@ -77,8 +75,6 @@ void TARFileList(FILE *f,MList *list)
             locate = locate + (((info.size+511)/512)*512);
         }
     }
-    
-    mListRelease(name);
 }
 
 struct HandleTARRead {

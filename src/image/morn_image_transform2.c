@@ -46,12 +46,12 @@ void mImageLensTemplate(MObject *temp,float k,int r)
         strcpy(handle->type,"lens");
         handle->para[0] = k;
         
-        if(handle->lx == NULL) handle->lx = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->lx,height,width,S16,NULL);
-        if(handle->ly == NULL) handle->ly = mTableCreate(height,width,S16,NULL);
-        else                   mTableRedefine(handle->ly,height,width,S16,NULL);
-        if(handle->w  == NULL) handle->w  = mTableCreate(height,width,U8 ,NULL);
-        else                   mTableRedefine(handle->w ,height,width,U8 ,NULL);
+        if(handle->lx == NULL) handle->lx = mTableCreate(height,width,sizeof(short),NULL);
+        else                   mTableRedefine(handle->lx,height,width,sizeof(short),NULL);
+        if(handle->ly == NULL) handle->ly = mTableCreate(height,width,sizeof(short),NULL);
+        else                   mTableRedefine(handle->ly,height,width,sizeof(short),NULL);
+        if(handle->w  == NULL) handle->w  = mTableCreate(height,width,sizeof(unsigned char),NULL);
+        else                   mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         hdl->valid = 1;
     }

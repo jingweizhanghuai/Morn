@@ -463,8 +463,8 @@ void MemoryCollect(void *data,void *mem)
         if(handle->collect_valid!=NULL) mFree(handle->collect_valid);
         handle->collect_valid = mMalloc(memory->num*sizeof(int));
         memset(handle->collect_valid,0,memory->num*sizeof(int));
-        handle->collect_num = memory->num;
     }
+    handle->collect_num = memory->num;
     
     for(int i=0;i<memory->num;i++)
     {
@@ -473,10 +473,13 @@ void MemoryCollect(void *data,void *mem)
                 {handle->collect_valid[i]=1;break;}
     }
 }
+
 void MemoryDefrag(MMemory *memory)
 {
     struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
     mException((handle->collect_num!=memory->num),EXIT,"invalid defrag memory");
+    // printf("hhhhhhhhdddddddddddddh2hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
+    handle->collect_valid[handle->write_idx] = 1;
     int n=0;
     for(int i=0;i<memory->num;i++)
     {
@@ -484,11 +487,14 @@ void MemoryDefrag(MMemory *memory)
         {
             memory->data[n]=memory->data[i];
             handle->mem_size[n]=handle->mem_size[i];
+            if(i==handle->write_idx) handle->write_idx=n;
             n++;
         }
         else MemFree(memory->data[i],handle->mem_device);
     }
+    // printf("hhhhhhhhdddddddddddddh3hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     memory->num = n;
+    // printf("hhhhhhhhdddddddddddddh3hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     memset(handle->collect_valid,0,memory->num*sizeof(int));
 }
 
@@ -678,8 +684,9 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
         handle->write_pdata=memory->data[0];
         handle->write_size=handle->mem_size[0];
     }
-    mException((handle->write_idx>=memory->num),EXIT,"invalid write memory");
+    mException((handle->write_idx>=memory->num),EXIT,"invalid write memory with write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
 
+    // printf("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     MemoryWrite_Check:
     if(handle->write_size < size)
     {

@@ -6,6 +6,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <math.h>
 
 #include "morn_math.h"
@@ -228,6 +229,44 @@ void mApproxMidValue(float *value,int num,float *mid,int *idx)
     mFree(index);
 }
 
+
+
+int _GreatestCommonDivisor(int a,int b)
+{
+    return b?_GreatestCommonDivisor(b,a%b):a;
+}
+int GreatestCommonDivisor(int n,...)
+{
+    va_list para;
+    va_start(para,n);
+    int a=va_arg(para,int);
+    for(int i=1;i<n;i++)
+    {
+        int b=va_arg(para,int);
+        a=_GreatestCommonDivisor(b,a);
+    }
+    va_end(para);
+    return a;
+}
+int _LowestCommonMultiple(int a,int b)
+{
+    return (a/_GreatestCommonDivisor(a,b)*b);
+}
+int LowestCommonMultiple(int n,...)
+{
+    va_list para;
+    va_start(para,n);
+    int a=va_arg(para,int);
+    for(int i=1;i<n;i++)
+    {
+        int b=va_arg(para,int);
+        a=_LowestCommonMultiple(a,b);
+    }
+    va_end(para);
+    return a;
+}
+
+
 double mSigmoid(float x)
 {
     return (1.0/(1.0+exp((double)(0.0f-x))));
@@ -266,7 +305,7 @@ void endPermutation(struct HandlePermutation *handle)
 int mPermutation(int *idx,int num,int total)
 {
     mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx),Permutation);
+    MHandle *hdl = mHandle(mMornObject(idx,DFLT),Permutation);
     struct HandlePermutation *handle = (struct HandlePermutation *)(hdl->handle);
     if(hdl->valid==0)
     {
@@ -342,7 +381,7 @@ void endCombination(struct HandleCombination *handle)
 int mCombination(int *idx,int num,int total)
 {
     mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx),Combination);
+    MHandle *hdl = mHandle(mMornObject(idx,DFLT),Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
     if(hdl->valid==0)
     {

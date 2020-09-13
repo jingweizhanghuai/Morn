@@ -37,8 +37,8 @@ void mImageAdaptThreshold(MImage *src,MImage *dst,int r,int thresh)
     {
         for(int cn=0;cn<src->channel;cn++)
         {
-            if(handle->itg[cn]==NULL) handle->itg[cn]=mTableCreate(height+1,width+1,S32,NULL);
-            else                    mTableRedefine(handle->itg[cn],height+1,width+1,S32,NULL);
+            if(handle->itg[cn]==NULL) handle->itg[cn]=mTableCreate(height+1,width+1,sizeof(int),NULL);
+            else                    mTableRedefine(handle->itg[cn],height+1,width+1,sizeof(int),NULL);
         }
         hdl->valid = 1;
     }

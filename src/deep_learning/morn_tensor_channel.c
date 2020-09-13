@@ -156,11 +156,9 @@ void *mTensorSplitPara(MFile *ini,char *name)
     value = mINIRead(ini,name,"channel");
     mException((value == NULL),EXIT,"invalid channel");
     para->begin = atoi(value);para->end = para->begin;
-    MList *list = mListCreate(DFLT,NULL);
-    mStringSplit(value,":",list);
+    MList *list = mStringSplit(value,":");
     mException((list->num>2),EXIT,"invalid channel para");
     if(list->num>1) para->end = atoi((char *)(list->data[1]));
-    mListRelease(list);
     if(para->begin>para->end) {int buff=para->begin;para->begin=para->end;para->end=buff;}
     
     return para;

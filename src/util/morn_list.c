@@ -158,8 +158,10 @@ void *mListWrite(MList *list,int n,void *data,int size)
         
         if(handle->write_size>16384)
         {
+            printf("list=%p,kkkkkkkkkkkkkkkkkkkkkkkkk\n",list);
             mListElementOperate(list,MemoryCollect,handle0->memory);
             MemoryDefrag(handle0->memory);
+            handle->write_size=0;
         }
     }
     
@@ -435,6 +437,99 @@ int mListCluster(MList *list,int *group,void *function,void *para)
     mFree(c);
     
     return num;
+}
+
+struct HandleListClassify
+{
+    int *group;
+    char *valid;
+    MSheet *sheet;
+    int list_num;
+};
+void endListClassify(struct HandleListClassify *handle)
+{
+    if(handle->group!=NULL) mFree(handle->group);
+    if(handle->valid!=NULL) mFree(handle->valid);
+    if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
+}
+#define HASH_ListClassify 0x24c19acf
+MSheet *mListClassify(MList *list,void *function,void *para)
+{
+    int (*func)(void *,void *,void *) = function;
+    mException((INVALID_POINTER(list))||(func==NULL),EXIT,"invalid input");
+
+    MHandle *hdl = mHandle(list,ListClassify);
+    struct HandleListClassify *handle = (struct HandleListClassify *)(hdl->handle);
+    if((hdl->valid == 0)||(handle->list_num<list->num))
+    {
+        if(handle->list_num<list->num)
+        {
+            if(handle->group!=NULL) {mFree(handle->group);handle->group=NULL;}
+            if(handle->valid!=NULL) {mFree(handle->valid);handle->valid=NULL;}
+        }
+        if(handle->group==NULL) handle->group = (int  *)mMalloc(list->num*sizeof(int ));
+        if(handle->valid==NULL) handle->valid = (char *)mMalloc(list->num*sizeof(char));
+        handle->list_num = list->num;
+
+        if(handle->sheet == NULL) handle->sheet = mSheetCreate();
+        hdl->valid = 1;
+    }
+    char *valid = handle->valid; int *group = handle->group;
+    memset(valid,0   ,list->num*sizeof(char));
+    memset(group,DFLT,list->num*sizeof(int));
+    
+    int i,j,k;
+    int n=0;
+    for(i=0;i<list->num;i++)
+    {
+        for(j=0;j<i;j++)
+        {
+            if(group[i]==group[j]) continue;
+            
+            if(func(list->data[i],list->data[j],para)==1)//同类
+            {
+                if(group[i] == DFLT)
+                    group[i] = group[j];
+                else
+                {
+                    valid[group[j]] = 0;
+                    int g = group[j];
+                    for(k=0;k<i;k++)
+                        if(group[k] == g) group[k] = group[i];
+                }
+            }
+        }
+        if(group[i] == DFLT)
+        {
+            group[i] = n;
+            valid[n] = 1;
+            n = n+1;
+        }
+    }
+    
+    int *c = (int *)mMalloc(n *sizeof(int));
+    int num = 0;
+    for(i=0;i<n;i++)
+    {
+        if(valid[i] != 0)
+            {c[i] = num;num +=1;}
+    }
+
+    MSheet *sheet = handle->sheet;
+    mSheetClear(sheet);
+    // printf("bbbbbbbbbbbbbbb\n");
+    mSheetRowAppend(sheet,num);
+    for(i=0;i<list->num;i++)
+    {
+        int g = c[group[i]];
+        int n = sheet->col[g];
+        mSheetColAppend(sheet,g,n+1);
+        sheet->data[g][n]=list->data[i];
+    }
+
+    mFree(c);
+    
+    return sheet;
 }
 
 void _ListSort(void **list_data,int n,int (*func)(void *,void *,void *),void *para)

@@ -137,7 +137,7 @@ void INIOpen(MObject *file,struct HandleINIRead *handle)
     }
 }
 
-char *INIRead(MObject *file,const char *section,const char *key,const char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6,void *p7,void *p8,void *p9,void *p10,void *p11,void *p12,void *p13,void *p14)
+char *m_INIRead(MObject *file,const char *section,const char *key,const char *format,...)
 {
     int i,j;
     mException(INVALID_POINTER(file),EXIT,"invalid input");
@@ -162,7 +162,13 @@ char *INIRead(MObject *file,const char *section,const char *key,const char *form
                 kv = (struct KeyValue *)(sheet->data[i][j]);
                 if(strcmp(key,kv->name)==0)
                 {
-                    if(!INVALID_POINTER(format)) sscanf(kv->value,format,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14);
+                    if(!INVALID_POINTER(format))
+                    {
+                        va_list inipara;
+                        va_start(inipara,format);
+                        vsscanf(kv->value,format,inipara);
+                        va_end(inipara);
+                    }
                     return kv->value;
                 }
             }

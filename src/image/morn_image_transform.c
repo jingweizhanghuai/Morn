@@ -207,12 +207,12 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
         handle->x_func = x_func;
         handle->y_func = y_func;
         
-        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->lx,height,width,S16,NULL);
-        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->ly,height,width,S16,NULL);
-        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
-        else               mTableRedefine(handle->w ,height,width, U8,NULL);
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->lx,height,width,sizeof(short),NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->ly,height,width,sizeof(short),NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width,sizeof(unsigned char),NULL);
+        else               mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         TransformGrid(src,x_func,y_func,para,handle->lx,handle->ly,handle->w);
 
@@ -343,12 +343,12 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         // mLinearEquation(mat,para);
         // mMatrixRelease(mat);
         
-        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->lx,height,width,S16,NULL);
-        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->ly,height,width,S16,NULL);
-        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
-        else               mTableRedefine(handle->w ,height,width, U8,NULL);
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->lx,height,width,sizeof(short),NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->ly,height,width,sizeof(short),NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width,sizeof(unsigned char),NULL);
+        else               mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         TransformGrid(src,Perspective_x,Perspective_y,para,handle->lx,handle->ly,handle->w);
 
@@ -451,12 +451,12 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
         para[4] = (c2*a1 - c1*a2)/c;
         para[5] = ps[0].y - (para[3]*pd[0].x + para[4]*pd[0].y);
         
-        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
-        else mTableRedefine(handle->lx,height,width,S16,NULL);
-        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
-        else  mTableRedefine(handle->ly,height,width,S16,NULL);
-        if(handle->w ==NULL) handle->w =mTableCreate(height,width,U8 ,NULL);
-        else  mTableRedefine(handle->w ,height,width, U8,NULL);
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,sizeof(short),NULL);
+        else mTableRedefine(handle->lx,height,width,sizeof(short),NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,sizeof(short),NULL);
+        else  mTableRedefine(handle->ly,height,width,sizeof(short),NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width,sizeof(unsigned char),NULL);
+        else  mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         TransformGrid(src,Affine_x,Affine_y,para,handle->lx,handle->ly,handle->w);
 
@@ -635,12 +635,12 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         para[4] = cs;
         para[5] = scy + dcx*sn - dcy*cs;
 
-        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->lx,height,width,S16,NULL);
-        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,S16,NULL);
-        else               mTableRedefine(handle->ly,height,width,S16,NULL);
-        if(handle->w ==NULL) handle->w =mTableCreate(height,width, U8,NULL);
-        else               mTableRedefine(handle->w ,height,width, U8,NULL);
+        if(handle->lx==NULL) handle->lx=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->lx,height,width,sizeof(short),NULL);
+        if(handle->ly==NULL) handle->ly=mTableCreate(height,width,sizeof(short),NULL);
+        else               mTableRedefine(handle->ly,height,width,sizeof(short),NULL);
+        if(handle->w ==NULL) handle->w =mTableCreate(height,width,sizeof(unsigned char),NULL);
+        else               mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         TransformGrid(src,Affine_x,Affine_y,para,handle->lx,handle->ly,handle->w);
 
@@ -1032,12 +1032,12 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point,int
     MHandle *hdl=mHandle(dst,ImageReshape);
     struct HandleImageReshape *handle = (struct HandleImageReshape *)(hdl->handle);
     {
-        if(handle->lx == NULL) handle->lx= mTableCreate(dst->height,dst->width,S16,NULL);
-        else                  mTableRedefine(handle->lx,dst->height,dst->width,S16,NULL);
-        if(handle->ly == NULL) handle->ly= mTableCreate(dst->height,dst->width,S16,NULL);
-        else                  mTableRedefine(handle->ly,dst->height,dst->width,S16,NULL);
-        if(handle-> w == NULL) handle->w = mTableCreate(dst->height,dst->width, U8,NULL);
-        else                  mTableRedefine(handle->w ,dst->height,dst->width, U8,NULL);
+        if(handle->lx == NULL) handle->lx= mTableCreate(dst->height,dst->width,sizeof(short),NULL);
+        else                  mTableRedefine(handle->lx,dst->height,dst->width,sizeof(short),NULL);
+        if(handle->ly == NULL) handle->ly= mTableCreate(dst->height,dst->width,sizeof(short),NULL);
+        else                  mTableRedefine(handle->ly,dst->height,dst->width,sizeof(short),NULL);
+        if(handle-> w == NULL) handle->w = mTableCreate(dst->height,dst->width,sizeof(unsigned char),NULL);
+        else                  mTableRedefine(handle->w ,dst->height,dst->width,sizeof(unsigned char),NULL);
         
         hdl->valid = 1;
     }

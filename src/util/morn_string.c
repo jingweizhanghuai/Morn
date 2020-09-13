@@ -103,11 +103,29 @@ int mStringRegular(const char *str1,const char *str2)
 //     return 0;
 // }
 
-char **mStringSplit(const char *str_in,const char *flag,MList *list)
+struct HandleStringSplit
 {
-    mException(INVALID_POINTER(str_in)||INVALID_POINTER(list)||INVALID_POINTER(flag),EXIT,"invalid input");
-    
-    int src_len = strlen(str_in)+1;
+    MList *list;
+};
+void endStringSplit(struct HandleStringSplit *handle)
+{
+    if(handle->list!=NULL) mListRelease(handle->list);
+}
+#define HASH_StringSplit 0xecdfe96e
+MList *mStringSplit(const char *str_in,const char *flag)
+{
+    mException(INVALID_POINTER(str_in)||INVALID_POINTER(flag),EXIT,"invalid input");
+    int src_len = strlen(str_in);
+    MHandle *hdl = mHandle(mMornObject((void *)str_in,src_len),StringSplit);
+    struct HandleStringSplit *handle =(struct HandleStringSplit *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->list==NULL) handle->list = mListCreate();
+        mListClear(handle->list);
+        hdl->valid = 1;
+    }
+    MList *list = handle->list;
+    src_len +=1;
     
     mListWrite(list,0,(void *)str_in,src_len);
     char *str = (char *)(list->data[0]);
@@ -144,7 +162,7 @@ char **mStringSplit(const char *str_in,const char *flag,MList *list)
    
     mFree(locate);
     
-    return (char **)(list->data);
+    return list;
 }
 
 // int mStringCompare(const char *str1,const char *str2)
@@ -196,7 +214,7 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
 
 char morn_string_argument[2]={'?',0};
 int morn_string_arg_idx = 0;
-char *StringArgument(int argc,char **argv,const char *flag,char *format,void *p1,void *p2,void *p3,void *p4,void *p5,void *p6)
+char *m_StringArgument(int argc,char **argv,const char *flag,char *format,...)
 {
     if(argc<=1) return NULL;
     char *result;
@@ -230,7 +248,12 @@ char *StringArgument(int argc,char **argv,const char *flag,char *format,void *p1
 
     nextStringArgument:
     if(!INVALID_POINTER(format))
-        sscanf(result,format,p1,p2,p3,p4,p5,p6);
+    {
+        va_list argpara;
+        va_start(argpara, format);
+        vsscanf(result,format,argpara);
+        va_end(argpara);
+    }
     return result;
 }
 

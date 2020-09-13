@@ -124,6 +124,9 @@ MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *
 
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
+    mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    mException(INVALID_POINTER(key),EXIT,"invalid input map key");
+    mException(INVALID_POINTER(value)&&(value_size<=0),EXIT,"invalid input map value");
     MChainNode *node;
     int *data;
 
@@ -154,8 +157,8 @@ void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int v
     node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
     data = (int *)(node->data);
     data[0] = key_size;data[1]=value_size;
-    memcpy(data+2          ,key  ,key_size  );
-    memcpy(data+2+mkey_size,value,value_size);
+    memcpy(data+2,key,key_size);
+    if(value!=NULL) memcpy(data+2+mkey_size,value,value_size);
 
     int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
     if(flag!=DFLT) p->data = node->data;
@@ -170,6 +173,8 @@ void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int v
 
 void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
 {
+    mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
     
     MHandle *hdl=mHandle(map,Map);
@@ -194,28 +199,34 @@ void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_si
 
 void *mMapNodeKey(MChainNode *node)
 {
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return (void *)(data+2);
 }
 void *mMapNodeValue(MChainNode *node)
 {
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
     return (void *)(data+2+mkey_size);
 }
 int mMapNodeKeySize(MChainNode *node)
 {
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return data[0];
 }
 int mMapNodeValueSize(MChainNode *node)
 {
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return data[1];
 }
 
 void mMapNodeOperate(MChain *map,void *function,void *para)
 {
+    mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    mException(INVALID_POINTER(function),EXIT,"invalid input map function");
     void (*func)(void *,int,void *,int,void *) = function;
     mException(INVALID_POINTER(map)||(func==NULL),EXIT,"invalid input");
     if(map->chainnode==NULL) return;
@@ -231,6 +242,8 @@ void mMapNodeOperate(MChain *map,void *function,void *para)
 
 void mMapDelete(MChain *map,const void *key,int key_size)
 {
+    mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
     
     MHandle *hdl=mHandle(map,Map);

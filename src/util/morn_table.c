@@ -9,12 +9,12 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_util.h"
 
-int ElementSize(const char *str,int size)
-{
-    if(size!=sizeof(DFLT)) return size;
-    if(strcmp(str,"DFLT")==0) return -1;
-    return size;
-}
+// int ElementSize(const char *str,int size)
+// {
+//     if(size!=sizeof(DFLT)) return size;
+//     if(strcmp(str,"DFLT")==0) return -1;
+//     return size;
+// }
 
 struct HandleTableCreate
 {
@@ -260,9 +260,11 @@ struct HandleStream
 {
     char *read;
     char *write;
+    pthread_mutex_t stream_mutex;
 };
 void endStream(void *info) {}
 #define HASH_Stream 0xcab28d39
+
 int mStreamRead(MArray *buff,void *data,int num)
 {
     mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
@@ -272,24 +274,27 @@ int mStreamRead(MArray *buff,void *data,int num)
     
     MHandle *hdl=mHandle(buff,Stream);
     struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
-    if(hdl->valid == 0) return MORN_FAIL;
+    if(hdl->valid == 0) return ((0-num)/handle0->element_size);
+    pthread_mutex_lock(&(handle->stream_mutex));
     
-    int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num-(handle->read-handle->write));
-    if(num>size) return MORN_FAIL;
-    
-    size = (buff->dataS8+buff->num)-handle->read;
-    if(size <= num)
+    int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num*handle0->element_size-(handle->read-handle->write));
+    // printf("read num=%d,size=%d\n",num,size);
+    if(num>size) goto StreamRead_end;
+
+    int size0 = (buff->dataS8+buff->num*handle0->element_size)-handle->read;
+    if(size0 <= num)
     {
-        memcpy(data,handle->read,size*sizeof(char));
+        memcpy(data,handle->read,size0);
+        data = ((char *)data) + size0;
         handle->read = buff->dataS8;
-        num = num-size;
-        if(num==0) return MORN_SUCCESS;
-        data = ((char *)data)+size;
+        num = num - size0;
     }
-    memcpy(data,handle->read,num*sizeof(char));
-    handle->read = handle->read+num;
-    
-    return MORN_SUCCESS;
+    memcpy(data,handle->read,num);
+    handle->read = handle->read + num;
+
+    StreamRead_end:
+    pthread_mutex_unlock(&(handle->stream_mutex));
+    return ((size-num)/handle0->element_size);
 }
 
 int mStreamWrite(MArray *buff,void *data,int num)
@@ -305,27 +310,30 @@ int mStreamWrite(MArray *buff,void *data,int num)
     {
         handle->read = buff->dataS8;
         handle->write= buff->dataS8;
-        hdl->valid = 1;
+        pthread_mutex_init(&(handle->stream_mutex),NULL);
+        // handle->stream_mutex = PTHREAD_MUTEX_INITIALIZER;
     }
+    pthread_mutex_lock(&(handle->stream_mutex));
     
-    int size=(handle->read>handle->write)?(handle->read-handle->write):(buff->num-(handle->write-handle->read));
-    if(num>size) return MORN_FAIL;
-    
-    size = (buff->dataS8+buff->num)-handle->write;
-    if(size <= num)
-    {
-        memcpy(handle->write,data,size*sizeof(char));
-        handle->write = buff->dataS8;
-        num = num-size;
-        if(num==0) return MORN_SUCCESS;
-        data = ((char *)data)+size;
-    }
-    memcpy(handle->write,data,num*sizeof(char));
-    handle->write = handle->write + num;
-    
-    return MORN_SUCCESS;
-}
-    
+    int size=(handle->read>handle->write)?(handle->read-handle->write):(buff->num*handle0->element_size-(handle->write-handle->read));
+    // printf("write num=%d,size=%d\n",num,size);
+    if(num>size) goto StreamWrite_end;
 
+    int size0 = (buff->dataS8+buff->num*handle0->element_size)-handle->write;
+    if(size0 <= num)
+    {
+        memcpy(handle->write,data,size0);
+        data = ((char *)data) + size0;
+        handle->write = buff->dataS8;
+        num = num - size0;
+    }
+    memcpy(handle->write,data,num);
+    handle->write = handle->write + num;
+  
+    StreamWrite_end:
+    hdl->valid = 1;
+    pthread_mutex_unlock(&(handle->stream_mutex));
+    return ((size-num)/handle0->element_size);
+}
 
 

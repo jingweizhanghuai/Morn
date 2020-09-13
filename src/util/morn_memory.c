@@ -616,9 +616,7 @@ void AllFree(int order)
 }
 */
 
-__thread int morn_layer_order = -1;
-__thread int morn_exception = 0;
-__thread jmp_buf *morn_jump[32];
+
 
 /*
 #define mExceptionBegin()\

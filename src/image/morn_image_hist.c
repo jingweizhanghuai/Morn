@@ -83,7 +83,7 @@ void mImageHist(MImage*img,int cn,MArray *hist)
     if(img->channel == 1) cn = 0;
     if(cn >= 0)
     {
-        mArrayRedefine(hist,257,S32,hist->data);
+        mArrayRedefine(hist,257,sizeof(int),hist->data);
         memset(hist->dataS32,0,256*sizeof(int));hist->dataS32[256]=flag;hist->num=256;
         unsigned char **data = img->data[cn];
         for(int j=ImageY1(img);j<ImageY2(img);j++)
@@ -92,7 +92,7 @@ void mImageHist(MImage*img,int cn,MArray *hist)
     }
     else if(img->channel == 3)
     {
-        mArrayRedefine(hist,4097,S32,hist->data);
+        mArrayRedefine(hist,4097,sizeof(int),hist->data);
         memset(hist->dataS32,0,4096*sizeof(int));hist->dataS32[4096]=flag;hist->num=4096;
         for(int j=ImageY1(img);j<ImageY2(img);j++)
             for(int i=ImageX1(img,j);i<ImageX2(img,j);i++)
@@ -103,7 +103,7 @@ void mImageHist(MImage*img,int cn,MArray *hist)
     }
     else if(img->channel == 4)
     {
-        mArrayRedefine(hist,65537,S32,hist->data);
+        mArrayRedefine(hist,65537,sizeof(int),hist->data);
         memset(hist->dataS32,0,65536*sizeof(int));hist->dataS32[65536]=flag;hist->num=65536;
         for(int j=ImageY1(img);j<ImageY2(img);j++)
             for(int i=ImageX1(img,j);i<ImageX2(img,j);i++)
@@ -114,7 +114,7 @@ void mImageHist(MImage*img,int cn,MArray *hist)
     }
     else //(img->channel == 2)
     {
-        mArrayRedefine(hist,1025,S32,hist->data);
+        mArrayRedefine(hist,1025,sizeof(int),hist->data);
         memset(hist->dataS32,0,1024*sizeof(int));hist->dataS32[1024]=flag;hist->num=1024;
         for(int j=ImageY1(img);j<ImageY2(img);j++)
             for(int i=ImageX1(img,j);i<ImageX2(img,j);i++)
@@ -203,7 +203,7 @@ void mHistNormlize(MArray *src,MArray *dst,int norm_data)
     
     k = ((float)norm_data)/((float)count);
     
-    mArrayRedefine(dst,src->num,S32,dst->data);
+    mArrayRedefine(dst,src->num,sizeof(int),dst->data);
     
     for(i=0;i<src->num;i++)
         dst->dataS32[i] = (int)(((float)src->dataS32[i]) * k + 0.5f);

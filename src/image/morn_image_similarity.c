@@ -28,7 +28,7 @@ uint32_t *mImageSimilarityFeature(MImage *src)
         
     int image_type = (int)mInfoGet(&(src->info),"image_type");
     mException((image_type != MORN_IMAGE_GRAY)&&(image_type != MORN_IMAGE_RGB),EXIT,"invalid input");
-    MTable *tab = mTableCreate(src->height+1,src->width+1,S32,NULL);
+    MTable *tab = mTableCreate(src->height+1,src->width+1,sizeof(int),NULL);
     memset(tab->dataS32[0],0,(src->width+1)*sizeof(float));
     for(int j=0;j<src->height;j++)
     {

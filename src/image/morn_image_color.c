@@ -773,16 +773,16 @@ int mColorCluster(MImage *src,MImage *dst,MList *list,int r,int thresh)
     struct HandleColorCluster *handle = (struct HandleColorCluster *)(hdl->handle);
     if(hdl->valid == 0)
     {
-        if(handle->locate == NULL) handle->locate = mTableCreate(height,width,U32,NULL);
-        else                       mTableRedefine(handle->locate,height,width,U32,NULL);
+        if(handle->locate == NULL) handle->locate = mTableCreate(height,width,sizeof(unsigned int),NULL);
+        else                       mTableRedefine(handle->locate,height,width,sizeof(unsigned int),NULL);
         
-        if(handle->number == NULL) handle->number = mTableCreate(height,width,S32,NULL);
-        else                       mTableRedefine(handle->number,height,width,S32,NULL);
+        if(handle->number == NULL) handle->number = mTableCreate(height,width,sizeof(int),NULL);
+        else                       mTableRedefine(handle->number,height,width,sizeof(int),NULL);
    
         for(cn=0;cn<channel;cn++)
         {
-            if(handle->sum[cn] == NULL) handle->sum[cn] = mTableCreate(height,width,S32,NULL);
-            else                        mTableRedefine(handle->sum[cn],height,width,S32,NULL);
+            if(handle->sum[cn] == NULL) handle->sum[cn] = mTableCreate(height,width,sizeof(int),NULL);
+            else                        mTableRedefine(handle->sum[cn],height,width,sizeof(int),NULL);
         }
   
         hdl->valid = 1;

@@ -5,13 +5,8 @@
 
 #if defined MORN_USE_SOCKET
 
-// #if defined _MSC_VER
-// #define ADDR(S) (S).S_un.S_addr
-// #else
 #if defined(_WIN64)||defined(_WIN32)
-#if defined __MINGW32__
 #include <winsock2.h>
-#endif
 #define ADDR(S) (S).S_un.S_addr
 #else
 #include <netinet/in.h>
@@ -20,7 +15,6 @@
 #define closesocket close
 #define ADDR(S) (S).s_addr
 #endif
-// #endif
 
 #ifdef __GNUC__
 #define strnicmp strncasecmp
@@ -74,7 +68,7 @@ int mUDPSend(const char *address,void *data,int size)
 {
     mException((size==0)||(data==NULL),EXIT,"invalid input size");
     
-    MHandle *hdl=mHandle(mMornObject(NULL),UDPSend);
+    MHandle *hdl=mHandle(mMornObject(NULL,DFLT),UDPSend);
     struct HandleUDP *handle = hdl->handle;
     if(hdl->valid==0)
     {
@@ -106,7 +100,7 @@ int mUDPRecive(const char *address,void *data,int size)
 {
     mException((size==0)||(data==NULL),EXIT,"invalid input size");
     
-    MHandle *hdl=mHandle(mMornObject(NULL),UDPRecive);
+    MHandle *hdl=mHandle(mMornObject(NULL,DFLT),UDPRecive);
     struct HandleUDP *handle = hdl->handle;
     if(hdl->valid==0)
     {
