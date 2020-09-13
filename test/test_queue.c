@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 MList *my_queue;
-void write(float *data)
+void queue_write(float *data)
 {
     int n=0;
     while(n<100)
@@ -27,7 +27,7 @@ void write(float *data)
         mSleep(mRand(0,100));
     }
 }
-void read()
+void queue_read()
 {
     int n=0;
     while(n<100)
@@ -49,7 +49,7 @@ int main()
     
     if(my_queue ==NULL) my_queue = mListCreate(10,NULL);
     
-    mThread(2,write(in),read());
+    mThread(queue_write(in),queue_read());
     
     mListRelease(my_queue);
     return 0;
