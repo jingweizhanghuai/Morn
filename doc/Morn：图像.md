@@ -12,11 +12,8 @@ typedef struct MImage {
     int height;
     int width;
     unsigned char **data[MORN_MAX_IMAGE_CN];
-   
-    MImageBorder *border;
-    
-	MList *handle;
-    MInfo info;
+    MArray *border;
+    Morn;
     void *reserve;
 }MImage;
 ```
@@ -31,8 +28,6 @@ data是数据索引，指向了图像像素点的数据。例如data\[0]\[100][2
 
 border是图像的感兴趣边界，以后再讲。
 
-handle、info、reserve是Morn结构体所公用的，不赘述。
-
 
 
 ### MImage基本操作
@@ -44,12 +39,49 @@ handle、info、reserve是Morn结构体所公用的，不赘述。
 #### MImage的创建
 
 ```c
+MImage *mImageCreate();
+MImage *mImageCreate(int height,int width);
+MImage *mImageCreate(int channel,int height,int width);
 MImage *mImageCreate(int channel,int height,int width,unsigned char **data[]);
 ```
 
-这是典型Morn风格的Create函数，其中channel是所创建的通道数，height是所创建的图像高度，width是所创建的图像宽度。channel、height、width都可以取默认值DFLT，它们的默认值都是0，这时，只是创建了一个MImage结构体，不会为图像数据分配内存空间。
+这是典型Morn风格的Create函数，包括四种形式。其中channel是所创建的通道数，height是所创建的图像高度，width是所创建的图像宽度。channel、height、width都可以取默认值DFLT，它们的默认值都是0，当取默认值时，只是创建了一个MImage结构体，不会为图像数据分配内存空间。
 
 data是图像像素的索引，如果创建时尚没有数据，就把它设置为NULL（通常都是把它设置为NULL）。
+
+当对图像的通道和尺寸都未知时，通常使用`mImageCreate()`来创建图像。例如：
+
+```c
+MImage *img = mImageCreate();	//在载入图像之前，图像尺寸和类型未知。
+mImageLoad(img,"./test.bmp");
+```
+
+当只知道图像尺寸，时使用`mImageCreate(height,width)`来创建图像。例如：
+
+```c
+MImage *dst=mImageCreate(480,640);
+mImageResize(src,dst,DFLT,DFLT,DFLT);	//将图像src缩放到640*480像素，dst的通道数与src相同
+```
+
+创建一个已知尺寸和类型的图像，使用`MImageCreate(cn,height,width)`。例如：
+
+```c
+MImage *img = mImageCreate(3,480,640);	//创建一个3通道，640*480像素的图像
+```
+
+最后一种`MImageCreate(cn,height,width,data)`用于为已有的数据创建图像。例如：
+
+```c
+unsigned char data[480][640];
+unsigned char **p=mMalloc(480*sizeof(unsigned char *));
+for(int i=0;i<480;i++)p[i]=&(data[i][0]);
+MImage *img1 = mImageCreate(1,480,640,&p);	//创建一幅图像，图像数据为data。
+
+MImage *img = mImageCreate(3,480,640);
+MImage *img2 = mImageCreate(1,480,640,img->data);	//img2是img的浅拷贝
+```
+
+
 
 
 

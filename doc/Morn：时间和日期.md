@@ -96,7 +96,7 @@ August15 2020 19:10:49 Saturday
 
 * %H用来输出小时（hour），为整数0至23之间。
 
-* %m用来输出分钟（minute），为整数0至59之间，注意与%M（月份）。
+* %m用来输出分钟（minute），为整数0至59之间，注意与%M（月份）区分。
 
 * %S用来输出分钟（second），为整数0至59之间。
 
@@ -126,7 +126,7 @@ int64_t mStringTime(char *in,const char *format);
 #include "morn_util.h"
 int main()
 {
-    printf("%d\n",mStringTime("Sat Aug 15 19:10:49 2020",NULL));
+    printf("%d\n",mStringTime("Sat. Aug. 15 19:10:49 2020",NULL));
     printf("%d\n",mStringTime("2020.8.15 19:10:49","%Y.%M.%D %H:%m:%S"));
     printf("%d\n",mStringTime("August15 2020 19:10:49 Saturday","%sM%D %Y %H:%m:%S %sW"));
     printf("%d\n",mStringTime("2020 Aug. 15 Sat. 19:10:49","%Y %aM %D %aW %H:%m:%S"));
@@ -153,7 +153,8 @@ int main()
 int main()
 {
     printf("今天是%s\n",mTimeString(DFLT,"%Y.%M.%D %aW"));
-    printf("已经建国%d天\n",(time(NULL)-mStringTime("1949.10.1","%Y.%M.%D"))/(24*3600));
+    printf("1000天后是%s\n",mTimeString(time(NULL)+1000*24*3600,"%Y.%M.%D %aW"));
+    printf("今天已经建国%d天\n",(time(NULL)-mStringTime("1949.10.1","%Y.%M.%D"))/(24*3600));
     printf("距离2021年高考还有%d天\n",(mStringTime("2021.6.7","%Y.%M.%D")-time(NULL))/(24*3600));
     printf("汶川大地震发生在星期%s\n",mTimeString(mStringTime("2008.5.12","%Y.%M.%D"),"%W"));
 }
@@ -162,11 +163,12 @@ int main()
 程序的运行结果如下：
 
 ```
-今天是2020.8.15 Sat.
-已经建国25886天
-距离2021年高考还有295天
+今天是2020.8.16 Sun.
+1000天后是2023.5.13 Sat.
+今天已经建国25887天
+距离2021年高考还有294天
 汶川大地震发生在星期1
 ```
 
-值得说明的一点：`mTimeString`和`mStringTime`本质上是对标准库函数里`localtime`和`mktime`的封装，但是`mTimeString`和`mStringTime`**解决了时间值为负的问题**，使得可以使用此两函数处理1970年之前的时间点（比如1949年，但是不能超出int64_t的取值范围）。而原始的`localtime`和`mktime`不能处理1970年之前的时间。
+值得说明的一点：`mTimeString`和`mStringTime`本质上是对标准库函数里`localtime`和`mktime`的封装，但是`mTimeString`和`mStringTime`**解决了时间值为负的问题**，使得可以使用此两函数处理1970年之前的时间点（比如1949年，但是不能超出int64_t的取值范围）。而`localtime`和`mktime`不能处理1970年之前的时间。
 

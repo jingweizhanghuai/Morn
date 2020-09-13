@@ -4,28 +4,15 @@
 
 ### 接口
 
-此文档相关函数都定义在[../src/math/morn_sort.c](../src/math/morn_sort.c)里。
+此文档相关函数都定义在[morn_sort.c](../src/math/morn_sort.c)里，接口在[morn_math.h](../include/morn_math.h)里。
+
+这里值得一提的是：此处接口都是**支持“泛型”的C语言接口**，这里的**Type支持`int8_t`、`uint8_t`、`int16_t`、`uint16_t`、`int32_t`、`uint32_t`、`int64_t`、`float`、`double`九种数据类型**。
 
 #### 升序排序
 
 ```c
-void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
-void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
-void mAscSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num);
-void mAscSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num);
-void mAscSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num);
-void mAscSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num);
-void mAscSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num);
-void mAscSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num);
+void mAscSort(Type *data_in,int *index_in,Type *data_out,int *index_out,int num);
 ```
-
-或者，可以使用：
-
-```c
-void mAscSort(Type,Type* data_in,int *index_in,Type *data_out,int *index_out,int num);
-```
-
-其中，Type只支持D64（double），F32（float），S32（int），U32（unsigned int），S16（short），U16（unsigned short），S8（signed char） ，U8（unsigned char）八种类型。
 
 data_in是数据的输入（待排序数据），data_out是数据的输出（排序后数据）。
 
@@ -46,7 +33,7 @@ num是数据的个数。
 例如：
 
 ```c
-printf("\n\nin :");
+printf("\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
 mAscSort(S32,data,NULL,NULL,index,10);
 printf("\nout :");
@@ -65,20 +52,7 @@ out :-73(8),-73(3),-64(9),-19(2),-9(5),5(0),42(7),45(1),61(4),95(6),
 #### 降序排序
 
 ```c
-void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
-void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
-void mDescSortS32(S32 *data_in,int *index_in,S32 *data_out,int *index_out,int num);
-void mDescSortU32(U32 *data_in,int *index_in,U32 *data_out,int *index_out,int num);
-void mDescSortS16(S16 *data_in,int *index_in,S16 *data_out,int *index_out,int num);
-void mDescSortU16(U16 *data_in,int *index_in,U16 *data_out,int *index_out,int num);
-void mDescSortS8 (S8  *data_in,int *index_in,S8  *data_out,int *index_out,int num);
-void mDescSortU8 (U8  *data_in,int *index_in,U8  *data_out,int *index_out,int num);
-```
-
-或者，可以用：
-
-```c
-void mDescSort(Type,Type* data_in,int *index_in,Type *data_out,int *index_out,int num);
+void mDescSort(Type* data_in,int *index_in,Type *data_out,int *index_out,int num);
 ```
 
 其参数与`mAscSort`相同，不再赘述。
@@ -86,9 +60,9 @@ void mDescSort(Type,Type* data_in,int *index_in,Type *data_out,int *index_out,in
 例如：
 
 ```c
-printf("\n\nin :");
+printf("\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
-mDescSort(S32,data,NULL,NULL,NULL,10);
+mDescSort(data,NULL,NULL,NULL,10);
 printf( "\nout :");
 for(int i=0;i<10;i++) {printf("%d,",data[i]);}
 ```
@@ -102,27 +76,12 @@ out :91,82,53,18,16,2,-5,-8,-79,-96,
 
 
 
-
-
 #### 最小值子集
 
-也就是从num_in个数据里，取出num_out个最小的数，取出的数并无必要按照大小顺序排列。
+也就是从num_in个数据里，取出num_out个最小的数（注意：取出的数并非按照大小顺序排列）。
 
 ```c
-D64 mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
-F32 mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
-S32 mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
-U32 mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
-S16 mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
-U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
- S8 mMinSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out);
- U8 mMinSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out);
-```
-
-或者，可以用：
-
-```c
-Type mMinSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
+double mMinSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
 ```
 
 其参数Type、data_in、data_out、index_in、index_out与`mAscSort`相同，不再赘述。
@@ -134,9 +93,9 @@ num_in即输入数据的个数。num_out即输出数据的个数。
 例如：
 
 ```c
-printf("\n\nin :");
+printf("\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
-mMinSubset(S32,data,NULL,10,NULL,index,4);
+mMinSubset(data,NULL,10,NULL,index,4);
 printf( "\nout :");
 for(int i=0;i<4;i++) {printf("%d(%d),",data[i],index[i]);}
     
@@ -154,20 +113,7 @@ out :-41(5),-56(1),-38(2),-63(4),
 #### 最大值子集
 
 ```c
-D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
-F32 mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
-S32 mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
-U32 mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
-S16 mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
-U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
- S8 mMaxSubsetS8 ( S8 *data_in,int *index_in,int num_in, S8 *data_out,int *index_out,int num_out);
- U8 mMaxSubsetU8 ( U8 *data_in,int *index_in,int num_in, U8 *data_out,int *index_out,int num_out);
-```
-
-或者，可以用：
-
-```c
-Type mMaxSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
+double mMaxSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int *index_out,int num_out);
 ```
 
 其参数与`mMinSubset`相同，不再赘述。
@@ -177,9 +123,9 @@ Type mMaxSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int 
 例如：
 
 ```c
-printf("\n\nin :");
+printf("\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
-mMaxSubset(S32,data,NULL,10,NULL,NULL,4);
+mMaxSubset(data,NULL,10,NULL,NULL,4);
 printf( "\nout :");
 for(int i=0;i<4;i++) {printf("%d,",data[i]);}    
 ```
@@ -201,7 +147,7 @@ out :16,42,90,6,
 
 ### 性能
 
-在比较性能时，使用了Windows下的Mingw工具链。
+在比较性能时，使用了Windows下的Mingw-w64工具链。
 
 #### 排序性能
 
@@ -228,10 +174,10 @@ void test1()
             data1[i]=((double)mRand(-10000,10000))/10000.0;
             data2[i]=data1[i];data3[i]=data1[i];data4[i]=data1[i];
         }
-        mTimerBegin(); qsort(data1,n,sizeof(int),compare);  mTimerEnd();
-        mTimerBegin(); gsl_sort(data2,1,n);                 mTimerEnd();
-        mTimerBegin(); std::sort(data3,data3+n);            mTimerEnd();
-        mTimerBegin(); mAscSort(D64,data4,NULL,NULL,NULL,n);mTimerEnd();
+        mTimerBegin(); qsort(data1,n,sizeof(int),compare);mTimerEnd();
+        mTimerBegin(); gsl_sort(data2,1,n);               mTimerEnd();
+        mTimerBegin(); std::sort(data3,data3+n);          mTimerEnd();
+        mTimerBegin(); mAscSort(data4,NULL,NULL,NULL,n);  mTimerEnd();
     }
     
     mFree(data1); mFree(data2); mFree(data3); mFree(data4);
@@ -263,8 +209,8 @@ void test2()
     for(m=100000;m<n;m+=200000)
     {
         printf("\nm=%d,n=%d:\n",m,n);
-        mTimerBegin(); gsl_sort_smallest(out1,m,in,1,n);      mTimerEnd();
-        mTimerBegin(); mMinSubset(D64,in,NULL,n,out2,NULL,m); mTimerEnd();
+        mTimerBegin(); gsl_sort_smallest(out1,m,in,1,n);  mTimerEnd();
+        mTimerBegin(); mMinSubset(in,NULL,n,out2,NULL,m); mTimerEnd();
     }
 
     mFree(in); mFree(out1); mFree(out2);
@@ -276,7 +222,7 @@ void test2()
 ![排序2](排序2.PNG)
 
 可以看到，两者的耗时差了至少3个数量级。（`gsl_sort_smallest`为什么比`gsl_sort`还慢？）
-不过这里需要说明的是：`gsl_sort_smallest`和`mMinSubset`函数的功能不完全相同，它们虽然都是从m个数据中取出最小的n个，但是`gsl_sort_smallest`取出的数据是按照顺序排列好的，其取值的阈值就是`out1[m-1]`；`mMinSubset`取出的数据是无序的，其取值的阈值是函数的返回值。（通常应用中并不需要所取出的数据有序，倘若确有有序的需求的话，可以在之后再使用`mAscSort`或`mDescSort`函数进行排序，即使此函数之后再排序也比`gsl_sort_smallest`函数快得多）。
+不过这里需要说明的是：`gsl_sort_smallest`和`mMinSubset`函数的功能不完全相同，它们虽然都是从m个数据中取出最小的n个，但是`gsl_sort_smallest`取出的数据是按照顺序排列好的，其取值的阈值就是`out1[m-1]`；`mMinSubset`取出的数据是无序的，其取值的阈值是函数的返回值。（通常应用中并不需要所取出的数据有序，倘若确有有序的需求的话，可以在之后再使用`mAscSort`或`mDescSort`函数进行排序，但是即使此函数之后再排序也比`gsl_sort_smallest`函数快得多）。
 
 #### 带索引排序的性能
 这里比较的是Morn的`mAscSort`和GSL的`gsl_sort_index`函数。测试程序如下：
@@ -296,8 +242,8 @@ void test3()
         {
             data1[i]=((double)mRand(-10000,10000))/10000.0;data2[i]=data1[i];
         }
-        mTimerBegin(); gsl_sort_index(index1,data1,1,n);      mTimerEnd();
-        mTimerBegin(); mAscSort(D64,data2,NULL,NULL,index2,n);mTimerEnd();
+        mTimerBegin(); gsl_sort_index(index1,data1,1,n);  mTimerEnd();
+        mTimerBegin(); mAscSort(data2,NULL,NULL,index2,n);mTimerEnd();
     }
     
     mFree(data1); mFree(data2);mFree(index1);mFree(index2);
@@ -325,7 +271,7 @@ void test4()
     {
         printf("\nm=%d,n=%d:\n",m,n);
         mTimerBegin(); gsl_sort_largest_index(out1,m,in,1,n); mTimerEnd();
-        mTimerBegin(); mMaxSubset(D64,in,NULL,n,NULL,out2,m); mTimerEnd();
+        mTimerBegin(); mMaxSubset(in,NULL,n,NULL,out2,m);     mTimerEnd();
     }
 
     mFree(in); mFree(out1); mFree(out2);
