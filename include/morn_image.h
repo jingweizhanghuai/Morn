@@ -88,23 +88,53 @@ void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned
 #define MORN_IMAGE_STREAM_WHC 4
 #define MORN_IMAGE_STREAM_WCH 5
 
-void mImageDataInputU8( MImage *img,U8  *stream,int stream_type,unsigned char (*func)(U8 ,void *),void *para);
-void mImageDataInputS8( MImage *img,S8  *stream,int stream_type,unsigned char (*func)(S8 ,void *),void *para);
-void mImageDataInputU16(MImage *img,U16 *stream,int stream_type,unsigned char (*func)(U16,void *),void *para);
-void mImageDataInputS16(MImage *img,S16 *stream,int stream_type,unsigned char (*func)(S16,void *),void *para);
-void mImageDataInputS32(MImage *img,S32 *stream,int stream_type,unsigned char (*func)(S32,void *),void *para);
-void mImageDataInputF32(MImage *img,F32 *stream,int stream_type,unsigned char (*func)(F32,void *),void *para);
-void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,unsigned char (*func)(D64,void *),void *para);
-#define mImageDataInput(Img,Stream,Stream_type,Type,Func,Para) mImageDataInput##Type(Img,Stream,Stream_type,Func,Para)
+void mImageDataInputU8 (MImage *img,U8  *stream,int stream_type,void *func,void *para);
+void mImageDataInputS8 (MImage *img,S8  *stream,int stream_type,void *func,void *para);
+void mImageDataInputU16(MImage *img,U16 *stream,int stream_type,void *func,void *para);
+void mImageDataInputS16(MImage *img,S16 *stream,int stream_type,void *func,void *para);
+void mImageDataInputU32(MImage *img,U32 *stream,int stream_type,void *func,void *para);
+void mImageDataInputS32(MImage *img,S32 *stream,int stream_type,void *func,void *para);
+void mImageDataInputF32(MImage *img,F32 *stream,int stream_type,void *func,void *para);
+void mImageDataInputS64(MImage *img,S64 *stream,int stream_type,void *func,void *para);
+void mImageDataInputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
+void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
+#define mImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
+    int data_type = mDataType(Stream);\
+         if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (img,(U8  *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (img,(S8  *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U16) mImageDataInputU16(img,(U16 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S16) mImageDataInputS16(img,(S16 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U32) mImageDataInputU32(img,(U32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S32) mImageDataInputS32(img,(S32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_F32) mImageDataInputF32(img,(F32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S64) mImageDataInputS64(img,(S64 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U64) mImageDataInputU64(img,(U64 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_D64) mImageDataInputD64(img,(D64 *)stream,stream_type,func,para);\
+}while(0)
 
-void mImageDataOutputU8( MImage *img,U8  *stream,int stream_type,U8  (*func)(unsigned char,void *),void *para);
-void mImageDataOutputS8( MImage *img,S8  *stream,int stream_type,S8  (*func)(unsigned char,void *),void *para);
-void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,U16 (*func)(unsigned char,void *),void *para);
-void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,S16 (*func)(unsigned char,void *),void *para);
-void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,S32 (*func)(unsigned char,void *),void *para);
-void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,F32 (*func)(unsigned char,void *),void *para);
-void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,D64 (*func)(unsigned char,void *),void *para);
-#define mImageDataOutput(Img,Stream,Stream_type,Type,Func,Para) mImageDataOutput##Type(Img,Stream,Stream_type,Func,Para)
+void mImageDataOutputU8 (MImage *img,U8  *stream,int stream_type,void *func,void *para);
+void mImageDataOutputS8 (MImage *img,S8  *stream,int stream_type,void *func,void *para);
+void mImageDataOutputU16(MImage *img,U16 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputS16(MImage *img,S16 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputU32(MImage *img,U32 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputS32(MImage *img,S32 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputS64(MImage *img,S64 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
+void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
+#define mImageDataOutput(Img,Stream,Stream_type,Func,Para) do{\
+    int data_type = mDataType(Stream);\
+         if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8 (img,(U8  *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8 (img,(S8  *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U16) mImageDataOutputU16(img,(U16 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S16) mImageDataOutputS16(img,(S16 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U32) mImageDataOutputU32(img,(U32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S32) mImageDataOutputS32(img,(S32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_F32) mImageDataOutputF32(img,(F32 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_S64) mImageDataOutputS64(img,(S64 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_U64) mImageDataOutputU64(img,(U64 *)stream,stream_type,func,para);\
+    else if(data_type==MORN_TYPE_D64) mImageDataOutputD64(img,(D64 *)stream,stream_type,func,para);\
+}                                                              
 
 void mImageRGBToYUV(MImage *src,MImage *dst);
 void mImageYUVToRGB(MImage *src,MImage *dst);
@@ -113,8 +143,6 @@ void mImageHSVToRGB(MImage *src,MImage *dst);
 void mImageRGBToGray(MImage *src,MImage *dst);
 void mImageYUVToGray(MImage *src,MImage *dst);
 void mImageToGray(MImage *src,MImage *dst); 
-
-
 
 #define mImageExchange(Src,Dst) mObjectExchange(Src,Dst,MImage)
 #define mImageReset(Img) mHandleReset(Img->handle)
