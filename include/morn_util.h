@@ -124,21 +124,28 @@ extern __thread char morn_data_buff[8];
 )
 
 
-
-// #define MORN_LOG_HTTP    ~4
 extern __thread char morn_filename[256];
 
 const char *mTimeNowString();
-const char *_mTimeString(int64_t time_value,const char *format);
+const char *m_TimeString(int64_t time_value,const char *format);
 #define mTimeString(...) (\
     (VA_ARG_NUM(__VA_ARGS__)==0)?mTimeNowString():\
-    (VA_ARG_NUM(__VA_ARGS__)==1)?_mTimeString(DFLT,(const char *)(VA_ARG0(__VA_ARGS__))):\
-    (VA_ARG_NUM(__VA_ARGS__)==2)?_mTimeString((int64_t)(VA_ARG0(__VA_ARGS__)),(const char *)(VA_ARG0(__VA_ARGS__))):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_TimeString(DFLT,(const char *)(VA_ARG0(__VA_ARGS__))):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_TimeString((int64_t)(VA_ARG0(__VA_ARGS__)),(const char *)(VA_ARG1(__VA_ARGS__))):\
     NULL\
 )
-int64_t mStringTime(char *in,const char *format);
+int64_t m_StringTime(char *in,const char *format);
+#define mStringTime(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==0)?time(NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_StringTime((char *)(VA_ARG0(__VA_ARGS__)),NULL):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_StringTime((char *)(VA_ARG0(__VA_ARGS__)),(const char *)(VA_ARG1(__VA_ARGS__))):\
+    DFLT\
+)
+
 
 int mThreadID();
+
+void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...);
 
 #define MORN_DEBUG    0
 #define MORN_INFO    16
@@ -146,21 +153,31 @@ int mThreadID();
 #define MORN_ERROR   48
 #define MORN_LOG_CONSOLE (~1)
 #define MORN_LOG_FILE    (~2)
-void _mLogSet(int levelset,int output,const char *filename,int64_t filesize);
+#define MORN_LOG_CUSTOM  (~4)
+void m_LogSet(int levelset,int output,const char *filename,int64_t filesize,void *function,void *para);
 #define mLogSet(...) do{\
     int N = VA_ARG_NUM(__VA_ARGS__);\
     if(N==1)\
     {\
-        if((intptr_t)VA_ARG0(__VA_ARGS__)<=MORN_ERROR) _mLogSet((intptr_t)VA_ARG0(__VA_ARGS__),DFLT,NULL,DFLT);\
-        else                                           _mLogSet(DFLT,DFLT,(const char *)VA_ARG0(__VA_ARGS__),DFLT);\
+        if((intptr_t)VA_ARG0(__VA_ARGS__)<=MORN_ERROR) m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),DFLT,NULL,DFLT,NULL,NULL);\
+        else                                           m_LogSet(DFLT,DFLT,(const char *)VA_ARG0(__VA_ARGS__),DFLT,NULL,NULL);\
     }\
     else if(N==2)\
     {\
-        if((intptr_t)VA_ARG0(__VA_ARGS__)>=0) _mLogSet((intptr_t)VA_ARG0(__VA_ARGS__),DFLT,(const char *)VA_ARG1(__VA_ARGS__),DFLT);\
-        else                                  _mLogSet(DFLT,(intptr_t)VA_ARG0(__VA_ARGS__),(const char *)VA_ARG1(__VA_ARGS__),DFLT);\
+        if((intptr_t)VA_ARG0(__VA_ARGS__)>=0) m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),DFLT,(const char *)VA_ARG1(__VA_ARGS__),DFLT,NULL,NULL);\
+        else                                  m_LogSet(DFLT,(intptr_t)VA_ARG0(__VA_ARGS__),(const char *)VA_ARG1(__VA_ARGS__),DFLT,NULL,NULL);\
     }\
-    else if(N==3) _mLogSet((intptr_t)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__),(const char *)VA_ARG2(__VA_ARGS__),DFLT);\
-    else          _mLogSet((intptr_t)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__),(const char *)VA_ARG2(__VA_ARGS__),(int64_t)VA_ARG3(__VA_ARGS__));\
+    else if(N==3) m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__),(const char *)VA_ARG2(__VA_ARGS__),DFLT,NULL,NULL);\
+    else if(N==4)\
+    {\
+        int Output = (intptr_t)VA_ARG1(__VA_ARGS__);\
+        if((Output|MORN_LOG_FUNCTION)==MORN_LOG_FUNCTION)\
+            m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),Output,    (const char *)VA_ARG2(__VA_ARGS__),(int64_t)VA_ARG3(__VA_ARGS__),NULL,NULL);\
+        else\
+            m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),Output,NULL,DFLT,(void *)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__));\
+    }\
+    else if(N==6) m_LogSet((intptr_t)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__),(const char *)VA_ARG2(__VA_ARGS__),(int64_t)VA_ARG3(__VA_ARGS__),(void *)VA_ARG4(__VA_ARGS__),(void *)VA_ARG5(__VA_ARGS__));\
+    else m_Exception(1,EXIT,__FILE__,__LINE__,__FUNCTION__,"invalid log set");\
 }while(0)
 const char *mLogLevel();
 #define mLogFormat1(Message) "[%s,line %d,function %s]%s: " Message "\n",__FILE__,__LINE__,__FUNCTION__,mLogLevel()
@@ -194,7 +211,6 @@ extern __thread int morn_layer_order;//=-1;
 #endif
 #define mError(Flag) (Flag)
 #define mWarning(Flag) (0-(Flag))
-void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...);
 #define mException(Error,ID,...) do{int Err=Error;if(Err!=0) m_Exception(Err,ID,__FILE__,__LINE__,__FUNCTION__,__VA_ARGS__);}while(0)
 
 /*
@@ -588,9 +604,25 @@ void mMemoryMerge(MMemory *mem1,MMemory *mem2,MMemory *dst);
 void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num);
 void *mMemoryWrite(MMemory *memory,void *data,int size);
 
-void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
-void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
-void mMapDelete(MChain *map,const void *key,int key_size);
+void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
+#define mMapWrite(...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT);\
+    else if(VA_ARG_NUM(__VA_ARGS__)==5) m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input parameter for mMapWrite");
+}while(0)
+void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
+#define mMapRead(...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT);\
+    else if(VA_ARG_NUM(__VA_ARGS__)==5) m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input parameter for mMapRead");
+}while(0)
+void m_MapDelete(MChain *map,const void *key,int key_size);
+#define mMapDelete(...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==2) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__));\
+    else if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input parameter for mMapDelete");
+}while(0)
+void mMapNodeOperate(MChain *map,void *function,void *para);
 void *mMapNodeKey(MChainNode *node);
 void *mMapNodeValue(MChainNode *node);
 int mMapNodeKeySize(MChainNode *node);
