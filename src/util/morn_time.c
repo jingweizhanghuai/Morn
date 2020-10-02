@@ -1,8 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
+/*
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
 
 #include "morn_util.h"
 
@@ -133,8 +132,10 @@ char *CHNYearString(int num)
     return morn_shu;
 }
 
+
+
 char morn_time_string[128];
-const char *_mTimeString(int64_t time_value,const char *format)
+const char *m_TimeString(int64_t time_value,const char *format)
 {
     int64_t tv=(time_value==DFLT)?(int64_t)time(NULL):time_value;
     int ty = 0;
@@ -145,24 +146,23 @@ const char *_mTimeString(int64_t time_value,const char *format)
         ty=ty*28;
     }
     struct tm *t=localtime(&tv);
-    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
+    if(format==NULL) format = "%Y.%02M.%02D %02H:%02m:%02S";
 
     char *wday[7]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
     char *month[12]={"January","February","March","April","May","June","July","August","September","October","November","December"};
     char *awday[7]={"Sun","Mon","Tues","Wed","Thur","Fri","Sat"};
     char *amonth[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"};
 
+    
     #if defined(__linux__)
     int cwday[7]={0x00a597e6,0x0080b8e4,0x008cbae4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5};
-    // int step = 3;
     #elif defined(_WIN64)||defined(_WIN32)
     int cwday[7]={0x0000d5c8,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1};
-    // int step = 2;
     #else
     int cwday[7]={0,0,0,0,0,0,0};
-    // int step = 0;
     #endif
-    
+    char cy[16],cM[16],cd[8 ],ch[16],cm[16],cs[16];
+
     char str[256];strcpy(str,format);
     intptr_t d[16];int n=0;
     char *p,*q;
@@ -188,12 +188,12 @@ const char *_mTimeString(int64_t time_value,const char *format)
                 else if((q[0]=='s')&&(q[1]=='W')) {d[n++]=(intptr_t)(  wday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
                 else if((q[0]=='a')&&(q[1]=='W')) {d[n++]=(intptr_t)( awday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
                 else if((q[0]=='C')&&(q[1]=='W')) {d[n++]=(intptr_t)(&cwday[t->tm_wday]);q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='Y')) {char cy[16];strcpy(cy,CHNYearString(t->tm_year+1900-ty));d[n++]=(intptr_t)cy;q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='M')) {char cM[16];strcpy(cM,mShu(t->tm_mon+1));d[n++]=(intptr_t)cM;q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='D')) {char cd[8 ];strcpy(cd,mShu(t->tm_mday ));d[n++]=(intptr_t)cd;q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='H')) {char ch[16];strcpy(ch,mShu(t->tm_hour ));d[n++]=(intptr_t)ch;q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='D')) {char cm[16];strcpy(cm,mShu(t->tm_min  ));d[n++]=(intptr_t)cm;q[0]='h';q[1]='s';q++;}
-                else if((q[0]=='C')&&(q[1]=='D')) {char cs[16];strcpy(cs,mShu(t->tm_sec  ));d[n++]=(intptr_t)cs;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='Y')) {strcpy(cy,CHNYearString(t->tm_year+1900-ty));d[n++]=(intptr_t)cy;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='M')) {strcpy(cM,mShu((double)(t->tm_mon+1)));d[n++]=(intptr_t)cM;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='D')) {strcpy(cd,mShu((double)(t->tm_mday )));d[n++]=(intptr_t)cd;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='H')) {strcpy(ch,mShu((double)(t->tm_hour )));d[n++]=(intptr_t)ch;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='m')) {strcpy(cm,mShu((double)(t->tm_min  )));d[n++]=(intptr_t)cm;q[0]='h';q[1]='s';q++;}
+                else if((q[0]=='C')&&(q[1]=='S')) {strcpy(cs,mShu((double)(t->tm_sec  )));d[n++]=(intptr_t)cs;q[0]='h';q[1]='s';q++;}
                 else mException(1,EXIT,"invalid format");
                 break;
             }
@@ -208,24 +208,25 @@ int CHNNum(char *str)
 {
     #if defined(__linux__)
     int s=3;
-    int dic[10]={0x0080b8e4,0x008cbae4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5};
+    int dic[11]={0x00b69be9,0x0080b8e4,0x008cbae4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5};
     #elif defined(_WIN64)||defined(_WIN32)
     int s=2;
-    int dic[10]={0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca};
+    int dic[11]={0x0000e3c1,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca};
     #else
     int s=0;
-    int dic[10]={0,0,0,0,0,0,0,0,0,0};
+    int dic[11]={0,0,0,0,0,0,0,0,0,0,0};
     #endif
 
-    int len = strlen(str);
     int num = 0;
-    for(int i=0;i<len;i+=s)
+    for(int i=0;str[i]!=0;i+=s)
     {
-        if(memcmp(str+i,dic+9,s)==0) {if(num==0) {num=1;}num=num*10;continue;}
-        for(int j=0;j<9;j++)
+        if(memcmp(str+i,dic+10,s)==0) {if(num==0) {num=1;}num=num*10;continue;}
+        if(memcmp(str+i,dic+ 0,s)==0) continue;
+        int j;for(j=1;j<10;j++)
         {
-            if(memcmp(str+i,dic+j,s)==0) {num+=(j+1);break;}
+            if(memcmp(str+i,dic+j,s)==0) {num+=j;break;}
         }
+        if(j==10) break;
     }
     return num;
 }
@@ -243,34 +244,71 @@ int CHNYear(char *str)
     int dic[11]={0,0,0,0,0,0,0,0,0,0,0};
     #endif
 
-    int len = strlen(str);
     int num = 0;
-    for(int i=0;i<len;i+=s)
+    for(int i=0;str[i]!=0;i+=s)
     {
-        num=num*10;
-        for(int j=0;j<11;j++)
+        int j;for(j=0;j<11;j++)
         {
-            if(memcmp(str+i,dic+j,s)==0){num+=j%10;break;}
+            if(memcmp(str+i,dic+j,s)==0){num=num*10+j%10;break;}
         }
+        if(j==11) break;
     }
     return num;
 }
 
-
-int64_t mStringTime(char *in,const char *format)
+void _CString(const char *in,char *out)
 {
-    if(in == NULL) return time(NULL);
-    if(format==NULL) format = "%aW %aM %D %H:%m:%S %Y";
+    #if defined(__linux__)
+    int s=3;
+    int dic[13]={0x0080b8e4,0x008cbae4,0x008780e3,0x0089b8e4,0x00b69be9,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00a597e6};
+    #elif defined(_WIN64)||defined(_WIN32)
+    int s=2;
+    int dic[13]={0x0000bbd2,0x0000feb6,0x000096a9,0x0000fdc8,0x0000e3c1,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca,0x0000d5c8};
+    #else
+    int s=0;
+    int dic[13]={0,0,0,0,0,0,0,0,0,0,0,0,0};
+    #endif
+
+    int8_t *p;int n;
+    for(p=(int8_t *)in,n=0;*p!=0;p++) 
+    {
+        // printf("p[%d]=%d,%c\n",n,p[0],p[0]);
+        if(p[0]<0)
+        {
+            int i;for(i=0;i<13;i++)
+                if(memcmp(p,dic+i,s)==0)
+                    {memcpy(out+n,p,s);n+=s;p+=s-1;break;}
+            
+            if(i==13) out[n++]=' ';
+        }
+        else out[n++]=p[0];
+        
+    }
+    out[n++]=' ';out[n++]=0;
+}
+
+int64_t m_StringTime(char *string,const char *fmt)
+{
+    if(string == NULL) return time(NULL);
+    
+    const char *p,*q;
+    int n=0,m=0;
+
+    char     in[128]; _CString(string ,in);
+    char format[128]; 
+    if(fmt==NULL) strcpy(format,"%Y.%02M.%02D %02H:%02m:%02S ");
+    else _CString(fmt,format);
 
     int day=DFLT,month=DFLT,year=DFLT,week=DFLT,hour=0,minute=0,second=0;
+    char C_year[32],C_week[32],C_month[32],C_day[32],C_hour[32],C_minute[32],C_second[32];
     char s_week[16],s_month[16];
+    int C_year_valid=0,C_month_valid=0,C_day_valid=0,C_hour_valid=0,C_minute_valid=0,C_second_valid=0,s_month_valid=0;
     char *amonth[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
     void *ptr[16];
     char str[128];memset(str,0,128);
     
-    const char *p,*q;
-    int n=0,m=0;
+    n=0,m=0;
     for(p=format;*p!=0;p++)
     {
         if((n>=16)||(m>=128))break;
@@ -281,7 +319,6 @@ int64_t mStringTime(char *in,const char *format)
             for(q=p+1;*q!=0;q++)
             {
                 if((*q>='0')&&(*q<='9')) continue;
-                // if(*q=='.') continue;
                      if(*q=='Y') {ptr[n++]=&year  ;str[m++]='d';}
                 else if(*q=='M') {ptr[n++]=&month ;str[m++]='d';}
                 else if(*q=='W') {ptr[n++]=&week  ;str[m++]='d';}
@@ -289,17 +326,26 @@ int64_t mStringTime(char *in,const char *format)
                 else if(*q=='H') {ptr[n++]=&hour  ;str[m++]='d';}
                 else if(*q=='m') {ptr[n++]=&minute;str[m++]='d';}
                 else if(*q=='S') {ptr[n++]=&second;str[m++]='d';}
-                else if(((q[0]=='s')||(q[0]=='a'))&&((q[1]=='M')||(q[1]=='W')))
+                else if((q[0]=='s')||(q[0]=='a')||(q[0]=='C'))//&&((q[1]=='M')||(q[1]=='W'))))
                 {
-                    ptr[n++]=(q[1]=='M')?s_month:s_week;
-                    if(!q[2]) str[m++]='s';
-                    else
+                    if((q[0]=='s')||(q[0]=='a')) 
                     {
-                        str[m++]='[';
-                        str[m++]='^';str[m++]='0';str[m++]='-';str[m++]='9';
-                        str[m++]='^';str[m++]=q[2];
-                        str[m++]=']';
+                        if(q[1]=='M') {ptr[n++]=s_month;s_month_valid=1;}
+                        else          {ptr[n++]=s_week;}
                     }
+                    else if(q[0]=='C') 
+                    {
+                             if(q[1]=='Y') {ptr[n++]=C_year;   C_year_valid  =1;}
+                        else if(q[1]=='M') {ptr[n++]=C_month;  C_month_valid =1;}
+                        else if(q[1]=='D') {ptr[n++]=C_day;    C_day_valid   =1;}
+                        else if(q[1]=='H') {ptr[n++]=C_hour;   C_hour_valid  =1;}
+                        else if(q[1]=='m') {ptr[n++]=C_minute; C_minute_valid=1;}
+                        else if(q[1]=='S') {ptr[n++]=C_second; C_second_valid=1;}
+                        else               {ptr[n++]=C_week;}
+                    }
+                    str[m++]='[';
+                    str[m++]='^';str[m++]=q[2];
+                    str[m++]=']';
                     q++;
                 }
                 else mException(1,EXIT,"invalid format");
@@ -310,7 +356,14 @@ int64_t mStringTime(char *in,const char *format)
     }
     // printf("%s\n",str);
     sscanf(in,str,ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7],ptr[8],ptr[9],ptr[10],ptr[11],ptr[12],ptr[13],ptr[14],ptr[15]);
-    if(month<0) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
+    // printf("C_year=%s,C_month=%s,C_day=%s,C_hour=%s,C_minute=%s\n",C_year,C_month,C_day,C_hour,C_minute);
+    if(s_month_valid  ) {s_month[3]=0; for(int i=0;i<12;i++) {if(stricmp(s_month,amonth[i])==0) {month=i+1;break;}}}
+    if(C_year_valid   ) year  = CHNYear(C_year );// printf("year  =%d\n",year  );
+    if(C_month_valid  ) month = CHNNum(C_month );// printf("month =%d\n",month );
+    if(C_day_valid    ) day   = CHNNum(C_day   );// printf("day   =%d\n",day   );
+    if(C_hour_valid   ) hour  = CHNNum(C_hour  );// printf("hour  =%d\n",hour  );
+    if(C_minute_valid ) minute= CHNNum(C_minute);// printf("minute=%d\n",minute);
+    if(C_second_valid ) second= CHNNum(C_second);// printf("second=%d\n",second);
     if((month<0)||(day<0)) return DFLT;
     int64_t td=0; if(year<1972) {td=((1972-year)*365+(1972-year)/4+(((1972-year)%4!=0)&&(month>2)))*24*3600;year=1972;}
     struct tm t;t.tm_year=year-1900; t.tm_mon=month-1;t.tm_mday=day;t.tm_hour=hour;t.tm_min=minute;t.tm_sec=second;

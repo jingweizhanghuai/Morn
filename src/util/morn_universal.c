@@ -374,7 +374,7 @@ void _CNum(double data,char *out,int *flag)
     int value = (int)data;
     double value2 = data-(double)value;
     if(value<=10) {memcpy(out,dic+value,s);out+=s;goto cnum_next;}
-    if((value<20)&&(*flag==0)) {memcpy(out,dic+10,s);memcpy(out,dic+(value-10),s);out+=s+s;goto cnum_next;}
+    if((value<20)&&(*flag==0)) {memcpy(out,dic+10,s);memcpy(out+s,dic+(value-10),s);out+=s+s;goto cnum_next;}
 
     if(value>100000000)
     {
