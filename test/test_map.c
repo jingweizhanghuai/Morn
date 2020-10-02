@@ -1,10 +1,8 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： gcc -O2 -fopenmp test_map.c -I ..\include\ -L ..\lib\x64\mingw -lmorn -o test_map.exe
+//编译： gcc -O2 -fopenmp test_map.c -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_map.exe
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,17 +26,17 @@ void test1()
     n=9; mMapWrite(map,"nine" ,DFLT,&n,sizeof(int));
     
     int *p;
-    p = mMapRead(map,"zero" ,DFLT,NULL,DFLT);if(p!=NULL)printf("zero = %d\n",*p);
-    p = mMapRead(map,"one"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("one  = %d\n",*p); 
-    p = mMapRead(map,"two"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("two  = %d\n",*p); 
-    p = mMapRead(map,"three",DFLT,NULL,DFLT);if(p!=NULL)printf("three= %d\n",*p);
-    p = mMapRead(map,"four" ,DFLT,NULL,DFLT);if(p!=NULL)printf("four = %d\n",*p);
-    p = mMapRead(map,"five" ,DFLT,NULL,DFLT);if(p!=NULL)printf("five = %d\n",*p);
-    p = mMapRead(map,"six"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("six  = %d\n",*p);
-    p = mMapRead(map,"seven",DFLT,NULL,DFLT);if(p!=NULL)printf("seven= %d\n",*p);
-    p = mMapRead(map,"eight",DFLT,NULL,DFLT);if(p!=NULL)printf("eight= %d\n",*p);
-    p = mMapRead(map,"nine" ,DFLT,NULL,DFLT);if(p!=NULL)printf("nine = %d\n",*p);
-    p = mMapRead(map,"ten"  ,DFLT,NULL,DFLT);if(p!=NULL)printf("ten  = %d\n",*p);
+    p = mMapRead(map,"zero" );if(p!=NULL)printf("zero = %d\n",*p);
+    p = mMapRead(map,"one"  );if(p!=NULL)printf("one  = %d\n",*p); 
+    p = mMapRead(map,"two"  );if(p!=NULL)printf("two  = %d\n",*p); 
+    p = mMapRead(map,"three");if(p!=NULL)printf("three= %d\n",*p);
+    p = mMapRead(map,"four" );if(p!=NULL)printf("four = %d\n",*p);
+    p = mMapRead(map,"five" );if(p!=NULL)printf("five = %d\n",*p);
+    p = mMapRead(map,"six"  );if(p!=NULL)printf("six  = %d\n",*p);
+    p = mMapRead(map,"seven");if(p!=NULL)printf("seven= %d\n",*p);
+    p = mMapRead(map,"eight");if(p!=NULL)printf("eight= %d\n",*p);
+    p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);
+    p = mMapRead(map,"ten"  );if(p!=NULL)printf("ten  = %d\n",*p);
 
     mChainRelease(map);
 }
