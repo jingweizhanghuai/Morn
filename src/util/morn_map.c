@@ -122,7 +122,7 @@ MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *
     return node;
 }
 
-void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
+void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
@@ -171,7 +171,7 @@ void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int v
     return (data+2+mkey_size);
 }
 
-void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
+void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
@@ -240,7 +240,7 @@ void mMapNodeOperate(MChain *map,void *function,void *para)
     }
 }
 
-void mMapDelete(MChain *map,const void *key,int key_size)
+void m_MapDelete(MChain *map,const void *key,int key_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
