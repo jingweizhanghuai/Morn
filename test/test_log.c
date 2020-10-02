@@ -62,7 +62,7 @@ void log_thread(int *test_num)
 
 void test4()
 {
-    mLogSet(DFLT,"./test_log.log");
+    mLogSet("./test_log.log");
     
     int test_num = 800;
     
@@ -70,7 +70,7 @@ void test4()
     log_thread(&test_num);
     mTimerEnd();
 
-    mLogSet(DFLT,"./test_log2.log");
+    mLogSet("./test_log2.log");
     mTimerBegin();
     mThread((log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num));
     mTimerEnd();
@@ -82,4 +82,5 @@ int main()
     test2();
     test3();
     test4();
+    return 0;
 }
