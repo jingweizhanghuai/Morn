@@ -1,4 +1,4 @@
-## Morn：映射
+## Morn：key-value映射
 
 映射就是键值表，表中每个元素由两部分组成，即键（key）和值（value），只要输入键就能找到相应的值。
 
@@ -6,11 +6,13 @@
 
 在Morn中，映射键值对中的键和值都可以是任意数据类型（整数、浮点数、字符串、数组、指针、结构体等）。
 
+值得一提的是Morn的map不是红黑树，是二分查找。
 
 
-### 基本操作
 
-首先映射就是链表，所以在使用映射之前，需要先使用`mChainCreate`函数来创建映射（链表），在使用结束后需要使用`mChainRelease`函数来释放映射（链表）。
+### 接口
+
+映射（map）首先是链表（MChain），所以在使用映射之前，需要先使用`mChainCreate`函数来创建映射（链表），在使用结束后需要使用`mChainRelease`函数来释放映射（链表）。
 
 除此以外，映射增加的操作主要有：
 
@@ -19,14 +21,15 @@
 #### 向映射中写入键值对
 
 ``` c
+void *mMapWrite(MChain *map,const void *key,const void *value);
 void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
 ```
 
-这里，key就是键，是指向任意类型的指针，key_size是key的长度（字节），如果key的类型是字符串，那么key_size可以设置为DFLT。
+这里，key就是键，指向任意类型的指针，key_size是key的长度（字节），如果key的类型是字符串，可不设置key_size或设置为DFLT。
 
-value是key所对应的值，也是指向任意类型的指针，value_size是value的长度（字节），如果value的类型是字符串，那么value_size可设置为DFLT。
+value是key所对应的值，也是指向任意类型的指针，value_size是value的长度（字节），如果value的类型是字符串，那么value_size可不设置或设置为DFLT。
 
-函数的返回值是“值”在映射中的内存地址。
+函数的返回值是value在map中存储的内存地址。
 
 这里注意：对于每一个键值对，键必须是唯一的，如果两个键值对的键是相同的，那么后写入的将会覆盖之前的。
 
@@ -35,24 +38,45 @@ value是key所对应的值，也是指向任意类型的指针，value_size是va
 #### 从映射中读取键值对
 
 ```c
+void *mMapRead(MChain *map,const char *key);
+void *mMapRead(MChain *map,const char *key,char *value);
 void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
 ```
 
-key是要读取的键，key_size是键的长度（字节），key为字符串时可设置为DFLT。
+key是要读取的键，key_size是键的长度（字节），key为字符串时可不设置key_size或设置为DFLT。
 
 value是要读出值的保存位置的指针，如果只是读，不需要copy到value指向的位置，那么value可以为NULL，value为NULL时，value_size没有意义，否则，value_size是要copy的字节数，value为字符串的话可以设置为DFLT。
 
-函数返回值是所找到的key对应的值在映射中的内存地址。
+函数返回值是所找到的key对应的value值在map中的内存地址。
 
 
 
 #### 删除键值对
 
 ```c
+void mMapDelete(MChain *map,const char *key);
 void mMapDelete(MChain *map,const void *key,int key_size);
 ```
 
-这就是把键为key的键值对从映射里删除掉。key_size在为字符串时可设置为DFLT。
+这就是把键为key的键值对从映射里删除掉。key_size在为字符串时可不设置或设置为DFLT。
+
+
+
+#### Map遍历
+
+```c
+void mMapNodeOperate(MChain *map,void (*func)(const void *,const int,void *,int,void *),void *para);
+```
+
+其中func是遍历时对每个Node的操作函数，其必须使用以下形式：
+
+```c
+void func(const void *key,const int key_size,void *value,int value_size,void *para);
+```
+
+para是func中使用的参数。
+
+注意：key-value在map中的排列是有序的，遍历时不能改变key的值，否则将破坏其有序性。
 
 
 
@@ -78,16 +102,17 @@ int main()
     n=9; mMapWrite(map,"nine" ,DFLT,&n,sizeof(int));
     
     int *p;
-    p = mMapRead(map,"zero" ,DFLT,NULL,DFLT);printf("zero = %d\n",*p);
-    p = mMapRead(map,"one"  ,DFLT,NULL,DFLT);printf("one  = %d\n",*p); 
-    p = mMapRead(map,"two"  ,DFLT,NULL,DFLT);printf("two  = %d\n",*p); 
-    p = mMapRead(map,"three",DFLT,NULL,DFLT);printf("three= %d\n",*p);
-    p = mMapRead(map,"four" ,DFLT,NULL,DFLT);printf("four = %d\n",*p);
-    p = mMapRead(map,"five" ,DFLT,NULL,DFLT);printf("five = %d\n",*p);
-    p = mMapRead(map,"six"  ,DFLT,NULL,DFLT);printf("six  = %d\n",*p);
-    p = mMapRead(map,"seven",DFLT,NULL,DFLT);printf("seven= %d\n",*p);
-    p = mMapRead(map,"eight",DFLT,NULL,DFLT);printf("eight= %d\n",*p);
-    p = mMapRead(map,"nine" ,DFLT,NULL,DFLT);printf("nine = %d\n",*p);
+    p = mMapRead(map,"zero" );if(p!=NULL)printf("zero = %d\n",*p);
+    p = mMapRead(map,"one"  );if(p!=NULL)printf("one  = %d\n",*p); 
+    p = mMapRead(map,"two"  );if(p!=NULL)printf("two  = %d\n",*p); 
+    p = mMapRead(map,"three");if(p!=NULL)printf("three= %d\n",*p);
+    p = mMapRead(map,"four" );if(p!=NULL)printf("four = %d\n",*p);
+    p = mMapRead(map,"five" );if(p!=NULL)printf("five = %d\n",*p);
+    p = mMapRead(map,"six"  );if(p!=NULL)printf("six  = %d\n",*p);
+    p = mMapRead(map,"seven");if(p!=NULL)printf("seven= %d\n",*p);
+    p = mMapRead(map,"eight");if(p!=NULL)printf("eight= %d\n",*p);
+    p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);
+    p = mMapRead(map,"ten"  );if(p!=NULL)printf("ten  = %d\n",*p);
     
     mChainRelease(map);
     return 0;
@@ -167,25 +192,18 @@ int main()
 这里写了一个测试程序，用以比较Morn中映射和C++ STL中的map。
 
 ```c
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include "morn_Util.h"
+#include "morn_util.h"
 
 #include <map>
 #include <string>
 #include <iostream>
 
-using namespace std;
-
-#define TEST_NUM 100000
-int main()
+void test1(int number)
 {
     int i,j;
     
-    char *key=(char *)malloc(TEST_NUM*32*sizeof(char));
-    for(i=0;i<TEST_NUM;i++)
+    char *key=(char *)malloc(number*32*sizeof(char));
+    for(i=0;i<number;i++)
     {
         int size = mRand(10,31);
         for(j=0;j<size;j++)
@@ -193,42 +211,99 @@ int main()
         key[i*32+j]=0;
     }
     
-    map<string,int> cpp_map;
+    std::map<std::string,int> cpp_map;
     MChain *morn_map = mChainCreate();
     
-    mLog(INFO,"STL Map写入：");
-    mTimerBegin();
-    for(i=0;i<TEST_NUM;i++)
-        cpp_map.insert(pair<string,int>(&(key[i*32]),i));
-    mTimerEnd();
+    printf("number=%d:\n",number);
+    mTimerBegin("STL map write");
+    for(i=0;i<number;i++)
+        cpp_map.insert(std::pair<std::string,int>(&(key[i*32]),i));
+    mTimerEnd("STL map write");
     
-    mLog(INFO,"Morn Map写入：");
-    mTimerBegin();
-    for(i=0;i<TEST_NUM;i++)
+    mTimerBegin("Morn map write");
+    for(i=0;i<number;i++)
         mMapWrite(morn_map,&(key[i*32]),DFLT,&i,sizeof(int));
-    mTimerEnd();
+    mTimerEnd("Morn map write");
     
-    mLog(INFO,"STL Map读出：");
-    map<string,int>::iterator iter;
-    mTimerBegin();
-    for(i=0;i<TEST_NUM;i++)
+    std::map<std::string,int>::iterator iter;
+    mTimerBegin("STL map read");
+    for(i=0;i<number;i++)
     {
-        int index = mRand(0,TEST_NUM);
+        int index = mRand(0,number);
         iter = cpp_map.find(&(key[index*32]));
     }
-    mTimerEnd();
+    mTimerEnd("STL map read");
     
-    mLog(INFO,"Morn Map读出：");
-    mTimerBegin();
-    for(i=0;i<TEST_NUM;i++)
+    mTimerBegin("Morn map read");
+    for(i=0;i<number;i++)
     {
-        int index = mRand(0,TEST_NUM);
+        int index = mRand(0,number);
         int *value = (int *)mMapRead(morn_map,&(key[index*32]),DFLT,NULL,DFLT);
     }
-    mTimerEnd();
-    
+    mTimerEnd("Morn map read");
+
     mChainRelease(morn_map);
     free(key);
+}
+
+void test2(int number)
+{
+    int i,j;
+    
+    char *value=(char *)malloc(number*32*sizeof(char));
+    for(i=0;i<number;i++)
+    {
+        int size = mRand(10,31);
+        for(j=0;j<size;j++)
+            value[i*32+j] = mRand('a','z');
+        value[i*32+j]=0;
+    }
+    
+    std::map<int,std::string> cpp_map;
+    MChain *morn_map = mChainCreate();
+
+    printf("number=%d:\n",number);
+    
+    mTimerBegin("STL map write");
+    for(i=0;i<number;i++)
+        cpp_map.insert(std::pair<int,std::string>(i,&(value[i*32])));
+    mTimerEnd("STL map write");
+    
+    mTimerBegin("Morn map write");
+    for(i=0;i<number;i++)
+        mMapWrite(morn_map,&i,sizeof(int),&(value[i*32]),DFLT);
+    mTimerEnd("Morn map write");
+    
+    std::map<int,std::string>::iterator iter;
+    mTimerBegin("STL map read");
+    for(i=0;i<number;i++)
+    {
+        int index = mRand(0,number);
+        iter = cpp_map.find(index);
+    }
+    mTimerEnd("STL map read");
+    
+    mTimerBegin("Morn map read");
+    for(i=0;i<number;i++)
+    {
+        int index = mRand(0,number);
+        char *value = (char *)mMapRead(morn_map,&index,sizeof(int),NULL,DFLT);
+    }
+    mTimerEnd("Morn map read");
+
+    mChainRelease(morn_map);
+    free(value);
+}
+
+int main()
+{
+    test1(10000);
+    test1(100000);
+    test1(1000000);
+    
+    test2(10000);
+    test2(100000);
+    test2(1000000);
     return 0;
 }
 ```
@@ -239,7 +314,7 @@ int main()
 
 ![](映射.PNG)
 
-可见，Morn和STL中的Map在性能上差别不大。
+由上可见，当键值节点数小于等于100000时，Morn的速度较STL有优势，当键值节点数大于1000000时，STL较Morn有优势。（你真的会使用一百万个键值节点吗？）
 
 
 

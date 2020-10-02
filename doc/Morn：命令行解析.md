@@ -1,20 +1,37 @@
 ## Morn：命令行解析
 
-../tool文件夹里的那些工具，在解析命令的时候，用的就是这个函数。
+../tool文件夹里的那些工具，在解析命令的时候，用的就是这个。
 
 
 
 ### 接口
 
 ```c
-char *mStringArgument(int argc,char **argv,const char *flag)；
+char *mStringArgument(int argc,char **argv,const char *flag);
+char *mStringArgument(int argc,char **argv,const char *flag,const char *format,...);
 ```
 
 argc、argv就是main函数传入的参数，argc是参数个数，argv是参数内容（从argv[1]开始）。
 
 flag是要寻找的参数标志，这里的标志必须以字符“-”打头，flag可以是一个字符，也可以是多个字符。
 
-返回值就是找到的命令参数，它是字符串格式，通常，如果参数是数值的话，还需要和`atoi`，`atof`，`ssanf`等函数一起使用。
+返回值就是找到的命令参数，它是一个字符串。
+
+format用以指定参数值的格式。其用法与标准库`scanf`系列函数相同。例如：
+
+```c
+// test.exe -a=5
+// 以下两种写法是等效的
+int a;
+char *str=atoi(mStringArgument(argc,argv,"a"));if(str!=NULL) a=atoi(str);//方式1
+mStringArgument(argc,argv,"a","%d",&a);						    	     //方式2
+
+// test.exe -m a=5
+// 以下两种写法是等效的
+char name[8];int value;
+char *str=atoi(mStringArgument(argc,argv,"m"));if(str!=NULL) sscanf("%[^=]=%d",name,&value);   //方式1
+mStringArgument(argc,argv,"m","%[^=]=%d",name,&value);   //方式二
+```
 
 如果没有找到，返回值是NULL。
 
@@ -63,6 +80,20 @@ no para
 ```
 
 即①没有参数或②虽有参数但是与给定的标志不匹配（参数为b，指定为a），其返回值都为NULL。
+
+**注意：返回值为NULL与返回一个指向"?"的指针是不同的含义**，前者是没有对应的flag，后者是有定义flag但未指定值。做这样的设计是因为很多时候并不是每个flag都需要指定值，例如`test.exe --help`:
+
+```c
+int main(int argc,char **argv)
+{
+    if(mStringArgument(argc,argv,"-help")!=NULL)
+    {
+        ...
+    }
+}
+```
+
+
 
 对于以下情况，应在程序设计时避免出现
 

@@ -18,7 +18,7 @@ Morn的日志是一个极简的，几乎没有学习成本的日志。它可以�
 
 ### 接口
 
-Morn日志相关的接口极简单，只有`mLogSet`和`mLog`，其中前者用于配置日志参数，后者用于输出日志。
+Morn日志相关的接口极简单，只有`mLogSet`和`mLog`两个接口，其中前者用于配置日志参数，后者用于输出日志。
 
 #### 输出日志
 
@@ -42,7 +42,50 @@ int main()
 this is a Morn log, num=1
 ```
 
-**设置日志级别**
+
+
+#### 日志设置
+
+```c
+void mLogSet(int levelset);
+void mLogSet(const char *filename);
+void mLogSet(int levelset,const char *filename);
+void mLogSet(int output,const char *filename);
+void mLogSet(int levelset,int output,const char *filename);
+void mLogSet(int levelset,int output,const char *filename,int64_t filesize);
+void mLogSet(int levelset,int output,void (*func)(void *,int,void *),void *para);
+void mLogSet(int levelset,int output,const char *filename,int64_t filesize,void (*func)(void *,int,void *),void *para);
+```
+
+`mLogSet`用来设置日志相关的参数，它包括以上7种形式。
+
+程序中并非必须使用mLogSet函数，当没有使用mLogSet函数时，默认将日志打印在控制台上，日志级别为Info（Release版本）或Debug（Debug版本）。
+
+`mLogSet`通常写在程序的开头，用以配置日志参数。也可以在程序中多次调用，用以改变日志配置。
+
+以上`mLogSet`接口中：
+
+* levelset为设定的日志输出级别，当`mLog`函数中指定的日志级别大于等于此levelset时，日志才会被输出，否则被忽略。此项可设置为DFLT。
+
+* output为日志输出方式，包括`MORN_LOG_CONSOLE`（控制台）、`MORN_LOG_FILE`（文件）`MORN_LOG_CUSTOM`（用户自定义），同时也可以设置为`MORN_LOG_CONSOLE & MORN_LOG_FILE`表示即在控制台输出，也在文件中输出。此项可指定为DFLT，若已设置filename则默认输出到文件，若已设置func则默认按照用户自定义方式输出，否则默认输出到控制台。
+
+* filename为日志输出的文件名，若指定output为文件，则必须设置此项。
+
+* filesize：日志文件分割大小，单位为字节，只有设置了output为文件时此项才有效。若不设置此项，则所有日志将输出到同一文件中（不作分割）。否则日志文件大小超过此值时，将会新建一日志文件。
+
+* func：日志处理函数。它必须遵循以下形式：
+
+  ```c
+  void func(char *log_data,int log_size,void *para);
+  ```
+
+* para：即func项所需要的para。
+
+
+
+### 使用
+
+#### 设置日志级别
 
 此函数中的level即为日志级别。当此level大于等于`mLogSet`所配置的日志等级（未配置时使用默认配置）时，日志才会输出，否则忽略。
 
@@ -62,7 +105,7 @@ Morn预设的日志级别由低到高分别是`MORN_DEBUG`，`MORN_INFO`，`MORN
 mLog(NOTICE, "this is a Morn log, num=%d\n",1);
 ```
 
-**使用预定义格式**
+#### 使用预定义格式
 
 Morn里使用语法糖`mLogFormat`预设了**5种**日志格式。以下例说明之：
 
@@ -105,7 +148,7 @@ mLog(MORN_INFO, mLogFormat(5,"%s"),message);		//正确用法
 
 如果误用`mLogFormat`，将会导致编译语法错误。
 
-**自定义格式**
+#### 自定义格式
 
 Morn认为：任何的预设格式都未必能满足用户的所有需求，Morn鼓励用户自定义日志格式。
 
@@ -157,33 +200,63 @@ int mThreadID();
 
 返回值为当前线程编号，此编号并非系统中的线程ID，是由1开始递增的整数，如第一个线程返回1，第二个线程返回2等。
 
+#### 日志的多种输出
 
-
-#### 日志设置
+Morn日志可选择三种输出方式，分别为：
 
 ```c
-void mLogSet(int levelset);
-void mLogSet(const char *filename);
-void mLogSet(int levelset,const char *filename);
-void mLogSet(int output,const char *filename);
-void mLogSet(int levelset,int output,const char *filename);
-void mLogSet(int levelset,int output,const char *filename,int64_t filesize);
+#define MORN_LOG_CONSOLE  (~1)	//输出到控制台
+#define MORN_LOG_FILE     (~2)	//输出到日志文件
+#define MORN_LOG_CUSTOM   (~4)	//用户自定义输出
 ```
 
-`mLogSet`用来设置日志相关的参数，它包括以上5种形式。
+以上三种方式可以混合使用，例如：
 
-由上文可以看到，程序中并非必须使用mLogSet函数，当没有使用mLogSet函数时，默认将日志打印在控制台上，日志级别为Info（Release版本）或Debug（Debug版本）。
+```c
+mLogSet(MORN_INFO);//输出到控制台
+mLogSet(MORN_INFO,"./test.log");//输出到文件
+mLogSet(MORN_INFO,MORN_LOG_CONSOLE&MORN_LOG_FILE,"./test.log");//既输出到控制台，也输出到文件
+mLogSet(MORN_INFO,MORN_LOG_CUSTOM,my_log_func,my_log_func_para);//以用户自定义方式输出
+mLogSet(MORN_INFO,MORN_LOG_CONSOLE&MORN_LOG_FILE&MORN_LOG_CUSTOM,"./test.log",DFLT,my_log_func,my_log_func_para);//同时以控制台、文件、用户自定义三种方式输出
+```
 
-`mLogSet`通常写在程序的开头，用以配置日志参数。也可以在程序中多次调用，用以改变日志配置。
+其中用户自定义输出详见下文。
 
-以上`mLogSet`接口中：
+#### 日志文件分割
 
-* levelset为设定的日志输出级别，当`mLog`函数中指定的日志级别大于等于此levelset时，日志才会被输出，否则被忽略。此项可设置为DFLT。
-* output为日志输出方式，包括`MORN_LOG_CONSOLE`（控制台）和`MORN_LOG_FILE`（文件），同时也可以设置为`MORN_LOG_CONSOLE & MORN_LOG_FILE`表示即在控制台输出，也在文件中输出。此项可指定为DFLT，若已指定日志filename则默认输出到文件，否则默认输出到控制台。
-* filename为日志输出的文件名，若指定output为文件，则必须设置此项。
-* filesize为日志文件分割大小，单位为字节，只有设置了output为文件时才有效。若不设置此项，则所有日志将输出到同一文件中（不作分割）。否则日志文件大小超过此值时，将会新建一日志文件。
+当日志过多，文件过大时，往往并不希望所有的日志都保存在同一文件里，这是需要对日志文件进行分割。设置`mLogSet`接口中的filesize项可实现此功能。
 
+例如：
 
+```c
+mLogSet(DFLT,"./test.log",1024*1024);
+```
+
+以上表示每个日志文件的大小不超过1M字节。此时会在指定目录下生成test.log、test_1.log、test_2.log……等一系列不超过1M字节的日志文件。
+
+#### 日志自定义输出
+
+Morn已提供了控制台和文件两种输出方式，但是Morn认为：无论提供多少种日志输出方式都未必能够满足所有的应用场景，最好的办法是允许用户自定义日志的输出方式。
+
+用户自定义日志输出方式是通过在`mLogSet`接口中设置func和para选项来实现的。
+
+例如，将日志通过UDP上传到另一台计算机：
+
+```c
+void my_log_func(char *log_data,int log_size,char *udp_address)
+{
+    mUDPSend(udp_address,log_data,log_size);
+}
+...
+int main()
+{
+    mLogSet(DFLT,MORN_LOG_CUSTOM,my_log_func,"192.168.0.123:8888");
+    ...
+    mLog(MORN_INFO,"this is a Morn log");
+    ...
+    return 0;
+}
+```
 
 
 
