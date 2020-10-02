@@ -9,6 +9,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <math.h>
 
 #include "morn_math.h"
+#include "morn_help.h"
 
 #ifdef _MSC_VER
 #define stricmp _stricmp
@@ -16,8 +17,11 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp strcasecmp
 #endif
 
-int main()
-{   
+int main(int argc,char *argv[])
+{
+    ToolHelp(infomation);
+    mException((argc >1),EXIT,"invalid input");
+    
     char str[2048];
     while(1)
     {

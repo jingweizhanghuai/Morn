@@ -16,7 +16,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 int main(int argc,char *argv[])
 {
-    HELP_INFOMATION("imageformat");
+    ToolHelp(imageformat);
     
     char *file_in = mStringArgument(argc,argv,"i" ,NULL);
     char *file_out= mStringArgument(argc,argv,"o" ,NULL);
@@ -54,7 +54,6 @@ int main(int argc,char *argv[])
     }
    
     mException(dir_in==NULL,EXIT,"no input");
-    printf("data_in =%s\n",data_in);
     
     MList *list=NULL;
     list = mListCreate(DFLT,NULL);
@@ -90,4 +89,3 @@ int main(int argc,char *argv[])
     mListRelease(list);
     return 1;
 }
-    

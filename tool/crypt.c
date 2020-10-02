@@ -7,12 +7,12 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdlib.h>
 #include <string.h>
 
-#include "morn_Util.h"
-#include "morn_Help.h"
+#include "morn_util.h"
+#include "morn_help.h"
 
 int main(int argc,char *argv[])
 {
-    HELP_INFOMATION("crypt");
+    ToolHelp(crypt);
     
     char *file_in;int flag;
     {

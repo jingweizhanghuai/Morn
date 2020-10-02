@@ -12,8 +12,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 int main(int argc,char *argv[])
 {
-    HELP_INFOMATION("hashvalue");
     mException((argc != 2),EXIT,"invalid input");
+    ToolHelp(infomation);
     
     unsigned int out = mHash(argv[1],DFLT);
     printf("0x%x\n",out);
