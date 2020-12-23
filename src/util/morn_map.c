@@ -3,27 +3,15 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_util.h"
-
-// typedef struct MMapData
-// {
-    // int key_size;
-    // int value_size;
-    // void *key;
-    // void *value;
-// }MMapData;
 
 inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
 {
-    if(size1!=size2) {return (size1-size2);}
+    if(size1!=size2) {return (size1-size2);                                }
     if(size1==4    ) {return ((*((uint32_t *)mem1))-(*((uint32_t *)mem2)));}
-    if(size1==2    ) {return ((*((uint16_t *)mem1))-(*((uint16_t *)mem2)));}
     if(size1==8    ) {return ((*((uint64_t *)mem1))-(*((uint64_t *)mem2)));}
     if(size1==1    ) {return ((*(( uint8_t *)mem1))-(*(( uint8_t *)mem2)));}
+    if(size1==2    ) {return ((*((uint16_t *)mem1))-(*((uint16_t *)mem2)));}
                       return memcmp(mem1,mem2,size1);
 }
 
@@ -32,22 +20,30 @@ struct HandleMap
     int num;
     MChainNode **list;
     int list_num;
+    int list_valid;
+    pthread_rwlock_t rwlock;
 };
 void endMap(struct HandleMap *handle)
 {
     if(handle->list!=NULL) mFree(handle->list);
+    pthread_rwlock_destroy(&(handle->rwlock));
 }
 #define HASH_Map 0x8630f641
 
 void _MapListAppend(struct HandleMap *handle)
 {
+    if(handle->list_valid == 1) return;
     MChainNode *node0 = handle->list[0];
-
+    
     int list_num =handle->list_num;
-    // printf("list_num=%d,handle->num=%d\n",list_num,handle->num);
-    if(list_num*2<handle->num) 
+    if(list_num/2>=handle->num)
     {
-        handle->list_num = list_num*2+1;
+        handle->list_num = MAX(list_num/4,1);
+        list_num=handle->list_num;
+    }
+    else if(list_num*2<=handle->num) 
+    {
+        handle->list_num = list_num*2;
         list_num=handle->list_num;
         if(list_num>128)
         {
@@ -66,59 +62,72 @@ void _MapListAppend(struct HandleMap *handle)
     }
     list[       0]=node0;
     list[list_num]=node0;
+    handle->list_valid = 1;
 }
 
 MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *flag)
 {
+    pthread_rwlock_rdlock(&(handle->rwlock));
+
+    *flag=DFLT;
     MChainNode **list=handle->list;
-    int step = (handle->list_num+1)/4;
-    int n=handle->list_num/2;
+    if(handle->num==1) {pthread_rwlock_unlock(&(handle->rwlock));return list[0];}
     
-    *flag = 1;
+    int step = (handle->list_num+1)/4;
+    int n=MAX(handle->list_num/2,1);
+
     MChainNode *node = list[n];
     int *data = (int *)(node->data);
     int f = _Compare(data+2,data[0],key,key_size);
-    // printf("n=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
+    if(f==0) {*flag=n; pthread_rwlock_unlock(&(handle->rwlock)); return node;}
     
-    if(f==0) {*flag=n; return node;}
     while(step!=0)
     {
         if(f<0) n=n+step;
         else    n=n-step;
         
-        node = list[n];
-        data = (int *)(node->data);
+        node = list[n];data = (int *)(node->data);
         f = _Compare(data+2,data[0],key,key_size);
-        // printf("ggn=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
         
-        if(f==0) {*flag=n; return node;}
-        step=step/2;
+        if(f==0) {*flag=n; pthread_rwlock_unlock(&(handle->rwlock)); return node;}
+        step=step>>1;
     }
 
-    MChainNode *node0,*node1;
-    if(f>0) {n=n-1;node1=node;node0=list[n  ];}
-    else          {node0=node;node1=list[n+1];}
+    MChainNode *node0=node,*node1=node;
+    // if(f>0) {n=n-1;node1=node;node0=list[n  ];}
+    // else    {      node0=node;node1=list[n+1];}
+    if(f>0) {do{n=n-1;node0=list[n];}while(node0==node);node1=node;      }
+    else    {do{n=n+1;node1=list[n];}while(node1==node);node0=node;n=n-1;}
+    // if(f>0) {while(n>=0              ){n--;node0=list[n];if(node0!=node)       break; }}
+    // else    {while(n<handle->list_num){n++;node1=list[n];if(node1!=node){n=n-1;break;}}}
     node=node0->next;
-
-    *flag=DFLT;
+    
     int count=0;
     while(node!=node1)
     {
         data = (int *)(node->data);
         f = _Compare(data+2,data[0],key,key_size);
-        // printf("ffn=%d,key=%d,data=%d,f=%d\n",n,((int *)key)[0],data[2],f);
         if(f==0) {*flag=-2; break;}
         if(f >0)            break;
+        count++;if(count>16)break;
         node=node->next;
-        count++;
     }
-    if(count>16) _MapListAppend(handle);
-    else if(count>4)
+    if(count>16)
+    {
+        handle->list_valid=0;
+        pthread_rwlock_unlock(&(handle->rwlock));
+        
+        pthread_rwlock_wrlock(&(handle->rwlock));
+        _MapListAppend(handle);
+        pthread_rwlock_unlock(&(handle->rwlock));
+        return _MapNode(handle,key,key_size,flag);
+    }
+    if(count>4)
     {
         if(n==0) list[1]=node1->last->last;
         else     list[n]=node0->next->next;
     }
-    // printf("key=%d,data=%d,flag=%d\n",((int *)key)[0],data[2],*flag);
+    pthread_rwlock_unlock(&(handle->rwlock));
     return node;
 }
 
@@ -129,30 +138,32 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
     mException(INVALID_POINTER(value)&&(value_size<=0),EXIT,"invalid input map value");
     MChainNode *node;
     int *data;
-
-    MHandle *hdl=mHandle(map,Map);
+    
+    MHandle *hdl;
+    if(map->handle->num<3) hdl = mHandle(map,Map);
+    else {hdl = (MHandle *)(map->handle->data[2]);mException(hdl->flag!= HASH_Map,EXIT,"invalid map");}
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->list==NULL)
         {
             handle->list=(MChainNode **)mMalloc(128*sizeof(MChainNode *));
-            
             node = mChainNode(map,NULL,2*sizeof(int)+8+8);
             data = (int *)(node->data);
-            memset(data,0,2*sizeof(int)+8+8);data[0]=1;data[1]=1;
+            memset(data,0,2*sizeof(int)+8+8);data[0]=0;data[1]=0;
             map->chainnode = node;
 
             handle->list[0]=node;
             handle->list[1]=node;
             handle->list_num=1;
             handle->num=1;
+            
         }
         hdl->valid = 1;
     }
-    
-    if(key_size  <=0) {key_size  = strlen((char *)key  );} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
-    if(value_size<=0) {value_size= strlen((char *)value);} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
+    // printf("handle->num=%d,handle->list_num=%d\n",handle->num,handle->list_num);
+    if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
+    if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
 
     node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
     data = (int *)(node->data);
@@ -164,9 +175,15 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
     if(flag!=DFLT) p->data = node->data;
     else
     {
+        pthread_rwlock_wrlock(&(handle->rwlock));
         handle->num++;
         mChainNodeInsert(NULL,node,p);
-        if(handle->num>handle->list_num*2) _MapListAppend(handle);
+        if(handle->num>=handle->list_num*2)
+        {
+            handle->list_valid = 0;
+            _MapListAppend(handle);
+        }
+        pthread_rwlock_unlock(&(handle->rwlock));
     }
     return (data+2+mkey_size);
 }
@@ -174,19 +191,20 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
 void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    if(map->handle->num<3) return NULL;
+    
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
-    
-    MHandle *hdl=mHandle(map,Map);
+
+    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     
     int flag;MChainNode *node = _MapNode(handle,key,key_size,&flag);
-    
     if(flag==DFLT) return NULL;
     
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
-
     int *data = (int *)(node->data);
     if(value!=NULL)
     {
@@ -223,6 +241,14 @@ int mMapNodeValueSize(MChainNode *node)
     return data[1];
 }
 
+int mMapNodeNumber(MChain *map)
+{
+    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
+    struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
+    return (handle->num-1);
+}
+
 void mMapNodeOperate(MChain *map,void *function,void *para)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
@@ -245,19 +271,27 @@ void m_MapDelete(MChain *map,const void *key,int key_size)
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
-    
-    MHandle *hdl=mHandle(map,Map);
+
+    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return;
     
     int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
     if(n==DFLT) return;
     
-    if(n>=0) handle->list[n]=node->next;
+    pthread_rwlock_wrlock(&(handle->rwlock));
+    if(n>=0) handle->list[n]=(node->last!=map->chainnode)?node->last:node->next;
+    for(int m = n+1;handle->list[m]==node;m++)handle->list[m]=handle->list[n];
+    for(int m = n-1;handle->list[m]==node;m--)handle->list[m]=handle->list[n];
+    
+    node->last->next = node->next;
+    node->next->last = node->last;
     handle->num--;
-    if(node!=map->chainnode)
+    if(handle->num*2<=handle->list_num)
     {
-        node->last->next = node->next;
-        node->next->last = node->last;
+        handle->list_valid = 0;
+        _MapListAppend(handle);
     }
+    pthread_rwlock_unlock(&(handle->rwlock));
 }

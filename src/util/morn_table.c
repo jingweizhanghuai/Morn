@@ -41,11 +41,9 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     MTable *tab = (MTable *)mMalloc(sizeof(MTable));
     memset(tab,0,sizeof(MTable));
     
-    if(col <0) col = 0;
-    if(row <0) row = 0;
-    
-    tab->col = col;
-    tab->row = row;
+    if(col <0) {col = 0;} tab->col = col;
+    if(row <0) {row = 0;} tab->row = row;
+    if(element_size<0) {element_size=0;} tab->element_size=element_size;
 
     tab->handle = mHandleCreate();
     MHandle *hdl=mHandle(tab,TableCreate);
@@ -74,7 +72,7 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     }
     else if(element_size>0)
     {
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST_CPU);
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST);
         mException((handle->memory->num!=1),EXIT,"invalid table memory");
         mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
 
@@ -102,13 +100,14 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(tab->handle->data[0]))->handle);
     if(row<=0) row = tab->row;
     if(col<=0) col = tab->col;
-    if(element_size<=0) element_size=handle->element_size;
+    if(element_size<=0) element_size=tab->element_size;
     
     if((row!=tab->row)||(col!=tab->col)||(element_size!=handle->element_size)) mHandleReset(tab->handle);
+    
     int same_size = (row<=tab->row)&&(col*element_size<=tab->col*handle->element_size);
     int reuse = (data==tab->data);
     int flag = (tab->row&&tab->col);
-    tab->row = row;tab->col = col;
+    tab->row = row;tab->col = col;tab->element_size=element_size;
     handle->element_size = element_size;
     
     if(same_size&&reuse) return;
@@ -140,8 +139,8 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     
     if(!INVALID_POINTER(data)) {memcpy(handle->index,data,row*sizeof(void *));return;}
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST_CPU);
-    else mMemoryRedefine(handle->memory,1,row*col*element_size,MORN_HOST_CPU);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST);
+    else mMemoryRedefine(handle->memory,1,row*col*element_size,MORN_HOST);
     mException((handle->memory->num!=1),EXIT,"invalid table memory");
     mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
     handle->col = col;
@@ -180,8 +179,8 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     MArray *array = (MArray *)mMalloc(sizeof(MArray));
     memset(array,0,sizeof(MArray));   
     
-    if(num<0) num = 0;
-    array->num = num;
+    if(num<0) {num = 0;} array->num = num;
+    if(element_size<0) {element_size=0;} array->element_size=element_size;
 
     array->handle = mHandleCreate();
     MHandle *hdl=mHandle(array,ArrayCreate);
@@ -197,7 +196,7 @@ MArray *ArrayCreate(int num,int element_size,void *data)
         array->data = data;
     else if(element_size>0)
     {
-        handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST_CPU);
+        handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST);
         handle->num = num;
         handle->element_size = element_size;
         array->data = handle->memory->data[0];
@@ -220,14 +219,16 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
     
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);
     if(num          <=0) num = array->num;
-    if(element_size <=0) element_size = handle->element_size;
+    if(element_size <=0) element_size = array->element_size;
     
-    if((num!= array->num)||(element_size!=handle->element_size)) mHandleReset(array->handle);
-    int same_size = (num*element_size <= array->num*handle->element_size);
+    if((num!= handle->num)||(element_size!=handle->element_size)) mHandleReset(array->handle);
+    int same_size = (num*element_size <= handle->num*handle->element_size);
     int reuse = (data==array->data);
     int flag = (array->num>0);
     
     array->num = num;
+    array->element_size = element_size;
+    
     handle->element_size = element_size;
     if(same_size&&reuse) return;
     if(same_size&&(INVALID_POINTER(data))&&(handle->num >0)) return;
@@ -250,8 +251,8 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data)
     {
         handle->num = num;
         handle->element_size = element_size;
-        if(handle->memory==NULL) handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST_CPU);
-        else mMemoryRedefine(handle->memory,1,num*element_size,MORN_HOST_CPU);
+        if(handle->memory==NULL) handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST);
+        else mMemoryRedefine(handle->memory,1,num*element_size,MORN_HOST);
         array->data = handle->memory->data[0];
     }
 }
@@ -269,19 +270,19 @@ int mStreamRead(MArray *buff,void *data,int num)
 {
     mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
     
-    struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
-    num = num*handle0->element_size;
+    // struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
+    num = num*buff->element_size;
     
     MHandle *hdl=mHandle(buff,Stream);
     struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
-    if(hdl->valid == 0) return ((0-num)/handle0->element_size);
+    if(hdl->valid == 0) return ((0-num)/buff->element_size);
     pthread_mutex_lock(&(handle->stream_mutex));
     
-    int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num*handle0->element_size-(handle->read-handle->write));
+    int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num*buff->element_size-(handle->read-handle->write));
     // printf("read num=%d,size=%d\n",num,size);
     if(num>size) goto StreamRead_end;
 
-    int size0 = (buff->dataS8+buff->num*handle0->element_size)-handle->read;
+    int size0 = (buff->dataS8+buff->num*buff->element_size)-handle->read;
     if(size0 <= num)
     {
         memcpy(data,handle->read,size0);
@@ -294,15 +295,15 @@ int mStreamRead(MArray *buff,void *data,int num)
 
     StreamRead_end:
     pthread_mutex_unlock(&(handle->stream_mutex));
-    return ((size-num)/handle0->element_size);
+    return ((size-num)/buff->element_size);
 }
 
 int mStreamWrite(MArray *buff,void *data,int num)
 {
     mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
     
-    struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
-    num = num*handle0->element_size;
+    // struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
+    num = num*buff->element_size;
     
     MHandle *hdl=mHandle(buff,Stream);
     struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
@@ -315,11 +316,11 @@ int mStreamWrite(MArray *buff,void *data,int num)
     }
     pthread_mutex_lock(&(handle->stream_mutex));
     
-    int size=(handle->read>handle->write)?(handle->read-handle->write):(buff->num*handle0->element_size-(handle->write-handle->read));
+    int size=(handle->read>handle->write)?(handle->read-handle->write):(buff->num*buff->element_size-(handle->write-handle->read));
     // printf("write num=%d,size=%d\n",num,size);
     if(num>size) goto StreamWrite_end;
 
-    int size0 = (buff->dataS8+buff->num*handle0->element_size)-handle->write;
+    int size0 = (buff->dataS8+buff->num*buff->element_size)-handle->write;
     if(size0 <= num)
     {
         memcpy(handle->write,data,size0);
@@ -333,7 +334,7 @@ int mStreamWrite(MArray *buff,void *data,int num)
     StreamWrite_end:
     hdl->valid = 1;
     pthread_mutex_unlock(&(handle->stream_mutex));
-    return ((size-num)/handle0->element_size);
+    return ((size-num)/buff->element_size);
 }
 
 

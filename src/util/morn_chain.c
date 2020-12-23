@@ -13,13 +13,11 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleChainCreate
 {
     MList *memory;
+    int collec_num;
 };
-void endChainCreate(void *info)
+void endChainCreate(struct HandleChainCreate *handle)
 {
-    struct HandleChainCreate *handle = (struct HandleChainCreate *)info;
-    
-    if(handle->memory != NULL)
-        mMemoryRelease(handle->memory);
+    if(handle->memory != NULL) mMemoryRelease(handle->memory);
 }
 #define HASH_ChainCreate 0xa95525b8
 MChain *mChainCreate()
@@ -44,13 +42,17 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     MHandle *hdl = (MHandle *)(chain->handle->data[1]);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+    if(size<0) size=strlen(data);
     
-    MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode));
-    memset(node,0,sizeof(MChainNode));
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
+    MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode)+size);
     node->next=node;node->last=node;
-    
-    if(size!=0) {if(size<0) size=strlen(data); node->data = mMemoryWrite(handle->memory,data,size);}
+    if(size!=0) 
+    {
+        node->data = (void *)(node+1);
+        if(data!=NULL) memcpy(node->data,data,size);
+    }
+    else node->data=NULL;
     
     return node;
 }
@@ -78,6 +80,18 @@ void mChainNodeDelete(MChain *chain,MChainNode *node)
     node->last->next = node->next;
     node->next->last = node->last;
     if(node==chain->chainnode) chain->chainnode=node->next;
+}
+
+void mChainNodeExchange(MChain *chain,MChainNode *node1,MChainNode *node2)
+{
+    MChainNode *last1 = node1->last;if(last1==node1) last1=NULL;
+    MChainNode *next1 = node1->next;if(next1==node1) next1=NULL;
+    MChainNode *last2 = node2->last;if(last2==node2) last2=NULL;
+    MChainNode *next2 = node2->next;if(next2==node2) next2=NULL;
+    node1->last=(last2==NULL)?node1:last2;node1->next=(next2==NULL)?node1:next2;
+    node2->last=(last1==NULL)?node2:last1;node2->next=(next1==NULL)?node2:next1;
+    if(last1!=NULL) last1->next=node2;if(next1!=NULL) next1->last=node2;
+    if(last2!=NULL) last2->next=node1;if(next2!=NULL) next2->last=node1;
 }
 
 // void mChainNodeExchange(MChainNode *node1,MChainNode *node2)

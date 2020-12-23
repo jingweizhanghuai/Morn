@@ -18,13 +18,15 @@ struct HandleListCreate
 };
 void endListCreate(void *info)
 {
+    
     struct HandleListCreate *handle = (struct HandleListCreate *)info;
     mException((handle->list == NULL),EXIT,"invalid list");
-    
+
     if(handle->memory !=NULL) mMemoryRelease(handle->memory);
     if(handle->data != NULL) mFree(handle->data);
     
     mFree(handle->list);
+    
 }
 #define HASH_ListCreate 0xfa6c59f
 MList *ListCreate(int num,void **data)
@@ -105,7 +107,7 @@ void mListPlace(MList *list,void *data,int num,int size)
     struct HandleListCreate *handle = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
 
     void **idx = list->data+list_num;
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,size*num,MORN_HOST_CPU);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,size*num,MORN_HOST);
     else mMemoryAppend(handle->memory,size*num);
     mMemoryIndex(handle->memory,num,size,&idx,1);
     
@@ -139,7 +141,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
 
     if(n<0) n = list->num;
 
-    if(handle0->memory == NULL) handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+    if(handle0->memory == NULL) handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     void *ptr = mMemoryWrite(handle0->memory,data,size);
 
     int flag = (n==list->num); if(!flag) flag=(list->data[n]==NULL);
@@ -158,7 +160,6 @@ void *mListWrite(MList *list,int n,void *data,int size)
         
         if(handle->write_size>16384)
         {
-            printf("list=%p,kkkkkkkkkkkkkkkkkkkkkkkkk\n",list);
             mListElementOperate(list,MemoryCollect,handle0->memory);
             MemoryDefrag(handle0->memory);
             handle->write_size=0;
@@ -196,10 +197,17 @@ void *mListRead(MList *list,int n,void *data,int size)
     return list->data[n];
 }
 
+void mListClear(MList *list)
+{
+    list->num=0;
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
+}
+
 void mListReorder(MList *list)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
-    
+
     void **data = list->data;
     int list_num = list->num;
     void *buff;
@@ -225,7 +233,7 @@ void mListCopy(MList *src,MList *dst)
     
     struct HandleListCreate *dst_handle = (struct HandleListCreate *)(((MHandle *)(dst->handle->data[0]))->handle);
     if(dst_handle->memory == NULL)
-        dst_handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+        dst_handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
         
     mMemoryCopy(src_handle->memory,&(src->data),dst_handle->memory,&(src->data),1,&(src->num));
 }
@@ -288,7 +296,7 @@ void mListElementOperate(MList *list,void *function,void *para)
     void (*func)(void *,void *) = function;
     mException(INVALID_POINTER(list)||(func==NULL),EXIT,"invalid input");
 	int i;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(i=0;i<list->num;i++)
         func(list->data[i],para);
 }
@@ -448,8 +456,8 @@ struct HandleListClassify
 };
 void endListClassify(struct HandleListClassify *handle)
 {
-    if(handle->group!=NULL) mFree(handle->group);
-    if(handle->valid!=NULL) mFree(handle->valid);
+    if(handle->group!=NULL) free(handle->group);
+    if(handle->valid!=NULL) free(handle->valid);
     if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
 }
 #define HASH_ListClassify 0x24c19acf
@@ -464,11 +472,11 @@ MSheet *mListClassify(MList *list,void *function,void *para)
     {
         if(handle->list_num<list->num)
         {
-            if(handle->group!=NULL) {mFree(handle->group);handle->group=NULL;}
-            if(handle->valid!=NULL) {mFree(handle->valid);handle->valid=NULL;}
+            if(handle->group!=NULL) {free(handle->group);handle->group=NULL;}
+            if(handle->valid!=NULL) {free(handle->valid);handle->valid=NULL;}
         }
-        if(handle->group==NULL) handle->group = (int  *)mMalloc(list->num*sizeof(int ));
-        if(handle->valid==NULL) handle->valid = (char *)mMalloc(list->num*sizeof(char));
+        if(handle->group==NULL) handle->group = (int  *)malloc(list->num*sizeof(int ));
+        if(handle->valid==NULL) handle->valid = (char *)malloc(list->num*sizeof(char));
         handle->list_num = list->num;
 
         if(handle->sheet == NULL) handle->sheet = mSheetCreate();
@@ -507,7 +515,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
         }
     }
     
-    int *c = (int *)mMalloc(n *sizeof(int));
+    int *c = (int *)malloc(n *sizeof(int));
     int num = 0;
     for(i=0;i<n;i++)
     {
@@ -517,7 +525,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
 
     MSheet *sheet = handle->sheet;
     mSheetClear(sheet);
-    // printf("bbbbbbbbbbbbbbb\n");
+    
     mSheetRowAppend(sheet,num);
     for(i=0;i<list->num;i++)
     {
@@ -526,9 +534,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
         mSheetColAppend(sheet,g,n+1);
         sheet->data[g][n]=list->data[i];
     }
-
-    mFree(c);
-    
+    free(c);
     return sheet;
 }
 

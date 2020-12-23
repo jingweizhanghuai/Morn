@@ -169,15 +169,12 @@ void mSheetColAppend(MSheet *sheet,int row,int n)
         int col = sheet->col[row] + MAX(n-sheet->col[row],8);
         
         void **sheet_data = (void **)mMalloc(col*sizeof(void *));
-        // if(row>200) printf("wwwwwwwwwwwwwwwwwww %p\n",sheet_data);
         if(sheet->col[row] >0)
             memcpy(sheet_data,sheet->data[row],sheet->col[row]*sizeof(void *));
         memset(sheet_data + sheet->col[row],0,(col - sheet->col[row])*sizeof(void *));
         
-        // int *pp =sheet_data;
-        // if(row==215) printf("wwwwwwwwwwwwwwwwww1,sheet->data[row] is %p,pp[-1] is %d\n",sheet->data[row],pp[-1]);
         if(sheet->data[row]!=NULL) mFree(sheet->data[row]);
-        // if(row==215) printf("wwwwwwwwwwwwwwwwww2\n");
+   
         handle->data[row] = sheet_data;
         handle->num[row] = col;
         sheet->data[row] = handle->data[row];
@@ -197,7 +194,7 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
     void **idx = (void **)mMalloc(row*col*sizeof(void *));
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
 
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*size,MORN_HOST_CPU);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*size,MORN_HOST);
     else mMemoryAppend(handle->memory,row*col*size);
     mMemoryIndex(handle->memory,row*col,size,&idx,1);
 
@@ -218,6 +215,14 @@ void mSheetOperate(MSheet *sheet,void (*func)(void *,void *),void *para)
     mException((sheet==NULL)||(func==NULL),EXIT,"invalid input");
     for(int j=0;j<sheet->row;j++)for(int i=0;i<sheet->col[j];i++)
         func(sheet->data[j][i],para);
+}
+
+void mSheetClear(MSheet *sheet)
+{
+    for(int r=0;r<sheet->row;r++) sheet->col[r]=0;
+    sheet->row=0;
+    struct HandleSheetCreate *handle0 = (struct HandleSheetCreate *)(((MHandle *)(sheet->handle->data[0]))->handle);
+    if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
 }
 
 struct HandleSheetWrite
@@ -243,7 +248,7 @@ void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size)
     if(col == sheet->col[row]) 
         mSheetColAppend(sheet,row,DFLT); 
     
-    if(handle0->memory == NULL)handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+    if(handle0->memory == NULL)handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     sheet->data[row][col] = mMemoryWrite(handle0->memory,data,size);
     
     if((row!=sheet->row-1)&&(col!=sheet->col[row]-1))

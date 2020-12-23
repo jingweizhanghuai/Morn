@@ -41,13 +41,16 @@ int mThreadID()
 }
 
 static int morn_rand_seed = -1;
-int mRand(int floor,int ceiling)
+int m_Rand(int floor,int ceiling)
 {
-    if(morn_rand_seed == -1)
-    {
-        morn_rand_seed = time(NULL)/60;
-        srand(morn_rand_seed);
-    }
+    // #ifndef _DEBUG
+    // if(morn_rand_seed == -1)
+    // {
+    //     morn_rand_seed = time(NULL);
+    //     srand(morn_rand_seed);
+    // }
+    // #endif
+    
     if((floor==DFLT)&&( ceiling==DFLT)) {return rand();}
     if(floor==ceiling) return floor;
     int d = ceiling-floor;
@@ -55,7 +58,7 @@ int mRand(int floor,int ceiling)
         return (((rand()<<15)+rand())%d)+floor;
     return (rand()%d)+floor;
 }
-
+ 
 float mNormalRand(float mean,float delta)
 {
     float u = mRand(1,32768)/32768.0f;
@@ -63,6 +66,16 @@ float mNormalRand(float mean,float delta)
     
     float out = sqrt(0.0-2.0*log(u))*cos(2*3.14159265358979f*v);
     return (out*delta+mean);
+}
+
+char *morn_string="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+int mRandString(char *str,int l1,int l2)
+{
+    int size;if(l1<=0) {size=l2-1;}else if(l2<=0) {size=l1;} else if(l1==l2) {size=l1;} else {size=mRand(l1,l2);}
+    mException(size<=0,EXIT,"invalid input");
+    for(int i=0;i<size;i++) str[i]=morn_string[mRand(0,62)];
+    str[size]=0;
+    return size;
 }
 
 int mCompare(const void *mem1,int size1,const void *mem2,int size2)
@@ -200,7 +213,6 @@ void mHandleRelease(MList *handle)
     for(int i=1;i<handle->num;i++)
     {
         hdl = (MHandle *)(handle->data[i]);
-        
         (hdl->destruct)(hdl->handle);
         mFree(hdl->handle);
         mFree(hdl);
@@ -216,6 +228,7 @@ void mHandleRelease(MList *handle)
 
 void mHandleReset(MList *handle) 
 {
+    printf("tttttttttttttttttttt\n");
     if(INVALID_POINTER(handle)) return;
     for(int i=1;i<handle->num;i++)
     {
@@ -224,14 +237,16 @@ void mHandleReset(MList *handle)
     }
 }
 
+static pthread_mutex_t handle_mutex = PTHREAD_MUTEX_INITIALIZER;
 MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
 {
     mException((handle==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
+    pthread_mutex_lock(&handle_mutex);
     int num = handle->num;
     for(int i=0;i<num;i++)
     {
         MHandle *handle_data = (MHandle *)(handle->data[i]);
-        if(handle_data->flag == hash) return handle_data;
+        if(handle_data->flag == hash) {pthread_mutex_unlock(&handle_mutex);return handle_data;}
     }
     
     MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));
@@ -251,7 +266,7 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
     }
     handle->data[num] = Handle_context;
     handle->num = num+1;
-    
+    pthread_mutex_unlock(&handle_mutex);
     return (MHandle *)(handle->data[num]);
 }
 
@@ -279,7 +294,6 @@ void morn_begin()
 {
     morn_object=mObjectCreate(NULL);
     morn_object_map=mChainCreate();
-    // printf("before\n");
     atexit(morn_end);
 }
 #pragma section(".CRT$XCU",read)
@@ -293,7 +307,6 @@ __attribute__((constructor)) void morn_begin() {
 } 
 
 __attribute__((destructor)) void morn_end() {
-    // printf("endendendendendendendendendendend\n");
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
     
@@ -302,11 +315,16 @@ __attribute__((destructor)) void morn_end() {
         if(morn_object_map->chainnode!=NULL)
         {
             MChainNode *node = morn_object_map->chainnode->next;
-            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+            while(node!=morn_object_map->chainnode)
+            {
+                MObject *obj = *(MObject **)mMapNodeValue(node);
+                mObjectRelease(obj);
+                node=node->next;
+            }
         }
         mChainRelease(morn_object_map);
     }
-    
+    // printf("endendendendendendendendendendend\n");
     morn_object_map = NULL;
 }
 #endif
@@ -320,15 +338,16 @@ MObject *mMornObject(void *p,int size)
         return morn_object;
     }
     
-    if(size<0)size=0;
+    if(size<0) size=strlen((char *)p);
     MObject **pobj = mMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
+    
     int *psize = (int *)(pobj+1);
     void *pdata = (void *)(psize+1);
     if(pobj != NULL)
     {
         if(size==*psize) if(memcmp(pdata,p,size)==0) return (*pobj);
         mObjectRelease(pobj[0]);
-        mMapDelete(morn_object_map,&p,sizeof(void *));
+        mMapNodeDelete(morn_object_map,&p,sizeof(void *));
     }
     
     morn_object_count+=1;
@@ -342,7 +361,7 @@ MObject *mMornObject(void *p,int size)
             if(memcmp(pobj[0]->object,pdata,*psize)!=0)
             {
                 mObjectRelease(pobj[0]);
-                mMapDelete(morn_object_map,mMapNodeKey(node->last),sizeof(void *));
+                mMapNodeDelete(morn_object_map,mMapNodeKey(node->last),sizeof(void *));
             }
         }
         morn_object_count = 0;
@@ -361,17 +380,16 @@ void _CNum(double data,char *out,int *flag)
 {
     #if defined(__linux__)
     int s=3;
-    int dic[17]={0x00b69be9,0x0080b8e4,0x008cbae4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00be99e7,0x00838de5,0x0087b8e4,0x00bfbae4,0x009fb4e8,0x00b982e7};
+    int dic[17]={0x00b69be9,0x0080b8e4,0x00a4b8e4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00be99e7,0x00838de5,0x0087b8e4,0x00bfbae4,0x009fb4e8,0x00b982e7};
     #elif defined(_WIN64)||defined(_WIN32)
     int s=2;
     int dic[17]={0x0000e3c1,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca,0x0000d9b0,0x0000a7c7,0x0000f2cd,0x0000dad2,0x0000bab8,0x0000e3b5};
     #else
-    int s=0;
-    int dic[17]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    mException(1,EXIT,"invalid operate system");
     #endif
 
     if(data<0) {memcpy(out,dic+15,s);out+=s;data=0.0-data;}
-    int value = (int)data;
+    int64_t value = (int64_t)data;mException(ABS(value-data)>1,EXIT,"input data too large");
     double value2 = data-(double)value;
     if(value<=10) {memcpy(out,dic+value,s);out+=s;goto cnum_next;}
     if((value<20)&&(*flag==0)) {memcpy(out,dic+10,s);memcpy(out+s,dic+(value-10),s);out+=s+s;goto cnum_next;}
@@ -396,11 +414,23 @@ void _CNum(double data,char *out,int *flag)
         value = value%10000;
     }
     
+    #if defined(__linux__)
+    dic[2]=0x008cbae4;
+    #elif defined(_WIN64)||defined(_WIN32)
+    dic[2]=0x0000bdc1;
+    #endif
+    
     if(value>=1000) {memcpy(out,dic+(value/1000),s);memcpy(out+s,dic+12,s);out=out+s+s;*flag=1;value=value%1000;}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
 
     if(value>=100) {memcpy(out,dic+(value/100),s);memcpy(out+s,dic+11,s);out=out+s+s;*flag=1;value=value%100;}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
+
+    #if defined(__linux__)
+    dic[2]=0x00a4b8e4;
+    #elif defined(_WIN64)||defined(_WIN32)
+    dic[2]=0x0000feb6;
+    #endif
 
     if(value>=10) {memcpy(out,dic+(value/10),s);memcpy(out+s,dic+10,s);out=out+s+s;*flag=1;value=value%10;}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}

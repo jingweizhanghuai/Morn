@@ -56,7 +56,7 @@ MTreeNode *mTreeNode(MTree *tree,void *data,int size)
     mException((hdl->flag != HASH_TreeCreate),EXIT,"invalid input tree");
     struct HandleTreeCreate *handle =(struct HandleTreeCreate *)(hdl->handle);
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST_CPU);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     
     MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode)+2*sizeof(int)+size);
     memset(node,0,sizeof(MBtreeNode)+sizeof(int));
