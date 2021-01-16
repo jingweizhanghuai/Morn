@@ -67,24 +67,15 @@ void ImageIntegration2(MImage *src,MTable **dst)
     }
 }
 
-void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum)
+void m_ImageIntegration(MImage *src,MTable **sum,MTable **sqsum)
 {
     int i,j,cn;
     int height,width;
     int data_sum;
     int data_sqsum;
     
-    if(INVALID_POINTER(sqsum))
-    {
-        ImageIntegration(src,sum);
-        return;
-    }
-    
-    if(INVALID_POINTER(sum))
-    {
-        ImageIntegration2(src,sqsum);
-        return;
-    }
+    if(INVALID_POINTER(sqsum)){ImageIntegration (src,sum  );return;}
+    if(INVALID_POINTER(  sum)){ImageIntegration2(src,sqsum);return;}
     
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
     

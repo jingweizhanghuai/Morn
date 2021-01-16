@@ -59,9 +59,11 @@ MTreeNode *mTreeNode(MTree *tree,void *data,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     
     MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode)+2*sizeof(int)+size);
-    memset(node,0,sizeof(MBtreeNode)+sizeof(int));
+    memset(node,0,sizeof(MTreeNode)+2*sizeof(int));
     int *info = (int *)(node+1);info[0]=0;info[1]=HASH_TreeNode;
-    node->data = (info+2);if(data!=NULL) memcpy(node->data,data,size);
+    node->data = (info+2);
+    if(data!=NULL) memcpy(node->data,data,size);
+    else           memset(node->data,   0,size);
 
     handle->node_num++;
     if(handle->node_num%1024==0)
@@ -153,8 +155,6 @@ MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para)
 {
     return TreeDecide(tree->treenode,func,para);
 }
-
-
 
 MTreeNode *TreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para)
 {

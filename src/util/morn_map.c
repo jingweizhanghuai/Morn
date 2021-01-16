@@ -38,7 +38,7 @@ void _MapListAppend(struct HandleMap *handle)
     int list_num =handle->list_num;
     if(list_num/2>=handle->num)
     {
-        handle->list_num = MAX(list_num/4,1);
+        handle->list_num = MAX(list_num/4,2);
         list_num=handle->list_num;
     }
     else if(list_num*2<=handle->num) 
@@ -54,10 +54,11 @@ void _MapListAppend(struct HandleMap *handle)
     MChainNode **list = handle->list;
     
     float k=(float)(list_num)/(float)(handle->num);
+    
     MChainNode *node = node0;
     for(int i=0;i<handle->num;i++)
     {
-        list[(int)(k*i)]=node;
+        int idx=(int)(k*i);list[idx]=node;
         node = node->next;
     }
     list[       0]=node0;
@@ -112,6 +113,7 @@ MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *
         count++;if(count>16)break;
         node=node->next;
     }
+    
     if(count>16)
     {
         handle->list_valid=0;
@@ -161,7 +163,6 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
         }
         hdl->valid = 1;
     }
-    // printf("handle->num=%d,handle->list_num=%d\n",handle->num,handle->list_num);
     if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
     if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
 
@@ -243,6 +244,7 @@ int mMapNodeValueSize(MChainNode *node)
 
 int mMapNodeNumber(MChain *map)
 {
+    if(map->handle->num<3) return 0;
     MHandle *hdl = (MHandle *)(map->handle->data[2]);
     mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
@@ -276,7 +278,7 @@ void m_MapDelete(MChain *map,const void *key,int key_size)
     mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
     struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
     if(hdl->valid == 0) return;
-    
+
     int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
     if(n==DFLT) return;
     

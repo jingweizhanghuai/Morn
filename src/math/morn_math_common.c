@@ -288,7 +288,7 @@ unsigned int mHash(const char *in,int size)
     
     return out;
 }
-
+/*
 struct HandlePermutation
 {
     int *idx;
@@ -305,7 +305,7 @@ void endPermutation(struct HandlePermutation *handle)
 int mPermutation(int *idx,int num,int total)
 {
     mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx,DFLT),Permutation);
+    MHandle *hdl = mHandle(mMornObject(idx,0),Permutation);
     struct HandlePermutation *handle = (struct HandlePermutation *)(hdl->handle);
     if(hdl->valid==0)
     {
@@ -366,12 +366,15 @@ int mPermutation(int *idx,int num,int total)
     memcpy(idx,handle->idx,num*sizeof(int));
     return MORN_SUCCESS;
 }
+*/
+
 
 struct HandleCombination
 {
     int *idx;
     int num;
     int total;
+    int order;
 };
 void endCombination(struct HandleCombination *handle)
 {
@@ -381,7 +384,7 @@ void endCombination(struct HandleCombination *handle)
 int mCombination(int *idx,int num,int total)
 {
     mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx,DFLT),Combination);
+    MHandle *hdl = mHandle(mMornObject(idx,0),Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
     if(hdl->valid==0)
     {
@@ -391,29 +394,57 @@ int mCombination(int *idx,int num,int total)
         for(int i=0;i<num;i++) handle->idx[i]=i;
         handle->num = num;handle->total=total;
         hdl->valid = 1;
-        
+
+        handle->order = 0;
         memcpy(idx,handle->idx,num*sizeof(int));
-        return MORN_SUCCESS;
+        return handle->order;
     }
-    else
-    {
-        mException((handle->num  !=num  )&&(num  >0),EXIT,"invalid input combination number");num  =handle->num  ;
-        mException((handle->total!=total)&&(total>0),EXIT,"invalid input combination number");total=handle->total;
-    }
+    
+    mException((handle->num  !=num  )&&(num  >0),EXIT,"invalid input combination number");num  =handle->num  ;
+    mException((handle->total!=total)&&(total>0),EXIT,"invalid input combination number");total=handle->total;
 
     int n;for(n=num-1;n>=0;n--)
     {
         handle->idx[n]++;
         if(handle->idx[n]<=total-num+n) break;
-        if(n==0) 
-        {
-            mFree(handle->idx );handle->idx =NULL;
-            hdl->valid = 0;
-            return MORN_FAIL;
-        }
+    }
+    if(n<0) 
+    {
+        mFree(handle->idx);handle->idx =NULL;
+        hdl->valid = 0;
+        return DFLT;
     }
     for(int i=n+1;i<num;i++) 
         handle->idx[i]=handle->idx[i-1]+1;
     memcpy(idx,handle->idx,num*sizeof(int));
-    return MORN_SUCCESS;
+    handle->order++;
+    return handle->order;
+}
+
+int m_Permutation(int *idx,int num)
+{
+    int buff;
+    if(idx[num-2]<idx[num-1]) {buff=idx[num-2];idx[num-2]=idx[num-1];idx[num-1]=buff;return 1;}
+    int n;for(n=num-3;n>=0;n--)
+    {
+        if(idx[n]<idx[n+1]) break;
+    }
+    if(n<0) return DFLT;
+    int i,j;
+    for(i=num-1;i>n;i--) {if(idx[i]>idx[n]) {buff=idx[n];idx[n]=idx[i];idx[i]=buff;break;}}
+    for(i=num-1,j=n+1;i>j;i--,j++) {buff=idx[j];idx[j]=idx[i];idx[i]=buff;}
+    return 1;
+}
+
+int mPermutation(int *idx,int num,int total)
+{
+    mException(INVALID_POINTER(idx),EXIT,"invalid input");
+    MHandle *hdl = mHandle(mMornObject(idx,0),Combination);
+    struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
+
+    if(hdl->valid==0) {mCombination(idx,num,total);return 0;}
+    
+    if(m_Permutation(idx,num)>0) {handle->order++;return handle->order;}
+    if(mCombination(idx,num,total)>0) return handle->order;
+    return -1;
 }

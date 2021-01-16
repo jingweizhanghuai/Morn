@@ -2,11 +2,6 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_util.h"
 #define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
@@ -18,26 +13,98 @@ typedef struct JSONData
 {
     char *name;
     char *value;
-    //int count;
 }JSONData;
 
 void PrintNode(MTreeNode *node)
 {
+    char *name =NULL;
+    char *value=NULL;
     JSONData *data = (JSONData *)(node->data);
-    printf("name is %s, value is %s, child_num is %d\n",data->name,data->value,node->child_num);
+    printf("data=%p,data->name=%p,data->value=%p\n",data,data->name,data->value);
+    if(data!=NULL) {name = data->name;value= data->value;}
+    if(name ==NULL) name = "noname";
+    if(value==NULL) value="novalue";
+    printf("name is %s, value is %s, child_num is %d\n",name,value,node->child_num);
 }
- 
+
+// char *morn_json_header = "mornjson";
 struct HandleJSONLoad {
-    char header[16];
     char *file;
 };
-void endJSONLoad(void *info)
+void endJSONLoad(struct HandleJSONLoad *handle)
 {
-    struct HandleJSONLoad *handle = (struct HandleJSONLoad *)info;
-    if(handle->file != NULL)
-        mFree(handle->file);
+    if(handle->file != NULL) free(handle->file);
 }
 #define HASH_JSONLoad 0xa59d25b3
+void JSONLoad(MTree *tree,char *filedata)
+{
+    char *p=filedata;
+    
+    char key_buff[1024];memset(key_buff,0,1024);char *key = key_buff;
+
+    if(tree->object != NULL) TreeNodeRelease((MTreeNode *)(tree->object));
+    tree->object = mTreeNode(tree,NULL,sizeof(JSONData));
+    MTreeNode *node = tree->object;
+    JSONData *data = (JSONData *)(node->data);
+    printf("data=%p,data->name=%p,data->value=%p\n",data,data->name,data->value);
+    
+    char **json = &(data->name);
+    
+    #define DeSPACE {while((p[1]==' ')||(p[1]=='\t')||(p[1]=='\0')||(p[1]=='\n')||(p[1]=='\r')||(p[1]=='\b')) {p++;p[0]=0;}}
+    while(*p)
+    {
+        printf("%c",*p);
+        if(key[0]=='"') 
+        {
+            mException((p[0]=='\t')||(p[0]=='\n')||(p[0]=='\r')||(p[0]=='\b'),EXIT,"file error");
+            if(p[0] == '"') {p[0]=0;key=key-1;}
+            p++; continue;
+        }
+
+        if((p[0]==' ')||(p[0]=='\t')||(p[0]=='\0')||(p[0]=='\n')||(p[0]=='\r')||(p[0]=='\b')) p[0]=0;
+        
+        else if(p[0]=='"') {p[0]=0; *json=p+1;key=key+1; key[0]='"';}
+        else if(p[0]==':') {p[0]=0; json=&(data->value); DeSPACE; *json=p+1;}
+        else if(p[0]=='[')
+        {
+            p[0]=0;key=key+1;key[0]='[';
+            MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
+            mTreeNodeSet(node,child,DFLT);
+            node=child;data = (JSONData *)(node->data);json=&(data->value);
+            DeSPACE; *json=p+1;
+        }
+        else if(p[0]==']') 
+        {
+            p[0]=0; mException((key[0]!='['),EXIT,"file error");key=key-1;
+            node=node->parent;
+            printf("node->child_num=%d\n",node->child_num);
+        }
+        else if(p[0]==',') 
+        {
+            p[0]=0;
+            MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
+            mTreeNodeSet(node->parent,child,DFLT);node=child;data = (JSONData *)(node->data);json=(key[0]=='[')?(&(data->value)):(&(data->name));
+            DeSPACE; *json=p+1;
+        }
+        else if(p[0]=='{')
+        {
+            p[0]=0;key=key+1;key[0]='{';
+            MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
+            mTreeNodeSet(node,child,DFLT);
+            node=child;data = (JSONData *)(node->data);json=&(data->name);
+            DeSPACE; *json=p+1;
+        }
+        else if(p[0]=='}')
+        {
+            p[0]=0; mException((key[0]!='{'),EXIT,"file error");key=key-1;
+            node=node->parent;
+            printf("node->child_num=%d\n",node->child_num);
+        }
+        
+        p=p+1;
+    }
+}
+
 void mJSONLoad(MTree *tree,char *filename,...)
 {
     va_list namepara;
@@ -46,203 +113,21 @@ void mJSONLoad(MTree *tree,char *filename,...)
     va_end(namepara);
     FILE *f = fopen(morn_filename,"rb");
     mException((f==NULL),EXIT,"cannot open file %s",morn_filename);
-
-    fseek(f,0,SEEK_END);
-    int filesize = ftell(f);
-    fseek(f,0,SEEK_SET);
+    int filesize = fsize(f);
     
     MHandle *hdl=mHandle(tree,JSONLoad);
     struct HandleJSONLoad *handle = (struct HandleJSONLoad *)(hdl->handle);
     if(hdl->valid==0)
     {
-        if(handle->file!=NULL) mFree(handle->file);
-        handle->file = (char *)mMalloc(filesize); 
-
-        strcpy(handle->header,"mornjson\0");
-        hdl->valid=1;
+        if(handle->file!=NULL) free(handle->file);
+        handle->file = (char *)malloc(filesize+1); 
     }
     
     fread(handle->file,filesize,1,f);
     fclose(f);
-    char *p=handle->file;
-    
-    char key_buff[1024];memset(key_buff,0,1024);
-    char *key = key_buff;
-
-    if(tree->object != NULL) TreeNodeRelease((MTreeNode *)(tree->object));
-    tree->object = mTreeNode(tree,NULL,sizeof(JSONData));
-    
-    MTreeNode *node = mTreeNode(tree,NULL,sizeof(JSONData));
-    mTreeNodeSet(tree->treenode,node,DFLT);
-    JSONData *data = (JSONData *)(node->data);
-    data->name = handle->header;
-    data->value= p;
-    
-    char **json = &(data->name);
-    
-    #define DeSPACE {while((p[1]==' ')||(p[1]=='\t')||(p[1]=='\0')||(p[1]=='\n')||(p[1]=='\r')||(p[1]=='\b')) {p++;p[0]=0;}}
-    while(p<handle->file+filesize)
-    {
-        if(key[0]=='"') 
-        {
-            //printf("key[0] is %c\n",key[0]);
-            mException((p[0]=='\t')||(p[0]=='\n')||(p[0]=='\r')||(p[0]=='\b'),EXIT,"file error");
-            if(p[0] == '"') {p[0]=0;key=key-1;}
-            p++; continue;
-        }
-
-        if((p[0]==' ')||(p[0]=='\t')||(p[0]=='\0')||(p[0]=='\n')||(p[0]=='\r')||(p[0]=='\b')) p[0]=0;
-        else if(p[0]=='"') {p[0]=0; *json=p+1; key=key+1; key[0]='"';}
-        else if(p[0]==':') {p[0]=0; json=&(data->value); DeSPACE; *json=p+1;}
-        else if(p[0]=='[') {p[0]=0; key=key+1;key[0]='[';json=&(data->value);DeSPACE; *json=p+1;}
-        else if(p[0]==']') {p[0]=0; mException((key[0]!='['),EXIT,"file error");key=key-1;}
-        else if(p[0]==',') 
-        {
-            p[0]=0;
-            
-            MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
-            mTreeNodeSet(node->parent,child,DFLT);
-            data = (JSONData *)(child->data);
-            
-            if(key[0]=='[') {data->name = ((JSONData *)(node->data))->name;json=&(data->value);}
-            else json=&(data->name);
-            DeSPACE; *json=p+1;
-                
-            node=child;
-        }
-        else if(p[0]=='{')
-        {
-            p[0]=0;key=key+1;key[0]='{';
-            
-            MTreeNode *child=mTreeNode(tree,NULL,sizeof(JSONData));
-            mTreeNodeSet(node,child,DFLT);
-            data = (JSONData *)(child->data);
-     
-            json=&(data->name);
-            DeSPACE; *json=p+1;
-            
-            node=child;
-        }
-        else if(p[0]=='}')
-        {
-            p[0]=0;
-            mException((key[0]!='{'),EXIT,"file error");key=key-1;
-            node=node->parent;
-        }
-        
-        p=p+1;
-    }
+    handle->file[filesize]=0;
+    JSONLoad(tree,handle->file);
 }
-
-/*
-void mJSONLoad1(char *filename,MTree *tree)
-{
-    FILE *f = fopen(filename,"rb");
-    mException((f==NULL),EXIT,"cannot open file");
-    
-    fseek(f,0,SEEK_END);
-    int filesize = ftell(f);
-    fseek(f,0,SEEK_SET);
-    
-    MHandle *hdl; ObjectHandle(tree,JSONLoad,hdl);
-    struct HandleJSONLoad *handle = hdl->handle;
-    if(hdl->valid==1) mFree(handle->file);
-    handle->file = (char *)mMalloc(filesize); hdl->valid=1;
-    
-    fread(handle->file,filesize,1,f);
-    fclose(f);
-    
-    char *p=handle->file;
-    
-    // file[filesize-1]=0;
-    // printf("%s\n",file);
-    
-    char key_buff[1024];
-    char *key = key_buff;
-    
-    if(tree->object == NULL)
-        tree->object = mTreeNode(tree,NULL,sizeof(JSONData));
-    
-    MTreeNode *node = tree->object;
-    JSONData *data = (JSONData *)(node->data);
-    char **json = &(data->name);
-    *json = p;
-    
-    MTreeNode *child;
-    //MTreeNode *parent;
-    
-    while(p<handle->file+filesize)
-    {
-        if(key[0]=='"')
-        {
-            if(p[0] == '"')
-            {
-                p[0]=0;
-                key=key-1;
-            }
-        }
-        else if(p[0]=='"')
-        {
-            p[0]=0;
-            *json=p+1;
-            key=key+1;key[0]='"';
-        }
-        else if(p[0]==':')
-        {
-            json=&(data->value);
-            *json = p+1;
-        }
-        else if((p[0]==' ')||(p[0]=='\t'));
-        else if((p[0]=='\0')||(p[0]=='\n')||(p[0]=='\r')||(p[0]=='\b')||(p[0]=='\0'))
-        {
-            p[0] = 0;
-            mException((key[0]=='"'),EXIT,"file error");
-        }    
-        else if(p[0]==',') 
-        {
-            p[0]=0;
-            child=mTreeNode(tree,NULL,sizeof(JSONData));
-            mTreeNodeSet(node->parent,child,DFLT);
-            data = child->data;
-            if(key[0]=='[')
-            {
-                data->name = ((JSONData *)(node->data))->name;
-                json=&(data->value);
-            }
-            else
-                json=&(data->name);
-            node=child;
-        }
-        else if(p[0]=='{')
-        {
-            p[0]=0;
-            key=key+1;key[0]='{';
-            child=mTreeNode(tree,NULL,sizeof(JSONData));
-            mTreeNodeSet(node,child,DFLT);
-            node=child;
-            data=node->data;
-            json=&(data->name);
-        }
-        else if(p[0]=='}')
-        {
-            p[0]=0;
-            mException((key[0]!='{'),EXIT,"file error");key=key-1;
-            node=node->parent;
-        }
-        else if(p[0]=='[') 
-        {
-            p[0]=0;
-            key=key+1;key[0]='[';
-        }
-        else if(p[0]==']') 
-        {
-            mException((key[0]!='['),EXIT,"file error");key=key-1;
-        }
-        
-        p=p+1;
-    }
-}
-*/
 
 char *mJSONName(MTreeNode *node)  {return (((JSONData *)(node->data))->name );}
 char *mJSONValue(MTreeNode *node) {return (((JSONData *)(node->data))->value);}

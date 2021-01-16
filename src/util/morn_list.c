@@ -110,6 +110,8 @@ void mListPlace(MList *list,void *data,int num,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(1,size*num,MORN_HOST);
     else mMemoryAppend(handle->memory,size*num);
     mMemoryIndex(handle->memory,num,size,&idx,1);
+    // printf("list_num=%d\n",list_num);
+    // printf("idx0=%p,list->data[0]=%p\n",idx[0],list->data[0]);
     
     if(data==NULL) return;
     char *p=(char *)data;
@@ -456,8 +458,8 @@ struct HandleListClassify
 };
 void endListClassify(struct HandleListClassify *handle)
 {
-    if(handle->group!=NULL) free(handle->group);
-    if(handle->valid!=NULL) free(handle->valid);
+    if(handle->group!=NULL) mFree(handle->group);
+    if(handle->valid!=NULL) mFree(handle->valid);
     if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
 }
 #define HASH_ListClassify 0x24c19acf
@@ -472,11 +474,11 @@ MSheet *mListClassify(MList *list,void *function,void *para)
     {
         if(handle->list_num<list->num)
         {
-            if(handle->group!=NULL) {free(handle->group);handle->group=NULL;}
-            if(handle->valid!=NULL) {free(handle->valid);handle->valid=NULL;}
+            if(handle->group!=NULL) {mFree(handle->group);handle->group=NULL;}
+            if(handle->valid!=NULL) {mFree(handle->valid);handle->valid=NULL;}
         }
-        if(handle->group==NULL) handle->group = (int  *)malloc(list->num*sizeof(int ));
-        if(handle->valid==NULL) handle->valid = (char *)malloc(list->num*sizeof(char));
+        if(handle->group==NULL) handle->group = (int  *)mMalloc(list->num*sizeof(int ));
+        if(handle->valid==NULL) handle->valid = (char *)mMalloc(list->num*sizeof(char));
         handle->list_num = list->num;
 
         if(handle->sheet == NULL) handle->sheet = mSheetCreate();
@@ -494,7 +496,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
         {
             if(group[i]==group[j]) continue;
             
-            if(func(list->data[i],list->data[j],para)==1)//同类
+            if(func(list->data[i],list->data[j],para)==1)
             {
                 if(group[i] == DFLT)
                     group[i] = group[j];
@@ -515,7 +517,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
         }
     }
     
-    int *c = (int *)malloc(n *sizeof(int));
+    int *c = (int *)mMalloc(n *sizeof(int));
     int num = 0;
     for(i=0;i<n;i++)
     {
@@ -534,7 +536,7 @@ MSheet *mListClassify(MList *list,void *function,void *para)
         mSheetColAppend(sheet,g,n+1);
         sheet->data[g][n]=list->data[i];
     }
-    free(c);
+    mFree(c);
     return sheet;
 }
 

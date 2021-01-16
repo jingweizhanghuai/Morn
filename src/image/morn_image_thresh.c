@@ -9,6 +9,33 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_image.h"
 
+void m_ImageThresh(MImage *in,MImage *out,int cn,int thresh,int *left_value,int *right_value)
+{
+    mException(INVALID_IMAGE(in),EXIT,"invalid input");
+    if(INVALID_IMAGE(out)) out = in;
+    if(cn<0) cn=(in->channel>2)?1:0;
+    unsigned char **data_in=in->data[cn];
+    
+    if(thresh==DFLT) thresh=128;
+    mException(thresh>255,EXIT,"invalid input");
+
+    unsigned char v[MORN_MAX_IMAGE_CN][256];
+    for(int c=0;c<in->channel;c++)
+    {
+        unsigned char lv;if( left_value==NULL) {lv=DFLT;} else {lv=MIN( left_value[c],255);}
+        unsigned char rv;if(right_value==NULL) {lv=DFLT;} else {lv=MIN(right_value[c],255);}
+        for(int i=0; i<thresh; i++) v[c][i]=(lv<0)?i:lv;
+        for(int i=thresh;i<256;i++) v[c][i]=(rv<0)?i:rv;
+    }
+
+    for(int j=0;j<in->height;j++)for(int i=0;i<in->width;i++)
+    {
+        int ref = data_in[j][i];
+        for(int c=0;c<in->channel;c++)
+            out->data[c][j][i]=v[c][ref];
+    }
+}
+
 struct HandleImageAdaptThreshold
 {
     MTable *itg[MORN_MAX_IMAGE_CN];

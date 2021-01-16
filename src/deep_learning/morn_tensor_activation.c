@@ -2,26 +2,30 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
- 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "morn_tensor.h"
 
+struct ActvRegister
+{
+    char name[32];
+    float (*func)(float,float *);
+    float (*dfunc)(float,float *);
+    char *source;
+};
 struct ActvRegister morn_actv_register[64];
 int morn_actv_register_num = 0;
 
-void mActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *))
+void ActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *),char *source)
 {
     int n = morn_actv_register_num;
     morn_actv_register_num = n+1;
     strcpy(morn_actv_register[n].name,name);
     morn_actv_register[n].func  = func;
     morn_actv_register[n].dfunc = dfunc;
+    morn_actv_register[n].source= source;
 }
 
+
+/*
 float DC_sigmoid_data[256] = {
 0.5000000,0.5050473,0.5100933,0.5151372,0.5201780,0.5252145,0.5302459,0.5352711,0.5402891,0.5452991,
 0.5502999,0.5552908,0.5602706,0.5652384,0.5701933,0.5751345,0.5800608,0.5849716,0.5898657,0.5947425,
@@ -59,12 +63,19 @@ float DCSigmoid(float in,float *argv)
 }
 float DDCSigmoid(float in,float *argv)
 {float out=DCSigmoid(in,argv);return (out*(1.0-out));}
+*/
+
+
 
 float Sigmoid(float in,float *argv)
-{return 1.0f/(1.0f+exp(0.0f-in));}
+{return 1.0/(1.0+exp(0.0-in));}
 float DSigmoid(float in,float *argv)
 {float out=Sigmoid(in,argv);return (out*(1.0-out));}
 
+
+
+
+/*
 float DC_tanh_data[256] = {
 0.0000000,0.0100946,0.0201867,0.0302745,0.0403560,0.0504290,0.0604918,0.0705422,0.0805783,0.0905982,
 0.1006000,0.1105816,0.1205412,0.1304768,0.1403867,0.1502690,0.1601217,0.1699432,0.1797315,0.1894850,
@@ -102,48 +113,112 @@ float DCTanh(float in,float *argv)
 }
 float DDCTanh(float in,float *argv)
 {float out = DCTanh(in,argv);return (1.0-out*out);}
+*/
 
 float Tanh(float in,float *argv)
-{return (1.0f-2.0f/(exp(in+in)+1.0f));}
+{return (1.0-2.0/(exp(in+in)+1.0));}
 float DTanh(float in,float *argv)
 {float out = Tanh(in,argv);return (1.0-out*out);}
 
 float ReLu(float in,float *argv)
-{return MAX(0.0f,in);}
+{return ((in>0.0)?in:0.0);}
 float DReLu(float in,float *argv)
-{return ((in>0.0f)?1.0f:0.0f);}
+{return ((in>0.0)?1.0:0.0);}
 
 float PReLu(float in,float *argv)
-{if(argv[0]<0) argv[0]=0; return MAX(in,in*argv[0]);}
+{if(argv[0]<0) argv[0]=0; return ((in>in*argv[0])?in:in*argv[0]);}
 float DPReLu(float in,float *argv)
-{return (((argv[0]>1.0f)==(in>0.0f))?argv[0]:1.0f);}
+{return (((argv[0]>1.0)==(in>0.0))?argv[0]:1.0);}
 
 float ELu(float in,float *argv)
-{return (argv[0]*((in>0.0f)?in:(exp(in)-1.0f)));}
+{return (argv[0]*((in>0.0)?in:(exp(in)-1.0)));}
 float DELu(float in,float *argv)
-{return (argv[0]*((in>0.0f)?1.0f:in+1.0f));}
+{return (argv[0]*((in>0.0)?1.0:in+1.0));}
 
 float Softplus(float in,float *argv)
 {return (log(1.0+exp(in)));}
 float DSoftplus(float in,float *argv)
-{return Sigmoid(in,argv);}
+{return (1.0/(1.0+exp(0.0-in)));}
 
 float Abs(float in,float *argv)
-{return ABS(in);}
+{return ((in>0.0)?in:(0.0-in));}
 float DAbs(float in,float *argv)
-{return ((in>0.0f)?1.0f:-1.0f);}
+{return ((in>0.0)?1.0:-1.0);}
+
+#ifdef MORN_USE_CL
+char *CL_Sigmoid =mString(
+float activation(float in,float *argv)
+{return (1.0/(1.0+exp(0.0-in)));}
+float dactivation(float in,float *argv)
+{float out=(1.0/(1.0+exp(0.0-in)));return (out*(1.0-out));}
+);
+
+char *CL_Tanh =mString(
+float activation(float in,float *argv)
+{return (1.0-2.0/(exp(in+in)+1.0));}
+float dactivation(float in,float *argv)
+{float out = Tanh(in,argv);return (1.0-out*out);}
+);
+
+char *CL_ReLu =mString(
+float activation(float in,float *argv)
+{return (in>0.0)?in:0.0;}
+float dactivation(float in,float *argv)
+{return ((in>0.0)?1.0:0.0);}
+);
+
+char *CL_PReLu =mString(
+float activation(float in,float *argv)
+{if(argv[0]<0) argv[0]=0; return ((in>in*argv[0])?in:in*argv[0]);}
+float dactivation(float in,float *argv)
+{return (((argv[0]>1.0)==(in>0.0))?argv[0]:1.0);}
+);
+
+char *CL_ELu =mString(
+float activation(float in,float *argv)
+{return (argv[0]*((in>0.0)?in:(exp(in)-1.0)));}
+float dactivation(float in,float *argv)
+{return (argv[0]*((in>0.0)?1.0:in+1.0));}
+);
+
+char *CL_Softplus =mString(
+float activation(float in,float *argv)
+{return (log(1.0+exp(in)));}
+float dactivation(float in,float *argv)
+{return (1.0/(1.0+exp(0.0-in)));}
+);
+
+char *CL_Abs =mString(
+float Abs(float in,float *argv)
+{return ((in>0.0)?in:(0.0-in));}
+float DAbs(float in,float *argv)
+{return ((in>0.0)?1.0:-1.0);}
+);
+
+char *activation_cl = mString(
+__kernel void activation_gpu(__global const float* in,__global float* out,float argv[4])
+{
+    const int i = get_global_id(0);
+    out[i]=activation(in[i],argv);
+});
+char *dactivation_cl = mString(
+__kernel void dactivation_gpu(__global const float* in,__global const float* out,__global float *res,float argv[4],int flag)
+{
+    const int i = get_global_id(0);
+    float data = out[i]*dactivation(in[i],argv);
+    res[i] = (flag)?data:(res[i]+data);
+});
+#endif
 
 void mActivationRegisterAll()
 {
-    mActivationRegister("Sigmoid"  ,Sigmoid  ,DSigmoid  );
-    mActivationRegister("Tanh"     ,Tanh     ,DTanh     );
-    mActivationRegister("ReLu"     ,ReLu     ,DReLu     );
-    mActivationRegister("PReLu"    ,PReLu    ,DPReLu    );
-    mActivationRegister("ELu"      ,ELu      ,DELu      );
-    mActivationRegister("Softplus" ,Softplus ,DSoftplus );
-    mActivationRegister("Abs"      ,Abs      ,DAbs      );
-    mActivationRegister("DCSigmoid",DCSigmoid,DDCSigmoid);
-    mActivationRegister("DCTanh"   ,DCTanh   ,DDCTanh   );
+    mActivationRegister(Sigmoid );
+    mActivationRegister(Tanh    );
+    mActivationRegister(ReLu    );
+    mActivationRegister(PReLu   );
+    mActivationRegister(ELu     );
+    mActivationRegister(Softplus);
+    mActivationRegister(Abs     );
 }
 
 struct TensorActivationPara
@@ -151,9 +226,10 @@ struct TensorActivationPara
     MLayer *prev;
     
     int res_valid;
-    
-    float (*func)(float,float *);
-    float (*dfunc)(float,float *);
+    struct ActvRegister *actv_register;
+
+    // float (*func)(float,float *);
+    // float (*dfunc)(float,float *);
     float argv[4];
 };
 void *mTensorActivationPara(MFile *ini,char *name)
@@ -165,25 +241,16 @@ void *mTensorActivationPara(MFile *ini,char *name)
     para->res_valid = (strcmp("Input",mLayerType(para->prev))!=0);
     
     char *value = mINIRead(ini,name,"actv_func");
-    if(value != NULL) 
+    if(value != NULL) value = "ReLu";
+    int i;for(i=0;i<morn_actv_register_num;i++)
     {
-        int i;
-        for(i=0;i<morn_actv_register_num;i++)
+        if(strcmp(morn_actv_register[i].name,value)==0)
         {
-            if(strcmp(morn_actv_register[i].name,value)==0)
-            {
-                para->func = morn_actv_register[i].func;
-                para->dfunc= morn_actv_register[i].dfunc;
-                break;
-            }
+            para->actv_register = &(morn_actv_register[i]);
+            break;
         }
-        mException((i==morn_actv_register_num),EXIT,"invalid activation function");
     }
-    else
-    {
-        para->func = ReLu;
-        para->dfunc= DReLu;
-    }
+    mException((i==morn_actv_register_num),EXIT,"invalid activation function");
     
     para->argv[0]=DFLT; mINIRead(ini,name,"argv0","%f",&(para->argv[0]));
     para->argv[1]=DFLT; mINIRead(ini,name,"argv1","%f",&(para->argv[1]));
@@ -192,23 +259,39 @@ void *mTensorActivationPara(MFile *ini,char *name)
     
     return para;
 }
-
-void TensorActivationSet(MLayer *layer)
+struct HandleTensorActivation
+{
+    char *source;
+};
+void endTensorActivation(struct HandleTensorActivation *handle)
+{
+    if(handle->source != NULL) free(handle->source);
+}
+#define HASH_TensorActivation 0xbd8effc8
+struct HandleTensorActivation *TensorActivationSet(MLayer *layer)
 {
     struct TensorActivationPara *para = (struct TensorActivationPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out=layer->tns;
+
+    struct HandleTensorActivation *handle=NULL;
+    #ifdef MORN_USE_CL
+    MHandle *hdl=mHandle(out,TensorActivation);
+    handle = (struct HandleTensorActivation *)(hdl->handle);
     
-    if(layer->state != DFLT) return;
+    int size = strlen(activation_cl)+strlen(dactivation_cl)+strlen(para->actv_register->source)+8;
+    handle->source = malloc(size);
+    sprintf("%s\n%s\n%s\n",para->actv_register->source,activation_cl,dactivation_cl);
+    #endif
+    
+    if(layer->state != DFLT) return handle;
     mTensorRedefine(out,in->batch,in->channel,in->height,in->width,NULL);
     if(morn_network_flag == MORN_TRAIN)
-    {
-        if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
-        else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
-    }
+        mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
+        
+    return handle;
 }
-
 
 void mTensorActivationForward(MLayer *layer)
 {
@@ -218,21 +301,26 @@ void mTensorActivationForward(MLayer *layer)
     struct TensorActivationPara *para = (struct TensorActivationPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out=layer->tns;
+    struct ActvRegister *actv_register = para->actv_register;
     
-    TensorActivationSet(layer);
+    struct HandleTensorActivation *handle = TensorActivationSet(layer);
     int size = in->channel*in->height*in->width;
-    
+
+    #ifdef MORN_USE_CL
+    char *activation_gpu = handle->source;
+    for(int b=0;b<in->batch;b++)
+    {
+        mCLFunction(activation_gpu,CLSIZE(size),CLIN(mTensorMemory(in,b)),CLOUT(mTensorMemory(out,b)),CLPARA(para->argv,4*sizeof(float)));
+    }
+    #else
     for(int b=0;b<in->batch;b++)
     {
         float *in_data = in->data[b];
         float *out_data=out->data[b];
         for(int i=0;i<size;i++)
-            out_data[i] = (para->func)(in_data[i],para->argv);
-
-        
+            out_data[i] = (actv_register->func)(in_data[i],para->argv);
     }
-    
-    
+    #endif
     layer->state = MORN_FORWARD;
 }
 
@@ -245,9 +333,20 @@ void mTensorActivationBackward(MLayer *layer)
     MTensor *in = para->prev->tns;
     MTensor *res= para->prev->res;
     MTensor *out= layer->res;
+    struct ActvRegister *actv_register = para->actv_register;
     
     int size = in->channel*in->height*in->width;
+    int flag = (para->prev->state==MORN_FORWARD);
     
+    #ifdef MORN_USE_CL
+    MHandle *hdl=mHandle(out,TensorActivation);
+    struct HandleTensorActivation *handle = (struct HandleTensorActivation *)(hdl->handle);
+    char *dactivation_gpu = handle->source;
+    for(int b=0;b<in->batch;b++)
+    {
+        mCLFunction(dactivation_gpu,CLSIZE(size),CLIN(mTensorMemory(in,b)),CLIN(mTensorMemory(out,b)),CLOUT(mTensorMemory(res,b)),CLPARA(para->argv,4*sizeof(float)),CLPARA(&flag,sizeof(int)));
+    }
+    #else
     for(int bc=0;bc<in->batch;bc++)
     {
         float * in_data= in->data[bc];
@@ -255,10 +354,11 @@ void mTensorActivationBackward(MLayer *layer)
         float *out_data=out->data[bc];
         for(int i=0;i<size;i++)
         {
-            float data = out_data[i]*((para->dfunc)(in_data[i],para->argv));
-            res_data[i] = (para->prev->state==MORN_FORWARD)?data:(res_data[i]+data);
+            float data = out_data[i]*((actv_register->dfunc)(in_data[i],para->argv));
+            res_data[i] = (flag)?data:(res_data[i]+data);
         }
     }
+    #endif
     
     para->prev->state = MORN_BACKWARD;
 }

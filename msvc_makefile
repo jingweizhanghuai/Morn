@@ -1,12 +1,14 @@
 ﻿OPENMP=1
 USE_PNG=1
 USE_JPEG=1
+USE_SOCKET=1
+USE_USBCAMERA=1
 DEBUG=0
 
 CC = cl.exe
 LIB = lib.exe
 LINK = link.exe
-LIBDIR = ./lib/x64/msvc
+LIBDIR = ./lib/x64_msvc
 
 CCFLAGS = -O2
 ifeq ($(OPENMP), 1) 
@@ -29,6 +31,15 @@ WRAPDEF += -D MORN_USE_JPEG
 DEPENDLIB += $(LIBDIR)/libjpeg.lib
 endif
 
+ifeq ($(USE_SOCKET),1)
+WRAPDEF += -D MORN_USE_SOCKET
+endif
+
+ifeq ($(USE_USBCAMERA),1)
+WRAPDEF += -D MORN_USE_USBCAMERA
+DEPENDLIB += Ole32.lib strmiids.lib OleAut32.lib
+endif
+
 STATICLIB = $(LIBDIR)/libmorn.lib
 SHAREDLIB = ./tool/libmorn.dll
 
@@ -46,6 +57,9 @@ OBJS = $(patsubst %.c,%.obj,$(CSOURCES))
 WRAPSOURCES = $(wildcard ./src/wrap/*.c)
 WRAPOBJS = $(patsubst %.c,%.obj,$(WRAPSOURCES))
 
+WRAPSOURCES2 = $(wildcard ./src/wrap/*.cpp)
+WRAPOBJS2 = $(patsubst %.cpp,%.obj,$(WRAPSOURCES2))
+
 INCLUDEDIR = -I ./include -I ./lib/include -I ./lib/include/pthread
 
 all:$(STATICLIB) $(TOOLEXE)
@@ -57,15 +71,18 @@ tool:$(TOOLEXE)
 
 static:$(STATICLIB)
 
-$(STATICLIB):$(OBJS) $(WRAPOBJS)
-	$(LIB) /out:$(STATICLIB) $(OBJS) $(WRAPOBJS)
+$(STATICLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(LIB) /out:$(STATICLIB) $(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
 
 shared:$(SHAREDLIB)
 
-$(SHAREDLIB):$(OBJS) $(WRAPOBJS)
-	$(LINK) -DLL -out:$(SHAREDLIB) $(OBJS) $(DEPENDLIB)
+$(SHAREDLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(LINK) -DLL -out:$(SHAREDLIB) $(OBJS) $(WRAPOBJS) $(WRAPOBJS2) $(DEPENDLIB)
 
 $(WRAPOBJS):%.obj:%.c
+	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -Fo"$@"
+
+$(WRAPOBJS2):%.obj:%.cpp
 	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -Fo"$@"
 
 $(OBJS):%.obj:%.c
@@ -76,3 +93,11 @@ $(OBJS):%.obj:%.c
 #	del /a .\tool\*.exe
 #	del /a .\tool\libmorn.dll
 #	del /a .\lib\x64\msvc\libmorn.lib
+
+clean:
+	rm -rf $(OBJS)
+	rm -rf $(WRAPOBJS)
+	rm -rf $(WRAPOBJS2)
+	rm -rf $(STATICLIB)
+	rm -rf $(SHAREDLIB)
+	rm -rf $(TOOLEXE)

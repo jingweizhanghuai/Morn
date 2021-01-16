@@ -15,6 +15,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp _stricmp
 #else
 #define stricmp strcasecmp
+char * gets(char * str);
 #endif
 
 int main(int argc,char *argv[])

@@ -44,9 +44,8 @@ struct HandleThreadPool
     pthread_mutex_t mutex0;
     pthread_cond_t cond0;
 };
-void endThreadPool(void *info)
+void endThreadPool(struct HandleThreadPool *handle)
 {
-    struct HandleThreadPool *handle = (struct HandleThreadPool *)info;
     MList *pool = handle->pool;
     for(int i=0;i<pool->num;i++)
     {
@@ -84,6 +83,7 @@ void ThreadFunc(void *thread_data)
         {
             (data->func)(data->para);
             if(data->flag!=NULL) *(data->flag)=1;
+            free(data->para);
         }
 
         handle->buff_valid=1;
@@ -103,11 +103,16 @@ void ThreadFunc(void *thread_data)
     }
 }
 
-void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float priority)
+void m_ThreadPool(MList *pool,void (*func)(void *),void *para,int para_size,int *flag,float priority)
 {
     mException((pool==NULL)||(func==NULL),EXIT,"invalid input");
+    
+    if(para_size<0) para_size=strlen((char*)para);
+    void *func_para=malloc(para_size);
+    memcpy(func_para,para,para_size);
+    
     if(priority<0) priority=0.0;
-    int flag0; if(flag==NULL) flag=&flag0; *flag=0;
+    if(flag!=NULL) *flag=0;
 
     int i;
     MHandle *hdl=mHandle(pool,ThreadPool);
@@ -123,8 +128,9 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
             #else
             handle->cpu_num=sysconf(_SC_NPROCESSORS_ONLN);
             #endif
-            n=1;//handle->cpu_num;
+            n=handle->cpu_num;
         }
+        pool->num=0;
         mListPlace(pool,NULL,n,sizeof(struct ThreadPoolData));
         
         handle->pool = pool;
@@ -134,7 +140,6 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
         mListClear(handle->buff);
         
         pthread_mutex_init(&(handle->mutex0),NULL);
-        
         for(i=0;i<pool->num;i++)
         {
             struct ThreadPoolData *data = (struct ThreadPoolData *)(pool->data[i]);
@@ -147,7 +152,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
         hdl->valid =1;
     }
     mException((pool->num!=handle->thread_num),EXIT,"invalid thread pool");
-
+    
     pthread_mutex_lock(&(handle->mutex0));
     for(i=0;i<pool->num;i++)
     {
@@ -155,7 +160,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
         if(data->state == 1) continue;
 
         data->func = func;
-        data->para = para;
+        data->para = func_para;
         data->flag = flag;
         data->state = 1;
         pthread_mutex_lock(&(data->mutex));
@@ -169,7 +174,7 @@ void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float pri
         MList *buff = handle->buff;
         struct ThreadBuffData buff_data;
         buff_data.func = func;
-        buff_data.para = para;
+        buff_data.para = func_para;
         buff_data.flag = flag;
         buff_data.priority = priority;
 
@@ -196,6 +201,7 @@ struct EventInfo
 {
     void (*func)(void *);
     void *para;
+    int para_size;
 };
 struct HandleEvent
 {
@@ -217,7 +223,7 @@ void EventFunc(struct HandleEvent *handle)
         pthread_mutex_unlock(&(handle->mutex));
         
         if(info->func==NULL) return;
-        mThreadPool(handle->pool,info->func,info->para,NULL,DFLT);
+        mThreadPool(handle->pool,info->func,info->para,info->para_size,NULL,DFLT);
     }
 }
 #define HASH_Event 0x154256e5

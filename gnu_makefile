@@ -1,18 +1,43 @@
 OPENMP=1
-JPG_PNG=1
+USE_PNG=1
+USE_JPEG=1
+USE_SOCKET=1
+USE_USBCAMERA=1
 DEBUG=0
 
 CC = gcc
+CPPC = g++
 LIB = ar
-LIBDIR = ./lib/x64/gnu
+LIBDIR = ./lib/x64_gnu
 REMOVE = rm -rf
 
-CCFLAGS = -O2 -fPIC -Wall
+CCFLAGS = -O2 -fPIC -Wall -Wno-format
 ifeq ($(OPENMP), 1) 
 CCFLAGS += -fopenmp
 endif
 ifeq ($(DEBUG), 1) 
 CCFLAGS += -DDEBUG
+endif
+
+WRAPDEF = 
+DEPENDLIB = -lopenblas -lm
+
+ifeq ($(USE_PNG),1)
+WRAPDEF += -DMORN_USE_PNG
+DEPENDLIB += -lpng -lz
+endif
+
+ifeq ($(USE_JPEG),1)
+WRAPDEF += -DMORN_USE_JPEG
+DEPENDLIB += -ljpeg
+endif
+
+ifeq ($(USE_SOCKET),1)
+WRAPDEF += -DMORN_USE_SOCKET
+endif
+
+ifeq ($(USE_USBCAMERA),1)
+WRAPDEF += -DMORN_USE_USBCAMERA
 endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
@@ -27,15 +52,21 @@ CSOURCES += $(wildcard ./src/wave/*.c)
 CSOURCES += $(wildcard ./src/image/*.c)
 # CSOURCES += $(wildcard ./src/machine_learning/*.c)
 CSOURCES += $(wildcard ./src/deep_learning/*.c)
+
+WRAPSOURCES = $(wildcard ./src/wrap/*.c)
+WRAPOBJS = $(patsubst %.c,%.o,$(WRAPSOURCES))
+
+WRAPSOURCES2 = $(wildcard ./src/wrap/*.cpp)
+WRAPOBJS2 = $(patsubst %.cpp,%.o,$(WRAPSOURCES2))
+
 ifeq ($(JPG_PNG), 1) 
 CSOURCES += $(wildcard ./src/wrap/*.c)
 endif
 
 OBJS = $(patsubst %.c,%.o,$(CSOURCES))
 
-DEPENDLIB = -lopenblas -ljpeg -lpng -lz -lm
-
-INCLUDEDIR = -I ./include -I ./lib/include/
+INCLUDEDIR = -I ./include
+#-I ./lib/include/
 
 all:$(STATICLIB) $(TOOLEXE)
 
@@ -46,19 +77,27 @@ tool:$(TOOLEXE)
 
 static:$(STATICLIB)
 
-$(STATICLIB):$(OBJS)
-	$(LIB) -rc $(STATICLIB) $(OBJS)
+$(STATICLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(LIB) -rc $(STATICLIB) $(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
 
 shared:$(SHAREDLIB)
 
-$(SHAREDLIB):$(OBJS)
-	$(CC) $(CCFLAGS) -shared $(OBJS) -o $(SHAREDLIB)
+$(SHAREDLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(CC) $(CCFLAGS) -shared $(OBJS) $(WRAPOBJS) $(WRAPOBJS2) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
 
-%.o:%.c
+$(WRAPOBJS):%.o:%.c
+	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@
+
+$(WRAPOBJS2):%.o:%.cpp
+	$(CPPC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@
+
+$(OBJS):%.o:%.c
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -o $@
 
 clean:
-	$(REMOVE) $(OBJS)
+	$(REMOVE) $(OBJS) 
+	$(REMOVE) $(WRAPOBJS)
+	$(REMOVE) $(WRAPOBJS2)
 	$(REMOVE) $(STATICLIB)
 	$(REMOVE) $(SHAREDLIB)
 	$(REMOVE) $(TOOLEXE)

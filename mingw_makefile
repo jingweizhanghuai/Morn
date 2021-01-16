@@ -1,23 +1,33 @@
 OPENMP=1
+OPENCL=0
 USE_PNG=1
 USE_JPEG=1
+USE_SOCKET=1
+USE_USBCAMERA=1
 DEBUG=0
 
 CC = gcc
+CPPC = g++
 LIB = ar
-LIBDIR = ./lib/x64/mingw
+LIBDIR = ./lib/x64_mingw
 REMOVE = rm -rf
-
-CCFLAGS = -O2 -fPIC -Wall
-ifeq ($(OPENMP), 1)
-CCFLAGS += -fopenmp
-endif
-ifeq ($(DEBUG), 1) 
-CCFLAGS += -DDEBUG
-endif
 
 WRAPDEF = 
 DEPENDLIB = -lopenblas -lm
+CCFLAGS = -O2 -fPIC -Wno-format
+
+ifeq ($(OPENMP), 1)
+CCFLAGS += -fopenmp
+endif
+
+ifeq ($(DEBUG), 1) 
+CCFLAGS += -DDEBUG -D_DEBUG
+endif
+
+ifeq ($(OPENCL), 1)
+CCFLAGS += -DMORN_USE_CL
+DEPENDLIB += -lclBLAS -lOpenCL
+endif
 
 ifeq ($(USE_PNG),1)
 WRAPDEF += -DMORN_USE_PNG
@@ -27,6 +37,16 @@ endif
 ifeq ($(USE_JPEG),1)
 WRAPDEF += -DMORN_USE_JPEG
 DEPENDLIB += -ljpeg
+endif
+
+ifeq ($(USE_SOCKET),1)
+WRAPDEF += -DMORN_USE_SOCKET
+DEPENDLIB += -lws2_32
+endif
+
+ifeq ($(USE_USBCAMERA),1)
+WRAPDEF += -DMORN_USE_USBCAMERA
+DEPENDLIB += -lole32 -loleaut32 -lstrmiids
 endif
 
 STATICLIB = $(LIBDIR)/libmorn.a
@@ -43,7 +63,10 @@ SOURCES += $(wildcard ./src/deep_learning/*.c)
 OBJS = $(patsubst %.c,%.ob,$(SOURCES))
 
 WRAPSOURCES = $(wildcard ./src/wrap/*.c)
-WRAPOBJS = $(patsubst %.c,%.ob,$(WRAPSOURCES))
+WRAPOBJS = $(patsubst %.c,%.ob,$(WRAPSOURCES)) 
+
+WRAPSOURCES2 = $(wildcard ./src/wrap/*.cpp)
+WRAPOBJS2 = $(patsubst %.cpp,%.ob,$(WRAPSOURCES2))
 
 INCLUDEDIR = -I ./include -I ./lib/include
 
@@ -56,17 +79,20 @@ tool:$(TOOLEXE)
 
 static:$(STATICLIB)
 
-$(STATICLIB):$(OBJS) $(WRAPOBJS)
-	$(LIB) -rc $(STATICLIB) $(OBJS) $(WRAPOBJS)
+$(STATICLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(LIB) -rc $(STATICLIB) $(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
 
 shared:$(SHAREDLIB)
 
-$(SHAREDLIB):$(OBJS) $(WRAPOBJS)
-	$(CC) $(CCFLAGS) -shared $(OBJS) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
+$(SHAREDLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(CC) $(CCFLAGS) -shared $(OBJS) $(WRAPOBJS) $(WRAPOBJS2) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
 
 $(WRAPOBJS):%.ob:%.c 
 	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@
-	
+
+$(WRAPOBJS2):%.ob:%.cpp 
+	$(CPPC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@
+
 $(OBJS):%.ob:%.c
 	$(CC) $(CCFLAGS) $(INCLUDEDIR) -c $< -o $@
 
@@ -76,8 +102,10 @@ $(OBJS):%.ob:%.c
 #	del /a .\tool\libmorn.so
 #	del /a .\lib\x64\mingw\libmorn.a
     
-#clean:
-#	rddd -rf $(OBJS)
-#	rddd -rf $(STATICLIB)
-#	rddd -rf $(SHAREDLIB)
-#	rddd -rf $(TOOLEXE)
+clean:
+	rm -rf $(OBJS)
+	rm -rf $(WRAPOBJS)
+	rm -rf $(WRAPOBJS2)
+	rm -rf $(STATICLIB)
+	rm -rf $(SHAREDLIB)
+	rm -rf $(TOOLEXE)

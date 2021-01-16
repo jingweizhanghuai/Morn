@@ -159,7 +159,7 @@ float Softmax(MLayer *layer,MLayer *prev,float *error)
 void D_Softmax(MLayer *layer,MLayer *prev)
 {
     MTensor *tv = layer->tns;MTensor *in = prev->tns;MTensor *res=prev->res;
-    printf("aaaaaaaaaaaaa in=%p,res=%p\n",in->data[0],res->data[0]);
+    // printf("aaaaaaaaaaaaa in=%p,res=%p\n",in->data[0],res->data[0]);
     // int state = prev->state;
     // int size = in->channel*in->height*in->width;
     // for(int b=0;b<in->batch;b++)for(int i=0;i<size;i++)

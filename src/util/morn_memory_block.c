@@ -3,6 +3,9 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 #include "morn_util.h"
+#ifdef MORN_USE_CL
+#include <CL/cl.h>
+#endif
 /*
 #if defined MORN_USE_CUDA
 #include "cuda_runtime.h"
@@ -178,6 +181,7 @@ MMemoryBlock *mMemoryBlockCreate(int size,int device)
         block->cl_data=clCreateBuffer(morn_cl_memory_handle->cl_ctx[device],CL_MEM_READ_WRITE,size,NULL,&ret);
         mException((ret!=CL_SUCCESS),EXIT,"cannot create device memory");
         block->cl_evt =clCreateUserEvent(morn_cl_memory_handle->cl_ctx[device],&ret);
+        
         mException((ret!=CL_SUCCESS)||(block->cl_evt==NULL),EXIT,"cannot create user event");
         ret = clSetUserEventStatus(block->cl_evt,CL_COMPLETE);
         mException((ret!=CL_SUCCESS),EXIT,"cannot create user event");
@@ -205,8 +209,9 @@ void mMemoryBlockWrite(MMemoryBlock *block)
 {
     if(block->device==MORN_HOST  ) return;
     if(block->flag  ==MORN_DEVICE) return;
-    // clWaitForEvents(1, &event );
-    cl_int ret =clEnqueueWriteBuffer(morn_cl_memory_handle->cl_queue[block->device],block->cl_data,CL_TRUE,0,block->size,block->data,0,NULL,&(block->cl_evt));
+    
+    cl_event event = block->cl_evt;
+    cl_int ret =clEnqueueWriteBuffer(morn_cl_memory_handle->cl_queue[block->device],block->cl_data,CL_TRUE,0,block->size,block->data,0,NULL,&event);
     mException((ret!=CL_SUCCESS),EXIT,"error%d when write data to opencl device",ret);
     block->flag = MORN_DEVICE;
 }
@@ -214,9 +219,10 @@ void mMemoryBlockRead(MMemoryBlock *block)
 {
     if(block->device==MORN_HOST) return;
     if(block->flag  ==MORN_HOST) return;
-    printf("block->size=%d\n",block->size);
+    // printf("block->size=%d\n",block->size);
     
-    cl_int ret = clEnqueueReadBuffer(morn_cl_memory_handle->cl_queue[block->device],block->cl_data,CL_TRUE,0,block->size,block->data,0,NULL,&(block->cl_evt));
+    cl_event event = block->cl_evt;
+    cl_int ret = clEnqueueReadBuffer(morn_cl_memory_handle->cl_queue[block->device],block->cl_data,CL_TRUE,0,block->size,block->data,0,NULL,&event);
     mException((ret!=CL_SUCCESS),EXIT,"error%d when read data from opencl device",ret);
     block->flag = MORN_HOST;
 }
@@ -244,7 +250,9 @@ static __thread cl_event morn_cl_function_event[16];
 static __thread int morn_cl_function_event_num=0;
 __thread void *morn_cl_function_para[16];
 __thread int morn_cl_function_para_size[16];
-__thread int morn_cl_function_para_num;
+__thread int morn_cl_function_para_num=0;
+__thread size_t morn_cl_size[4];
+__thread int morn_cl_dim;
 
 struct HandleCLFunction
 {
@@ -257,16 +265,15 @@ void endCLFunction(struct HandleCLFunction *handle)
     if(handle->program) clReleaseProgram(handle->program);
 }
 #define HASH_CLFunction 0x1c9ebdd4
-void CLFunction(const char *source,int para_num,void **para,int *para_size)
+void CLFunction(const char *source,const char *name,int para_num,void **para,int *para_size)
 {
     int ret;
     mException(INVALID_POINTER(source),EXIT,"invalid input");
     mException(morn_cl_memory_block==NULL,EXIT,"invalid input");
     
-    int device        =  morn_cl_memory_block->device;
-    cl_event *event   =&(morn_cl_memory_block->cl_evt);
-    size_t global_size[2] ={morn_cl_memory_block->size/100,100};
-    size_t local_size[2] ={1,1};
+    int device    = morn_cl_memory_block->device;
+    cl_event event= morn_cl_memory_block->cl_evt;
+    // printf("morn_cl_dim=%d,morn_cl_size=%d,%d,%d,%d\n",morn_cl_dim,morn_cl_size[0],morn_cl_size[1],morn_cl_size[2],morn_cl_size[3]);
     cl_command_queue queue=mDeviceQueue(device);
     
     MHandle *hdl = mHandle(mMornObject((void *)source,DFLT),CLFunction);
@@ -282,31 +289,32 @@ void CLFunction(const char *source,int para_num,void **para,int *para_size)
         ret = clBuildProgram(handle->program,0,NULL,NULL,NULL,NULL);
         mException((ret!=CL_SUCCESS),EXIT,"invalid input cl program source");
 
-        char *p=(char *)source;int sz;for(;*p!='(';p++);for(p--;*p==' ';p--);for(sz=0;*p!=' ';p--,sz++);
-        char name[256];memcpy(name,p+1,sz);name[sz]=0;
-        // printf("name=%ssz=%d\n",name,sz);
-
-        if(handle->kernel ) clReleaseKernel( handle->kernel );
+        // printf("name=%s\n",name);
+        if(handle->kernel) clReleaseKernel(handle->kernel);
         handle->kernel = clCreateKernel(handle->program,name,NULL);
         mException(handle->kernel==NULL,EXIT,"invalid input cl program");
         
         hdl->valid = 1;
     }
 
+    // printf("para_num=%d\n",para_num);
     for(int i=0;i<para_num;i++)
     {
+        // printf("para_size[i]=%d\n",para_size[i]);
         ret=clSetKernelArg(handle->kernel,i,para_size[i],para[i]);
         mException((ret!=CL_SUCCESS),EXIT,"invalid input cl program parameter");
     }
 
     cl_event *event_list = morn_cl_function_event;
     int event_num = morn_cl_function_event_num;
-    
-    ret = clEnqueueNDRangeKernel(queue,handle->kernel,2,NULL,global_size,local_size,event_num,event_list,event);
+    // printf("event_num=%d\n",event_num);
+    // for(int i=0;i<event_num;i++)printf("event=%p\n",event_list[i]);
+
+    ret = clEnqueueNDRangeKernel(queue,handle->kernel,morn_cl_dim,NULL,morn_cl_size,NULL,event_num,event_list,&event);
     mException((ret!=CL_SUCCESS),EXIT,"invalid input cl program");
 }
 
-void CLOUT(MMemoryBlock *block)
+int CLOUT(MMemoryBlock *block)
 {
     int n=morn_cl_function_para_num++;
     if(n==0){morn_cl_function_event_num=0;morn_cl_memory_block=NULL;}
@@ -315,27 +323,55 @@ void CLOUT(MMemoryBlock *block)
     block->flag = MORN_DEVICE;
     morn_cl_function_para[n]=&(block->cl_data);
     morn_cl_function_para_size[n]=sizeof(cl_mem);
+    return DFLT;
 }
-void CLIN(MMemoryBlock *block)
+int CLIN(MMemoryBlock *block)
 {
     int n=morn_cl_function_para_num++;
     if(n==0){morn_cl_function_event_num=0;morn_cl_memory_block=NULL;}
     
     if(block->flag==MORN_HOST) mMemoryBlockWrite(block);
     morn_cl_function_event[morn_cl_function_event_num++]=block->cl_evt;
+    // printf("block->cl_evt=%p\n",block->cl_evt);
     morn_cl_function_para[n]=&(block->cl_data);
     morn_cl_function_para_size[n]=sizeof(cl_mem);
+    return DFLT;
 }
-void CLPARA(void *para,int size)
+int CLINOUT(MMemoryBlock *block)
+{
+    int n=morn_cl_function_para_num++;
+    if(n==0){morn_cl_function_event_num=0;morn_cl_memory_block=NULL;}
+    
+    if(block->flag==MORN_HOST) mMemoryBlockWrite(block);
+    morn_cl_function_event[morn_cl_function_event_num++]=block->cl_evt;
+    
+    morn_cl_memory_block=block;
+    
+    morn_cl_function_para[n]=&(block->cl_data);
+    morn_cl_function_para_size[n]=sizeof(cl_mem);
+    return DFLT;
+}
+int CLPARA(void *para,int size)
 {
     int n=morn_cl_function_para_num++;
     if(n==0){morn_cl_function_event_num=0;morn_cl_memory_block=NULL;}
     
     morn_cl_function_para[n]=para;
     morn_cl_function_para_size[n]=size;
+    return DFLT;
 }
+int CLSize(int n,int s1,int s2,int s3,int s4)
+{
+    morn_cl_dim=n;
+    mException(n==0,EXIT,"invalid cl size");\
+    morn_cl_size[0]=s1;morn_cl_size[1]=s2;morn_cl_size[2]=s3;morn_cl_size[3]=s4;
+    return (DFLT+DFLT);
+}
+#else
+void mMemoryBlockWrite(MMemoryBlock *block) {mException(block->device!=MORN_HOST,EXIT,"invalid memory device");}
+void mMemoryBlockRead(MMemoryBlock *block)  {mException(block->device!=MORN_HOST,EXIT,"invalid memory device");}
+void mMemoryBlockCopy(MMemoryBlock *block,int device) {mException((block->device!=MORN_HOST)||(device!=MORN_HOST),EXIT,"invalid memory device");}
 #endif
-
 
 struct HandleMemory
 {
@@ -676,9 +712,8 @@ void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num)
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     mException(((row<=0)||(col_size<=0)),EXIT,"invalid input");
     mException(INVALID_POINTER(index),EXIT,"invalid input");
-    
     if(num<=0) num=memory->num;
-    
+
     for(int j=0;j<num;j++)
     {
         MMemoryBlock *block = (MMemoryBlock *)(memory->data[j]);

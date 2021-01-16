@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include <cblas.h>
 #include "morn_tensor.h"
 
@@ -246,7 +241,7 @@ void TensorConvSet(MLayer *layer)
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    
         {
-            printf("llllllllllllllllllllllllll layer->name=%s\n",layer->name);
+            // printf("llllllllllllllllllllllllll layer->name=%s\n",layer->name);
             mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
         }
 
@@ -426,7 +421,7 @@ void mTensorConvBackward(MLayer *layer)
 
     // printf("\nkernel_data0=\n");for(int ii=0;ii<200;ii++) printf("%f,",kernel_data[ii]);
     // printf("\nupdate_data=\n");for(int ii=0;ii<200;ii++) printf("%f,",update_data[ii]);
-    printf("%s:update_data=%f,kernel_data=%f,%f\n",layer->name,update_data[10],kernel_data[10],kernel_data[10]-(para->rate/(float)(in->batch))*update_data[10]);
+    // printf("%s:update_data=%f,kernel_data=%f,%f\n",layer->name,update_data[10],kernel_data[10],kernel_data[10]-(para->rate/(float)(in->batch))*update_data[10]);
     cblas_saxpby(para->knl_num*mheight,
                  (0.0f-(para->rate/(float)(in->batch))),update_data,1, 
                  (1.0f-(para->decay*para->rate))       ,kernel_data,1);

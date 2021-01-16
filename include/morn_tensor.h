@@ -50,6 +50,7 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 void mTensorRelease(MTensor *tns);
+MMemoryBlock *mTensorMemory(MTensor *tns,int batch);
 
 float **mTensorBackup(MTensor *tns,int batch,int cn,int height,int width);
 void mTensorCopy(MTensor *src,MTensor *dst,int dev);
@@ -84,15 +85,12 @@ void mTensorRegister(const char *type,void *(*para)(MFile *,char *),void (*forwa
 int mTensorRegisterIndex(const char *type);
 void mTensorRegisterAll();
 
-struct ActvRegister
-{
-    char name[32];
-    float (*func)(float,float *);
-    float (*dfunc)(float,float *);
-};
-extern struct ActvRegister morn_actv_register[64];
-extern int morn_actv_register_num;
-void mActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *));
+void ActivationRegister(const char *name,float (*func)(float,float *),float (*dfunc)(float,float *),char *source);
+#ifdef MORN_USE_CL
+#define mActivationRegister(Name) ActivationRegister(#Name,Name,D##Name,CL_##Name)
+#else
+#define mActivationRegister(Name) ActivationRegister(#Name,Name,D##Name,NULL)
+#endif
 void mActivationRegisterAll();
 
 struct LossRegister

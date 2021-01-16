@@ -373,3 +373,29 @@ int64_t m_StringTime(char *string,const char *fmt)
     struct tm t;t.tm_year=year-1900; t.tm_mon=month-1;t.tm_mday=day;t.tm_hour=hour;t.tm_min=minute;t.tm_sec=second;
     return (int64_t)mktime(&t)-td;
 }
+
+void calendar(int year)
+{
+    printf("%47d\n",year);
+    int md[14]={31,(year%4)?28:29,31,30,31,30,31,31,30,31,30,31,0,0};
+    
+    struct tm t;memset(&t,0,sizeof(struct tm));t.tm_year=year-1900;
+    int w1 = (mktime(&t)/3600/24+6)%7,w2=(w1+md[0])%7,w3=(w2+md[1])%7;
+    
+    for(int m=0;m<12;m+=3)
+    {
+        int d1=1-w1,d2=1-w2,d3=1-w3;
+        printf("\n%16d%30d%30d\n",m+1,m+2,m+3);
+        printf(" Sun Mon Tue Wed Thu Fri Sat   Sun Mon Tue Wed Thu Fri Sat   Sun Mon Tue Wed Thu Fri Sat\n");
+        while((d1<=md[m])||(d2<=md[m+1])||(d3<=md[m+2]))
+        {
+            for(int i=0;i<7;i++,d1++) {printf(((d1>0)&&(d1<=md[m  ]))?"%4d":"    ",d1);}printf("  ");
+            for(int i=0;i<7;i++,d2++) {printf(((d2>0)&&(d2<=md[m+1]))?"%4d":"    ",d2);}printf("  ");
+            for(int i=0;i<7;i++,d3++) {printf(((d3>0)&&(d3<=md[m+1]))?"%4d":"    ",d3);}printf("\n");
+        }
+        
+        w1=(w3+md[m+2])%7;
+        w2=(w1+md[m+3])%7;
+        w3=(w2+md[m+4])%7;
+    }
+}

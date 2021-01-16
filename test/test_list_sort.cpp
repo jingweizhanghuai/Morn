@@ -1,14 +1,8 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： g++ -O2 -fopenmp test_list_sort.cpp -I ..\include\ -L ..\lib\x64\mingw\ -lmorn -o test_list_sort.exe
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// build: g++ -O2 -fopenmp test_list_sort.cpp -I ..\include\ -L ..\lib\x64_mingw\ -lmorn -o test_list_sort.exe
 
 #include "morn_image.h"
 
@@ -51,15 +45,13 @@ void test1()
         mListWrite(list,DFLT,&student,sizeof(struct Student));
     }
     
-    printf("student mean score sort by STL:\n");
-    mTimerBegin();
+    mTimerBegin("stl");
     sort(vec.begin(),vec.end(),stl_student_compare);  
-    mTimerEnd();
+    mTimerEnd("stl");
     
-    printf("student mean score sort by Morn:\n");
-    mTimerBegin();
-    mListSort(list,morn_student_compare,NULL);
-    mTimerEnd();
+    mTimerBegin("Morn");
+    mListSort(list,(void *)morn_student_compare,NULL);
+    mTimerEnd("Morn");
     
     // for(int i=50000;i<50010;i++) printf("%d,",(vec.at(i)).mean); printf("\n");
     // for(int i=50000;i<50010;i++) printf("%d,",((struct Student *)(list->data[i]))->mean); printf("\n");
@@ -89,15 +81,13 @@ void test2()
         mListWrite(list,DFLT,&rect,sizeof(MImageRect));
     }
     
-    printf("rect area sort by stl:\n");
-    mTimerBegin();
+    mTimerBegin("stl");
     sort(vec.begin(),vec.end(),stl_rect_compare);  
-    mTimerEnd();
+    mTimerEnd("stl");
     
-    printf("rect area sort by morn:\n");
-    mTimerBegin();
-    mListSort(list,morn_rect_compare,NULL);
-    mTimerEnd();
+    mTimerBegin("Morn");
+    mListSort(list,(void *)morn_rect_compare,NULL);
+    mTimerEnd("Morn");
     
     // for(int i=50000;i<50010;i++) printf("%d,",mRectArea(&(vec.at(i)))); printf("\n");
     // for(int i=50000;i<50010;i++) printf("%d,",mRectArea(list->data[i])); printf("\n");
@@ -107,8 +97,11 @@ void test2()
 
 int main()
 {
+    printf("student mean score sort:\n");
     test1();
+
+    printf("rect area sort:\n");
     test2();
+    
     return 0;
 }
-    

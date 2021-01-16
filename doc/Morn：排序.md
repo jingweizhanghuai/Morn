@@ -6,7 +6,7 @@
 
 此文档相关函数都定义在[morn_sort.c](../src/math/morn_sort.c)里，接口在[morn_math.h](../include/morn_math.h)里。
 
-这里值得一提的是：此处接口都是**支持“泛型”的C语言接口**，这里的**Type支持`int8_t`、`uint8_t`、`int16_t`、`uint16_t`、`int32_t`、`uint32_t`、`int64_t`、`float`、`double`九种数据类型**。
+这里值得一提的是：此处接口都是**支持“泛型”的C语言接口**，这里的**Type支持`int8_t`、`uint8_t`、`int16_t`、`uint16_t`、`int32_t`、`uint32_t`、`int64_t`、`uint64_t`、`float`、`double`十种数据类型**。
 
 #### 升序排序
 
@@ -16,9 +16,7 @@ void mAscSort(Type *data_in,int *index_in,Type *data_out,int *index_out,int num)
 
 data_in是数据的输入（待排序数据），data_out是数据的输出（排序后数据）。
 
-data_out可以等于data_in，也就是输出覆盖输入。
-
-data_out若设为NULL，则取其默认值为data_in，也即默认覆盖输入。
+data_out可以等于data_in，也就是输出覆盖输入。data_out若设为NULL，则取其默认值为data_in，也即默认覆盖输入。
 
 index_in是输入数据的顺序，index_out是输出数据的顺序，如果两者都取NULL，表示排序时不记录顺序。
 

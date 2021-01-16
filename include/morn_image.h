@@ -98,7 +98,7 @@ void mImageDataInputF32(MImage *img,F32 *stream,int stream_type,void *func,void 
 void mImageDataInputS64(MImage *img,S64 *stream,int stream_type,void *func,void *para);
 void mImageDataInputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
-#define mImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
+#define m_ImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
     int data_type = mDataType(Stream);\
          if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (img,(U8  *)stream,stream_type,func,para);\
     else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (img,(S8  *)stream,stream_type,func,para);\
@@ -111,6 +111,17 @@ void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void 
     else if(data_type==MORN_TYPE_U64) mImageDataInputU64(img,(U64 *)stream,stream_type,func,para);\
     else if(data_type==MORN_TYPE_D64) mImageDataInputD64(img,(D64 *)stream,stream_type,func,para);\
 }while(0)
+#define mImageDataInput(Img,Stream,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+    intptr_t VA1 = (intptr_t)VA_ARG0(__VA_ARGS__),VA2=(intptr_t)VA_ARG1(__VA_ARGS__),VA3=(intptr_t)VA_ARG2(__VA_ARGS__);\
+         if(VAN==0)           m_ImageDataInput(Img,Stream,    DFLT,       NULL,       NULL); \
+    else if(VAN==1){if(VA1<6) m_ImageDataInput(Img,Stream,(int)VA1,       NULL,       NULL); \
+                    else      m_ImageDataInput(Img,Stream,    DFLT,(void *)VA1,       NULL);}\
+    else if(VAN==2){if(VA1<6) m_ImageDataInput(Img,Stream,(int)VA1,(void *)VA2,       NULL); \
+                    else      m_ImageDataInput(Img,Stream,    DFLT,(void *)VA1,(void *)VA3);}\
+    else if(VAN==3)           m_ImageDataInput(Img,Stream,(int)VA1,(void *)VA2,(void *)VA3); \
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 
 void mImageDataOutputU8 (MImage *img,U8  *stream,int stream_type,void *func,void *para);
 void mImageDataOutputS8 (MImage *img,S8  *stream,int stream_type,void *func,void *para);
@@ -122,27 +133,46 @@ void mImageDataOutputF32(MImage *img,F32 *stream,int stream_type,void *func,void
 void mImageDataOutputS64(MImage *img,S64 *stream,int stream_type,void *func,void *para);
 void mImageDataOutputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
-#define mImageDataOutput(Img,Stream,Stream_type,Func,Para) do{\
+#define m_ImageDataOutput(Img,Stream,Stream_type,Func,Para) do{\
     int data_type = mDataType(Stream);\
-         if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8 (img,(U8  *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8 (img,(S8  *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_U16) mImageDataOutputU16(img,(U16 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_S16) mImageDataOutputS16(img,(S16 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_U32) mImageDataOutputU32(img,(U32 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_S32) mImageDataOutputS32(img,(S32 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_F32) mImageDataOutputF32(img,(F32 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_S64) mImageDataOutputS64(img,(S64 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_U64) mImageDataOutputU64(img,(U64 *)stream,stream_type,func,para);\
-    else if(data_type==MORN_TYPE_D64) mImageDataOutputD64(img,(D64 *)stream,stream_type,func,para);\
-}                                                              
+         if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8 (Img,(U8  *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8 (Img,(S8  *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U16) mImageDataOutputU16(Img,(U16 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S16) mImageDataOutputS16(Img,(S16 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U32) mImageDataOutputU32(Img,(U32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S32) mImageDataOutputS32(Img,(S32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_F32) mImageDataOutputF32(Img,(F32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S64) mImageDataOutputS64(Img,(S64 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U64) mImageDataOutputU64(Img,(U64 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_D64) mImageDataOutputD64(Img,(D64 *)Stream,Stream_type,Func,Para);\
+}while(0)
+#define mImageDataOutput(Img,Stream,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+    intptr_t VA1 = (intptr_t)VA_ARG0(__VA_ARGS__),VA2=(intptr_t)VA_ARG1(__VA_ARGS__),VA3=(intptr_t)VA_ARG2(__VA_ARGS__);\
+         if(VAN==0)           m_ImageDataOutput(Img,Stream,    DFLT,       NULL,       NULL); \
+    else if(VAN==1){if(VA1<6) m_ImageDataOutput(Img,Stream,(int)VA1,       NULL,       NULL); \
+                    else      m_ImageDataOutput(Img,Stream,    DFLT,(void *)VA1,       NULL);}\
+    else if(VAN==2){if(VA1<6) m_ImageDataOutput(Img,Stream,(int)VA1,(void *)VA2,       NULL); \
+                    else      m_ImageDataOutput(Img,Stream,    DFLT,(void *)VA1,(void *)VA3);}\
+    else if(VAN==3)           m_ImageDataOutput(Img,Stream,(int)VA1,(void *)VA2,(void *)VA3); \
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 
-void mImageRGBToYUV(MImage *src,MImage *dst);
-void mImageYUVToRGB(MImage *src,MImage *dst);
-void mImageRGBToHSV(MImage *src,MImage *dst);
-void mImageHSVToRGB(MImage *src,MImage *dst);
-void mImageRGBToGray(MImage *src,MImage *dst);
-void mImageYUVToGray(MImage *src,MImage *dst);
-void mImageToGray(MImage *src,MImage *dst); 
+
+void m_ImageRGBToYUV(MImage *src,MImage *dst);
+#define mImageRGBToYUV(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageRGBToYUV(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageRGBToYUV(VA_ARG0(__VA_ARGS__),NULL))
+void m_ImageYUVToRGB(MImage *src,MImage *dst);
+#define mImageYUVToRGB(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageYUVToRGB(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageYUVToRGB(VA_ARG0(__VA_ARGS__),NULL))
+void m_ImageRGBToHSV(MImage *src,MImage *dst);
+#define mImageRGBToHSV(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageRGBToHSV(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageRGBToHSV(VA_ARG0(__VA_ARGS__),NULL))
+void m_ImageHSVToRGB(MImage *src,MImage *dst);
+#define mImageHSVToRGB(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageHSVToRGB(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageHSVToRGB(__VA_ARGS__),NULL))
+void m_ImageRGBToGray(MImage *src,MImage *dst);
+#define mImageRGBToGray(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageRGBToGray(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageRGBToGray(VA_ARG0(__VA_ARGS__),NULL))
+void m_ImageYUVToGray(MImage *src,MImage *dst);
+#define mImageYUVToGray(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageYUVToGray(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageYUVToGray(VA_ARG0(__VA_ARGS__),NULL))
+void m_ImageToGray(MImage *src,MImage *dst);
+#define mImageToGray(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_ImageToGray(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__)):m_ImageToGray(VA_ARG0(__VA_ARGS__),NULL))
 
 #define mImageExchange(Src,Dst) mObjectExchange(Src,Dst,MImage)
 #define mImageReset(Img) mHandleReset(Img->handle)
@@ -200,21 +230,176 @@ void ImageSave(MImage *img,const char *filename);
 #define mImageLoad(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageLoad(Img,morn_filename);}while(0)
 #define mImageSave(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageSave(Img,morn_filename);}while(0)
 
-#define MORN_RESIZE_UNUNIFORM  DFLT
-#define MORN_RESIZE_MINUNIFORM 0xFE
-#define MORN_RESIZE_MAXUNIFORM 0xFD
-#define MORN_INTERPOLATE       DFLT
-#define MORN_NEAREST           0xEF
-void mImageResize(MImage *src,MImage *dst,int height,int width,int type);
+#define MORN_RESIZE_UNUNIFORM        DFLT
+#define MORN_RESIZE_MINUNIFORM 0xFFFFFFFE
+#define MORN_RESIZE_MAXUNIFORM 0xFFFFFFFD
+#define MORN_INTERPOLATE             DFLT
+#define MORN_NEAREST           0xFFFFFFEF
+void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type);
+#define mImageResize(src,...) {\
+         if(VA_ARG_NUM(__VA_ARGS__)==1) m_ImageResize(src,(MImage *)VA_ARG0(__VA_ARGS__),DFLT,DFLT,DFLT);\
+    else if(VA_ARG_NUM(__VA_ARGS__)==2)\
+    {\
+        if((int)VA_ARG1(__VA_ARGS__)<0)\
+            m_ImageResize(src,(MImage *)VA_ARG0(__VA_ARGS__),DFLT,DFLT,VA_ARG1(__VA_ARGS__));\
+        else\
+            m_ImageResize(src,NULL,(intptr_t)VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VA_ARG_NUM(__VA_ARGS__)==3)\
+    {\
+        if((int)VA_ARG2(__VA_ARGS__)<0)\
+            m_ImageResize(src,NULL,(intptr_t)VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__));\
+        else\
+            m_ImageResize(src,(MImage *)VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),DFLT);\
+    }\
+    else if(VA_ARG_NUM(__VA_ARGS__)==4) m_ImageResize(src,(MImage *)VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid operate for image resize");\
+}
 
-extern unsigned char morn_default_color[3];
-void mImageDrawPoint(MImage *src,MImage *dst,MImagePoint *point,unsigned char *color,int width);
-void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *color,int width);
-void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width);
-void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width);
-void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char *color,int width);
-// void mImageDrawCurve(MImage *src,MImage *dst,float (*func)(float,void *),void *para,unsigned char *color,int width);
-void mImageDrawCurve(MImage *src,MImage *dst,MImageCurve *curve,unsigned char *color,int width);
+void m_ImageDrawPoint (MImage *src,MImage *dst,MImagePoint *point,             unsigned char *color,int width);
+void m_ImageDrawRect  (MImage *src,MImage *dst,MImageRect *rect,               unsigned char *color,int width);
+void m_ImageDrawLine  (MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width);
+void m_ImageDrawShape (MImage *src,MImage *dst,MList *shape,                   unsigned char *color,int width);
+void m_ImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,           unsigned char *color,int width);
+void m_ImageDrawCurve (MImage *src,MImage *dst,MImageCurve *curve,             unsigned char *color,int width);
+#define mImageDrawPoint(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==1) m_ImageDrawPoint(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==2)\
+    {\
+        W=(intptr_t)VA_ARG1(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawPoint(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                         m_ImageDrawPoint(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                               m_ImageDrawPoint(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawPoint(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawPoint(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawPoint(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==4) m_ImageDrawPoint(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageDrawRect(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==1) m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==2)\
+    {\
+        W=(intptr_t)VA_ARG1(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawRect(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageRect *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                             m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawRect(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageRect *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawRect(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageRect *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==4) m_ImageDrawRect(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageRect *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageDrawLine(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==2) m_ImageDrawLine(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawLine(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(MImagePoint *)VA_ARG2(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawLine(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+        else                                             m_ImageDrawLine(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==4)\
+    {\
+        W=(intptr_t)VA_ARG3(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawLine(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(MImagePoint *)VA_ARG2(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawLine(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(MImagePoint *)VA_ARG2(__VA_ARGS__),(unsigned char *)VA_ARG3(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawLine(Img,Img,(MImagePoint *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==5) m_ImageDrawLine(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImagePoint *)VA_ARG1(__VA_ARGS__),(MImagePoint *)VA_ARG2(__VA_ARGS__),(unsigned char *)VA_ARG3(__VA_ARGS__),(int)VA_ARG4(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageDrawShape(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==1) m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==2)\
+    {\
+        W=(intptr_t)VA_ARG1(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawShape(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                             m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawShape(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawShape(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==4) m_ImageDrawShape(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageDrawCircle(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==1) m_ImageDrawCircle(Img,Img,(MImageCircle *)VA_ARG0(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==2)\
+    {\
+        W=(intptr_t)VA_ARG1(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawCircle(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCircle *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawCircle(Img,Img,(MImageCircle *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                             m_ImageDrawCircle(Img,Img,(MImageCircle *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawCircle(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCircle *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawCircle(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCircle *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawCircle(Img,Img,(MImageCircle *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==4) m_ImageDrawCircle(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCircle *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageDrawCurve(Img,...) do{\
+    int VAN = VA_ARG_NUM(__VA_ARGS__);intptr_t W;\
+         if(VAN==1) m_ImageDrawCurve(Img,Img,(MImageCurve *)VA_ARG0(__VA_ARGS__),NULL,DFLT);\
+    else if(VAN==2)\
+    {\
+        W=(intptr_t)VA_ARG1(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawCurve(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCurve *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
+        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawCurve(Img,Img,(MImageCurve *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                             m_ImageDrawCurve(Img,Img,(MImageCurve *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+    }\
+    else if(VAN==3)\
+    {\
+        W=(intptr_t)VA_ARG2(__VA_ARGS__);\
+        if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))\
+        {\
+            if((W<=4)&&(W>=DFLT))m_ImageDrawCurve(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCurve *)VA_ARG1(__VA_ARGS__),NULL,(int)W);\
+            else                 m_ImageDrawCurve(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCurve *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),DFLT);\
+        }\
+        else                     m_ImageDrawCurve(Img,Img,(MImageCurve *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),(int)W);\
+    }\
+    else if(VAN==4) m_ImageDrawCurve(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageCurve *)VA_ARG1(__VA_ARGS__),(unsigned char *)VA_ARG2(__VA_ARGS__),(int)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 
 void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para);
@@ -254,6 +439,8 @@ int mPolygonCrossCheck(MList *polygon1,MList *polygon2);
 int mPolygonConcaveCheck(MList *polygon);
 void mShapeBounding(MList *shape,MList *bounding);
 
+void mConvexHull(MList *point,MList *polygon);
+
 void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon);
 #define mImagePolygonBorder(Border,Height,Width,...) do{\
     MList *Polygon=ListCreate(DFLT,NULL);\
@@ -275,7 +462,15 @@ int mImageBinaryArea(MImage *src,MList *list,MImagePoint *point);
 void mImageBinaryDenoise(MImage *src,MImage *dst,int num_thresh);
 void mImageBinaryBurrRemove(MImage *src,MImage *dst);
 
-void mImageIntegration(MImage *src,MTable **sum,MTable **sqsum);
+void ImageIntegration(MImage *src,MTable **dst);
+void m_ImageIntegration(MImage *src,MTable **sum,MTable **sqsum);
+#define mImageIntegration(src,...) do{\
+    int NPara=VA_ARG_NUM(__VA_ARGS__);\
+         if(NPara==1)   ImageIntegration(src,VA_ARG0(__VA_ARGS__));\
+    else if(NPara==2) m_ImageIntegration(src,VA_ARG0(__VA_ARGS__),(MTable **)VA_ARG1(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageIntegrationSum(Tab,X1,X2,Y1,Y2) (Tab->dataS32[(Y2)+1][(X2)+1]+Tab->dataS32[Y1][X1]-Tab->dataS32[(Y2)+1][X1]-Tab->dataS32[Y1][(X2)+1])
 
 void mVideoBackground(MImage *src,MImage *bgd,int time_thresh,int diff_thresh);
 

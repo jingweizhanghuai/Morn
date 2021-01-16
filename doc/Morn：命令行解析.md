@@ -1,7 +1,5 @@
 ## Morn：命令行解析
 
-../tool文件夹里的那些工具，在解析命令的时候，用的就是这个。
-
 
 
 ### 接口
@@ -97,6 +95,10 @@ int main(int argc,char **argv)
 
 对于以下情况，应在程序设计时避免出现
 
+```c
+char *para = mStringArgument(argc,argv,"a");
+```
+
 ```
 $ test.exe -ab=12345
 para is b=12345
@@ -173,7 +175,7 @@ int main(int argc,char *argv[])
 imageformat.exe -i ./test.jpg -o ./test.png
 ```
 
-则经过解析后，file_in即为"./test.jpg"，file_out即为"./test.png"，其它dir_in、dir_out、type_in、type_out都会被置为NULL。
+则经过解析后，file_in即为"./test.jpg"，file_out即为"./test.png"，其它dir_in、dir_out、type_in、type_out都会被置为NULL，此时程序实现将图像test.jpg转变为图像test.png。
 
 再如，假设我们传入的是：
 
@@ -181,5 +183,5 @@ imageformat.exe -i ./test.jpg -o ./test.png
 imageformat.exe -di ./test/in/ -ti jpg -do ./test/out/ -to png
 ```
 
-则经过解析后，dir_in即为"./test/in/"，dir_out即为"./test/out/"，type_in即为"jpg"，type_out即为"png"，file_in、file_out会被置为NULL。
+则经过解析后，dir_in即为"./test/in/"，dir_out即为"./test/out/"，type_in即为"jpg"，type_out即为"png"，file_in、file_out会被置为NULL。此时程序实现将./test/in/目录下所有jpg图像转变为./test/out/目录下的png图像。
 

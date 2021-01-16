@@ -154,3 +154,114 @@ int mMORNWrite(MFile *file,int ID,void **data,int num,int size)
     for(int i=0;i<num;i++)fwrite(data[i],1,size,handle->f);
     return chunk_size;
 }
+
+
+
+/*
+#if defined(_WIN64)||defined(_WIN32)
+#include <Windows.h>
+#define m_Exist(ID) (GetProcessVersion(ID/1000)!=0)
+#define m_Open(Filename) CreateFile(Filename,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_ALWAYS,0,0)
+#define m_Close(File) CloseHandle(File)
+#define m_Seek(Handle,Locate) do{\
+    if((Locate<0)||(handle->file_size==0)) handle->file_size=SetFilePointer(Handle->file,0,NULL,FILE_END);\
+    if(Locate>0) {SetFilePointer(File,Locate,NULL,FILE_BEGIN);handle->file_size=MAX(Locate,handle->file_size);\
+}\
+    
+    SetFilePointer(File,MAX(0,Locate),NULL,(Locate>=0)?FILE_BEGIN:FILE_END)
+
+#define m_Read(File,Locate,Pointer,Size) do{int A;\
+    do{A=SetFilePointer(File,Locate,NULL,FILE_BEGIN);}while(A!=Locate);\
+    do{A=ReadFile(File,Pointer,Size,NULL,NULL);}while(A==0);\
+}while(0)
+#define m_Write(File,Locate,Pointer,Size) do{int A;\
+    do{A=SetFilePointer(File,Locate,NULL,FILE_BEGIN);}while(A!=Locate);\
+    do{A=WriteFile(File,Pointer,Size,NULL,NULL);}while(A==0);\
+}while(0)
+#define m_Lock(File)   LockFile(File,0,0,2*sizeof(int),0)
+#define m_Unlock(File) UnlockFile(File,0,0,2*sizeof(int),0)
+// #define m_Fsize(File) GetFileSize(File,NULL)
+#define m_Fsize(File) SetFilePointer(File,0,NULL,FILE_END)
+#define m_Mmap(Handle,Pointer,Size,Offset) do{\
+    HANDLE Map = CreateFileMapping(File,NULL,PAGE_READWRITE,0,Size,NULL);\
+    Pointer = MapViewOfFile(Map,FILE_MAP_ALL_ACCESS,0,0,Size);\
+    CloseHandle(Map);\
+    mException(Pointer==NULL,EXIT,"error with mmap");\
+}while(0)
+#define m_Munmap(Pointer,Size) UnmapViewOfFile(Pointer);
+#else
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#include <signal.h>
+#define m_Exist(ID) (kill((ID/1000),0)==0)
+#define m_Open(Filename) open(Filename,O_RDWR|O_CREAT,S_IRUSR|S_IWUSR);
+#define m_Close(File) close(File)
+#define m_Read(File,Locate,Pointer,Size) do{\
+    mException((lseek(File,Locate,SEEK_SET)!=Locate),EXIT,"error with file lseek");\
+    mException((read(File,Pointer,Size)!=Size),EXIT,"error with file read");\
+}while(0)
+#define m_Write(File,Locate,Pointer,Size) do{\
+    mException((lseek(File,Locate,SEEK_SET)!=Locate),EXIT,"error with file lseek");\
+    mException((write(File,Pointer,Size)!=Size),EXIT,"error with file write");\
+}while(0)
+#define m_Lock(File)   flock(File,LOCK_EX)
+#define m_Unlock(File) flock(File,LOCK_UN)
+#define m_Fsize(File) lseek(File,1,SEEK_END)
+#define m_Mmap(File,Pointer,Size) do{\
+    Pointer=mmap(NULL,(Size),PROT_READ|PROT_WRITE,MAP_SHARED,File,0);\
+    mException(Pointer==NULL,EXIT,"error with mmap");\
+}while(0)
+#define m_Munmap(Pointer,Size) munmap(Pointer,Size);
+#endif
+
+struct HandleFileRW
+{
+    #if defined(_WIN64)||defined(_WIN32)
+    HANDLE file;
+    #else
+    int file;
+    #endif
+    int filesize;
+    char *fileptr;
+    int fileidle;
+    
+    char *block;
+    int block_offset;
+    int block_size;
+};
+void beginFileRW(MFile *file)//char *filename,struct HandleFileRW *handle)
+{
+    int *p = file->filename-sizeof(void *)*2;
+    if(p[0]==HASH_FileRW) return (struct HandleFileRW *)(p+2);
+    MHandle *hdl = mHandle(file,FileRW);
+    struct HandleFileRW *handle = (struct HandleFileRW *)(hdl->handle);
+    
+    handle->file = m_Open(file->filename);
+    m_Seek(handle,DFLT);
+    
+    memmove(file->filename+16,file->filename,256);
+    p=file->filename-sizeof(void *)*2;
+    p[0]=HASH_FileRW;
+    memcpy(p+2,handle,sizeof(void *));
+
+    return handle;
+}
+void mFileWrite(MFile *file,void *data,int size)
+{
+    MHandle *handle = beginFileRW(file);
+    if(handle->block==NULL)
+    {
+        handle->block_size   =(size/4096+1)*4096;
+        handle->block_offset = handle->filesize;
+        
+        m_Seek(handle,handle->filesize+handle->block_size);
+        m_Write(handle,' ',1);
+        m_Seek(handle,handle->filesize);
+        handle->block = m_Mmap(handle,handle->block_offset,handle->block_size);
+        handle->fileptr = handle->block;
+    }
+    mem
+}
+*/

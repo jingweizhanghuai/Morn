@@ -1,53 +1,25 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//±‡“Î£∫gcc -O2 -fopenmp test_memory.c -I ..\include\ -L ..\lib\x64\mingw -lmorn -o test_memory.exe
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "morn_util.h"
 
-void morn_mem_test(int test_num)
-{
-    int *data[1024];
-    memset(data,0,1024*sizeof(int *));
-    
-    for(int i=0;i<test_num;i++)
-    {
-        int idx = mRand(0,1024);
-        if(data[idx]==NULL)
-        {
-            int size = mRand(1,1023);
-            data[idx] = mMalloc(size);
-        }
-        else
-        {
-            mFree(data[idx]);
-            data[idx] = NULL;
-        }
-    }
-    
-    for(int i=0;i<1024;i++)
-    {
-        if(data[i]!=NULL)
-            mFree(data[i]);
-    }
-}
+#define TEST_NUM 10000000
 
-void c_mem_test(int test_num)
+#ifdef USE_LIBC
+//build_x64_gnu: gcc -O2 -fopenmp test_memory.c -o test_memory_libc.exe -DUSE_LIBC -I ../include/ -L ../lib/x64_gnu -lmorn -lm
+int main()
 {
     int *data[1024];
     memset(data,0,1024*sizeof(int *));
-    
-    for(int i=0;i<test_num;i++)
+
+    mTimerBegin("libc");
+    for(int i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,1024);
         if(data[idx]==NULL)
         {
-            int size = mRand(1,1023);
+            int size = mRand(0,16384);
             data[idx] = malloc(size);
         }
         else
@@ -56,23 +28,146 @@ void c_mem_test(int test_num)
             data[idx] = NULL;
         }
     }
-    
+
     for(int i=0;i<1024;i++)
-    {
         if(data[i]!=NULL)
             free(data[i]);
-    }
+    
+    mTimerEnd("libc");
+    return 0;
 }
+#endif
 
+#ifdef USE_MORN
+//build_x64_gnu: gcc -O2 -fopenmp test_memory.c -o test_memory_morn.exe -DUSE_MORN -I ../include/ -L ../lib/x64_gnu -lmorn -lm
+void *m_Malloc(int size);
+void m_Free(void *p);
 int main()
 {
-    mTimerBegin();
-    for(int i=0;i<100;i++)
-        c_mem_test(1000);
-    mTimerEnd();
+    int *data[1024];
+    memset(data,0,1024*sizeof(int *));
+
+    mTimerBegin("Morn");
     
-    mTimerBegin();
-    for(int i=0;i<100;i++)
-        morn_mem_test(1000);
-    mTimerEnd();
+    for(int i=0;i<TEST_NUM;i++)
+    {
+        int idx = mRand(0,1024);
+        if(data[idx]==NULL)
+        {
+            int size = mRand(0,16384);
+            data[idx] = m_Malloc(size);
+        }
+        else
+        {
+            m_Free(data[idx]);
+            data[idx] = NULL;
+        }
+    }
+
+    for(int i=0;i<1024;i++)
+        if(data[i]!=NULL)
+            m_Free(data[i]);
+            
+    mTimerEnd("Morn");
+    return 0;
 }
+#endif
+
+#ifdef USE_TCMALLOC
+//build_x64_gnu: gcc -O2 -fopenmp test_memory.c -o test_memory_tcmalloc.exe -DUSE_TCMALLOC -I ../include/ -L ../lib/x64_gnu -lmorn -ltcmalloc -lm
+#include "gperftools/tcmalloc.h"
+int main()
+{
+    int *data[1024];
+    memset(data,0,1024*sizeof(int *));
+
+    mTimerBegin("tcmalloc");
+    for(int i=0;i<TEST_NUM;i++)
+    {
+        int idx = mRand(0,1024);
+        if(data[idx]==NULL)
+        {
+            int size = mRand(0,16384);
+            data[idx] = tc_malloc(size);
+        }
+        else
+        {
+            tc_free(data[idx]);
+            data[idx] = NULL;
+        }
+    }
+
+    for(int i=0;i<1024;i++)
+        if(data[i]!=NULL)
+            tc_free(data[i]);
+    mTimerEnd("tcmalloc");
+    return 0;
+}
+#endif
+
+#ifdef USE_JEMALLOC
+//build_x64_gnu: gcc -O2 -fopenmp test_memory.c -o test_memory_jemalloc.exe -DUSE_JEMALLOC -I ../include/ -L ../lib/x64_gnu -lmorn -ljemalloc -lm
+#include "jemalloc/jemalloc.h"
+int main()
+{
+    int *data[1024];
+    memset(data,0,1024*sizeof(int *));
+
+    mTimerBegin("jemalloc");
+    for(int i=0;i<TEST_NUM;i++)
+    {
+        int idx = mRand(0,1024);
+        if(data[idx]==NULL)
+        {
+            int size = mRand(0,16384);
+            data[idx] = malloc(size);
+        }
+        else
+        {
+            free(data[idx]);
+            data[idx] = NULL;
+        }
+    }
+
+    for(int i=0;i<1024;i++)
+        if(data[i]!=NULL)
+            free(data[i]);
+    mTimerEnd("jemalloc");
+    return 0;
+}
+#endif
+
+#ifdef USE_MIMALLOC
+//build_x64_gnu: gcc -O2 -fopenmp test_memory.c -o test_memory_mimalloc.exe -DUSE_MIMALLOC -I ../include/ -L ../lib/x64_gnu -lmorn -ljemalloc -lm
+#include "mimalloc.h"
+int main()
+{
+    int *data[1024];
+    memset(data,0,1024*sizeof(int *));
+
+    mTimerBegin("mimalloc");
+    for(int i=0;i<TEST_NUM;i++)
+    {
+        int idx = mRand(0,1024);
+        if(data[idx]==NULL)
+        {
+            int size = mRand(0,16384);
+            data[idx] = mi_malloc(size);
+        }
+        else
+        {
+            mi_free(data[idx]);
+            data[idx] = NULL;
+        }
+    }
+
+    for(int i=0;i<1024;i++)
+        if(data[i]!=NULL)
+            mi_free(data[i]);
+    mTimerEnd("mimalloc");
+    return 0;
+}
+#endif
+
+
+

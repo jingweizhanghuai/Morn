@@ -138,7 +138,7 @@ void endImageResize(void *info)
     if(handle->ly != NULL) mFree(handle->ly);
     if(handle->wy != NULL) mFree(handle->wy);
 }
-void mImageResize(MImage *src,MImage *dst,int height,int width,int type)
+void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
     if((type|MORN_NEAREST)==MORN_NEAREST) {mBinaryImageResize(src,dst,height,width,type);return;}

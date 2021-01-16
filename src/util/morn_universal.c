@@ -69,7 +69,7 @@ float mNormalRand(float mean,float delta)
 }
 
 char *morn_string="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-int mRandString(char *str,int l1,int l2)
+int m_RandString(char *str,int l1,int l2)
 {
     int size;if(l1<=0) {size=l2-1;}else if(l2<=0) {size=l1;} else if(l1==l2) {size=l1;} else {size=mRand(l1,l2);}
     mException(size<=0,EXIT,"invalid input");
@@ -157,7 +157,7 @@ void mObjectRedefine(MObject *object,const void *obj)
 
 struct HandleFileCreate
 {
-    char filename[256];
+    char filename[272];
 };
 void endFileCreate(void *info) {NULL;}
 #define HASH_FileCreate 0xfdab2bff
@@ -217,6 +217,7 @@ void mHandleRelease(MList *handle)
         mFree(hdl->handle);
         mFree(hdl);
     }
+    
     hdl = (MHandle *)(handle->data[0]);
     (hdl->destruct)(hdl->handle);
     mFree(hdl->handle);
@@ -228,7 +229,6 @@ void mHandleRelease(MList *handle)
 
 void mHandleReset(MList *handle) 
 {
-    printf("tttttttttttttttttttt\n");
     if(INVALID_POINTER(handle)) return;
     for(int i=1;i<handle->num;i++)
     {
@@ -307,6 +307,7 @@ __attribute__((constructor)) void morn_begin() {
 } 
 
 __attribute__((destructor)) void morn_end() {
+    
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
     
@@ -324,7 +325,7 @@ __attribute__((destructor)) void morn_end() {
         }
         mChainRelease(morn_object_map);
     }
-    // printf("endendendendendendendendendendend\n");
+    
     morn_object_map = NULL;
 }
 #endif

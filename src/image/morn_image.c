@@ -37,7 +37,8 @@ void endImageCreate(void *info)
 
     if(!INVALID_POINTER(handle->backup_index )) mFree(handle->backup_index);
     if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
-    
+
+    memset(handle->img,0,sizeof(MImage));
     mFree(handle->img);
 }
 #define HASH_ImageCreate 0xccb34f86
@@ -86,7 +87,7 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
         return img;
     }
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST);
     mException(handle->memory->num!=1,EXIT,"invalid image memory");
     mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
     handle->width = width;
@@ -172,8 +173,9 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
         else mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
         return;
     }
-   
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+
+    
+    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST);
     else mMemoryRedefine(handle->memory,1,cn*row*col*sizeof(unsigned char),DFLT);
     mException(handle->memory->num!=1,EXIT,"invalid image memory");
     mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
@@ -182,6 +184,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     handle->width = width;
     
     for(int k=0;k<cn;k++) img->data[k] = handle->index + k*row+8;
+    
 }
 
 void mImageRelease(MImage *img)
@@ -205,7 +208,7 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
     if(handle->backup_index!=NULL) mFree(handle->backup_index);
     handle->backup_index = (unsigned char **)mMalloc(cn*row*sizeof(unsigned char *));
     
-    if(handle->backup_memory == NULL) handle->backup_memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST_CPU);
+    if(handle->backup_memory == NULL) handle->backup_memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST);
     else mMemoryRedefine(handle->backup_memory,1,cn*row*col*sizeof(unsigned char),DFLT);
     mException(handle->backup_memory->num!=1,EXIT,"invalid image backup memory");
     mMemoryIndex(handle->backup_memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->backup_index)),1);

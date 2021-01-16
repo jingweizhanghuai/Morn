@@ -338,5 +338,180 @@ void main()
 }
 */
 
+struct MAFBlock
+{
+    void *info;
+    unsigned short size;
+    unsigned short flag;
+    int idlnum;
+    int info_idx;
+    int order;
+    char data[0];
+};
+struct MAFInfo
+{
+    struct MAFBlock **block_list;
+    struct MAFBlock *block;
+    struct MAFBlock *spare;
+    int block_num;
+    int block_vol;
+    int block_order;
+};
+__thread struct MAFInfo *morn_alloc_free_info=NULL;
+short morn_alloc_free_size[32]={48,80,112,144,176,208,240,272,336,400,464,560,688,816,1008,1168,1328,1552,1840,2352,2864,3376,3888,4400,5424,6448,7472,9008,11056,13104,14736,16400};
+char morn_alloc_free_size_idx[512]={0,1,2,3,4,5,6,7,8,8,9,9,10,10,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,14,14,15,15,15,15,15,16,16,16,16,16,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31};
+unsigned short morn_alloc_free_ref_flag1[16]={0x0001,0x0002,0x0004,0x0008,0x0010,0x0020,0x0040,0x0080,0x0100,0x0200,0x0400,0x0800,0x1000,0x2000,0x4000,0x8000};
+unsigned short morn_alloc_free_ref_flag2[16]={0xFFFE,0xFFFD,0xFFFB,0xFFF7,0xFFEF,0xFFDF,0xFFBF,0xFF7F,0xFEFF,0xFDFF,0xFBFF,0xF7FF,0xEFFF,0xDFFF,0xBFFF,0x7FFF};
 
+void *m_Malloc(int size)
+{
+    intptr_t *ptr;
+    size=size+16;
+    if(size>16392) {ptr=malloc(size); ptr[0]=0; return (((char *)ptr)+16);}
+    
+    int idx=morn_alloc_free_size_idx[(size-17)/32];
+    size = morn_alloc_free_size[idx];
+  
+    if(morn_alloc_free_info==NULL)
+    {
+        morn_alloc_free_info=malloc(32*sizeof(struct MAFInfo));
+        memset(morn_alloc_free_info,0,32*sizeof(struct MAFInfo));
+    }
+    struct MAFInfo *info  = morn_alloc_free_info+idx;
+    
+    struct MAFBlock *block= info->block;
+    int invalid_block=(block==NULL);
+    if(!invalid_block)invalid_block=(block->idlnum==0);
+
+    if(invalid_block)
+    {
+        if(info->spare!=NULL)
+        {
+            info->block = info->spare;
+            block = info->block;
+            info->spare = NULL;
+            invalid_block=0;
+        }
+        else
+        {
+            for(int i=0;i<info->block_vol;i++)
+            {
+            	if(info->block_list[i]==NULL) continue;
+	            if(info->block_list[i]->idlnum==0) continue;
+                info->block = info->block_list[i];
+                block = info->block;
+                invalid_block=0;
+                break;
+            }
+        }
+    }
+    
+    if(invalid_block)
+    {
+    	
+        block = m_Malloc(sizeof(struct MAFBlock)+16*size);
+        block->size = size;
+        block->info = info;info->block =block;
+
+        int n=info->block_num;
+        if(n>=info->block_vol)
+        {
+            struct MAFBlock **list = malloc((n+64)*sizeof(struct MAFBlock *));
+            if(info->block_list!=NULL)
+            {
+                memcpy(list,info->block_list,n*sizeof(struct MAFBlock *));
+                free(info->block_list);
+            }
+            memset(list+n,0,64*sizeof(struct MAFBlock *));
+            info->block_list=list;
+            info->block_vol=n+64;
+            info->block_order=n;
+        }
+
+        int m=info->block_order;
+        while(1)
+        {
+        	if(info->block_list[m]==NULL) 
+        	{
+        		info->block_list[m]=block;
+        		block->info_idx=m;
+        		m=m+1;if(m>=info->block_vol)m=0;
+        		info->block_order=m;
+        		info->block_num = n+1;
+        		break;
+        	}
+        	m=m+1;if(m>=info->block_vol) m=0;
+        }
+
+        block->flag=0x0001;block->idlnum=15;block->order=1;
+        ptr=(intptr_t *)(block->data);
+        ptr[0]=(intptr_t)(block);ptr[1]=0;
+        return (((char *)ptr)+16);
+    }
+
+    block->idlnum--;
+    unsigned short flag = block->flag;
+    idx=block->order;
+    while(1)
+    {
+        if((flag&morn_alloc_free_ref_flag1[idx])==0) 
+        {
+            block->flag  = flag | morn_alloc_free_ref_flag1[idx];
+            block->order = ((idx+1)&0x0000000F);
+            ptr = (intptr_t *)(block->data+size*idx);
+            ptr[0]=(intptr_t)(block);ptr[1]=idx;
+            return (((char *)ptr)+16);
+        }
+        idx=((idx+1)&0x0000000F);
+    }
+}
+
+void m_Free(void *p)
+{
+    intptr_t *ptr=(intptr_t *)(((char *)p)-16);
+    if(ptr[0]==0) {free(ptr);return;}
+
+    struct MAFBlock *block = (struct MAFBlock *)(ptr[0]);
+    int idx=ptr[1];
+    
+    block->order = idx;
+    block->flag &= morn_alloc_free_ref_flag2[idx];
+    block->idlnum =block->idlnum+1;
+
+    struct MAFInfo *info = block->info;
+    if(block!=info->block)
+    {
+    	if(block->idlnum==16)
+    	{
+    		info->spare = info->block;
+    		info->block = block;
+    		if(info->spare->idlnum==16)
+    		{
+	    		int n = info->spare->info_idx;
+	        	info->block_list[n]=NULL;
+	        	info->block_order=n;
+	        	info->block_num=info->block_num-1;
+	        	m_Free(info->spare);
+	        	info->spare=NULL;
+	        }
+    	}
+	    else
+	    {
+	             if(info->spare==NULL) info->spare=block;
+	        else if(block->idlnum>info->spare->idlnum) info->spare=block;
+	    }
+	}
+}
+
+void endMAF()
+{
+	if(morn_alloc_free_info==NULL) return;
+	for(int i=0;i<32;i++)
+	{
+		if(morn_alloc_free_info[i].block     !=NULL) m_Free(morn_alloc_free_info[i].block);
+		if(morn_alloc_free_info[i].block_list!=NULL)   free(morn_alloc_free_info[i].block_list);
+	}
+	free(morn_alloc_free_info);
+	morn_alloc_free_info=NULL;
+}
 

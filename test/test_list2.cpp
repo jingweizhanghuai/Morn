@@ -4,7 +4,7 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-//编译： g++ -O2 -fopenmp test_list2.cpp -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_list2.exe
+//build： g++ -O2 -fopenmp test_list2.cpp -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_list2.exe
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@ using namespace std;
 
 #define TEST_NUM 1000000
 
-int main_int()
+void test_int()
 {
     int i;
     int *data=(int *)malloc(TEST_NUM*sizeof(int));
@@ -27,39 +27,34 @@ int main_int()
     vector<int> vec;
     MList *list = mListCreate();
     
-    mLog(MORN_INFO,"STL vector写入：");
-    mTimerBegin();
+    mTimerBegin("STL vector write");
     for(i=0;i<TEST_NUM;i++)
         vec.push_back(data[i]);
-    mTimerEnd();
+    mTimerEnd("STL vector write");
     
-    mLog(MORN_INFO,"Morn MList写入：");
-    mTimerBegin();
+    mTimerBegin("Morn MList write");
     for(i=0;i<TEST_NUM;i++)
         mListWrite(list,DFLT,data+i,sizeof(int));
-    mTimerEnd();
+    mTimerEnd("Morn MList write");
 
-    mLog(MORN_INFO,"STL vector读出：");
-    mTimerBegin();
+    mTimerBegin("STL vector read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,vec.size());
         int v=vec.at(idx);
     }
-    mTimerEnd();
+    mTimerEnd("STL vector read");
     
-    mLog(MORN_INFO,"Morn MList读出：");
-    mTimerBegin();
+    mTimerBegin("Morn MList read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,list->num);
         int v=*(int *)(list->data[i]);
     }
-    mTimerEnd();
+    mTimerEnd("Morn MList read");
     
     mListRelease(list);
     free(data);
-    return 0;
 }
 
 struct Test
@@ -72,7 +67,7 @@ struct Test
     double *data6;
 };
 
-int main_struct()
+void test_struct()
 {
     int i;
     struct Test *data=(struct Test *)malloc(TEST_NUM*sizeof(struct Test));
@@ -89,96 +84,85 @@ int main_struct()
     vector<struct Test> vec;
     MList *list = mListCreate();
 
-    mLog(MORN_INFO,"STL vector写入：");
-    mTimerBegin();
+    mTimerBegin("STL vector write");
     for(i=0;i<TEST_NUM;i++)
         vec.push_back(data[i]);
-    mTimerEnd();
+    mTimerEnd("STL vector write");
     
-    mLog(MORN_INFO,"Morn MList写入：");
-    mTimerBegin();
+    mTimerBegin("Morn MList write");
     for(i=0;i<TEST_NUM;i++)
         mListWrite(list,i,data+i,sizeof(struct Test));
-    mTimerEnd();
+    mTimerEnd("Morn MList write");
 
-    mLog(MORN_INFO,"STL vector读出：");
-    mTimerBegin();
+    mTimerBegin("STL vector read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,vec.size());
         struct Test *v=&(vec.at(idx));
     }
-    mTimerEnd();
+    mTimerEnd("STL vector read");
     
-    mLog(MORN_INFO,"Morn MList读出：");
-    mTimerBegin();
+    mTimerBegin("Morn MList read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,list->num);
         struct Test *v=(struct Test *)(list->data[i]);
     }
-    mTimerEnd();
+    mTimerEnd("Morn MList read");
     
     mListRelease(list);
     free(data);
-    return 0;
 }
 
-int main_string()
+void test_string()
 {
     int i,j;
     char *data=(char *)malloc(TEST_NUM*128*sizeof(char));
-    for(i=0;i<TEST_NUM;i++)
-    {
-        int size = mRand(1,127);
-        for(j=0;j<size;j++)
-            data[i*128+j] = mRand('a','z');
-        data[i*128+j]=0;
-    }
+    for(i=0;i<TEST_NUM;i++) mRandString(data+i*128,1,127);
     
     vector<string> vec;
     MList *list = mListCreate(DFLT,NULL);
     
-    mLog(MORN_INFO,"STL vector写入：");
-    mTimerBegin();
+    mTimerBegin("STL vector write");
     for(i=0;i<TEST_NUM;i++)
         vec.push_back(&(data[i*32]));
-    mTimerEnd();
+    mTimerEnd("STL vector write");
     
-    mLog(MORN_INFO,"Morn MList写入：");
-    mTimerBegin();
+    mTimerBegin("Morn MList write");
     for(i=0;i<TEST_NUM;i++)
         mListWrite(list,DFLT,&(data[i*32]),DFLT);
-    mTimerEnd();
+    mTimerEnd("Morn MList write");
     
-    mLog(MORN_INFO,"STL vector读出：");
-    mTimerBegin();
+    mTimerBegin("STL vector read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,vec.size());
         const char *p=vec.at(idx).data();
     }
-    mTimerEnd();
+    mTimerEnd("STL vector read");
     
-    mLog(MORN_INFO,"Morn MList读出：");
-    mTimerBegin();
+    mTimerBegin("Morn MList read");
     for(i=0;i<TEST_NUM;i++)
     {
         int idx = mRand(0,list->num);
         const char *p=(const char *)(list->data[i]);
     }
-    mTimerEnd();
+    mTimerEnd("Morn MList read");
     
     mListRelease(list);
     free(data);
-    return 0;
 }
 
 int main()
 {
-    main_int();
-    main_struct();
-    main_string();
+    printf("integer test\n");
+    test_int();
+    
+    printf("struct test:\n");
+    test_struct();
+
+    printf("string test:\n");
+    test_string();
 }
 
 

@@ -55,7 +55,7 @@ MWave *mWaveCreate(int cn,int size,float **data)
         size = size +32;
         void **index[MORN_MAX_WAVE_CN];for(int i=0;i<cn;i++) index[i]=(void **)(&(handle->index[i]));
         
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST_CPU);
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST);
         mMemoryIndex(handle->memory,1,size*sizeof(float),index,cn);
         handle->size = size;
         handle->channel = cn;
@@ -115,8 +115,8 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     {
         size = size +32;
         void **index[MORN_MAX_WAVE_CN];for(int i=0;i<cn;i++) index[i]=(void **)(&(handle->index[i]));
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST_CPU);
-        else mMemoryRedefine(handle->memory,cn,size*sizeof(float),MORN_HOST_CPU);
+        if(handle->memory == NULL) handle->memory = mMemoryCreate(cn,size*sizeof(float),MORN_HOST);
+        else mMemoryRedefine(handle->memory,cn,size*sizeof(float),MORN_HOST);
         mMemoryIndex(handle->memory,1,size*sizeof(float),index,cn);
         handle->size = size;
         handle->channel = cn;

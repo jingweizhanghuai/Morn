@@ -30,7 +30,7 @@ extern "C"
 #define MORN_FALSE 0
 #define MORN_TRUE  1
 
-#define MORN_FAIL    1
+#define MORN_FAIL   -1
 #define MORN_SUCCESS 0
 
 #define ARG(X) X
@@ -87,7 +87,6 @@ extern "C"
 
 #define EXIT DFLT
 
-
 typedef uint8_t  U8 ;
 typedef int8_t   S8 ;
 typedef uint16_t U16;
@@ -123,7 +122,6 @@ extern __thread char morn_data_buff[8];
     morn_data_type\
 )
 
-
 extern __thread char morn_filename[256];
 
 const char *mTimeNowString();
@@ -151,9 +149,10 @@ void m_Exception(int err,int ID,const char *file,int line,const char *function,c
 #define MORN_INFO    16
 #define MORN_WARNING 32
 #define MORN_ERROR   48
-#define MORN_LOG_CONSOLE (~1)
-#define MORN_LOG_FILE    (~2)
-#define MORN_LOG_CUSTOM  (~4)
+#define MORN_LOG_CONSOLE  (~1)
+#define MORN_LOG_FILE     (~2)
+#define MORN_LOG_CUSTOM   (~4)
+#define MORN_LOG_FUNCTION (~8)
 void m_LogSet(int levelset,int output,const char *filename,int64_t filesize,void *function,void *para);
 #define mLogSet(...) do{\
     int N = VA_ARG_NUM(__VA_ARGS__);\
@@ -189,7 +188,9 @@ const char *mLogLevel();
 extern __thread int morn_log_level;
 extern int morn_log_levelset;
 void _mLog(int Level,const char *format,...);
-#define mLog(Level,...) do{morn_log_level=Level;if(Level>=morn_log_levelset) _mLog(Level,__VA_ARGS__);}while(0)
+#define mLog(Level,...) do{\
+    morn_log_level=Level;if(Level>=morn_log_levelset) _mLog(Level,__VA_ARGS__);\
+}while(0)
 
 extern __thread int morn_exception;
 extern __thread jmp_buf *morn_jump[32];
@@ -212,23 +213,6 @@ extern __thread int morn_layer_order;//=-1;
 #define mError(Flag) (Flag)
 #define mWarning(Flag) (0-(Flag))
 #define mException(Error,ID,...) do{int Err=Error;if(Err!=0) m_Exception(Err,ID,__FILE__,__LINE__,__FUNCTION__,__VA_ARGS__);}while(0)
-
-/*
-#define mException(Error,ID,...) do{\
-    int Err = Error;\
-    if(Err!=0)\
-    {\
-        char Message[256];snprintf(Message,256,__VA_ARGS__);\
-        mLog(MORN_ERROR,mLogFormat1("%s"),Message);\
-    }\
-    if(Err >0)\
-    {\
-        morn_exception = ID;\
-        if(morn_layer_order<0) exit(0);\
-        longjmp(*(morn_jump[morn_layer_order]),morn_exception);\
-    }\
-}while(0)
-*/
 
 #ifdef _MSC_VER
 // #include <windows.h>
@@ -259,7 +243,14 @@ void mInfoSet(MInfo *info,const char *name,float value);
 
 unsigned int mHash(const char *in,int size);
 
-#define Morn struct{int dev;struct MList *handle;MInfo info;}
+// struct Morn
+// {
+//     int device;
+//     struct MList *handle;
+//     MInfo info;
+// };
+
+#define Morn struct{int device;struct MList *handle;MInfo info;}
 
 typedef struct MList
 {
@@ -279,7 +270,8 @@ MList *ListCreate(int num,void **data);
 void mListRelease(MList *list);
 void mListAppend(MList *list,int num);
 void mListPlace(MList *list,void *data,int num,int size);
-#define mListClear(List) do{List->num = 0;}while(0)
+void mListClear(MList *list);
+// #define mListClear(List) do{List->num = 0;}while(0)
 
 void *mListWrite(MList *list,int n,void *data,int size);
 void *mListRead(MList *list,int n,void *data,int size);
@@ -318,11 +310,14 @@ void MemoryListPrint(int state);
 #else
 void *mMemAlloc(int size);
 void mMemFree(void *p);
-#define mMalloc(Size)  mMemAlloc(Size)
-#define mFree(Pointer) mMemFree(Pointer)
+void *m_Malloc(int size);
+void m_Free(void *p);
+#define mMalloc(Size)  m_Malloc(Size)
+#define mFree(Pointer) m_Free(Pointer)
 // void MemoryListPrint(int state);
 #endif
 
+/*
 #define mPointer(Pointer,Size) do{\
     int Size0;\
     if(Pointer == NULL)\
@@ -339,6 +334,7 @@ void mMemFree(void *p);
         }\
     }\
 }while(0)
+*/
 
     
 int mCompare(const void *mem1,int size1,const void *mem2,int size2);
@@ -382,7 +378,7 @@ MSheet *SheetCreate(int row,int *col,void ***data);
     NULL\
 )
 void mSheetRelease(MSheet *sheet);
-#define mSheetClear(Sheet) do{for(int Row=0;Row<Sheet->row;Row++) Sheet->col[Row]=0;Sheet->row=0;}while(0)
+void mSheetClear(MSheet *sheet);
 void mSheetRowAppend(MSheet *sheet,int row);
 void mSheetColAppend(MSheet *sheet,int row,int col);
 void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size);
@@ -400,7 +396,7 @@ MSheet *mListClassify(MList *list,void *function,void *para);
 typedef struct MTable{
     int row;
     int col;
-    
+    int element_size;
     union
     {
         void **data;
@@ -443,6 +439,7 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
 
 typedef struct MArray{
     int num;
+    int element_size;
     union
     {
         void *data;
@@ -480,9 +477,18 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
 int mStreamRead(MArray *buff,void *data,int num);
 int mStreamWrite(MArray *buff,void *data,int num);
 
-int mRand(int floor,int ceiling);
+int m_Rand(int floor,int ceiling);
+#define mRand(...) ((VA_ARG_NUM(__VA_ARGS__)==2)?m_Rand((int)VA_ARG0(__VA_ARGS__),(int)VA_ARG1(__VA_ARGS__)):m_Rand(DFLT,DFLT))
 float mNormalRand(float mean,float delta);
+int m_RandString(char *str,int l1,int l2);
+#define mRandString(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_RandString(VA_ARG0(__VA_ARGS__),4,256):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_RandString(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?m_RandString(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__)):\
+    DFLT\
+)
 
+#define mString(a) #a
 int mStringRegular(const char *str1,const char *str2);
 MList *mStringSplit(const char *str_in,const char *flag);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
@@ -580,19 +586,70 @@ void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int 
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
 MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
 
-#define MORN_HOST_CPU                         0
-#define MORN_CUDA_GPU(N)       ((1<<16)+MAX(N,0))
-#define MORN_CL_CPU(N)         ((2<<16)+MAX(N,0))
-#define MORN_CL_GPU(N)         ((3<<16)+MAX(N,0))
-#define MORN_CL_ACCELERATOR(N) ((4<<16)+MAX(N,0))
+#define MORN_DEVICE DFLT
+#define MORN_HOST      0
+#define MORN_CL_CPU(N)         ((0<<6)+MIN(MAX(N,0),64))
+#define MORN_CL_GPU(N)         ((1<<6)+MIN(MAX(N,0),64))
+#define MORN_CL_ACCELERATOR(N) ((2<<6)+MIN(MAX(N,0),64))
+
+typedef struct MMemoryBlock
+{
+    void *data;
+    int size;
+    int device;
+    
+    void *cl_data;//cl_mem cl_data;
+    void *cl_evt; //cl_event cl_evt;
+    int flag;
+}MMemoryBlock;
+MMemoryBlock *mMemoryBlockCreate(int size,int device);
+void mMemoryBlockRelease(MMemoryBlock *block);
+MMemoryBlock *mMemoryBlock(void *data);
+
+// cl_context mDeviceContext(int device);
+// cl_command_queue mDeviceQueue(int device);
+
+
+void mMemoryBlockWrite(MMemoryBlock *block);
+void mMemoryBlockRead(MMemoryBlock *block);
+void mMemoryBlockCopy(MMemoryBlock *block,int device);
+
+extern __thread void *morn_cl_function_para[16];
+extern __thread int morn_cl_function_para_size[16];
+extern __thread int morn_cl_function_para_num;
+extern __thread size_t morn_cl_size[4];
+extern __thread int morn_cl_dim;
+void CLFunction(const char *source,const char *name,int para_num,void **para,int *para_size);
+int CLOUT(MMemoryBlock *block);
+int CLIN(MMemoryBlock *block);
+int CLINOUT(MMemoryBlock *block);
+int CLPARA(void *para,int size);
+int CLSize(int n,int s1,int s2,int s3,int s4);
+#define CLSIZE(...) CLSize(VA_ARG_NUM(__VA_ARGS__),VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__))
+#define mCLFunction(Source,...) do{\
+    morn_cl_function_para_num =0;\
+    int Para_Num = VA_ARG_NUM(__VA_ARGS__);\
+    int N=0;\
+    if(Para_Num> 0) {N+=_VA_ARG0(__VA_ARGS__,DFLT);}\
+    if(Para_Num> 1) {N+= VA_ARG1(__VA_ARGS__);}if(Para_Num> 2) {N+= VA_ARG2(__VA_ARGS__);}if(Para_Num> 3) {N+= VA_ARG3(__VA_ARGS__);}\
+    if(Para_Num> 4) {N+= VA_ARG4(__VA_ARGS__);}if(Para_Num> 5) {N+= VA_ARG5(__VA_ARGS__);}if(Para_Num> 6) {N+= VA_ARG6(__VA_ARGS__);}\
+    if(Para_Num> 7) {N+= VA_ARG7(__VA_ARGS__);}if(Para_Num> 8) {N+= VA_ARG8(__VA_ARGS__);}if(Para_Num> 9) {N+= VA_ARG9(__VA_ARGS__);}\
+    if(Para_Num>10) {N+=VA_ARG10(__VA_ARGS__);}if(Para_Num>11) {N+=VA_ARG11(__VA_ARGS__);}if(Para_Num>12) {N+=VA_ARG12(__VA_ARGS__);}\
+    if(Para_Num>13) {N+=VA_ARG13(__VA_ARGS__);}if(Para_Num>14) {N+=VA_ARG14(__VA_ARGS__);}if(Para_Num>15) {N+=VA_ARG15(__VA_ARGS__);}\
+    mException((N!=DFLT-Para_Num)||(morn_cl_function_para_num!=DFLT+Para_Num),EXIT,"invalid input");\
+    CLFunction(Source,mString(Source),morn_cl_function_para_num,morn_cl_function_para,morn_cl_function_para_size);\
+    morn_cl_function_para_num =0;\
+}while(0)
+
 #define MMemory MList
 MMemory *mMemoryCreate(int num,int size,int dev);
 void mMemoryRelease(MMemory *memory);
 void mMemoryRedefine(MMemory *memory,int num,int size,int dev);
-void mMemoryDevice(MMemory *memory,int dev,void ***index,int batch,int row,int col);
+void mMemoryDevice(MMemory *memory,int dev);
 
 int mMemorySize(MMemory *memory);
 int mMemoryCheck(MMemory *memory,void *check);
+void mMemoryClear(MMemory *memory);
 
 void MemoryCollect(void *data,void *mem);
 void MemoryDefrag(MMemory *memory);
@@ -605,28 +662,30 @@ void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num);
 void *mMemoryWrite(MMemory *memory,void *data,int size);
 
 void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
-#define mMapWrite(...) do{\
-         if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT);\
-    else if(VA_ARG_NUM(__VA_ARGS__)==5) m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__));\
-    else mException(1,EXIT,"invalid input parameter for mMapWrite");
-}while(0)
+#define mMapWrite(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__)):\
+    NULL\
+)
 void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
-#define mMapRead(...) do{\
-         if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT);\
-    else if(VA_ARG_NUM(__VA_ARGS__)==5) m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__));\
-    else mException(1,EXIT,"invalid input parameter for mMapRead");
-}while(0)
+#define mMapRead(...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(void *)VA_ARG2(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__)):\
+    NULL\
+)
 void m_MapDelete(MChain *map,const void *key,int key_size);
-#define mMapDelete(...) do{\
-         if(VA_ARG_NUM(__VA_ARGS__)==2) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__));\
+#define mMapNodeDelete(...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==2) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT);\
     else if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__));\
-    else mException(1,EXIT,"invalid input parameter for mMapDelete");
+    else mException(1,EXIT,"invalid input parameter for mMapDelete");\
 }while(0)
 void mMapNodeOperate(MChain *map,void *function,void *para);
 void *mMapNodeKey(MChainNode *node);
 void *mMapNodeValue(MChainNode *node);
 int mMapNodeKeySize(MChainNode *node);
 int mMapNodeValueSize(MChainNode *node);
+int mMapNodeNumber(MChain *map);
 
 
 #define MFile  MObject
@@ -660,15 +719,23 @@ void mJSONSearch(MTree *tree,MList *result,char *name);
 MTreeNode *m_JSONNode(MTreeNode *treenode,const char *name,const char *format,...);
 #define mJSONNode(...) m_JSONNode(__VA_ARGS__,NULL)
 
-int mMORNSize(MObject *file,int ID);
-void mMORNRead(MObject *file,int ID,void **data,int num,int size);
-void mMORNWrite(MObject *file,int ID,void **data,int num,int size);
+int mMORNSize (MFile *file,int ID);
+int mMORNRead (MFile *file,int ID,void **data,int num,int size);
+int mMORNWrite(MFile *file,int ID,void **data,int num,int size);
     
 #define MORN_TREE_PREORDER_TRAVERSAL DFLT
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
-void mThreadPool(MList *pool,void (*func)(void *),void *para,int *flag,float priority);
+void m_ThreadPool(MList *pool,void (*func)(void *),void *para,int para_size,int *flag,float priority);
+#define mThreadPool(Pool,Func,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+         if(VAN==0) m_ThreadPool(Pool,Func,NULL,0,NULL,0.0f);\
+    else if(VAN==2) m_ThreadPool(Pool,Func,(void *)VA_ARG0(__VA_ARGS__),(int)VA_ARG1(__VA_ARGS__),NULL,0.0f);\
+    else if(VAN==3) m_ThreadPool(Pool,Func,(void *)VA_ARG0(__VA_ARGS__),(int)VA_ARG1(__VA_ARGS__),(int *)VA_ARG2(__VA_ARGS__),0.0f);\
+    else if(VAN==4) m_ThreadPool(Pool,Func,(void *)VA_ARG0(__VA_ARGS__),(int)VA_ARG1(__VA_ARGS__),(int *)VA_ARG2(__VA_ARGS__),(float)VA_ARG3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 
 // uint64_t mIPAddress(const char *addr);
 int mUDPSend(const char *address,void *data,int size);
@@ -693,28 +760,14 @@ void mNULL(int *p);
 }while(0)
 #define mThread(...) ARG(_mThread(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL)))
 
+void *mProcTopicWrite(const char *msgname,void *data,int size);
+void *mProcTopicRead(const char *msgname,void *data,int *size);
+void *mProcMessageWrite(const char *dstname,void *data,int size);
+void *mProcMessageRead(const char *dstname,void *data,int *size);
+
+
 #ifdef __cplusplus
 }
 #endif
-
-
-
-// #define ThreadRun2(F1,F2) {THREAD(1,F1);THREAD(2,F2);}
-// #define ThreadRun3( F1,F2,F3) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);}
-// #define ThreadRun4( F1,F2,F3,F4) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);}
-// #define ThreadRun5( F1,F2,F3,F4,F5) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);}
-// #define ThreadRun6( F1,F2,F3,F4,F5,F6) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);}
-// #define ThreadRun7( F1,F2,F3,F4,F5,F6,F7) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);}
-// #define ThreadRun8( F1,F2,F3,F4,F5,F6,F7,F8) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);}
-// #define ThreadRun9( F1,F2,F3,F4,F5,F6,F7,F8,F9) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);}
-// #define ThreadRun10(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);}
-// #define ThreadRun11(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);}
-// #define ThreadRun12(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);}
-// #define ThreadRun13(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);}
-// #define ThreadRun14(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);}
-// #define ThreadRun15(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);}
-// #define ThreadRun16(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,F16) {THREAD(1,F1);THREAD(2,F2);THREAD(3,F3);THREAD(4,F4);THREAD(5,F5);THREAD(6,F6);THREAD(7,F7);THREAD(8,F8);THREAD(9,F9);THREAD(10,F10);THREAD(11,F11);THREAD(12,F12);THREAD(13,F13);THREAD(14,F14);THREAD(15,F15);THREAD(16,F16);}
-
-
 
 #endif

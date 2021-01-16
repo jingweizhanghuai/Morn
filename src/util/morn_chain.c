@@ -42,7 +42,7 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     MHandle *hdl = (MHandle *)(chain->handle->data[1]);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
-    if(size<0) size=strlen(data);
+    if(size<0) {if(data==NULL) size=0; else size=strlen(data);}
     
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode)+size);
@@ -90,8 +90,8 @@ void mChainNodeExchange(MChain *chain,MChainNode *node1,MChainNode *node2)
     MChainNode *next2 = node2->next;if(next2==node2) next2=NULL;
     node1->last=(last2==NULL)?node1:last2;node1->next=(next2==NULL)?node1:next2;
     node2->last=(last1==NULL)?node2:last1;node2->next=(next1==NULL)?node2:next1;
-    if(last1!=NULL) last1->next=node2;if(next1!=NULL) next1->last=node2;
-    if(last2!=NULL) last2->next=node1;if(next2!=NULL) next2->last=node1;
+    if(last1!=NULL) {last1->next=node2;}if(next1!=NULL) {next1->last=node2;}
+    if(last2!=NULL) {last2->next=node1;}if(next2!=NULL) {next2->last=node1;}
 }
 
 // void mChainNodeExchange(MChainNode *node1,MChainNode *node2)

@@ -108,19 +108,13 @@ float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint 
 
 float mPolygonArea(MList *polygon)
 {
-    float area;
-    int i;
-    MImagePoint **point;
-    
     mException(INVALID_POINTER(polygon),EXIT,"invalid input");
     mException((polygon->num<3),EXIT,"invalid input");
-    point = (MImagePoint **)(polygon->data);
+    MImagePoint **point = (MImagePoint **)(polygon->data);
     
-    area = 0;
-    for(i=1;i<polygon->num;i++)
+    float area = INTEGRAL_AREA(point[polygon->num-1]->x,point[polygon->num-1]->y,point[0]->x,point[0]->y);
+    for(int i=1;i<polygon->num;i++)
         area = area + INTEGRAL_AREA(point[i-1]->x,point[i-1]->y,point[i]->x,point[i]->y);
-    
-    area = area + INTEGRAL_AREA(point[polygon->num-1]->x,point[polygon->num-1]->y,point[0]->x,point[0]->y);
     
     return (ABS(area))/2.0f;
 }
@@ -155,7 +149,7 @@ double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx
     else if(b==0) {v_x=lx1;v_y=py; l=ABS(px-v_x);}
     else
     {
-        double c=a* -b*ly2;
+        double c=a*lx2-b*ly2;
         double d=a*py+b*px;
         
         double buff = (a*a+b*b);
@@ -203,21 +197,23 @@ int PointInPolygon(double x,double y,MList *polygon)
     MImagePoint **vertex = (MImagePoint **)(polygon->data);
     int n=0;
     int num = polygon->num-1;
-    if((vertex[0]->x>x)==(x>vertex[num]->x))
+    if((vertex[0]->x>x)==(x>=vertex[num]->x))
     {
         double k = (vertex[0]->y - vertex[num]->y)/(vertex[0]->x - vertex[num]->x);
         double b = vertex[0]->y - (k*vertex[0]->x);
         double ly = k*x+b;if(ly==y) return 1;
         n = n+(ly<y);
+        // printf("aaaak=%f,b=%f,ly=%f,y=%f,n=%d\n",k,b,ly,y,n);
     }
     for(int i=0;i<num;i++)
     {
-        if((vertex[i]->x>x)==(x>vertex[i+1]->x))
+        if((vertex[i]->x>x)==(x>=vertex[i+1]->x))
         {
             double k = (vertex[i+1]->y - vertex[i]->y)/(vertex[i+1]->x - vertex[i]->x);
             double b = vertex[i]->y - (k*vertex[i]->x);
             double ly = k*x+b;if(ly==y) return 1;
             n = n+(ly<y);
+            // printf("k=%f,b=%f,ly=%f,y=%f,n=%d\n",k,b,ly,y,n);
         }
     }
     return ((n%2)==1);
@@ -226,6 +222,15 @@ int PointInPolygon(double x,double y,MList *polygon)
 int mPointInPolygon(MImagePoint *point,MList *polygon)
 {
     return PointInPolygon(point->x,point->y,polygon);
+}
+
+void mCircumCircle(MImagePoint *p0,MImagePoint *p1,MImagePoint *p2,MImageCircle *circle)
+{
+    double x1=(p0->x+p1->x)/2.0;double y1=(p0->y+p1->y)/2.0;double k1=(p0->x+p1->x)/(p1->y-p0->y);double b1=y1-k1*x1;
+    double x2=(p2->x+p1->x)/2.0;double y2=(p2->y+p1->y)/2.0;double k2=(p2->x+p1->x)/(p1->y-p2->y);double b2=y2-k2*x2;
+    double x0=(b2-b1)/(k1-k2);double y0=k1*x0+b1;
+    circle->center.x=x0; circle->center.y=y0;
+    circle->r=mPointDistance(&(circle->center),p1);
 }
 
 float mRectIntersetArea(MImageRect *rect1,MImageRect *rect2)
@@ -244,57 +249,7 @@ float mRectUnionsetArea(MImageRect *rect1,MImageRect *rect2)
 }
 
 #define CLOSS_POINT(I1,I2) LineCrossPoint(v1[I1]->x,v1[I1]->y,v1[I1+1]->x,v1[I1+1]->y,v2[I2]->x,v2[I2]->y,v2[I2+1]->x,v2[I2+1]->y,&(point.x),&(point.y));
-/*
-float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
-{
-    int i,j;
-    MImagePoint point;
-    MImagePoint **v1 = polygon1->data;
-    MImagePoint **v2 = polygon2->data;
-    int n=0;int m;
-    int flag1,flag2;
-    int idx1=0,idx2=0;
-    int flag1 = mPointInPolygon(v1[0],polygon2);
-    int valid = CLOSS_POINT(0,0);
-    if(valid == 1)
-        mListWrite(polygon,DFLT,&point,sizeof(MImagePoint);
-    
-    while(1)
-    {
-        mPolygonIntersetArea_1:
-        m=flag1;
-        for(int j=0;j<polygon2->num;j++)
-        {
-            if(j==polygon2->num) {j=0;if(j==idx2)break;}
-            int valid = CLOSS_POINT(idx1,j);
-            if(valid == 1) {m=m+1;mListWrite(polygon,DFLT,&point,sizeof(MImagePoint);n=n+1;idx2=j;}
-        }
-        mException((m>2),EXIT,"invalid polygon"); 
-        if((m==1)==(flag1==0)) flag1 = 1-flag1;
-        if(flag1 == 1) 
-        {
-            m=0;
-            mListWrite(polygon,DFLT,v1[idx+1],sizeof(MImagePoint);
-        }
-        if(m==0) {idx1+=1;if(idx1<polygon1->num) goto mPolygonIntersetArea_1;
-           
-        
-        m=0;
-        int flag2 = flag1;
-        for(i=idx1+1;i!=idx1;i++)
-        {
-            if(i==polygon1->num) {i=0;if(i==idx1)break;}
-            int valid = CLOSS_POINT(i,idx2);
-            if(valid == 1) {m=m+1;p[n]=point;n=n+1;idx1=i;}
-        }
-        if((m==1)==(flag2==0)) flag2 = 1=flag2;
-        if(flag1 == 1) {m=m+1;p[n] = *(v1[i+1]);n=n+1;}
-        mException((m>3),EXIT,"invalid polygon");
-    }
-    
-    return mPolygonArea(polygon);
-}
-*/
+
 
 float mCircleIntersetArea(MImageCircle *circle1,MImageCircle *circle2)
 {
@@ -317,6 +272,8 @@ float mCircleIntersetArea(MImageCircle *circle1,MImageCircle *circle2)
     
     return (area1+area2);
 }
+
+
 
 float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
 {
@@ -494,75 +451,6 @@ int mPolygonCross(MList *polygon1,MList *polygon2)
     return 1;
 }
 
-
-/*
-#define CHECK_ORDER(k1,k2,k3,k4,flag) {\
-    int sum;\
-    sum = (k1>k2)+(k2>k3)+(k3>k4)+(k4>k1);\
-    if(sum!=2)\
-        flag = 1;\
-    else\
-    {\
-        sum = (k1<k2)+(k2<k3)+(k3<k4)+(k4<k1);\
-        flag = (sum!=2);\
-    }\
-    printf("k is %d,%d,%d,%d\tflag is %d\n",k1,k2,k3,k4,flag);\
-}
-    
-
-int IMP_MATH_IsConvexPolygon(MImagePoint *pPolygon,int s32N)
-{
-    int s32k[32];
-    int s32i;
-    int flag;
-    
-    if(s32N<4)
-        return 1;
-    
-    ANGLE(pPolygon[0],pPolygon[1],s32k[0]);
-    ANGLE(pPolygon[1],pPolygon[2],s32k[1]);
-    ANGLE(pPolygon[2],pPolygon[3],s32k[2]);
-    
-    for(s32i=3;s32i<s32N-1;s32i++)
-    {
-        ANGLE(pPolygon[s32i],pPolygon[s32i+1],s32k[s32i]);
-        // printf("bbbbb s32k is %d,%d,%d\n",s32k[s32i-2],s32k[s32i-1],s32k[s32i]);
-        CHECK_ORDER(s32k[s32i-3],s32k[s32i-2],s32k[s32i-1],s32k[s32i],flag);
-    
-        // if(flag==0)
-            // return 0;
-    }
-    
-    ANGLE(pPolygon[s32N-1],pPolygon[0],s32k[s32N-1]);
-    CHECK_ORDER(s32k[s32N-4],s32k[s32N-3],s32k[s32N-2],s32k[s32N-1],flag);
-    // if(flag == 0)
-        // return 0;
-    
-    CHECK_ORDER(s32k[s32N-3],s32k[s32N-2],s32k[s32N-1],s32k[0],flag);
-    // if(flag == 0)
-        // return 0;
-    
-    CHECK_ORDER(s32k[s32N-2],s32k[s32N-1],s32k[0],s32k[1],flag);
-    // if(flag == 0)
-        // return 0;
-
-    CHECK_ORDER(s32k[s32N-1],s32k[0],s32k[1],s32k[2],flag);    
-    return flag;
-}
-
-
-#define ANGLE_CLASS(k1,k2) {\
-    int diff;\
-    diff = k2-k1;\
-    if(diff<0)\
-        diff = diff+268435456;\
-    \
-    if(diff<=134217728)\
-        s32n1 = s32n1+1;\
-    else\
-        s32n2 = s32n2+1;\
-}
-*/
 
 int mPolygonConcaveCheck(MList *polygon)
 {
@@ -749,20 +637,20 @@ void mConvexHull(MList *point,MList *polygon)
         if(p[i]->x > x_max) {x_max = p[i]->x;i1=i;}else if(p[i]->x < x_min) {x_min = p[i]->x;i3=i;}
         if(p[i]->y > y_max) {y_max = p[i]->y;i2=i;}else if(p[i]->y < y_min) {y_min = p[i]->y;i4=i;}
     }
-  
+
     // printf("i1 is %d,p[i1]->x is %f,p[i1]->y is %f\n",i1,p[i1]->x,p[i1]->y);
     // printf("i2 is %d,p[i2]->x is %f,p[i2]->y is %f\n",i2,p[i2]->x,p[i2]->y);
     // printf("i3 is %d,p[i3]->x is %f,p[i3]->y is %f\n",i3,p[i3]->x,p[i3]->y);
     // printf("i4 is %d,p[i4]->x is %f,p[i4]->y is %f\n",i4,p[i4]->x,p[i4]->y);
-    float kx1=0,ky1=0,b1=0; if(i1 != i2) {ky1=p[i1]->x - p[i2]->x;kx1=p[i1]->y - p[i2]->y; b1=kx1*p[i1]->x - ky1*p[i1]->y;}
-    float kx2=0,ky2=0,b2=0; if(i2 != i3) {ky2=p[i2]->x - p[i3]->x;kx2=p[i2]->y - p[i3]->y; b2=kx2*p[i2]->x - ky2*p[i2]->y;}
-    float kx3=0,ky3=0,b3=0; if(i3 != i4) {ky3=p[i3]->x - p[i4]->x;kx3=p[i3]->y - p[i4]->y; b3=kx3*p[i3]->x - ky3*p[i3]->y;}
-    float kx4=0,ky4=0,b4=0; if(i4 != i1) {ky4=p[i4]->x - p[i1]->x;kx4=p[i4]->y - p[i1]->y; b4=kx4*p[i4]->x - ky4*p[i4]->y;}
+    double kx1=0,ky1=0,b1=0; if(i1 != i2) {ky1=p[i1]->x - p[i2]->x;kx1=p[i1]->y - p[i2]->y; b1=kx1*p[i1]->x - ky1*p[i1]->y;}
+    double kx2=0,ky2=0,b2=0; if(i2 != i3) {ky2=p[i2]->x - p[i3]->x;kx2=p[i2]->y - p[i3]->y; b2=kx2*p[i2]->x - ky2*p[i2]->y;}
+    double kx3=0,ky3=0,b3=0; if(i3 != i4) {ky3=p[i3]->x - p[i4]->x;kx3=p[i3]->y - p[i4]->y; b3=kx3*p[i3]->x - ky3*p[i3]->y;}
+    double kx4=0,ky4=0,b4=0; if(i4 != i1) {ky4=p[i4]->x - p[i1]->x;kx4=p[i4]->y - p[i1]->y; b4=kx4*p[i4]->x - ky4*p[i4]->y;}
    
-    MList *list1 = mListCreate(point->num,NULL); int n1=0;
-    MList *list2 = mListCreate(point->num,NULL); int n2=0;
-    MList *list3 = mListCreate(point->num,NULL); int n3=0;
-    MList *list4 = mListCreate(point->num,NULL); int n4=0;
+    MList *list1 = mListCreate(point->num); int n1=0;
+    MList *list2 = mListCreate(point->num); int n2=0;
+    MList *list3 = mListCreate(point->num); int n3=0;
+    MList *list4 = mListCreate(point->num); int n4=0;
     for(i=0;i<point->num;i++)
     {
         if(i1 != i2) if(kx1*p[i]->x - ky1*p[i]->y < b1) {list1->data[n1] = p[i]; n1=n1+1; continue;}
@@ -808,59 +696,6 @@ void mConvexHull(MList *point,MList *polygon)
     
     if(pout != polygon) {mObjectExchange(polygon,point,MList);mListRelease(polygon);}
 }
-
-// void mEdgeBoundary(MList *edge,MList *polygon,float thresh)
-// {
-//     int i,j;
-//     mException(INVALID_POINTER(edge),EXIT,"invalid input");
-//     mException((edge->num<5),EXIT,"invalid input");
-    
-//     if(thresh<0) thresh = 1;
-    
-//     if(polygon!=edge) mListAppend(polygon,edge->num);
-    
-//     // float kx,ky,b,t,v;
-
-//     MImagePoint **pi = (MImagePoint **)(edge->data);
-//     MImagePoint **po = (MImagePoint **)(polygon->data);
-//     po[0] = pi[0];int n=0;int m=0;
-//     for(i=1;i<edge->num;i++)
-//     {
-//         ky= pi[i]->x - po[n]->x;
-//         kx= pi[i]->y - po[n]->y;
-//         if((ABS(kx)<1.0f)||(ABS(ky)<1.0f)) continue;
-        
-        
-//         b = kx*po[n]->x - ky*po[n]->y;
-//         t=(kx*kx+ky*ky);
-//         v = kx*pi[i-1]->x-ky*pi[i-1]->y - b;
-//         if(v*v>t) {n++;po[n]=pi[i-1];}
-//     }
-//     polygon->num=n+1;
-
-//     int *flag=mMalloc(polygon->num*sizeof(int));
-//     memset(flag,0,polygon->num*sizeof(int));
-//     for(int 
-
-//     n=0;mListWrite(list,0,p[i-1],sizeof(MImagePoint));
-//     for(int i=2;i<polygon->num;i++)
-//     {
-//         for(int j=n+1;j<i;j++)
-//         {
-//             v = kx*pi[j]->x-ky*pi[j]->y - b;
-//             if(v*v>t) break;
-//         }
-//         if(j<i)
-//         {
-//             n++;mListWrite(list,n,p[i-1],sizeof(MImagePoint));
-//         }
-        
-        
-
-//     if(polygon != edge)
-//         for(int i=0;i<polygon->num;i++)
-//             mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
-// }
 
 void _EdgeBoundary(MList *edge,MChain *chain,MChainNode *node,float thresh)
 {
@@ -948,361 +783,91 @@ void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
     mChainRelease(chain);
 }
 
-
-/*
-void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
+int m_PolygonSimilar(MList *polygon1,MList *polygon2,int flag)
 {
-    mException(INVALID_POINTER(edge),EXIT,"invalid input");
-    mException((edge->num<5),EXIT,"invalid input");
-    
-    if(thresh<=0) thresh = 1;
-    
-    int i,n;
-    
-    MImagePoint **p = (MImagePoint **)(edge->data);
-    
-    if(polygon!=edge) mListAppend(polygon,edge->num);
-    
-    float kx,ky,b,t,v;
-    
-    polygon->data[0] = p[0];
-    n=1;
+    mException((polygon1==NULL)||(polygon2==NULL),EXIT,"invalid input");
+    int n =polygon1->num; if(n!=polygon2->num) return 0;
+    float *a1 = malloc(n*4*sizeof(float));float *a2=a1+n+n;
 
-    int n0=0; int n1 = thresh*2;
-    while(n0<edge->num-1)
+    MImagePoint **p1 = (MImagePoint **)polygon1->data;
+    MImagePoint **p2 = (MImagePoint **)polygon2->data;
+
+    a1[0]=atan((p1[n-1]->y-p1[0]->y)/(p1[n-1]->x-p1[0]->x));a1[n]=a1[0];
+    a2[0]=atan((p2[n-1]->y-p2[0]->y)/(p2[n-1]->x-p2[0]->x));a2[n]=a2[0];
+    for(int i=1;i<n;n++)
     {
-        ky= p[n0]->x - p[n1]->x;
-        kx= p[n0]->y - p[n1]->y; 
-        b = kx*p[n0]->x - ky*p[n0]->y;
-        t =thresh*thresh*(kx*kx+ky*ky);
-    
-        for(i=n1-1;i>n0;i--)
-        {
-            v= kx*p[i]->x - ky*p[i]->y - b;
-            if(v*v>t) {n1=i;break;}
-        }
-        if(i==n0) 
-        {
-            polygon->data[n] = p[n1]; n=n+1;
-            n0=n1; n1=MIN(n0+thresh+thresh,edge->num-1);
-        }
+        a1[i]=atan((p1[0]->y-p1[1]->y)/(p1[0]->x-p1[1]->x));a1[i-1]=a1[i]-a1[i-1];
+        a2[i]=atan((p2[0]->y-p2[1]->y)/(p2[0]->x-p2[1]->x));a2[i-1]=a2[i]-a2[i-1];
     }
-    polygon->num = n;
-    // printf("aaaaaaaaaa n is %d\n",n);
+    a1[n-1]=a1[n]-a1[n-1];
+    a2[n-1]=a2[n]-a2[n-1];
+    memcpy(a2+n,a2,n*sizeof(float));
     
-    p = (MImagePoint **)(polygon->data);
-    // for(i=0;i<n;i++)printf("p[%d] is %f,%f\n",i,p[i]->x,p[i]->y);
-    
-    while(1)
+    int j,i1,i2;
+    for(j=0;j<n;j++)
     {
-        ky= p[polygon->num-1]->x - p[1]->x;
-        kx= p[polygon->num-1]->y - p[1]->y; 
-        b = kx*p[1]->x - ky*p[1]->y;
-        t =thresh*thresh*(kx*kx+ky*ky);
-        v= kx*p[0]->x - ky*p[0]->y - b;
-        
-        if(v*v>t) i=1;
-        else     {i=2; polygon->data[0] = p[1];}
-        // printf("i is %d\n",i);
-        // printf("p[0] is %f,%f\n",p[0]->x,p[0]->y);
-        
-        n=1;
-        while(i<polygon->num-1)
+        for(i1=0,i2=j;i1<n;i1++,i2++)
         {
-            ky= p[i-1]->x - p[i+1]->x;
-            kx= p[i-1]->y - p[i+1]->y; 
-            b = kx*p[i-1]->x - ky*p[i-1]->y;
-            t =thresh*thresh*(kx*kx+ky*ky);
-            
-            // if((p[i-1]->x >= 351.0f)&&(p[i-1]->x <= 354.0f))
-            // {
-                // printf("p[i-1] is %f,%f\n",p[i-1]->x,p[i-1]->y);
-                // printf("p[i  ] is %f,%f\n",p[i  ]->x,p[i  ]->y);
-                // printf("p[i+1] is %f,%f\n\n",p[i+1]->x,p[i+1]->y);
-            // }
-            
-            v= kx*p[i]->x - ky*p[i]->y - b;
-            if(v*v>t) {polygon->data[n] = p[i  ];i=i+1;}
-            else      {polygon->data[n] = p[i+1];i=i+2;}
-            n=n+1;
+            if(ABS(a1[i1]-a2[i2])>ABS(a1[i1]+a2[i2])*0.01) break;
         }
-        
-        ky= p[polygon->num-2]->x - p[0]->x;
-        kx= p[polygon->num-2]->y - p[0]->y; 
-        
-        b = kx*p[0]->x - ky*p[0]->y;
-        t =thresh*thresh*(kx*kx+ky*ky);
-        v= kx*p[polygon->num-1]->x - ky*p[polygon->num-1]->y - b;
-        // printf("v is %f,t is %f\n",v,t);
-        
-        if(v*v>t) {polygon->data[n] = p[polygon->num-1];n=n+1;}
-        
-        // printf("bbbbbbbb n is %d\n",n);
-        if((polygon->num == n)||(n<4))
-            break;
-        
-        polygon->num = n;
-
-        // printf("aaaaaaaaaa n is %d\n",n);
-        // for(i=0;i<n;i++)printf("p[%d] is %f,%f\n",i,p[i]->x,p[i]->y);
+        if(i1==n) break;
+    }
+    if(j==n) return 0;
+    
+    if(flag==1)
+    {
+        float d1 = (p1[0]->y-p1[n-1]->y)*(p1[0]->y-p1[n-1]->y)+(p1[0]->x-p1[n-1]->x)*(p1[0]->x-p1[n-1]->x);
+        float d2 = (p1[j]->y-p1[j-1]->y)*(p1[j]->y-p1[j-1]->y)+(p1[j]->x-p1[j-1]->x)*(p1[j]->x-p1[j-1]->x);
+        if(ABS(d1-d2)>(d1+d2)*0.01) return 0;
     }
     
-    if(polygon != edge)
-        for(i=0;i<polygon->num;i++)
-            mListWrite(polygon,i,polygon->data[i],sizeof(MImagePoint));
+    return 1;
+}
+/*
+DelaunayGrow(M
+
+void Delaunay(MList *point,MList *rst_line)
+{
+    MImagePoint **pt = (MImagePoint **)(point->data);
+    float xmin=(pt[0]->x);float xmax=xmin;
+    float ymin=(pt[0]->y);float ymax=ymin;
+    for(int i=1;i<point->num;i++)
+    {
+        xmin=MIN(pt[i].x,xmin);xmax=MAX(pt[i].xmax);
+        ymin=MIN(pt[i].y,ymin);ymax=MAX(pt[i].ymax);
+    }
+
+    int d=(int)sqrt((double)(point->num/2));
+    float sx=(xmax-xmin)/d;float sy=(ymax-ymin)/d;
+    float dmax = xmax+ymax-xmin-ymin;
+    
+    struct PointInfo
+    {
+        MImagePoint pt;
+        MImagePoint *nb;
+        float d;
+        int count;
+    };
+    MSheet *sheet_point = mSheetCreate(d*d,NULL);
+    struct PointInfo info;
+    for(int i=0;i<point->num;i++)
+    {
+        int lx=(int)(pt[i]->x/sx +0.5);
+        int ly=(int)(pt[i]->y/sy +0.5);
+        info.pt=*(pt[i]);
+        info.nb=NULL;
+        info.d=dmax;
+        mSheetWrite(sheet,ly*d+lx,DFLT,&info,sizeof(struct PointInfo));
+    }
+    for(int j=0;j<d-1;j++)for(int i=0;i<d-1;i++)
+    {
+        int i0=j*d+i;int i1=i0+1;int i2=i0+d;int i3=i2+1;
+        
+        for(int k=0;k<sheet->col[i0*i1];k++)
+        mSheetLine
+    }
+    
+        
+    mSheetRelease(sheet);
 }
 */
-
-
-
-// void mEdgeReshape(MList *edge_in,MList *edge_out,int thresh1,int thresh2)
-// {
-    // MImagePoint **p = (MImagePoint **)(edge_in->data);
-    // int point_num = edge_in->num;
-    
-    // mListClear(edge_out);
-    // for(int i=0;i<point_num;i++)
-    // {
-        // int j=i+thresh1;if(j>=edge_in->num) j=j-edge_in->num;
-        // int k=j+1;      if(k>=edge_in->num) k=0;
-        
-        // mPointDistance(p[i],p[j])
-        
-    // }
-    
-    
-        
-    
-    
-// }
-
-
-
-
-
-    
-/*
-
-int IMP_MATH_IsConcavePolygon(MPolygon *pPolygon)
-{
-    int s32k[32];
-    int s32i;
-    int s32n1,s32n2;
-    int s32N;
-    
-    s32N = pPolygon->s32N;
-    if(s32N<4)
-        return 0;
-    
-    ANGLE(pPolygon->ppPoint[0],pPolygon->ppPoint[1],s32k[0]);
-    
-    s32n1=0;
-    s32n2 =0;
-    for(s32i=1;s32i<s32N-1;s32i++)
-    {
-        ANGLE(pPolygon->ppPoint[s32i],pPolygon->ppPoint[s32i+1],s32k[s32i]);
-        ANGLE_CLASS(s32k[s32i-1],s32k[s32i]);
-        if((s32n1&s32n2)!=0)
-            return 1;            
-    }
-    
-    ANGLE(pPolygon->ppPoint[s32N-1],pPolygon->ppPoint[0],s32k[s32N-1]);
-    
-    ANGLE_CLASS(s32k[s32N-2],s32k[s32N-1]);
-    if((s32n1&s32n2)!=0)
-        return 1;
-    
-    ANGLE_CLASS(s32k[s32N-1],s32k[0]);
-    if((s32n1&s32n2)!=0)
-        return 1;
-
-    return 0;
-}
-
-int IMP_MATH_IsConcaveArea(MImagePoint *pPoint,int n)
-{
-    IMP_PointGroup_S Polygon;
-    int flag;
-    
-    IMP_IP_GenerateGroupFromArry(Polygon,Point,pPoint,n);
-    
-    flag = IMP_MATH_IsConcavePolygon(&Polygon);
-    
-    IMP_IP_ReleaseGroup(Polygon,Point);
-    
-    return flag;
-}
-
-    
-#define ANGLE_KIND(k1,k2,point) {\
-    int diff;\
-    diff = k2-k1;\
-    if(diff<0)\
-    {\
-        diff = diff+268435456;\
-        s32n = s32n+1;\
-    }\
-    \
-    if(diff<=134217728)\
-    {\
-        P1[s32n1] = *point;\
-        s32n1 = s32n1+1;\
-    }\
-    else\
-    {\
-        P2[s32n2] = *point;\
-        s32n2 = s32n2+1;\
-    }\
-}
-
-IMP_PointGroup_S *IMP_MATH_PolygonConcavePoints(MPolygon *pPolygon)
-{
-    int s32k[32];
-    int s32i;
-    MImagePoint *P1;
-    MImagePoint *P2;
-    int s32n1,s32n2,s32n;
-    int s32N;
-    IMP_PointGroup_S *pConcavePoints;
-    
-    s32N = pPolygon->s32N;
-    // printf("s32N is %d\n",s32N);
-    
-    P1 = (MImagePoint *)malloc(s32N*sizeof(MImagePoint));
-    P2 = (MImagePoint *)malloc(s32N*sizeof(MImagePoint));
-    
-    ANGLE(pPolygon->ppPoint[0],pPolygon->ppPoint[1],s32k[0]);
-    
-    s32n1=0;
-    s32n2=0;
-    s32n = 1;
-    for(s32i=1;s32i<s32N-1;s32i++)
-    {
-        ANGLE(pPolygon->ppPoint[s32i],pPolygon->ppPoint[s32i+1],s32k[s32i]);
-        ANGLE_KIND(s32k[s32i-1],s32k[s32i],pPolygon->ppPoint[s32i]);
-    }
-    
-    ANGLE(pPolygon->ppPoint[s32N-1],pPolygon->ppPoint[0],s32k[s32N-1]);
-    ANGLE_KIND(s32k[s32N-2],s32k[s32N-1],pPolygon->ppPoint[s32N-1]);
-    ANGLE_KIND(s32k[s32N-1],s32k[0],pPolygon->ppPoint[0]);
-    
-    // printf("s32n1 is %d\n",s32n1);
-    // printf("s32n2 is %d\n",s32n2);
-    
-    if((s32n1 == 0)||(s32n2 == 0))
-    {
-        free(P1);
-        free(P2);
-        return NULL;
-    }
-    
-    pConcavePoints = (IMP_PointGroup_S *)malloc(sizeof(IMP_PointGroup_S));
-    if(s32n==s32n2)
-    {
-        IMP_IP_GenerateGroupFromAddr(*pConcavePoints,Point,P1,s32n1);        
-        free(P2);
-        return pConcavePoints;
-    }
-    else
-    {
-        IMP_IP_GenerateGroupFromAddr(*pConcavePoints,Point,P2,s32n2);        
-        free(P1);
-        return pConcavePoints;
-    }    
-}
-
-IMP_PointGroup_S *IMP_MATH_ToConvexPolygon(MPolygon *pPolygon)
-{
-    int s32k[32];
-    int s32i;
-    MImagePoint *P1;
-    MImagePoint *P2;
-    int s32n1,s32n2,s32n;
-    int s32N;
-    IMP_PointGroup_S *pConvexPoints;
-    
-    s32N = pPolygon->s32N;
-    // printf("s32N is %d\n",s32N);
-    
-    P1 = (MImagePoint *)malloc(s32N*sizeof(MImagePoint));
-    P2 = (MImagePoint *)malloc(s32N*sizeof(MImagePoint));
-    
-    s32n1=0;
-    s32n2 =0;
-    s32n = 1;
-    
-    ANGLE(pPolygon->ppPoint[s32N-1],pPolygon->ppPoint[0],s32k[s32N-1]);
-    ANGLE(pPolygon->ppPoint[0],pPolygon->ppPoint[1],s32k[0]);
-    ANGLE_KIND(s32k[s32N-1],s32k[0],pPolygon->ppPoint[0]);    
-    
-    for(s32i=1;s32i<s32N-1;s32i++)
-    {
-        ANGLE(pPolygon->ppPoint[s32i],pPolygon->ppPoint[s32i+1],s32k[s32i]);
-        ANGLE_KIND(s32k[s32i-1],s32k[s32i],pPolygon->ppPoint[s32i]);
-    }
-    
-    ANGLE_KIND(s32k[s32N-2],s32k[s32N-1],pPolygon->ppPoint[s32N-1]);
-    
-    // printf("s32n is %d\n",s32n);
-    // printf("s32n1 is %d\n",s32n1);
-    // printf("s32n2 is %d\n",s32n2);
-    
-    pConvexPoints = (IMP_PointGroup_S *)malloc(sizeof(IMP_PointGroup_S));
-    if(s32n==s32n2)//if(s32n2>s32n1)
-    {
-        IMP_IP_GenerateGroupFromAddr(*pConvexPoints,Point,P2,s32n2);        
-        free(P1);
-        return pConvexPoints;
-    }
-    else
-    {
-        IMP_IP_GenerateGroupFromAddr(*pConvexPoints,Point,P1,s32n1);        
-        free(P2);
-        return pConvexPoints;
-    }    
-}
-   
-int IMP_MATH_ToConvexArea(MImagePoint *pPointIn,int n,MImagePoint *pPointConvex)
-{
-    IMP_PointGroup_S Polygon;
-    IMP_PointGroup_S *pConvexPoints;
-    int s32N;
-    int s32i;
-    
-    IMP_IP_GenerateGroupFromArry(Polygon,Point,pPointIn,n);
-    
-    pConvexPoints = IMP_MATH_ToConvexPolygon(&Polygon);
-    
-    s32N = pConvexPoints->s32N;
-    for(s32i=0;s32i<s32N;s32i++)
-        pPointConvex[s32i] = *(pConvexPoints->ppPoint[s32i]);
-    
-    IMP_IP_ReleaseGroup(Polygon,Point);
-    IMP_IP_ReleaseGroup(*pConvexPoints,Point);
-    
-    return s32N;
-}
-
-int IMP_MATH_AreaConcavePoints(MImagePoint *pPointIn,int n,MImagePoint *pPointConcave) 
-{
-    IMP_PointGroup_S Polygon;
-    IMP_PointGroup_S *pConcavePoints;
-
-    int s32N;
-    int s32i;
-    
-    IMP_IP_GenerateGroupFromArry(Polygon,Point,pPointIn,n);
-    
-    pConcavePoints = IMP_MATH_PolygonConcavePoints(&Polygon);
-    // IMP_MATH_PolygonConcavePoints
-    s32N = pConcavePoints->s32N;
-    for(s32i=0;s32i<s32N;s32i++)
-        pPointConcave[s32i] = *(pConcavePoints->ppPoint[s32i]);
-    
-    IMP_IP_ReleaseGroup(Polygon,Point);
-    IMP_IP_ReleaseGroup(*pConcavePoints,Point);
-    
-    return s32N;
-}
-*/
-

@@ -352,18 +352,18 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
         hdl->valid = 1;
     }
     MList *point_buff = handle->point_buff;
-    MSheet *edge_buff = edge;
+    
     if(edge == NULL) 
     {
-        if(handle->edge_buff==NULL) handle->edge_buff=mSheetCreate(1,NULL,NULL);
-        edge_buff = handle->edge_buff;
+        if(handle->edge_buff==NULL) handle->edge_buff=mSheetCreate();
+        edge = handle->edge_buff;
     }
+    mSheetClear(edge);
     
-    MImagePoint point;
     unsigned char **data = src->data[0];
-
     int data1,data2,data3,data4,data5,data6,data7,data8;
-    
+
+    int buff[2];
     int row = 0;
     for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
     {
@@ -371,17 +371,15 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
         if(*pdata==0) continue;
         for(int i=ii;i<ii+8;i++)
         {
-            if(data[j][i]==0)  continue;
-            if(data[j][i]!=255) {data[j][i] = 255; continue;}
+            if(data[j][i]!=255) continue;
             if(data[j][i-1]!=0) continue; 
-            // if((data[j][i-1]!=0)&&(data[j+1][i-1]!=0)) continue; 
             if(data[j][i+1]+data[j+1][i]+data[j+1][i+1]<=510) continue;
-
+            
             point_buff->num=0;
             
             int x = i; int y = j;
-            point.x = x; point.y = y;
-            mSheetWrite(edge_buff,row,0,&point,sizeof(MImagePoint));
+            buff[0]=x;buff[1]=y;
+            mSheetWrite(edge,row,0,buff,2*sizeof(int));
             int order = 1;
             data[y][x] = 254;
             
@@ -389,8 +387,8 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             {
                 #define SET_EDGE(X,Y) {\
                     x = X;y = Y;\
-                    point.x = x;point.y = y;\
-                    mSheetWrite(edge_buff,row,order,&point,sizeof(MImagePoint));\
+                    buff[0]=x;buff[1]=y;\
+                    mSheetWrite(edge,row,order,buff,2*sizeof(int));\
                     order += 1;\
                     data[y][x] = 254;\
                 }
@@ -408,12 +406,12 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
 
                 if((ABS(x-i)<=1)&&(ABS(y-j)<=1)&&(order>4)) break;
                 
-                int buff[2]={x,y};
-                mListWrite(point_buff,DFLT,buff,sizeof(MImagePoint));
+                buff[0]=x;buff[1]=y;
+                mListWrite(point_buff,DFLT,buff,2*sizeof(int));
                 
                 order -= 1;if(order <= 1) break;
-                x = ((MImagePoint *)(edge_buff->data[row][order-1]))->x;
-                y = ((MImagePoint *)(edge_buff->data[row][order-1]))->y;
+                int *p = (int *)(edge->data[row][order-1]);
+                x=p[0]; y=p[1];
             }
             
             if(order>1)
@@ -423,20 +421,20 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
                     float xmin=i;float xmax=i;float ymin=j;float ymax=j;
                     for(int n=0;n<order;n++)
                     {
-                        MImagePoint *pt=edge_buff->data[row][n];
-                        if(pt->x<xmin) xmin=pt->x;else if(pt->x>xmax) xmax=pt->x;
-                        if(pt->y<ymin) ymin=pt->y;else if(pt->y>ymax) ymax=pt->y;
+                        int *p =(int *)(edge->data[row][n]);
+                        if(p[0]<xmin) xmin=p[0];else if(p[0]>xmax) xmax=p[0];
+                        if(p[1]<ymin) ymin=p[1];else if(p[1]>ymax) ymax=p[1];
                     }
                     for(int n=0;n<point_buff->num;n++)
                     {
-                        int *p =point_buff->data[n];
+                        int *p =(int *)(point_buff->data[n]);
                         if(p[0]<xmin) xmin=p[0];else if(p[0]>xmax) xmax=p[0];
                         if(p[1]<ymin) ymin=p[1];else if(p[1]>ymax) ymax=p[1];
                     }
                     MImageRect rect;mRect(&rect,xmin,ymin,xmax,ymax);
                     mListWrite(edge_rect,row,&rect,sizeof(MImageRect));
                 }
-                if(edge!=NULL) {edge_buff->col[row] = order; row++;}
+                edge->col[row]=order; row++;
             }
 
             for(int n=0;n<point_buff->num;n++)
@@ -446,6 +444,15 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
             }
             data[j][i] = 255;
         }
+    }
+    
+    MImagePoint point;
+    for(int j=0;j<edge->row;j++)for(int i=0;i<edge->col[j];i++)
+    {
+        int *p =(int *)(edge->data[j][i]);
+        data[p[1]][p[0]]=255;
+        point.x=p[0];point.y=p[1];
+        memcpy(p,&point,2*sizeof(int));
     }
 }
 

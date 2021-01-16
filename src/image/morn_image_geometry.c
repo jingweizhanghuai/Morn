@@ -320,8 +320,8 @@ void mCurve(MImageCurve *curve,float i1,float i2,int type,float (*func)(float,fl
 {
     curve->type = type;
     curve->curve= func;
-    memcpy(curve->para,para,16*sizeof(float));
-    printf("i1 is %f,i2 is %f\n",i1,i2);
+    if(para!=NULL) memcpy(curve->para,para,16*sizeof(float));
+    // printf("i1 is %f,i2 is %f\n",i1,i2);
     if(i2<i1) {int buff=i1;i1=i2;i2=buff;}
     if(type<=0)
     {

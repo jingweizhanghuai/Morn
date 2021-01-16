@@ -1,11 +1,8 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译：gcc -O2 -fopenmp test_minist.c -I ..\include\ -L ..\lib\x64\mingw\ -lmorn -lopenblas -o test_minist.exe
-
+//build: gcc -O2 -fopenmp test_minist.c -o test_minist.exe -I ..\include\ -L ..\lib\x64_mingw\ -lmorn -lopenblas -lclblas -lOpenCL -lstdc++
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -69,6 +66,7 @@ void MinistData(MVector **vec,char **name,int number,char *dir)
     fread(&label,1,1,g_f_label);
     fread(data,1,28*28,g_f_data);
     for(int i=0;i<28*28;i++) in->data[i]=(float)data[i]/256;
+    // printf("in->data[28*28]=%f\n",in->data[28*28]);
     memset(out->data,0,10*sizeof(float));out->data[label]=1;
 }
 
@@ -125,7 +123,8 @@ int test_predict()
 
 int main(int argc,char **argv)
 {
-    if(strcmp(argv[1],"data"   )==0) {test_data()   ;return 0;}
-    if(strcmp(argv[1],"train"  )==0) {test_train()  ;return 0;}
-    if(strcmp(argv[1],"predict")==0) {test_predict();return 0;}
+    mException(argc!=2,EXIT,"invalid operate");
+         if(strcmp(argv[1],"data"   )==0) {test_data()   ;return 0;}
+    else if(strcmp(argv[1],"train"  )==0) {test_train()  ;return 0;}
+    else if(strcmp(argv[1],"predict")==0) {test_predict();return 0;}
 }

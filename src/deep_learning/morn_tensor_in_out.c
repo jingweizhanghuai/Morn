@@ -122,11 +122,7 @@ void TensorOutputSet(MLayer *layer)
         mTensorCopy(in,out,DFLT);
         mTensorRedefine(in,in->batch,in->channel,in->height,in->width,out->data);
     }
-    else
-    {
-        if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
-        else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
-    }
+    else mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
 }
 
 void mTensorOutputForward(MLayer *layer)

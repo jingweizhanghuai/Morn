@@ -1,20 +1,15 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// 编译： gcc -O2 -fopenmp test_fft2.c -I ..\include\ -I E:\fftw\api\ -L ..\lib\x64\mingw\ -L E:\fftw\ -lfftw3f -lmorn -o test_fft2.exe
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// build: gcc -O2 -fopenmp test_fft2.c -o test_fft2.exe -I ..\include\ -I C:\ProgramFiles\CPackage\fftw\include -L ..\lib\x64_mingw\ -L C:\ProgramFiles\CPackage\fftw\lib -lfftw3f -lmorn
 
 #include "morn_wave.h"
 #include "fftw3.h"
 
 int main()
 {
-    MFile *file = mFileCreate("E:/test.wav");
+    MFile *file = mFileCreate("./test.wav");
     MWave *src = mWaveCreate(1,1024,NULL);
     MWave *dst = mWaveCreate(2,1024,NULL);
     mWAVRead(file,src);

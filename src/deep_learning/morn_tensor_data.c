@@ -85,6 +85,9 @@ void MORNTensor(MVector **data,char **name,int number,char *dir)
         // printf("name[i]=%s,data[i]->size=%d\n",name[i],data[i]->size);
         mException((INVALID_POINTER(data[i])||(INVALID_POINTER(name[i]))),EXIT,"invalid input");
         mMORNRead(file,mHash(name[i],DFLT),(void **)&(data[i]->data),1,(data[i]->size)*sizeof(float));
+
+        // int s=data[i]->size;
+        // printf("s=%d,data[i]->data[s]=%f\n",s,data[i]->data[s]);
     }
     mFileRelease(file);
 }
@@ -131,6 +134,7 @@ void mTrainData(MFile *ini)
     struct HandleTrainData *handle = (struct HandleTrainData *)(hdl->handle);
     if(hdl->valid == 0)
     {
+        
         if(handle->net==NULL) handle->net = mNetworkGenerate(ini);
         
         char *value;
@@ -153,7 +157,7 @@ void mTrainData(MFile *ini)
         handle->train_batch = (int)(((float)(handle->batch))*coverage_ratio+0.5);
         handle->update = (int)(handle->train_batch * update_ratio + 0.5);
         if(handle->update < 1) handle->update = 1;
-
+        
         handle->index_input = mTensorRegisterIndex("Input" );
         handle->index_output= mTensorRegisterIndex("Output");
         if(handle->layer==NULL) handle->layer=mListCreate(DFLT,NULL);
@@ -177,13 +181,14 @@ void mTrainData(MFile *ini)
             value=mINIRead(ini,layer->name,"height" );mException((value==NULL),EXIT,"no input height" );int height =atoi(value);
             value=mINIRead(ini,layer->name,"width"  );mException((value==NULL),EXIT,"no input width"  );int width  =atoi(value);
 
+            // printf("channel=%d,height=%d,width=%d\n",channel,height,width);
             if(layer->tns==NULL) mTensorCreate(handle->train_batch,channel,height,width,NULL);
             else    mTensorRedefine(layer->tns,handle->train_batch,channel,height,width,layer->tns->data);
-            layer->tns->batch = handle->batch;
 
+            layer->tns->batch = handle->batch;
             mListWrite(handle->layer,DFLT,layer,sizeof(MLayer));
         }
-
+    
         if(morn_datafunc == NULL) morn_datafunc = MORNTensor;
 
         handle->datain = (MVector **)mMalloc(handle->layer->num*sizeof(MVector *));
@@ -210,6 +215,7 @@ void mTrainData(MFile *ini)
             {
                 MLayer *layer = (MLayer *)(handle->layer->data[i]);
                 handle->datain[i]->data = layer->tns->data[b];
+                // printf("handle->datain[i]->size=%d\n",handle->datain[i]->size);
             }
             morn_datafunc(handle->datain,handle->namein,handle->layer->num,handle->data_dir);
         }
@@ -226,6 +232,7 @@ void mTrainData(MFile *ini)
         {
             MLayer *layer = (MLayer *)(handle->layer->data[i]);
             handle->datain[i]->data = layer->tns->data[b];
+            // printf("b=%d,handle->datain[i]->size=%d\n",b,handle->datain[i]->size);
         }
         morn_datafunc(handle->datain,handle->namein,handle->layer->num,handle->data_dir);
     }

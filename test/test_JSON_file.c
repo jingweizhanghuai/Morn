@@ -4,11 +4,7 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-//±‡“Î£∫ gcc -O2 -fopenmp test_JSON_file.c -I ..\include\ -L ..\lib\x64\mingw -lmorn -o test_JSON_file.exe
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//±‡“Î£∫ gcc -O2 -fopenmp test_JSON_file.c -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_JSON_file.exe
 
 #include "morn_util.h"
 
@@ -19,7 +15,7 @@ int main()
 
     MTreeNode *node = json->treenode->child[0];
     for(int i=0;i<node->child_num;i++)
-        printf("%s «%s\n",mJSONName(node->child[i]),mJSONValue(node->child[i]));
+        printf("%s=%s\n",mJSONName(node->child[i]),mJSONValue(node->child[i]));
     printf("\n");
     
     MList *list = mListCreate(DFLT,NULL);

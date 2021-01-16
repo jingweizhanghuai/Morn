@@ -113,7 +113,6 @@ MSheet *SheetCreate(int row,int *col,void ***data)
 void mSheetRelease(MSheet *sheet)
 {
     mException(INVALID_POINTER(sheet),EXIT,"invalid input source sheet");
-    
     if(!INVALID_POINTER(sheet->handle))
         mHandleRelease(sheet->handle);
 }

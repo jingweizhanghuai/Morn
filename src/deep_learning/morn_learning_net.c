@@ -214,8 +214,9 @@ void mDeeplearningTrain(char *filename)
 {
     morn_network_flag = MORN_TRAIN;
     MFile *ini = mFileCreate(filename);
+    
     MList *net = mNetworkGenerate(ini);
-   
+    
     for(morn_network_time=0;morn_network_time<=morn_network_time_max;morn_network_time++)
     {
         mTrainData(ini);
@@ -232,7 +233,7 @@ void mNetworkTrain(MFile *ini,char *name[],MTensor *tns[])
 {
     morn_network_flag = MORN_TRAIN;
     MList *net = mNetworkGenerate(ini);
-    
+
     mNetworkTensor(ini,name,tns);
     mNetworkForward(net);
     mNetworkBackward(net);

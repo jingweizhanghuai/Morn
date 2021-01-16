@@ -25,7 +25,7 @@ void mPNGLoad(MImage *dst,const char *filename)
 {
     int i,j,k;
     mException(INVALID_POINTER(dst),EXIT,"invalid input");
-   
+    
     FILE *pf=NULL; FILE *f=NULL;
     MHandle *hdl=mHandle(dst,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
@@ -36,13 +36,13 @@ void mPNGLoad(MImage *dst,const char *filename)
         mException((f == NULL),EXIT,"file %s cannot open",filename);
         f = pf;
     }
-     
+    
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
     png_infop info_ptr = png_create_info_struct(png_ptr);
 
     char buf[4];fread(buf,1,4,f); 
     mException((png_sig_cmp((unsigned char*)buf, (png_size_t)0,4)!=0),EXIT,"PNG format error");
- 
+    
     fseek(f,0,SEEK_SET);
     png_init_io(png_ptr,f);
     png_read_png(png_ptr,info_ptr,PNG_TRANSFORM_EXPAND,0);
@@ -50,8 +50,9 @@ void mPNGLoad(MImage *dst,const char *filename)
     int img_width = png_get_image_width(png_ptr, info_ptr);     
     int img_height = png_get_image_height(png_ptr, info_ptr);
     int cn = png_get_channels(png_ptr,info_ptr);
+    
     mImageRedefine(dst,cn,img_height,img_width,dst->data);
-        
+    
     unsigned char **p_data = png_get_rows(png_ptr,info_ptr);
 
     if(cn==1)
@@ -149,6 +150,7 @@ void mPNGSave(MImage *src,const char *filename)
 
 void ImageLoad(MImage *img,const char *filename)
 {
+    
     MHandle *hdl=mHandle(img,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
     mException((handle->f!=NULL),EXIT,"invalid operate");

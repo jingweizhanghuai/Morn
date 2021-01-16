@@ -3,14 +3,9 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_image.h"
 
-unsigned char morn_default_color[3] = {128,255,0};
+static unsigned char morn_default_color[4] = {128,255,0,255};
 
 void ImageDrawPoint1(MImage *img,MImagePoint *point,unsigned char *color)
 {
@@ -56,16 +51,16 @@ void ImageDrawPoint4(MImage *img,MImagePoint *point,unsigned char *color)
     }
 }
 #define DRAW_POINT {\
-    if(width==1) ImageDrawPoint1(dst,point,color);\
-    if(width==2) ImageDrawPoint2(dst,point,color);\
-    if(width==3) ImageDrawPoint3(dst,point,color);\
-    if(width==4) ImageDrawPoint4(dst,point,color);\
+         if(width==1) ImageDrawPoint1(dst,point,color);\
+    else if(width==2) ImageDrawPoint2(dst,point,color);\
+    else if(width==3) ImageDrawPoint3(dst,point,color);\
+    else if(width==4) ImageDrawPoint4(dst,point,color);\
 }
-void mImageDrawPoint(MImage *src,MImage *dst,MImagePoint *point,unsigned char *color,int width)
+void m_ImageDrawPoint(MImage *src,MImage *dst,MImagePoint *point,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
     
-    if(width<=0)width=1;else if(width>4)width=4;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     if((!INVALID_POINTER(dst))&&(dst!=src)) mImageCopy(src,dst);
     else dst = src;
     
@@ -86,10 +81,10 @@ void PointDraw(MImagePoint *point, void *info)
     int width = para->width;
     DRAW_POINT;
 }
-void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *color,int width)
+void m_ImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
-    if(width<=0)width=1;else if(width>4)width=4;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     MImagePoint point1;point1.x=rect->x1  ;point1.y=rect->y1  ;
     MImagePoint point2;point2.x=rect->x2-1;point2.y=rect->y1  ;
     MImagePoint point3;point3.x=rect->x2-1;point3.y=rect->y2-1;
@@ -101,25 +96,25 @@ void mImageDrawRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *colo
     mLineTravel(&point4,&point1,1,PointDraw,&para);
     PointDraw(&point3,&para);
 }
-void mImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width)
+void m_ImageDrawLine(MImage *src,MImage *dst,MImagePoint *p1,MImagePoint *p2,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
     
-    if(width<=0)width=1;else if(width>4)width=4;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     if((!INVALID_POINTER(dst))&&(dst!=src)) mImageCopy(src,dst);
     else dst = src;
        
     struct DrawPara para;para.dst=dst;para.color=color;para.width=width;
     mLineTravel(p1,p2,1,PointDraw,&para);
 }
-void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width)
+void m_ImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,int width)
 {
     mException(shape==NULL,EXIT,"invalid shape");
     if(shape->num==0) return;
     
     if(INVALID_POINTER(color)) color = morn_default_color;
     
-    if(width<=0)width=1;else if(width>4)width=4;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     if((!INVALID_POINTER(dst))&&(dst!=src)) mImageCopy(src,dst);
     else dst = src;
     
@@ -127,11 +122,11 @@ void mImageDrawShape(MImage *src,MImage *dst,MList *shape,unsigned char *color,i
     mPolygonSideTravel(shape,1,PointDraw,&para);
 }
 
-void mImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char *color,int width)
+void m_ImageDrawCircle(MImage *src,MImage *dst,MImageCircle *circle,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
     
-    if(width<=0)width=1;else if(width>4)width=4;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     if((!INVALID_POINTER(dst))&&(dst!=src)) mImageCopy(src,dst);
     else dst = src;
     
@@ -174,11 +169,11 @@ void mImageFillRect(MImage *src,MImage *dst,MImageRect *rect,unsigned char *colo
             memset(dst->data[cn][j]+rect->x1,color[cn],width);
 }
 
-void mImageDrawCurve(MImage *src,MImage *dst,MImageCurve *curve,unsigned char *color,int width)
+void m_ImageDrawCurve(MImage *src,MImage *dst,MImageCurve *curve,unsigned char *color,int width)
 {
     if(INVALID_POINTER(color)) color = morn_default_color;
+    mException((width<-1)||(width>4),EXIT,"invalid input");if(width<=0)width=1;
     
-    if(width<=0)width=1;else if(width>4)width=4;
     if((!INVALID_POINTER(dst))&&(dst!=src)) mImageCopy(src,dst);
     else dst = src;
     
