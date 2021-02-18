@@ -140,7 +140,7 @@ void test(void *para)
 #ifdef USE_MIMALLOC
 //build_x64_mingw: gcc -O2 -fopenmp test_memory.c -o test_memory_mimalloc.exe -DUSE_MIMALLOC -lmorn -lmimalloc -lPsapi -lBcrypt
 //build_x64_gnu:   gcc -O2 -fopenmp test_memory.c -o test_memory_mimalloc.exe -DUSE_MIMALLOC -I ../include/ -L ../lib/x64_gnu -lmorn -lmimalloc -lm
-#include "mimalloc.h"
+#include "mimalloc/mimalloc.h"
 void test(void *para)
 {
     int *data[1024];
@@ -168,7 +168,7 @@ void test(void *para)
 }
 #endif
 
-int mainq()
+int main()
 {
     test(NULL);
 }
