@@ -315,9 +315,11 @@ void mImageExpand(MImage *img,int r,int border_type)
     mInfoSet(&(img->info),"border_type",border_type);
 }
 
-void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly)
+void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate)
 {
-    mException(INVALID_IMAGE(img),EXIT,"invalid input");
+    mException(INVALID_IMAGE(img)||INVALID_POINTER(rect),EXIT,"invalid input");
+    int x1=rect->x1;int x2=rect->x2;int y1=rect->y1;int y2=rect->y2;
+    int lx,ly;if(INVALID_POINTER(locate)) {lx=0,ly=0;}else {lx=locate->x;ly=locate->y;}
     
     int height = ABS(y1-y2);int width = ABS(x1-x2);
     mException((height==0)||(width<=0),EXIT,"invalid input");
@@ -334,6 +336,7 @@ void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly
 
     int h = ABS(y1-y2);int w = ABS(x1-x2);
     if((h==0)||(w==0)) return;
+    // printf("x1=%d,x2=%d,width=%d,w=%d\n",x1,x2,width,w);
 
     if(INVALID_POINTER(dst)) dst=img;
     unsigned char ***dst_data;
@@ -351,7 +354,7 @@ void mImageCut(MImage *img,MImage *dst,int x1,int x2,int y1,int y2,int lx,int ly
             dst_data=mImageBackup(img,DFLT,height,width);
     }
     
-    // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d,lx=%d,ly=%d,height=%d,width=%d,h=%d,w=%d\n",x1,x2,y1,y2,lx,ly,height,width,h,w);
+    printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d,lx=%d,ly=%d,height=%d,width=%d,h=%d,w=%d\n",x1,x2,y1,y2,lx,ly,height,width,h,w);
     if(x1<x2)
     {
         for(int c=0;c<img->channel;c++)

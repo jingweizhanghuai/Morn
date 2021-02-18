@@ -15,7 +15,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdarg.h>
 #include <errno.h>
 
-#include <pthread.h>
+// 
 
 #ifdef __cplusplus
 extern "C"
@@ -139,9 +139,6 @@ int64_t m_StringTime(char *in,const char *format);
     (VA_ARG_NUM(__VA_ARGS__)==2)?m_StringTime((char *)(VA_ARG0(__VA_ARGS__)),(const char *)(VA_ARG1(__VA_ARGS__))):\
     DFLT\
 )
-
-
-int mThreadID();
 
 void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...);
 
@@ -436,6 +433,8 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
 
 #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
+void mTableCopy(MTable *src,MTable *dst);
+void mTableWipe(MTable *tab);
 
 typedef struct MArray{
     int num;
@@ -543,8 +542,8 @@ MObject *mMornObject(void *p,int size);
 
 typedef struct MHandle
 {
-    unsigned int flag;
-    int valid;
+    volatile unsigned int flag;
+    volatile int valid;
     void *handle;
     void (*destruct)(void *);
 }MHandle;
@@ -687,8 +686,7 @@ int mMapNodeKeySize(MChainNode *node);
 int mMapNodeValueSize(MChainNode *node);
 int mMapNodeNumber(MChain *map);
 
-
-#define MFile  MObject
+#define MFile MObject
 MFile *mFileCreate(const char *filename,...);
 #define mFileRelease  mObjectRelease
 void mFileRedefine(MFile *file,char *filename,...);
@@ -740,31 +738,6 @@ void m_ThreadPool(MList *pool,void (*func)(void *),void *para,int para_size,int 
 // uint64_t mIPAddress(const char *addr);
 int mUDPSend(const char *address,void *data,int size);
 int mUDPRecive(const char *address,void *data,int size);
-
-void mNULL(int *p);
-// #if defined(__cplusplus)
-#define THREAD_FUNC(F,P) pthread_create(TID++,NULL,(void *(*)(void *))(F),(void *)(P))
-// #elif defined(__GNUC__)
-// #define THREAD_FUNC(F,...) do{void *thfunc(void *para){F(__VA_ARGS__);return NULL;}printf("1111\n");pthread_create(TID++,NULL,thfunc,NULL);printf("1221\n");}while(0)
-// #else
-// #define THREAD_FUNC(F,P) pthread_create(TID++,NULL,(void *(*)(void *))(F),(void *)(P))
-// #endif
-#define _mThread(N,F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,...) do{\
-    mException(N<2,EXIT,"invalid Thread number");\
-    pthread_t ThreadID[16];\
-    pthread_t *TID = ThreadID;\
-    THREAD_FUNC F0;THREAD_FUNC F1;\
-    if(N> 2) THREAD_FUNC F2;if(N> 3) THREAD_FUNC F3 ;if(N> 4) THREAD_FUNC F4 ;if(N> 5) THREAD_FUNC F5 ;if(N> 6) THREAD_FUNC F6 ;if(N> 7) THREAD_FUNC F7 ;if(N> 8) THREAD_FUNC F8 ;\
-    if(N> 9) THREAD_FUNC F9;if(N>10) THREAD_FUNC F10;if(N>11) THREAD_FUNC F11;if(N>12) THREAD_FUNC F12;if(N>13) THREAD_FUNC F13;if(N>14) THREAD_FUNC F14;if(N>15) THREAD_FUNC F15;\
-    for(int I=0;I<N;I++) {pthread_join(ThreadID[I],NULL);}\
-}while(0)
-#define mThread(...) ARG(_mThread(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL)))
-
-void *mProcTopicWrite(const char *msgname,void *data,int size);
-void *mProcTopicRead(const char *msgname,void *data,int *size);
-void *mProcMessageWrite(const char *dstname,void *data,int size);
-void *mProcMessageRead(const char *dstname,void *data,int *size);
-
 
 #ifdef __cplusplus
 }

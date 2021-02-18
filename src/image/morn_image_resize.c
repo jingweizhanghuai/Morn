@@ -96,8 +96,6 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
             float y = ((float)j-dcy)*ky+scy;
             handle->ly[j] = (int)(y+0.5);
         }
-        
-        hdl->valid = 1;
     }
     int *lx = handle->lx;
     int *ly = handle->ly;
@@ -116,6 +114,7 @@ void mBinaryImageResize(MImage *src,MImage *dst,int height,int width,int type)
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 struct HandleImageResize
@@ -214,9 +213,6 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
             handle->ly[j] = floor(y);
             handle->wy[j] = 128 - (unsigned char)((y-(float)(handle->ly[j]))*128.0f);
         }
-            
-
-        hdl->valid = 1;
     }
     int *lx = handle->lx; unsigned char *wx = handle->wx;
     int *ly = handle->ly; unsigned char *wy = handle->wy;
@@ -251,6 +247,7 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 

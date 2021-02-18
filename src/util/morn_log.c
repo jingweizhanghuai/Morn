@@ -2,7 +2,7 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 struct HandleLog
 {
@@ -10,7 +10,8 @@ struct HandleLog
     int size;
     
     FILE *f;
-    pthread_mutex_t mutex;
+    MThreadSignal sgn;
+    // pthread_mutex_t mutex;
     int64_t filesize_set;
     int64_t filesize;
     int fileorder;
@@ -101,7 +102,7 @@ void m_LogSet(int level_set,int output,const char *filename,int64_t file_size,vo
         handle->buff = ((char *)malloc(65536))+65536;
         handle->size = 65536;
         
-        pthread_mutex_init(&(handle->mutex),NULL);
+        // pthread_mutex_init(&(handle->mutex),NULL);
         // handle->mutex = PTHREAD_MUTEX_INITIALIZER;
     }
     hdl->valid = 1;
@@ -117,7 +118,8 @@ void _mLog(int level,const char *format,...)
     if(morn_log_console_valid){va_start(args, format);vprintf(format,args);va_end(args);}
     if(morn_log_file_valid||morn_log_function_valid)
     {
-        pthread_mutex_lock(&(morn_log_info->mutex));
+        // pthread_mutex_lock(&(morn_log_info->mutex));
+        mThreadLockBegin(morn_log_info->sgn);
         va_start(args,format);unsigned int n=vsnprintf(morn_log_info->buff-morn_log_info->size,morn_log_info->size,format,args);va_end(args);
         // printf("n=%d,morn_log_info->size=%d,(n<0)=%d,(n>morn_log_info->size)=%d\n",n,morn_log_info->size,n<0,(n>morn_log_info->size));
         if(n>morn_log_info->size)
@@ -143,7 +145,8 @@ void _mLog(int level,const char *format,...)
             va_start(args, format);n = vsnprintf(morn_log_info->buff-65536,65536,format,args);va_end(args);
         }
         morn_log_info->size-=n;
-        pthread_mutex_unlock(&(morn_log_info->mutex));
+        mThreadLockEnd(morn_log_info->sgn);
+        // pthread_mutex_unlock(&(morn_log_info->mutex));
     }
 }
 

@@ -14,7 +14,7 @@ REMOVE = rm -rf
 
 WRAPDEF = 
 DEPENDLIB = -lopenblas -lm
-CCFLAGS = -O2 -fPIC -Wno-format
+CCFLAGS = -O2 -fPIC -Wall
 
 ifeq ($(OPENMP), 1)
 CCFLAGS += -fopenmp
@@ -57,6 +57,7 @@ TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
 
 SOURCES  = $(wildcard ./src/util/*.c)
 SOURCES += $(wildcard ./src/math/*.c)
+SOURCES += $(wildcard ./src/ptc/*.c)
 SOURCES += $(wildcard ./src/wave/*.c)
 SOURCES += $(wildcard ./src/image/*.c)
 SOURCES += $(wildcard ./src/deep_learning/*.c)
@@ -68,7 +69,7 @@ WRAPOBJS = $(patsubst %.c,%.ob,$(WRAPSOURCES))
 WRAPSOURCES2 = $(wildcard ./src/wrap/*.cpp)
 WRAPOBJS2 = $(patsubst %.cpp,%.ob,$(WRAPSOURCES2))
 
-INCLUDEDIR = -I ./include -I ./lib/include
+INCLUDEDIR = -I ./include
 
 all:$(STATICLIB) $(TOOLEXE)
 
@@ -80,12 +81,12 @@ tool:$(TOOLEXE)
 static:$(STATICLIB)
 
 $(STATICLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
-	$(LIB) -rc $(STATICLIB) $(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
+	$(LIB) -rc $(STATICLIB) $^
 
 shared:$(SHAREDLIB)
 
 $(SHAREDLIB):$(OBJS) $(WRAPOBJS) $(WRAPOBJS2)
-	$(CC) $(CCFLAGS) -shared $(OBJS) $(WRAPOBJS) $(WRAPOBJS2) -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
+	$(CC) $(CCFLAGS) -shared $^ -L $(LIBDIR) $(DEPENDLIB) -o $(SHAREDLIB)
 
 $(WRAPOBJS):%.ob:%.c 
 	$(CC) $(CCFLAGS) $(WRAPDEF) $(INCLUDEDIR) -c $< -o $@

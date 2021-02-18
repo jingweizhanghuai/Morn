@@ -2,12 +2,7 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 struct HandleListCreate
 {
@@ -15,10 +10,11 @@ struct HandleListCreate
     int num;
     void **data;
     MMemory *memory;
+    int defrag_size;
+    int read_order;
 };
 void endListCreate(void *info)
 {
-    
     struct HandleListCreate *handle = (struct HandleListCreate *)info;
     mException((handle->list == NULL),EXIT,"invalid list");
 
@@ -26,7 +22,6 @@ void endListCreate(void *info)
     if(handle->data != NULL) mFree(handle->data);
     
     mFree(handle->list);
-    
 }
 #define HASH_ListCreate 0xfa6c59f
 MList *ListCreate(int num,void **data)
@@ -123,12 +118,12 @@ void mListPlace(MList *list,void *data,int num,int size)
 //     for(int i=0;i<list->num;i++) func(list->data[i],para);
 // }
 
-struct HandleListWrite
-{
-    int write_size;
-};
-void endListWrite(void *info) {}
-#define HASH_ListWrite 0x40aea976
+// struct HandleListWrite
+// {
+//     int defrag_size;
+// };
+// void endListWrite(void *info) {}
+// #define HASH_ListWrite 0x40aea976
 void *mListWrite(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
@@ -145,7 +140,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
 
     if(handle0->memory == NULL) handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     void *ptr = mMemoryWrite(handle0->memory,data,size);
-
+    
     int flag = (n==list->num); if(!flag) flag=(list->data[n]==NULL);
     if(flag)
     {
@@ -156,38 +151,36 @@ void *mListWrite(MList *list,int n,void *data,int size)
     else
     {
         list->data[n] = ptr;
-        MHandle *hdl=mHandle(list,ListWrite);
-        struct HandleListWrite *handle = (struct HandleListWrite *)(hdl->handle);
-        handle->write_size += size;
-        
-        if(handle->write_size>16384)
+        handle0->defrag_size += size;
+        if(handle0->defrag_size>16384)
         {
             mListElementOperate(list,MemoryCollect,handle0->memory);
             MemoryDefrag(handle0->memory);
-            handle->write_size=0;
+            handle0->defrag_size=0;
         }
     }
     
     return list->data[n];
 }
 
-struct HandleListRead
-{
-    int read_order;
-};
-void endListRead(void *info) {}
-#define HASH_ListRead 0x537cc305
+// struct HandleListRead
+// {
+//     int read_order;
+// };
+// void endListRead(void *info) {}
+// #define HASH_ListRead 0x537cc305
 void *mListRead(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input");
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+
+    // MHandle *hdl=mHandle(list,ListRead);
+    // struct HandleListRead *handle = (struct HandleListRead *)(hdl->handle);
+    // if(hdl->valid == 0) handle->read_order = -1;
+    // hdl->valid = 1;
     
-    MHandle *hdl=mHandle(list,ListRead);
-    struct HandleListRead *handle = (struct HandleListRead *)(hdl->handle);
-    if(hdl->valid == 0) handle->read_order = -1;
-    hdl->valid = 1;
-    
-    if(n<0) n = handle->read_order+1;
-    handle->read_order = n;
+    if(n<0) n = handle0->read_order;
+    handle0->read_order = n+1;
     
     if(n>=list->num) return NULL;
     
@@ -576,7 +569,7 @@ void mListSort(MList *list,void *function,void *para)
 
 struct HandleStack
 {
-    int order;
+    volatile int order;
 };
 void endStack(void *info) {}
 #define HASH_Stack 0x8c4d4c73
@@ -589,7 +582,7 @@ void *mStackWrite(MList *stack,void *data,int size)
     hdl->valid = 1;
     if(handle->order==stack->num-1) return NULL;
     
-    handle->order = handle->order+1;
+    mAtomicAdd(&(handle->order),1);
     return mListWrite(stack,handle->order,data,size);
 }
 
@@ -600,9 +593,9 @@ void *mStackRead(MList *stack,void *data,int size)
     struct HandleStack *handle = (struct HandleStack *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     if(handle->order <0) return NULL;
-    
-    void *p=stack->data[handle->order];
-    handle->order -= 1;
+
+    int order = mAtomicSub(&(handle->order),1);
+    void *p=stack->data[order];
     if(data!=NULL)
     {
         if(size<=0) strcpy((char *)data,(char *)p);
@@ -625,9 +618,9 @@ int mStackSize(MList *stack)
 
 struct HandleQueue
 {
-    int read_order;
-    int write_order;
-    int flag;
+    volatile int read_order;
+    volatile int write_order;
+    volatile int flag;
 };
 void endQueue(void *info) {}
 #define HASH_Queue 0xd98b43dc
@@ -654,9 +647,12 @@ void *mQueueWrite(MList *queue,void *data,int size)
     hdl->valid = 1;
     
     if(handle->flag>0) return NULL;
-    void *p = mListWrite(queue,handle->write_order,data,size);
-    handle->write_order = handle->write_order+1;
-    if(handle->write_order == queue->num) handle->write_order = 0;
+
+    int order=mAtomicAdd(&(handle->write_order),1);
+    if(order>=queue->num) order=order-queue->num;
+    void *p = mListWrite(queue,order,data,size);
+    
+    mAtomicCompare(&(handle->write_order),queue->num,0);
     handle->flag =(handle->write_order == handle->read_order)?1:0;
     return p;
 }
@@ -670,9 +666,9 @@ void *mQueueRead(MList *queue,void *data,int size)
     if(hdl->valid == 0) return NULL;
     
     if(handle->flag<0) return NULL;
-    void *p = queue->data[handle->read_order];
-    handle->read_order = handle->read_order +1;
-    if(handle->read_order == queue->num) handle->read_order = 0;
+    int order = mAtomicAdd(&(handle->read_order),1);
+    void *p = queue->data[order];
+    mAtomicCompare(&(handle->read_order),queue->num,0);
     handle->flag =(handle->write_order == handle->read_order)?-1:0;
     
     if(data!=NULL)

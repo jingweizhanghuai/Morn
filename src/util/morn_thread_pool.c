@@ -9,7 +9,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "sys/sysinfo.h"
 #endif
 
-#include "morn_util.h"
+#include "morn_ptc.h"
 struct ThreadPoolData
 {
     pthread_t tid;

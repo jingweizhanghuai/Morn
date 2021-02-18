@@ -67,7 +67,9 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width);
 void mImageExpand(MImage *img,int r,int expand_type);
 void mImageCopy(MImage *src,MImage *dst);
 MImage *mImageChannelSplit(MImage *src,int num,...);
-void mImageCut(MImage *img,MImage *ROI,int src_x1,int src_x2,int src_y1,int src_y2,int dst_x,int dst_y);
+// void m_ImageCut(MImage *img,MImage *ROI,int src_x1,int src_x2,int src_y1,int src_y2,int dst_x,int dst_y);
+
+
 void mImageWipe(MImage *img);
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
@@ -401,6 +403,25 @@ void m_ImageDrawCurve (MImage *src,MImage *dst,MImageCurve *curve,             u
     else mException(1,EXIT,"invalid input");\
 }while(0)
 
+void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate);
+#define _ImageCut(Src,Dst,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+    MImagePoint _Locate;MImageRect _Rect;\
+         if(VAN==1) m_ImageCut(Src,Dst,(MImageRect *)((intptr_t)VA_ARG0(__VA_ARGS__)),NULL);\
+    else if(VAN==2) m_ImageCut(Src,Dst,(MImageRect *)((intptr_t)VA_ARG0(__VA_ARGS__)),(MImagePoint *)((intptr_t)VA_ARG1(__VA_ARGS__)));\
+    else if(VAN==3){_Locate.x=(float)((intptr_t)VA_ARG1(__VA_ARGS__));_Locate.y=(float)VA_ARG2(__VA_ARGS__);m_ImageCut(Src,Dst,(MImageRect *)((intptr_t)VA_ARG0(__VA_ARGS__)),&(_Locate));}\
+    else if(VAN==4){_Rect.x1=(intptr_t)VA_ARG0(__VA_ARGS__);_Rect.x2=(intptr_t)VA_ARG1(__VA_ARGS__);_Rect.y1=(int)VA_ARG2(__VA_ARGS__);_Rect.y2=(int)VA_ARG3(__VA_ARGS__);m_ImageCut(Src,Dst,&(_Rect),NULL);}\
+    else if(VAN==5){_Rect.x1=(intptr_t)VA_ARG0(__VA_ARGS__);_Rect.x2=(intptr_t)VA_ARG1(__VA_ARGS__);_Rect.y1=(int)VA_ARG2(__VA_ARGS__);_Rect.y2=(int)VA_ARG3(__VA_ARGS__);m_ImageCut(Src,Dst,&(_Rect),(MImagePoint *)((intptr_t)VA_ARG4(__VA_ARGS__)));}\
+    else if(VAN==6){_Rect.x1=(intptr_t)VA_ARG0(__VA_ARGS__);_Rect.x2=(intptr_t)VA_ARG1(__VA_ARGS__);_Rect.y1=(int)VA_ARG2(__VA_ARGS__);_Rect.y2=(int)VA_ARG3(__VA_ARGS__);_Locate.x=(float)VA_ARG4(__VA_ARGS__);_Locate.y=(float)VA_ARG5(__VA_ARGS__);m_ImageCut(Src,Dst,&(_Rect),&(_Locate));}\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+#define mImageCut(Src,...)  do{\
+    intptr_t _A=(intptr_t)VA_ARG0(__VA_ARGS__);\
+    if((intptr_t)(VA_ARG0(__VA_ARGS__)+1)==(_A+sizeof(MImage))) _ImageCut(Src,__VA_ARGS__);\
+    else _ImageCut(Src,NULL,__VA_ARGS__);\
+}while(0)
+
+
 void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mCurveTravel(MImageCurve *curve,int stride,void (*func)(MImagePoint *,void *),void *para);
@@ -456,7 +477,14 @@ void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,i
 #define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width):(((Img)->border)->dataS16[n+n+1]))
 
 
-void mImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
+void m_ImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
+#define mImageBinaryEdge(Src,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+    if(VAN==1) {if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MSheet)) m_ImageBinaryEdge(Src,(MSheet *)VA_ARG0(__VA_ARGS__),NULL);\
+                else                                                m_ImageBinaryEdge(Src, NULL,(MList *)VA_ARG0(__VA_ARGS__));}\
+    else if(VAN==2) m_ImageBinaryEdge(Src,(MSheet *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 void mEdgeBoundary(MList *edge,MList *polygon,int thresh);
 int mImageBinaryArea(MImage *src,MList *list,MImagePoint *point);
 void mImageBinaryDenoise(MImage *src,MImage *dst,int num_thresh);

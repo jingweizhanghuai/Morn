@@ -209,8 +209,6 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
         else               mTableRedefine(handle->w ,height,width,sizeof(unsigned char),NULL);
         
         TransformGrid(src,x_func,y_func,para,handle->lx,handle->ly,handle->w);
-
-        hdl->valid = 1;
     }
 
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
@@ -220,6 +218,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 void PerspectivePara(MImagePoint *ps,MImagePoint *pd,float *para)
@@ -351,7 +350,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         handle->height = height;
         handle->width  = width;
         
-        hdl->valid = 1;
+        
     }
     
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
@@ -360,6 +359,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 float Affine_x(int u,int v,void *para)
@@ -458,17 +458,15 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
         memcpy(handle->pd,pd,3*sizeof(MImagePoint));
         handle->height = height;
         handle->width  = width;
-
-        hdl->valid = 1;
     }
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
-    
     
     if(p!=dst)
     {
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 void ImageRotate90(MImage *src,MImage *dst)
@@ -552,9 +550,9 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
     else                 {scx = src_hold->x;                scy = src_hold->y;                }
     int height=dst->height;int width=dst->width;
     
-    if(angle==0.0f) 
+    if(angle==0.0f)
     {
-        mImageCut(src,dst,scx-width/2,scx+width/2,scy-height/2,scy+height/2,0,0);
+        mImageCut(src,dst,scx-width/2,scx+width/2,scy-height/2,scy+height/2);
         return;
     }
     
@@ -643,8 +641,6 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         handle->angle = angle;
         handle->height = height;
         handle->width  = width;
-        
-        hdl->valid = 1;
     }
     
     GridInterpolation(src,dst,handle->lx,handle->ly,handle->w,mode);
@@ -654,6 +650,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 #define TRANSFORM_VALUE(Src,Sx,Sy,Dst,Dx,Dy) {\
@@ -1032,8 +1029,6 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point,int
         else                  mTableRedefine(handle->ly,dst->height,dst->width,sizeof(short),NULL);
         if(handle-> w == NULL) handle->w = mTableCreate(dst->height,dst->width,sizeof(unsigned char),NULL);
         else                  mTableRedefine(handle->w ,dst->height,dst->width,sizeof(unsigned char),NULL);
-        
-        hdl->valid = 1;
     }
     
     mImageReshapeTemplate(src_point,dst_point,handle->lx,handle->ly,handle->w);
@@ -1045,6 +1040,7 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point,int
         mImageExchange(src,dst);
         mImageRelease(dst);
     }
+    hdl->valid = 1;
 }
 
 

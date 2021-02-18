@@ -4,7 +4,7 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-//build£º g++ -O2 -fopenmp test_list2.cpp -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_list2.exe
+//build£º g++ -O2 -fopenmp test_list2.cpp -lmorn -o test_list2.exe
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License along with thi
 #include <vector>
 using namespace std;
 
-#define TEST_NUM 1000000
+#define TEST_NUM 10000000
 
 void test_int()
 {
@@ -59,6 +59,7 @@ void test_int()
 
 struct Test
 {
+    char    data0[32];
     int     data1;
     float   data2;
     double  data3;

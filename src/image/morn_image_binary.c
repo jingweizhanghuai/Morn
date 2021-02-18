@@ -337,7 +337,7 @@ void endImageBinaryEdge(void *info)
     if(handle->edge_buff != NULL) mSheetRelease(handle->edge_buff);
 }
 #define HASH_ImageBinaryEdge 0xd7a1d30e
-void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
+void m_ImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input image");
     mException((src->channel!=1),EXIT,"invalid input image type");
@@ -359,6 +359,7 @@ void mImageBinaryEdge(MImage *src,MSheet *edge,MList *edge_rect)
         edge = handle->edge_buff;
     }
     mSheetClear(edge);
+    if(edge_rect!=NULL) mListClear(edge_rect);
     
     unsigned char **data = src->data[0];
     int data1,data2,data3,data4,data5,data6,data7,data8;
@@ -481,8 +482,35 @@ void mImageBinaryFilter(MImage *src,MImage *dst,int r,float threshold1,float thr
     mImageRegion(src,r,BinaryFilter);
     
     memcpy(&(dst->info),&(src->info),sizeof(MInfo));
-    
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
+}
+
+void mImageBinaryDilation(MImage *src,MImage *dst)
+{
+    mException(INVALID_IMAGE(src),EXIT,"invalid input");
+    
+    MImage *p = dst;
+    if((INVALID_POINTER(dst))||(dst==src)) dst = mImageCreate(1,src->height,src->width,NULL);
+    else                                   mImageRedefine(dst,1,src->height,src->width,dst->data);
+    mImageWipe(dst);
+    
+    unsigned char **sdata = src->data[0];
+    unsigned char **ddata = dst->data[0];
+    for(int j=0;j<src->height;j++)for(int ii=0;ii<src->width;ii+=8)
+    {
+        uint64_t *pdata = (uint64_t *)(&(sdata[j][ii]));
+        if(*pdata==0) continue;
+        for(int i=ii;i<ii+8;i++)
+        {
+            if(sdata[j][i]==0) continue;
+            ddata[j-1][i-1]=255;ddata[j-1][i]=255;ddata[j-1][i+1]=255;
+            ddata[j-1][i  ]=255;ddata[j  ][i]=255;ddata[j  ][i+1]=255;
+            ddata[j+1][i-1]=255;ddata[j+1][i]=255;ddata[j+1][i+1]=255;
+        }
+    }
+    
+    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    if(p!=dst) {mImageExchange(src,dst); mImageRelease(dst);}
 }
 
 

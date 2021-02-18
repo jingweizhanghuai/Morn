@@ -21,7 +21,7 @@ struct HandleTimer
     MList *timer_list;
 };
 #define HASH_Timer 0x88df05ba
-static MList *morn_timer_list=NULL;
+__thread MList *morn_timer_list=NULL;
 void endTimer(struct HandleTimer *handle)
 {
     if(handle->timer_list!=NULL) mListRelease(handle->timer_list);

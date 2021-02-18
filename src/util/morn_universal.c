@@ -2,15 +2,8 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
-#include <math.h>
-
 #include "morn_math.h"
+#include "morn_ptc.h"
 
 #ifdef __GNUC__
 #define stricmp strcasecmp
@@ -22,23 +15,6 @@ __thread char morn_filename[256];
 
 __thread int morn_data_type;
 __thread char morn_data_buff[8];
-
-void mNULL(int *p) {NULL;}
-
-static __thread int morn_thread_ID = -1;
-static int morn_thread_count = 0;
-static pthread_mutex_t morn_thread_ID_mutex = PTHREAD_MUTEX_INITIALIZER;
-int mThreadID()
-{
-    if(morn_thread_ID==-1)
-    {
-        pthread_mutex_lock(&morn_thread_ID_mutex);
-        morn_thread_count +=1;
-        morn_thread_ID = morn_thread_count;
-        pthread_mutex_unlock(&morn_thread_ID_mutex);
-    }
-    return morn_thread_ID;
-}
 
 static int morn_rand_seed = -1;
 int m_Rand(int floor,int ceiling)
@@ -246,9 +222,14 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
     for(int i=0;i<num;i++)
     {
         MHandle *handle_data = (MHandle *)(handle->data[i]);
-        if(handle_data->flag == hash) {pthread_mutex_unlock(&handle_mutex);return handle_data;}
+        if(handle_data->flag == hash) 
+        {
+            while(handle_data->valid==0);
+            pthread_mutex_unlock(&handle_mutex);
+            return handle_data;
+        }
     }
-    
+
     MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));
     Handle_context->flag    = hash;
     Handle_context->valid   = 0;
@@ -270,6 +251,8 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
     return (MHandle *)(handle->data[num]);
 }
 
+void endMAF();
+
 __thread MObject *morn_object=NULL;
 MChain *morn_object_map;
 #ifdef _MSC_VER
@@ -289,6 +272,7 @@ void morn_end(void)
         mChainRelease(morn_object_map);
     }
     morn_object_map = NULL;
+    endMAF();
 }
 void morn_begin()
 {
@@ -325,8 +309,8 @@ __attribute__((destructor)) void morn_end() {
         }
         mChainRelease(morn_object_map);
     }
-    
     morn_object_map = NULL;
+    endMAF();
 }
 #endif
 

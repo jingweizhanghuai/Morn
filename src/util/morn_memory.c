@@ -2,191 +2,8 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include "morn_util.h"
-
-int *morn_mem_data[32] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-int morn_mem_size[32];
-      
-struct MemChain
-{
-    int size;
-    int *ptr;
-    struct MemChain *next;
-};
-struct MemChain morn_mem_chain_list[32][64];
-struct MemChain *morn_mem_chain[32] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-void MemCollect(int index)
-{
-    int *data = morn_mem_data[index];
-    struct MemChain *chain_list = &(morn_mem_chain_list[index][0]);
-    memset(chain_list,0,64*sizeof(struct MemChain));
-    struct MemChain *chain=NULL;
-    
-    int n=0;
-    int *mem = data;
-    while(mem<data+2048)
-    {
-        if(*mem <=0)
-        {
-            int *next = mem -(*mem)/sizeof(int)+1;
-            while(*next <0)
-            {
-                if(next >= data + 2048) break;
-                *mem = *mem + *next-sizeof(int);
-                next = next -(*next)/sizeof(int)+1;
-            }
-            
-            if(0-(*mem) >= 128)
-            {
-                chain_list[n].size = sizeof(int)-(*mem);
-                chain_list[n].ptr = (mem);
-                if(n==0)
-                {
-                    chain_list[n].next = NULL;
-                    chain = &(chain_list[n]);
-                }
-                else if(chain_list[n].size>=chain->size)
-                {
-                    chain_list[n].next = chain;
-                    chain = &(chain_list[n]);
-                }
-                else
-                {
-                    struct MemChain *p = chain;
-                    while((p->next!=NULL)&&(p->next->size>chain_list[n].size)) p=p->next;
-                    chain_list[n].next = p->next;
-                    p->next = &(chain_list[n]);
-                }
-                
-                n=n+1;
-            }
-            
-            mem = mem -(*mem)/sizeof(int)+1;
-        }
-        else
-            mem = mem +(*mem)/sizeof(int)+1;
-    }
-    morn_mem_chain[index] = chain;
-}
-
-pthread_mutex_t mem_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-void *mMemAlloc(int size)
-{
-    pthread_mutex_lock(&mem_mutex);
-    
-    int *mem;
-    if(size >= 1024)
-    {
-        mem = (int *)malloc(size+sizeof(int)*4);
-        mException((mem==NULL),EXIT,"malloc error");
-        mem[3] = size;mem=mem+4;
-        goto Malloc_end;
-    }
-    
-    size = (((size+3)>>2)<<2);
-    
-    for(int i=0;i<32;i++)
-    {
-        if(morn_mem_chain[i] == NULL)
-        {
-            if(morn_mem_data[i] != NULL)
-                MemCollect(i);
-            continue;
-        }
-        struct MemChain *chain = morn_mem_chain[i];
-        if(chain->size<=size) continue;
-        
-        mem = chain->ptr+1;
-        morn_mem_size[i] += size+sizeof(int);
-        
-        chain->ptr[0] = size;
-        chain->ptr = chain->ptr + size/sizeof(int) +1;
-        chain->size -= (size+sizeof(int));
-        if(chain->size>0)
-            chain->ptr[0] = sizeof(int)-chain->size;
-        
-        if(chain->next == NULL) goto Malloc_end;
-        if(chain->size > chain->next->size) goto Malloc_end;
-        
-        morn_mem_chain[i] = chain->next;
-        if(chain->size<128) goto Malloc_end;
-        
-        struct MemChain *p = chain;
-        while((p->next!=NULL)&&(p->next->size>chain->size)) p=p->next;
-        chain->next = p->next;p->next = chain;
-        goto Malloc_end;
-    }
-    
-    for(int i=0;i<32;i++)
-    {
-        if(morn_mem_data[i] != NULL) continue;
-        
-        morn_mem_data[i] = (int *)malloc(2048*sizeof(int));
-        mException((morn_mem_data[i]==NULL),EXIT,"malloc error");
-        morn_mem_size[i] = size+sizeof(int);
-        mem = morn_mem_data[i]+1; mem[-1]=size;
-        
-        struct MemChain *chain = &(morn_mem_chain_list[i][0]);
-        chain->size = 2047*sizeof(int)-size;
-        chain->ptr = mem + size/sizeof(int);
-        chain->ptr[0] = sizeof(int)-chain->size;
-        chain->next=NULL;
-        morn_mem_chain[i] = chain;
-        
-        goto Malloc_end;
-    }
-    
-    for(int i=0;i<32;i++)
-    {
-        if((int)(2048*sizeof(int))-morn_mem_size[i] > size+512)
-            MemCollect(i);
-    }
-    mem = (int *)malloc(size+sizeof(int)*4);
-    mException((mem==NULL),EXIT,"malloc error");
-    mem[3] = size;mem=mem+4;
-    
-    Malloc_end:
-    pthread_mutex_unlock(&mem_mutex);
-    
-    return mem;
-}
-
-void mMemFree(void *data)
-{
-    pthread_mutex_lock(&mem_mutex);
-    // printf("data is %p\n",data);
-    for(int i=0;i<32;i++)
-    {
-        if(morn_mem_data[i] == NULL) continue;
-        // printf("morn_mem_data[%d] is %p~%p\n",i,morn_mem_data[i],morn_mem_data[i] + 2048);
-        if(((int *)data>=morn_mem_data[i])&&((int *)data < morn_mem_data[i] + 2048))
-        {
-            int *mem = (int *)data -1;
-            
-            // printf("data is %p,mem_size is %d\n",data,mem[0]);
-            morn_mem_size[i] -= ((*mem)+sizeof(int));
-            // if(i==23) printf("%d:%p,%p,qqqqqqqqqqqqqq %p qqqqqqq free size is %d,morn_mem_size[i] is %d\n",i,morn_mem_data[i],morn_mem_data[i] + 2048,data,(*mem)+sizeof(float),morn_mem_size[i]);
-            
-            mException((*mem<0)||(morn_mem_size[i]<0),EXIT,"invalid operate with address %p,size is %d,%d,%d",data,*mem,morn_mem_size[i],i);
-            *mem = 0-(*mem);
-            // printf("bbmorn_mem_size[%d] is %d\n",i,morn_mem_size[i]);
-            if(morn_mem_size[i] == 0)
-            {
-                // printf("bbbbbbbbbbb %d\n",i);
-                free(morn_mem_data[i]);
-                morn_mem_data[i] = NULL;
-                morn_mem_chain[i]= NULL;
-            }
-            goto Free_end;
-        }
-    }
-    free(((int *)data)-4);
-    
-    Free_end:
-    pthread_mutex_unlock(&mem_mutex);
-}
+ 
+#include "morn_ptc.h"
 
 pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -309,43 +126,15 @@ void MemoryListPrint(int state)
     #endif
 }
 
-/*
-void main()
-{
-    int *data[5];
-    
-    data[0] = (int *)mMalloc(50);
-    printf("data[0] is %d\n",data[0]);
-    
-    data[1] = (int *)mMalloc(100);
-    printf("data[1] is %d\n",data[1]);
-    
-    data[2] = (int *)mMalloc(500);
-    printf("data[2] is %d\n",data[2]);
-    
-    mFree(data[1]);
-    
-    data[3] = (int *)mMalloc(70);
-    printf("data[3] is %d\n",data[3]);
-    
-    data[4] = (int *)mMalloc(10);
-    printf("data[4] is %d\n",data[4]);
-    
-    mFree(data[0]);
-    mFree(data[2]);
-    mFree(data[3]);
-    mFree(data[4]);
-}
-*/
 
 struct MAFBlock
 {
     void *info;
     unsigned short size;
-    unsigned short flag;
-    int idlnum;
+    volatile unsigned short flag;
+    volatile int idlnum;
+    volatile int order;
     int info_idx;
-    int order;
     char data[0];
 };
 struct MAFInfo
@@ -371,7 +160,7 @@ void *m_Malloc(int size)
     
     int idx=morn_alloc_free_size_idx[(size-17)/32];
     size = morn_alloc_free_size[idx];
-  
+    
     if(morn_alloc_free_info==NULL)
     {
         morn_alloc_free_info=malloc(32*sizeof(struct MAFInfo));
@@ -379,139 +168,241 @@ void *m_Malloc(int size)
     }
     struct MAFInfo *info  = morn_alloc_free_info+idx;
     
-    struct MAFBlock *block= info->block;
-    int invalid_block=(block==NULL);
-    if(!invalid_block)invalid_block=(block->idlnum==0);
-
+    int invalid_block=(info->block==NULL);
+    if(!invalid_block) invalid_block=(info->block->idlnum==0);
     if(invalid_block)
     {
-        if(info->spare!=NULL)
+        if(info->spare!=info->block)
         {
             info->block = info->spare;
-            block = info->block;
-            info->spare = NULL;
             invalid_block=0;
         }
-        else
+    }
+    
+    struct MAFBlock *block = info->block;
+    
+    if(!invalid_block)
+    {
+        mAtomicSub(&(block->idlnum),1);
+        idx=block->order;
+        while(1)
         {
-            for(int i=0;i<info->block_vol;i++)
+            if((block->flag&morn_alloc_free_ref_flag1[idx])==0) 
             {
-            	if(info->block_list[i]==NULL) continue;
-	            if(info->block_list[i]->idlnum==0) continue;
-                info->block = info->block_list[i];
-                block = info->block;
-                invalid_block=0;
-                break;
+                mAtomicOr( &(block->flag),morn_alloc_free_ref_flag1[idx]);
+                block->order = ((idx+1)&0x0000000F);
+                ptr = (intptr_t *)(block->data+size*idx);
+                ptr[0]=(intptr_t)(block);ptr[1]=idx;
+                return (((char *)ptr)+16);
+            }
+            idx=((idx+1)&0x0000000F);
+        }
+    }
+    
+    block = m_Malloc(sizeof(struct MAFBlock)+16*size);
+    block->size = size;
+    block->info = info;
+    block->flag=0x0001;block->idlnum=15;block->order=1;
+    
+    int n=info->block_num;
+    if(n>=info->block_vol)
+    {
+        struct MAFBlock **list = malloc((n+64)*sizeof(struct MAFBlock *));
+        if(info->block_list!=NULL)
+        {
+            memcpy(list,info->block_list,n*sizeof(struct MAFBlock *));
+            free(info->block_list);
+        }
+        memset(list+n,0,64*sizeof(struct MAFBlock *));
+        info->block_list=list;
+        info->block_vol=n+64;
+        info->block_order=n;
+    }
+    
+    int m=info->block_order;
+    while(1)
+    {
+        if(info->block_list[m]==NULL) 
+        {
+            info->block_list[m]=block;
+            block->info_idx=m;
+            m=m+1;if(m>=info->block_vol)m=0;
+            info->block_order=m;
+            info->block_num = n+1;
+            break;
+        }
+        m=m+1;if(m>=info->block_vol) m=0;
+    }
+    
+    ptr=(intptr_t *)(block->data);
+    ptr[0]=(intptr_t)(block);ptr[1]=0;
+    if(info->block==info->spare) info->spare =block;
+    info->block =block;
+    return (((char *)ptr)+16);
+}
+
+void m_Free(void *p)
+{
+    if(p==NULL) return;
+    intptr_t *ptr=(intptr_t *)(((char *)p)-16);
+    if(ptr[0]==0) {free(ptr);return;}
+
+    struct MAFBlock *block = (struct MAFBlock *)(ptr[0]);
+    struct MAFInfo *info = block->info;
+    int idx=ptr[1];
+    
+    if((block!=info->block)&&(block!=info->spare)) 
+    {
+        if(mAtomicCompare(&(block->idlnum),15,0))
+        {
+            int n = block->info_idx;
+            info->block_num=info->block_num-1;
+            info->block_list[n]=NULL;
+            info->block_order=n;
+            m_Free(block);
+            return;
+        }
+        else if(block->idlnum>0)
+        {
+            if(!mAtomicCompare(&(info->spare),info->block,block))
+            {
+                if(block->idlnum>info->spare->idlnum) info->spare=block;
             }
         }
     }
     
-    if(invalid_block)
-    {
-    	
-        block = m_Malloc(sizeof(struct MAFBlock)+16*size);
-        block->size = size;
-        block->info = info;info->block =block;
-
-        int n=info->block_num;
-        if(n>=info->block_vol)
-        {
-            struct MAFBlock **list = malloc((n+64)*sizeof(struct MAFBlock *));
-            if(info->block_list!=NULL)
-            {
-                memcpy(list,info->block_list,n*sizeof(struct MAFBlock *));
-                free(info->block_list);
-            }
-            memset(list+n,0,64*sizeof(struct MAFBlock *));
-            info->block_list=list;
-            info->block_vol=n+64;
-            info->block_order=n;
-        }
-
-        int m=info->block_order;
-        while(1)
-        {
-        	if(info->block_list[m]==NULL) 
-        	{
-        		info->block_list[m]=block;
-        		block->info_idx=m;
-        		m=m+1;if(m>=info->block_vol)m=0;
-        		info->block_order=m;
-        		info->block_num = n+1;
-        		break;
-        	}
-        	m=m+1;if(m>=info->block_vol) m=0;
-        }
-
-        block->flag=0x0001;block->idlnum=15;block->order=1;
-        ptr=(intptr_t *)(block->data);
-        ptr[0]=(intptr_t)(block);ptr[1]=0;
-        return (((char *)ptr)+16);
-    }
-
-    block->idlnum--;
-    unsigned short flag = block->flag;
-    idx=block->order;
-    while(1)
-    {
-        if((flag&morn_alloc_free_ref_flag1[idx])==0) 
-        {
-            block->flag  = flag | morn_alloc_free_ref_flag1[idx];
-            block->order = ((idx+1)&0x0000000F);
-            ptr = (intptr_t *)(block->data+size*idx);
-            ptr[0]=(intptr_t)(block);ptr[1]=idx;
-            return (((char *)ptr)+16);
-        }
-        idx=((idx+1)&0x0000000F);
-    }
+    mAtomicAnd(&(block->flag),morn_alloc_free_ref_flag2[idx]);
+    block->order = idx;
+    mAtomicAdd(&(block->idlnum),1);
 }
 
-void m_Free(void *p)
+void *m_Realloc(void *p,int size)
+{
+    if(p==NULL) return m_Malloc(size);
+    intptr_t *ptr=(intptr_t *)(((char *)p)-16);
+    if(ptr[0]==0) return realloc(p,size);
+    
+    struct MAFBlock *block = (struct MAFBlock *)(ptr[0]);
+    if(block->size>=size) return p;
+    m_Free(p);
+    return m_Malloc(size);
+}
+
+void endMAF()
+{
+    if(morn_alloc_free_info==NULL) return;
+    for(int i=0;i<32;i++)
+    {
+        if(morn_alloc_free_info[i].spare!=morn_alloc_free_info[i].block) m_Free(morn_alloc_free_info[i].spare);
+        if(morn_alloc_free_info[i].block     !=NULL) m_Free(morn_alloc_free_info[i].block);
+        if(morn_alloc_free_info[i].block_list!=NULL)   free(morn_alloc_free_info[i].block_list);
+    }
+    free(morn_alloc_free_info);
+    morn_alloc_free_info=NULL;
+}
+
+/*
+MThreadSignal memory_thread_sgn=MORN_THREAD_SIGNAL;
+void m_Freee(void *p)
 {
     intptr_t *ptr=(intptr_t *)(((char *)p)-16);
     if(ptr[0]==0) {free(ptr);return;}
 
     struct MAFBlock *block = (struct MAFBlock *)(ptr[0]);
     int idx=ptr[1];
+
     
     block->order = idx;
-    block->flag &= morn_alloc_free_ref_flag2[idx];
-    block->idlnum =block->idlnum+1;
-
+    mAtomicAnd(&(block->flag),morn_alloc_free_ref_flag2[idx]);
+    mThreadLockBegin(memory_thread_sgn);
+    mAtomicAdd(&(block->idlnum),1);
+    // block->flag &= morn_alloc_free_ref_flag2[idx];
+    // block->idlnum =block->idlnum+1;
+    // mThreadLockEnd(memory_thread_sgn);
+    
     struct MAFInfo *info = block->info;
-    if(block!=info->block)
-    {
-    	if(block->idlnum==16)
-    	{
-    		info->spare = info->block;
-    		info->block = block;
-    		if(info->spare->idlnum==16)
-    		{
-	    		int n = info->spare->info_idx;
-	        	info->block_list[n]=NULL;
-	        	info->block_order=n;
-	        	info->block_num=info->block_num-1;
-	        	m_Free(info->spare);
-	        	info->spare=NULL;
-	        }
-    	}
-	    else
-	    {
-	             if(info->spare==NULL) info->spare=block;
-	        else if(block->idlnum>info->spare->idlnum) info->spare=block;
-	    }
-	}
-}
+    if(block==info->block) {
+        mThreadLockEnd(memory_thread_sgn);
+        return;}
+    // 
 
-void endMAF()
-{
-	if(morn_alloc_free_info==NULL) return;
-	for(int i=0;i<32;i++)
-	{
-		if(morn_alloc_free_info[i].block     !=NULL) m_Free(morn_alloc_free_info[i].block);
-		if(morn_alloc_free_info[i].block_list!=NULL)   free(morn_alloc_free_info[i].block_list);
-	}
-	free(morn_alloc_free_info);
-	morn_alloc_free_info=NULL;
+    if(info->spare==NULL) info->spare=block;
+    else if(block->idlnum>info->spare->idlnum) info->spare=block;
+    else {
+        mThreadLockEnd(memory_thread_sgn);
+        return;}
+
+    if(mAtomicCompare(&(block->idlnum),16,0))
+    {
+        info->spare = NULL;
+        mThreadLockEnd(memory_thread_sgn);
+        struct MAFBlock *b = info->block;
+        info->block = block;
+        if(mAtomicCompare(&(b->idlnum),16,0))
+        {
+            int n = b->info_idx;
+            
+            info->block_list[n]=NULL;
+            info->block_order=n;
+            info->block_num=info->block_num-1;
+            m_Freee(b);
+            return;
+        }
+    }
+    mThreadLockEnd(memory_thread_sgn);
 }
+*/
+
+/*
+    struct MAFBlock *spare = info->spare;
+    info->spare = NULL;
+    if(mAtomicCompare(&(block->idlnum),16,0))
+    {
+        spare = NULL;
+        struct MAFBlock *b = info->block;
+        info->block = block;
+        info->block->idlnum=16;
+        if(b->idlnum==16)
+        {
+            int n = b->info_idx;
+            info->block_list[n]=NULL;
+            info->block_order=n;
+            info->block_num=info->block_num-1;
+            m_Free(b);
+        }
+    }
+    else
+    {
+        if(spare==NULL) spare=block;
+        else if(block->idlnum>spare->idlnum) spare=block;
+    }
+    info->spare = spare;
+}
+*/
+    
+    
+/*
+    if(block->idlnum==15)
+    {
+        info->spare = NULL;
+        struct MAFBlock *b = info->block;
+        info->block = block;
+        if(b->idlnum==16)
+        {
+            int n = b->info_idx;
+            info->block_list[n]=NULL;
+            info->block_order=n;
+            info->block_num=info->block_num-1;
+            m_Free(b);
+        }
+        else info->spare=b;
+    }
+    else //if(block->idlnum<16)
+    {
+             if(info->spare==NULL) info->spare=block;
+        else if(block->idlnum>info->spare->idlnum) info->spare=block;
+    }
+}
+*/
+    
 
