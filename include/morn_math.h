@@ -37,6 +37,10 @@ void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
 void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *covariance);
 
+int mBinaryCeil(int data);
+int mBinaryFloor(int data);
+int mBinaryRound(int data);
+
 int GreatestCommonDivisor(int n,...);
 #define mGCD(...) GreatestCommonDivisor(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__)
 int LowestCommonMultiple(int n,...);

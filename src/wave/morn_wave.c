@@ -12,6 +12,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleWaveCreate
 {
     MWave *wave;
+    MChain *property;
     int channel;
     int size;
     float *index[MORN_MAX_WAVE_CN];
@@ -21,7 +22,7 @@ void endWaveCreate(void *info)
 {
     struct HandleWaveCreate *handle = (struct HandleWaveCreate *)info;
     mException((handle->wave == NULL),EXIT,"invalid wave");
-    
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory != NULL)
         mMemoryRelease(handle->memory);
     

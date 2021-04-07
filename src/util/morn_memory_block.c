@@ -493,7 +493,7 @@ void *mMemoryAppend(MMemory *memory,int size)
     MHandle *hdl = (MHandle *)(memory->handle->data[0]);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
-    
+
     int memory_num = memory->num;
     mMemoryRedefine(memory,memory_num+1,DFLT,DFLT);
     memmove(memory->data+1,memory->data,memory_num*sizeof(MMemoryBlock *));
@@ -515,6 +515,12 @@ void mMemoryClear(MMemory *memory)
     MHandle *hdl = (MHandle *)(memory->handle->data[0]);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
+
+    for(int i=1;i<memory->num;i++)
+    {
+        if(memory->data[i]!=NULL) {mMemoryBlockRelease((MMemoryBlock *)(memory->data[i]));memory->data[i]=NULL;}
+    }
+    memory->num=1;
 
     MMemoryBlock *p = memory->data[0];
     handle->write_idx=0;
@@ -672,23 +678,25 @@ void mMemoryCopy(MMemory *src,void ***isrc,MMemory *dst,void ***idst,int batch,i
 
 void mMemoryMerge(MMemory *memory1,MMemory *memory2,MMemory *dst)
 {
-    mException((memory1==NULL)||(memory2==NULL)||(dst==memory2),EXIT,"invalid input");
+    mException(((memory1==NULL)&&(memory2==NULL))||(memory1==memory2),EXIT,"invalid input");
+    if(dst==memory2) {mMemoryMerge(memory2,memory1,dst);return;}
+    
+    struct HandleMemory *handle=NULL;
+    struct HandleMemory *handle1=NULL;int num1=0;if(memory1!=NULL) {handle1 = ((MHandle *)(memory1->handle->data[0]))->handle;num1 = memory1->num;}
+    struct HandleMemory *handle2=NULL;int num2=0;if(memory2!=NULL) {handle2 = ((MHandle *)(memory2->handle->data[0]))->handle;num2 = memory2->num;}
 
-    struct HandleMemory *handle;
-    struct HandleMemory *handle1 = ((MHandle *)(memory1->handle->data[0]))->handle;
-    struct HandleMemory *handle2 = ((MHandle *)(memory2->handle->data[0]))->handle;
-    mException(handle1->device!=handle2->device,EXIT,"source memory with different device");
-    if(handle1->devflag!=handle2->devflag) {mMemoryDevice(memory1,MORN_HOST);mMemoryDevice(memory2,MORN_HOST);}
-    int num1 = memory1->num;
-    int num2 = memory2->num;
+    if((memory1!=NULL)&&(memory2!=NULL))
+    {
+        mException(handle1->device!=handle2->device,EXIT,"source memory with different device");
+        if(handle1->devflag!=handle2->devflag) {mMemoryDevice(memory1,MORN_HOST);mMemoryDevice(memory2,MORN_HOST);}
+    }
     
     mMemoryRedefine(dst,num1+num2,DFLT,DFLT);
     if(dst==memory1) handle=handle1;
     else
     {
         handle  = ((MHandle *)(dst->handle->data[0]))->handle;
-        for(int i=0;i<dst->num;i++) if(dst->data[i]!=NULL) mMemoryBlockRelease(dst->data[i]);
-        dst->num=0;
+        for(int i=0;i<dst->num;i++) {if(dst->data[i]!=NULL) mMemoryBlockRelease(dst->data[i]);} dst->num=0;
         handle->device = handle1->device;
 
         if(num1>0)

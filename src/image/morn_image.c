@@ -14,15 +14,13 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleImageCreate
 {
     MImage *img;
+    MChain *property;
     int cn;
     int height;
     int width;
     unsigned char **index;
     MMemory *memory;
     
-    // int backup_cn;
-    // int backup_height;
-    // int backup_width;
     unsigned char **backup_index;
     MMemory *backup_memory;
     unsigned char **backup_data[MORN_MAX_IMAGE_CN];
@@ -31,12 +29,12 @@ void endImageCreate(void *info)
 {
     struct HandleImageCreate *handle = (struct HandleImageCreate *)info;
     mException((handle->img == NULL),EXIT,"invalid image");
-   
-    if(!INVALID_POINTER(handle->index )) mFree(handle->index);
-    if(!INVALID_POINTER(handle->memory)) mMemoryRelease(handle->memory);
+    if(handle->property!=NULL) mChainRelease(handle->property);
+    if(handle->index   !=NULL) mFree(handle->index);
+    if(handle->memory  !=NULL) mMemoryRelease(handle->memory);
 
-    if(!INVALID_POINTER(handle->backup_index )) mFree(handle->backup_index);
-    if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
+    if(handle->backup_index !=NULL) mFree(handle->backup_index);
+    if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
 
     memset(handle->img,0,sizeof(MImage));
     mFree(handle->img);
@@ -410,10 +408,43 @@ void mImageCopy(MImage *src,MImage *dst)
     }
 }
 
-void mImageWipe(MImage *img)
+// void m_ImageWipe(MImage *img,int channel)
+// {
+//     char f[MORN_MAX_IMAGE_CN];
+//     if(channel<0) {memset(f,1,MORN_MAX_IMAGE_CN*sizeof(char));}
+//     else {mException(channel>=img->channel,EXIT,"invalid input");memset(f,0,MORN_MAX_IMAGE_CN*sizeof(char));f[channel]=1;}
+    
+//     for(int c=0;c<img->channel;c++)
+//     {
+//         if(f[c]==0) continue;
+//         for(int j=0;j<img->height;j++)
+//             memset(img->data[c][j],0,img->width*sizeof(unsigned char));
+//     }
+// }
+
+void m_ImageWipe(MImage *img,int channel,MImageRect *rect)
 {
-    for(int c=0;c<img->channel;c++)for(int j=0;j<img->height;j++)
-        memset(img->data[c][j],0,img->width*sizeof(unsigned char));
+    char f[MORN_MAX_IMAGE_CN];
+    if(channel<0) {memset(f,1,MORN_MAX_IMAGE_CN*sizeof(char));}
+    else {mException(channel>=img->channel,EXIT,"invalid input");memset(f,0,MORN_MAX_IMAGE_CN*sizeof(char));f[channel]=1;}
+
+    int x,y,width,height;
+    if(rect==NULL) {x=0;y=0;width=img->width;height=img->height;}
+    else           
+    {
+        x=MIN(rect->x1,rect->x2);y=MIN(rect->y1,rect->y2);width=ABS(rect->x2-rect->x1);height=ABS(rect->y2-rect->y1);
+        if(x>=img->width ) {return;} if(x<0) {width =width +x;x=0;}
+        if(y>=img->height) {return;} if(y<0) {height=height+y;y=0;}
+        if(width >=img->width ) width =img->width -x;
+        if(height>=img->height) height=img->height-y;
+    }
+    
+    for(int c=0;c<img->channel;c++)
+    {
+        if(f[c]==0) continue;
+        for(int j=y;j<y+height;j++)
+            memset(img->data[c][j]+x,0,width*sizeof(unsigned char));
+    }
 }
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff)

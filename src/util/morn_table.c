@@ -14,17 +14,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleTableCreate
 {
     MTable *tab;
+    MChain *property;
     int row;
     int col;
     int element_size;
     void **index;
     MMemory *memory;
 };
-void endTableCreate(void *info)
+void endTableCreate(struct HandleTableCreate *handle)
 {
-    struct HandleTableCreate *handle = (struct HandleTableCreate *)info;
     mException((handle->tab==NULL),EXIT,"invalid table");
-
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->index != NULL) mFree(handle->index);
     if(handle->memory!= NULL) mMemoryRelease(handle->memory);
     
@@ -50,8 +50,10 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
         return tab;
     }
+
     
     handle->index = (void **)mMalloc(row*sizeof(void *));
+    
     handle->row = row;
 
     tab->data=NULL;
@@ -160,15 +162,15 @@ void mTableWipe(MTable *tab)
 struct HandleArrayCreate
 {
     MArray *array;
+    MChain *property;
     int num;
     int element_size;
     MMemory *memory;
 };
-void endArrayCreate(void *info)
+void endArrayCreate(struct HandleArrayCreate *handle)
 {
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)info;
     mException((handle->array == NULL),EXIT,"invalid array");
-    
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory!= NULL) mMemoryRelease(handle->memory);
     
     mFree(handle->array);

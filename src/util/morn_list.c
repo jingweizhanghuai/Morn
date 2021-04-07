@@ -7,17 +7,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleListCreate
 {
     MList *list;
+    MChain *property;
     int num;
     void **data;
     MMemory *memory;
     int defrag_size;
     int read_order;
 };
-void endListCreate(void *info)
+void endListCreate(struct HandleListCreate *handle)
 {
-    struct HandleListCreate *handle = (struct HandleListCreate *)info;
     mException((handle->list == NULL),EXIT,"invalid list");
-
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory !=NULL) mMemoryRelease(handle->memory);
     if(handle->data != NULL) mFree(handle->data);
     
@@ -48,7 +48,6 @@ MList *ListCreate(int num,void **data)
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
     
     list->data = handle->data;
-    
     return list;
 }
 
@@ -60,7 +59,7 @@ void mListRelease(MList *list)
         mHandleRelease(list->handle);
 }
 
-void mListAppend(MList *list,int n)
+void m_ListAppend(MList *list,void **data,int n)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
     if(n<0) n=list->num+1;
@@ -71,6 +70,7 @@ void mListAppend(MList *list,int n)
     {
         if((list->data!= handle->data)&&(list->num>0))
             memcpy(handle->data,list->data,list->num*sizeof(void *));
+        if(data!=NULL) memcpy(handle->data,data,(n-list->num)*sizeof(void *));
         list->data = handle->data;
         list->num = n;
         return;
@@ -82,6 +82,7 @@ void mListAppend(MList *list,int n)
     if(list->num>0)
         memcpy(list_data,list->data,(list->num)*sizeof(void *));
     memset(list_data+list->num,0,(num-list->num)*sizeof(void *));
+    if(data!=NULL) memcpy(list_data+list->num,data,(n-list->num)*sizeof(void *));
     
     if(handle->data != NULL) mFree(handle->data);
     handle->data = list_data;
@@ -196,7 +197,8 @@ void mListClear(MList *list)
 {
     list->num=0;
     struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
-    if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
+    if(handle0->memory!=NULL) 
+        mMemoryClear(handle0->memory);
 }
 
 void mListReorder(MList *list)
@@ -235,6 +237,7 @@ void mListCopy(MList *src,MList *dst)
 
 void mListMerge(MList *list1,MList *list2,MList *dst)
 {
+    if(list1->num+list2->num==0) {mListClear(dst); return;}
     mListAppend(dst,list1->num+list2->num);
     
     struct HandleListCreate *handle1 = (struct HandleListCreate *)(((MHandle *)(list1->handle->data[0]))->handle);
@@ -246,22 +249,36 @@ void mListMerge(MList *list1,MList *list2,MList *dst)
     
     if(dst==list1)
     {
-        memcpy(dst->data+num1,list2->data,num2*sizeof(void *));
-        mFree(list2->data);list2->data = NULL;list2->num = 0;
+        if(num2>0)
+        {
+            memcpy(dst->data+num1,list2->data,num2*sizeof(void *));
+            mFree(list2->data);list2->data = NULL;list2->num = 0;
+        }
     }
     else if(dst==list2)
     {
-        memcpy(dst->data+num2,list1->data,num1*sizeof(void *));
-        mFree(list1->data);list1->data = NULL;list1->num = 0;
+        if(num1>0)
+        {
+            memcpy(dst->data+num2,list1->data,num1*sizeof(void *));
+            mFree(list1->data);list1->data = NULL;list1->num = 0;
+        }
     }
     else
     {
-        memcpy(dst->data     ,list1->data,num1*sizeof(void *));
-        memcpy(dst->data+num1,list2->data,num2*sizeof(void *));
-        mFree(list1->data);list1->data = NULL;list1->num = 0;
-        mFree(list2->data);list2->data = NULL;list2->num = 0;
+        if(num1>0)
+        {
+            memcpy(dst->data     ,list1->data,num1*sizeof(void *));
+            mFree(list1->data);list1->data = NULL;list1->num = 0;
+        }
+        if(num2>0)
+        {
+            memcpy(dst->data+num1,list2->data,num2*sizeof(void *));
+            mFree(list2->data);list2->data = NULL;list2->num = 0;
+        }
     }
-    
+
+    if(dst_handle->memory==NULL) dst_handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
+    else                         mMemoryRedefine(dst_handle->memory,num1+num2,DFLT,DFLT);
     mMemoryMerge(handle1->memory,handle2->memory,dst_handle->memory);
     mMemoryRelease(handle1->memory);handle1->memory = NULL;
     mMemoryRelease(handle2->memory);handle2->memory = NULL;
@@ -275,15 +292,14 @@ void mListElementDelete(MList *list,int n)
     list->num-=1;
 }
 
-void mListElementInsert(MList *list,int n,void *data,int size)
+void *mListElementInsert(MList *list,int n,void *data,int size)
 {
-    void *buff;
-    
     mListWrite(list,DFLT,data,size);
-    buff = list->data[list->num-1];
+    void *buff = list->data[list->num-1];
     
     memmove(list->data+n+1,list->data+n,(list->num-n-1)*sizeof(void *));
     list->data[n] = buff;
+    return buff;
 }
 
 void mListElementOperate(MList *list,void *function,void *para)
@@ -565,6 +581,48 @@ void mListSort(MList *list,void *function,void *para)
     mException((INVALID_POINTER(list))||(func==NULL),EXIT,"invalid input");
     if(list->num<=1)return;
     _ListSort(list->data,list->num,func,para);
+}
+
+struct HandleListMatch
+{
+    int list_num;
+    int *idx;
+};
+void endListMatch(struct HandleListMatch *handle)
+{
+    if(handle->idx!=NULL) mFree(handle->idx);
+}
+#define HASH_ListMatch 0x39871020
+int *m_ListMatch(MList *src,MList *dst,float thresh,void *function,void *para)
+{
+    float (*func)(void *,void *,void *) = function;
+    mException((INVALID_POINTER(src)||INVALID_POINTER(dst)),EXIT,"invalid input");
+    MHandle *hdl = mHandle(src,ListMatch);
+    struct HandleListMatch *handle = (struct HandleListMatch *)(hdl->handle);
+    if((hdl->valid==0)||(src->num>handle->list_num))
+    {
+        int list_num = MAX(src->num,handle->list_num);
+        if(list_num>handle->list_num)
+        {
+            if(handle->idx     !=NULL) mFree(handle->idx);
+            handle->idx = mMalloc(list_num*sizeof(int));
+            handle->list_num = list_num;
+        }
+        hdl->valid = 1;
+    }
+    if(dst->num==0) {memset(handle->idx,DFLT,src->num*sizeof(int));return handle->idx;}
+
+    for(int i=0;i<src->num;i++)
+    {
+        float d_min = func(src->data[i],dst->data[0],para);int idx = 0;
+        for(int j=1;j<dst->num;j++)
+        {
+            float d = func(src->data[i],dst->data[j],para);
+            if(d<d_min){d_min=d;idx=j;}
+        }
+        handle->idx[i]=(d_min<thresh)?idx:DFLT;
+    }
+    return (handle->idx);
 }
 
 struct HandleStack

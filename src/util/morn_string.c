@@ -226,7 +226,7 @@ char *m_StringArgument(int argc,char **argv,const char *flag,char *format,...)
     while(1)
     {
         morn_string_arg_idx = i;
-        if(argv[i][0] == '-') 
+        if((argv[i][0] == '-')&&((argv[i][1]<'0')||(argv[i][1]>'9')))
         {
             if(strspn(argv[i]+1,flag)>=flag_len)
             {
@@ -234,18 +234,18 @@ char *m_StringArgument(int argc,char **argv,const char *flag,char *format,...)
                     {result=argv[i]+1+flag_len+((*(argv[i]+1+flag_len)=='=')||(*(argv[i]+1+flag_len)==':'));break;}
                 else if(i+1==argc)
                     return morn_string_argument;
-                else if(argv[i+1][0]=='-')
+                else if((argv[i+1][0]=='-')&&((argv[i+1][1]<'0')||(argv[i+1][1]>'9')))
                     return morn_string_argument;
             }
         }
         else
         {
-            for(j=i;j>=1;j--) if(argv[j][0]=='-') break;
+            for(j=i;j>=1;j--) if((argv[j][0]=='-')&&((argv[j][1]<'0')||(argv[j][1]>'9'))) break;
             if(j>0) if(strspn(argv[j]+1,flag)>=flag_len) {result=argv[i];break;}
         }
         i++;if(i==argc) {i=1;} if(i==idx) {return NULL;}
     }
-
+ 
     nextStringArgument:
     if(!INVALID_POINTER(format))
     {

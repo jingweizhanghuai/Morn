@@ -266,6 +266,32 @@ int LowestCommonMultiple(int n,...)
     return a;
 }
 
+int mBinaryCeil(int data)
+{
+    if (data<0) return (0-mBinaryFloor(0-data));
+    int v[16]={1,2,2,4,4,8,8,8,8,16,16,16,16,16,16,16};
+    if(data<16) return v[data];
+    if(data<256) return (v[data>>4]<<4);
+    if(data<4096) return (v[data>>8]<<8);
+    if(data<65536) return (v[data>>12]<<12);
+    if(data<1048576) return (v[data>>16]<<16);
+    if(data<16777216) return (v[data>>20]<<20);
+    if(data<268435456) return (v[data>>24]<<24);
+    return (v[data>>28]<<28);
+}
+
+int mBinaryFloor(int data)
+{
+    int ceil = mBinaryCeil(data);
+    return (data>0)?(ceil/2):(ceil*2);
+}
+
+int mBinaryRound(int data)
+{
+    int ceil = mBinaryCeil(data);
+    int floor= (data>0)?(ceil/2):(ceil*2);
+    return ((ceil-data)<=(data-floor))?ceil:floor;
+}
 
 double mSigmoid(float x)
 {

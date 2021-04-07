@@ -29,7 +29,11 @@ void IPAddress(const char *ip,int *addr,int *port)
     if(ip==NULL) return;
     if(strnicmp(ip,"localhost",9)==0) return;
 
-    sscanf(ip,"%d.%d.%d.%d:%d",(int *)p,(int *)(p+1),(int *)(p+2),(int *)(p+3),port);
+    int a[4];
+    printf("ip=%s\n",ip);
+    sscanf(ip,"%d.%d.%d.%d:%d",a,a+1,a+2,a+3,port);
+    p[0]=a[0];p[1]=a[1];p[2]=a[2];p[3]=a[3];
+    printf("p=%d,%d,%d,%d,port=%d\n",p[0],p[1],p[2],p[3],*port);
 }
 
 struct HandleUDP

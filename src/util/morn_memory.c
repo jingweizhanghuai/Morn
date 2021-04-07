@@ -127,13 +127,18 @@ void MemoryListPrint(int state)
 }
 
 
+short morn_alloc_free_size[32]={48,80,112,144,176,208,240,272,336,400,464,560,688,816,1008,1168,1328,1552,1840,2352,2864,3376,3888,4400,5424,6448,7472,9008,11056,13104,14736,16400};
+char morn_alloc_free_size_idx[512]={0,1,2,3,4,5,6,7,8,8,9,9,10,10,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,14,14,15,15,15,15,15,16,16,16,16,16,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31};
+unsigned short morn_alloc_free_ref_flag1[16]={0x0001,0x0002,0x0004,0x0008,0x0010,0x0020,0x0040,0x0080,0x0100,0x0200,0x0400,0x0800,0x1000,0x2000,0x4000,0x8000};
+unsigned short morn_alloc_free_ref_flag2[16]={0xFFFE,0xFFFD,0xFFFB,0xFFF7,0xFFEF,0xFFDF,0xFFBF,0xFF7F,0xFEFF,0xFDFF,0xFBFF,0xF7FF,0xEFFF,0xDFFF,0xBFFF,0x7FFF};
+int morn_alloc_free_valid_idx[256]={0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,7,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,0};
+
 struct MAFBlock
 {
     void *info;
     unsigned short size;
     volatile unsigned short flag;
     volatile int idlnum;
-    volatile int order;
     int info_idx;
     char data[0];
 };
@@ -147,16 +152,12 @@ struct MAFInfo
     int block_order;
 };
 __thread struct MAFInfo *morn_alloc_free_info=NULL;
-short morn_alloc_free_size[32]={48,80,112,144,176,208,240,272,336,400,464,560,688,816,1008,1168,1328,1552,1840,2352,2864,3376,3888,4400,5424,6448,7472,9008,11056,13104,14736,16400};
-char morn_alloc_free_size_idx[512]={0,1,2,3,4,5,6,7,8,8,9,9,10,10,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,14,14,15,15,15,15,15,16,16,16,16,16,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31};
-unsigned short morn_alloc_free_ref_flag1[16]={0x0001,0x0002,0x0004,0x0008,0x0010,0x0020,0x0040,0x0080,0x0100,0x0200,0x0400,0x0800,0x1000,0x2000,0x4000,0x8000};
-unsigned short morn_alloc_free_ref_flag2[16]={0xFFFE,0xFFFD,0xFFFB,0xFFF7,0xFFEF,0xFFDF,0xFFBF,0xFF7F,0xFEFF,0xFDFF,0xFBFF,0xF7FF,0xEFFF,0xDFFF,0xBFFF,0x7FFF};
 
 void *m_Malloc(int size)
 {
     intptr_t *ptr;
     size=size+16;
-    if(size>16392) {ptr=malloc(size); ptr[0]=0; return (((char *)ptr)+16);}
+    if(size>16400) {ptr=malloc(size); ptr[0]=0; return (((char *)ptr)+16);}
     
     int idx=morn_alloc_free_size_idx[(size-17)/32];
     size = morn_alloc_free_size[idx];
@@ -180,29 +181,20 @@ void *m_Malloc(int size)
     }
     
     struct MAFBlock *block = info->block;
-    
     if(!invalid_block)
     {
         mAtomicSub(&(block->idlnum),1);
-        idx=block->order;
-        while(1)
-        {
-            if((block->flag&morn_alloc_free_ref_flag1[idx])==0) 
-            {
-                mAtomicOr( &(block->flag),morn_alloc_free_ref_flag1[idx]);
-                block->order = ((idx+1)&0x0000000F);
-                ptr = (intptr_t *)(block->data+size*idx);
-                ptr[0]=(intptr_t)(block);ptr[1]=idx;
-                return (((char *)ptr)+16);
-            }
-            idx=((idx+1)&0x0000000F);
-        }
+        idx=(block->flag>=0xFF00)?morn_alloc_free_valid_idx[(block->flag)&0x00FF]:(8+morn_alloc_free_valid_idx[(block->flag)>>8]);
+        mAtomicOr( &(block->flag),morn_alloc_free_ref_flag1[idx]);
+        ptr = (intptr_t *)(block->data+size*idx);
+        ptr[0]=(intptr_t)(block);ptr[1]=idx;
+        return (((char *)ptr)+16);
     }
     
     block = m_Malloc(sizeof(struct MAFBlock)+16*size);
     block->size = size;
     block->info = info;
-    block->flag=0x0001;block->idlnum=15;block->order=1;
+    block->flag=0x0001;block->idlnum=15;
     
     int n=info->block_num;
     if(n>=info->block_vol)
@@ -253,7 +245,7 @@ void m_Free(void *p)
     
     if((block!=info->block)&&(block!=info->spare)) 
     {
-        if(mAtomicCompare(&(block->idlnum),15,0))
+        if(block->idlnum==15)
         {
             int n = block->info_idx;
             info->block_num=info->block_num-1;
@@ -264,15 +256,16 @@ void m_Free(void *p)
         }
         else if(block->idlnum>0)
         {
-            if(!mAtomicCompare(&(info->spare),info->block,block))
-            {
-                if(block->idlnum>info->spare->idlnum) info->spare=block;
-            }
+            if(info->spare==info->block) info->spare = block;
+            else if(block->idlnum>info->spare->idlnum) info->spare=block;
+            // if(!mAtomicCompare(&(info->spare),info->block,block))
+            // {
+            //     if(block->idlnum>info->spare->idlnum) info->spare=block;
+            // }
         }
     }
     
     mAtomicAnd(&(block->flag),morn_alloc_free_ref_flag2[idx]);
-    block->order = idx;
     mAtomicAdd(&(block->idlnum),1);
 }
 
@@ -301,108 +294,122 @@ void endMAF()
     morn_alloc_free_info=NULL;
 }
 
-/*
-MThreadSignal memory_thread_sgn=MORN_THREAD_SIGNAL;
-void m_Freee(void *p)
+
+struct AFBlock
 {
-    intptr_t *ptr=(intptr_t *)(((char *)p)-16);
-    if(ptr[0]==0) {free(ptr);return;}
+    void *info;
+    unsigned short size;
+    volatile unsigned short flag;
+    int info_idx;
+    char data[0];
+};
+struct AFInfo
+{
+    struct MAFBlock **block_list;
+    unsigned char *flag1;
+    unsigned char *flag2;
+    int block_order;
+    int block_num;
+};
+__thread struct AFInfo morn_af_info[32];
 
-    struct MAFBlock *block = (struct MAFBlock *)(ptr[0]);
-    int idx=ptr[1];
+void *mm_Malloc(int size)
+{
+    intptr_t *ptr;
+    size=size+16;
+    if(size>16400) {ptr=malloc(size); ptr[0]=0; return (((char *)ptr)+16);}
 
-    
-    block->order = idx;
-    mAtomicAnd(&(block->flag),morn_alloc_free_ref_flag2[idx]);
-    mThreadLockBegin(memory_thread_sgn);
-    mAtomicAdd(&(block->idlnum),1);
-    // block->flag &= morn_alloc_free_ref_flag2[idx];
-    // block->idlnum =block->idlnum+1;
-    // mThreadLockEnd(memory_thread_sgn);
-    
-    struct MAFInfo *info = block->info;
-    if(block==info->block) {
-        mThreadLockEnd(memory_thread_sgn);
-        return;}
-    // 
+    int i;
+    int idx=morn_alloc_free_size_idx[(size-17)/32];
+    size = morn_alloc_free_size[idx];
+    struct AFInfo *info  = morn_af_info+idx;
 
-    if(info->spare==NULL) info->spare=block;
-    else if(block->idlnum>info->spare->idlnum) info->spare=block;
-    else {
-        mThreadLockEnd(memory_thread_sgn);
-        return;}
-
-    if(mAtomicCompare(&(block->idlnum),16,0))
+    struct AFBlock *block = info->block;
+    int invalid_block=(block==NULL);
+    if(!invalid_block) invalid_block=(block->flag==0x0FFFF);
+    if(invalid_block)
     {
-        info->spare = NULL;
-        mThreadLockEnd(memory_thread_sgn);
-        struct MAFBlock *b = info->block;
-        info->block = block;
-        if(mAtomicCompare(&(b->idlnum),16,0))
+        i=info->block_order;do
         {
-            int n = b->info_idx;
-            
-            info->block_list[n]=NULL;
-            info->block_order=n;
-            info->block_num=info->block_num-1;
-            m_Freee(b);
-            return;
-        }
+            if(info->flag1[i]!=0x0FF)
+            {
+                idx=morn_alloc_free_valid_idx[info->flag1[i]]
+                mAtomicOr(&(info->flag1[i]),morn_alloc_free_ref_flag1[idx]);
+                block=info->block_list[i*8+idx];
+                info->block_order = i;
+                invalid_block = 0;
+                break;
+            }
+            i++;if(i==info->block_num)i=0;
+        }while(i!=info->block_order);
     }
-    mThreadLockEnd(memory_thread_sgn);
-}
-*/
+    
+    if(!invalid_block)
+    {
+        idx=(block->flag>=0xFF00)?morn_alloc_free_valid_idx[(block->flag)&0x00FF]:(8+morn_alloc_free_valid_idx[(block->flag)>>8]);
+        mAtomicOr(&(block->flag),morn_alloc_free_ref_flag1[idx]);
+        
+        ptr = (intptr_t *)(block->data+size*idx);
+        ptr[0]=(intptr_t)(block);ptr[1]=idx;
+        return (((char *)ptr)+16);
+    }
 
-/*
-    struct MAFBlock *spare = info->spare;
-    info->spare = NULL;
-    if(mAtomicCompare(&(block->idlnum),16,0))
+    block = m_Malloc(sizeof(struct AFBlock)+16*size);
+    block->size = size;
+    block->info = info;
+    block->flag=0x0001;
+    ptr = (intptr_t *)(block->data);
+    ptr[0]=(intptr_t)(block);ptr[1]=idx;
+
+    i=info->block_order;do
     {
-        spare = NULL;
-        struct MAFBlock *b = info->block;
-        info->block = block;
-        info->block->idlnum=16;
-        if(b->idlnum==16)
+        if(info->flag2[i]!=0xFF)
         {
-            int n = b->info_idx;
-            info->block_list[n]=NULL;
-            info->block_order=n;
-            info->block_num=info->block_num-1;
-            m_Free(b);
+            idx=morn_alloc_free_valid_idx[info->flag2[i]]
+            mAtomicOr(&(info->flag1[i]),morn_alloc_free_ref_flag1[idx]);
+            mAtomicOr(&(info->flag2[i]),morn_alloc_free_ref_flag1[idx]);
+            info->block_list[i*8+idx]=block;
+            info->block_order = i;
+            return (((char *)ptr)+16);
         }
-    }
-    else
-    {
-        if(spare==NULL) spare=block;
-        else if(block->idlnum>spare->idlnum) spare=block;
-    }
-    info->spare = spare;
+        i++;if(i==info->block_num)i=0;
+    }while(i!=info->block_order);
+
+    int block_num = info->block_num;info->block_num+=1;
+    
+    void *buff= info->block_list;
+    struct AFBlock **list = malloc(info->block_num*8*sizeof(struct AFBlock *));
+    if(buff) memcpy(list,buff,block_num*8*sizeof(struct MAFBlock *));
+    list[block_num*8]=block;
+    mAtomicSet(&(info->block_list),list);
+    if(buff) free(buff);
+
+    buff=info->flag1;
+    unsigned char *flag1  = malloc(info->block_num*sizeof(unsigned char));
+    if(buff) memcpy(flag1,buff,block_num*sizeof(unsigned char));
+    flag1[block_num]=0x0FE;
+    mAtomicSet(&(info->flag1),flag1);
+    if(buff) free(buff);
+
+    buff=info->flag2;
+    unsigned char *flag2  = malloc(info->block_num*sizeof(unsigned char));
+    if(buff) memcpy(flag2,buff,block_num*sizeof(unsigned char));
+    flag2[block_num]=0x01;
+    mAtomicSet(&(info->flag2),flag2);
+    if(buff) free(buff);
+    
+    info->block = block;
+    return (((char *)ptr)+16);
 }
-*/
-    
-    
-/*
-    if(block->idlnum==15)
-    {
-        info->spare = NULL;
-        struct MAFBlock *b = info->block;
-        info->block = block;
-        if(b->idlnum==16)
-        {
-            int n = b->info_idx;
-            info->block_list[n]=NULL;
-            info->block_order=n;
-            info->block_num=info->block_num-1;
-            m_Free(b);
-        }
-        else info->spare=b;
-    }
-    else //if(block->idlnum<16)
-    {
-             if(info->spare==NULL) info->spare=block;
-        else if(block->idlnum>info->spare->idlnum) info->spare=block;
-    }
+
+void mm_Free(void *p)
+{
 }
-*/
+
+
+
+
     
+
+
 

@@ -113,7 +113,7 @@ int mMORNRead(MFile *file,int ID,void **data,int num,int size)
     struct HandleMORNFile *handle = MORNInit(file);
     struct Chunk *ck=MornChunk(handle,ID);
     if(ck==NULL) return MORN_FAIL;
-    
+
     if( num<=0) num=1;
     if(size<=0) {mException((ck->size%num!=0),EXIT,"invalid input");size=ck->size/num;}
     mException((ck->size<size*num),EXIT,"no enough data for %d,size need %d,chunk size is %d",ID,size*num,ck->size);

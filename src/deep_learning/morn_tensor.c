@@ -7,6 +7,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleTensorCreate
 {
     MTensor *tns;
+    MChain *property;
     int batch;
     int size;
 
@@ -22,19 +23,19 @@ void endTensorCreate(void *info)
 {
     struct HandleTensorCreate *handle = (struct HandleTensorCreate *)info;
     mException((handle->tns ==NULL),EXIT,"invalid tensor");
-    
-    if(!INVALID_POINTER(handle->data)) free(handle->data);
-    if(!INVALID_POINTER(handle->memory)) mMemoryRelease(handle->memory);
+    if(handle->property!=NULL) mChainRelease(handle->property);
+    if(handle->data    !=NULL) mFree(handle->data);
+    if(handle->memory  !=NULL) mMemoryRelease(handle->memory);
 
-    if(!INVALID_POINTER(handle->backup_data)) free(handle->backup_data);
-    if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
+    if(handle->backup_data  !=NULL) mFree(handle->backup_data);
+    if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
     
-    free(handle->tns);
+    mFree(handle->tns);
 }
 
 MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int device)
 {
-    MTensor *tns = (MTensor *)malloc(sizeof(MTensor));
+    MTensor *tns = (MTensor *)mMalloc(sizeof(MTensor));
     memset(tns,0,sizeof(MTensor));
     
     if(batch  <0) {batch  = 0;        } tns->batch  = batch;
@@ -57,7 +58,7 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     size = size+8;
     
     handle->batch = batch;
-    handle->data = (float **)malloc(batch*sizeof(float *));
+    handle->data = (float **)mMalloc(batch*sizeof(float *));
     tns->data = handle->data;
     if(!INVALID_POINTER(data)) 
     {
@@ -166,8 +167,8 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
     {
         memcpy(handle->data,data,batch*sizeof(float *));
         tns->data = handle->data;
-        if(!INVALID_POINTER(handle->backup_data)) free(handle->backup_data);
-        if(!INVALID_POINTER(handle->backup_memory)) mMemoryRelease(handle->backup_memory);
+        if(handle->backup_data  !=NULL) mFree(handle->backup_data);
+        if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
         goto tensor_redefine_end;
     }
     
@@ -197,8 +198,8 @@ float **mTensorBackup(MTensor *tns,int batch,int cn,int height,int width)
     int size = cn*height*width;
 
     struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(((MHandle *)(tns->handle->data[0]))->handle);
-    if(handle->backup_data!=NULL) free(handle->backup_data);
-    handle->backup_data = (float **)malloc(batch*sizeof(float *));
+    if(handle->backup_data!=NULL) mFree(handle->backup_data);
+    handle->backup_data = (float **)mMalloc(batch*sizeof(float *));
 
     if(handle->backup_memory == NULL) handle->backup_memory = mMemoryCreate(batch,size*sizeof(float),tns->device);
     else mMemoryRedefine(handle->backup_memory,batch,size*sizeof(float),tns->device);

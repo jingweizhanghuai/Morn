@@ -13,12 +13,14 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleVectorCreate
 {
     MVector *vec;
+    MChain *property;
     int size;
     MMemory *memory;
 };
 void endVectorCreate(struct HandleVectorCreate *handle)
 {
     mException((handle->vec==NULL),EXIT,"invalid vector");
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory != NULL) mMemoryRelease(handle->memory);
     mFree(handle->vec);
 }
@@ -112,6 +114,7 @@ void PrintMat(MMatrix *mat)
 struct HandleMatrixCreate
 {
     MMatrix *mat;
+    MChain *property;
     int row;
     int col;
     int device;
@@ -122,9 +125,9 @@ void endMatrixCreate(void *info)
 {
     struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)info;
     mException((handle->mat == NULL),EXIT,"invalid matrix");
-    
-    if(handle->index != NULL) mFree(handle->index);
-    if(handle->memory!= NULL) mMemoryRelease(handle->memory);
+    if(handle->property!= NULL) mChainRelease(handle->property);
+    if(handle->index   != NULL) mFree(handle->index);
+    if(handle->memory  != NULL) mMemoryRelease(handle->memory);
     
     mFree(handle->mat);
 }

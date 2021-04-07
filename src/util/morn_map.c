@@ -15,22 +15,23 @@ inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
                       return memcmp(mem1,mem2,size1);
 }
 
-struct HandleMap
+struct HandleMornMap
 {
     int num;
     MChainNode **list;
     int list_num;
     int list_valid;
+    
     pthread_rwlock_t rwlock;
 };
-void endMap(struct HandleMap *handle)
+void endMornMap(struct HandleMornMap *handle)
 {
     if(handle->list!=NULL) mFree(handle->list);
     pthread_rwlock_destroy(&(handle->rwlock));
 }
-#define HASH_Map 0x8630f641
+#define HASH_MornMap 0x197e7023
 
-void _MapListAppend(struct HandleMap *handle)
+void _MapListAppend(struct HandleMornMap *handle)
 {
     if(handle->list_valid == 1) return;
     MChainNode *node0 = handle->list[0];
@@ -55,18 +56,19 @@ void _MapListAppend(struct HandleMap *handle)
     
     float k=(float)(list_num)/(float)(handle->num);
     
-    MChainNode *node = node0;
-    for(int i=0;i<handle->num;i++)
+    MChainNode *node = node0->last;
+    for(int i=handle->num-1;i>=0;i--)
     {
         int idx=(int)(k*i);list[idx]=node;
-        node = node->next;
+        node = node->last;
     }
     list[       0]=node0;
     list[list_num]=node0;
+    
     handle->list_valid = 1;
 }
 
-MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *flag)
+MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,int *flag)
 {
     pthread_rwlock_rdlock(&(handle->rwlock));
 
@@ -133,7 +135,7 @@ MChainNode *_MapNode(struct HandleMap *handle,const void *key,int key_size,int *
     return node;
 }
 
-void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
+void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
@@ -142,9 +144,9 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
     int *data;
     
     MHandle *hdl;
-    if(map->handle->num<3) hdl = mHandle(map,Map);
-    else {hdl = (MHandle *)(map->handle->data[2]);mException(hdl->flag!= HASH_Map,EXIT,"invalid map");}
-    struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
+    if(map->handle->num<3) hdl = mHandle(map,MornMap);
+    else {hdl = (MHandle *)(map->handle->data[2]);mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");}
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0)
     {
         if(handle->list==NULL)
@@ -159,7 +161,6 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
             handle->list[1]=node;
             handle->list_num=1;
             handle->num=1;
-            
         }
         hdl->valid = 1;
     }
@@ -189,7 +190,7 @@ void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int 
     return (data+2+mkey_size);
 }
 
-void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
+void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     if(map->handle->num<3) return NULL;
@@ -198,13 +199,13 @@ void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_s
     if(key_size<=0) key_size = strlen((char *)key);
 
     MHandle *hdl = (MHandle *)(map->handle->data[2]);
-    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
-    struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
+    mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
     
     int flag;MChainNode *node = _MapNode(handle,key,key_size,&flag);
     if(flag==DFLT) return NULL;
-    
+
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
     int *data = (int *)(node->data);
     if(value!=NULL)
@@ -216,42 +217,42 @@ void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_s
     return (data+2+mkey_size);
 }
 
-void *mMapNodeKey(MChainNode *node)
+void *mornMapNodeKey(MChainNode *node)
 {
     mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return (void *)(data+2);
 }
-void *mMapNodeValue(MChainNode *node)
+void *mornMapNodeValue(MChainNode *node)
 {
     mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
     return (void *)(data+2+mkey_size);
 }
-int mMapNodeKeySize(MChainNode *node)
+int mornMapNodeKeySize(MChainNode *node)
 {
     mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return data[0];
 }
-int mMapNodeValueSize(MChainNode *node)
+int mornMapNodeValueSize(MChainNode *node)
 {
     mException(INVALID_POINTER(node),EXIT,"invalid map node");
     int *data=(int *)(node->data);
     return data[1];
 }
 
-int mMapNodeNumber(MChain *map)
+int mornMapNodeNumber(MChain *map)
 {
     if(map->handle->num<3) return 0;
     MHandle *hdl = (MHandle *)(map->handle->data[2]);
-    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
-    struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
+    mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     return (handle->num-1);
 }
 
-void mMapNodeOperate(MChain *map,void *function,void *para)
+void mornMapNodeOperate(MChain *map,void *function,void *para)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(function),EXIT,"invalid input map function");
@@ -268,20 +269,19 @@ void mMapNodeOperate(MChain *map,void *function,void *para)
     }
 }
 
-void m_MapDelete(MChain *map,const void *key,int key_size)
+void mornMapNodeDelete(MChain *map,const void *key,int key_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
-
+    
     MHandle *hdl = (MHandle *)(map->handle->data[2]);
-    mException(hdl->flag!= HASH_Map,EXIT,"invalid map");
-    struct HandleMap *handle = (struct HandleMap *)(hdl->handle);
+    mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0) return;
 
     int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
     if(n==DFLT) return;
-    
     pthread_rwlock_wrlock(&(handle->rwlock));
     if(n>=0) handle->list[n]=(node->last!=map->chainnode)?node->last:node->next;
     for(int m = n+1;handle->list[m]==node;m++)handle->list[m]=handle->list[n];
@@ -296,4 +296,57 @@ void m_MapDelete(MChain *map,const void *key,int key_size)
         _MapListAppend(handle);
     }
     pthread_rwlock_unlock(&(handle->rwlock));
+}
+
+MMap *mMapCreate()
+{
+    MChain **amap = mMalloc(256*sizeof(MChain *));
+    memset(amap,0,256*sizeof(MChain *));
+    return mObjectCreate(amap);
+}
+void mMapRelease(MMap *map)
+{
+    MChain **amap = (MChain **)(map->object);
+    for(int i=0;i<256;i++) {if(amap[i]!=NULL) mChainRelease(amap[i]);}
+    mFree(amap);
+    mObjectRelease(map);
+}
+void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int value_size)
+{
+    MChain **amap = (MChain **)(map->object);
+    if(key_size<=0) key_size = strlen((char *)key);
+    unsigned char *p = (unsigned char *)key;
+    int n = p[0]+p[key_size-1];n=n&0x0ff;
+    if(amap[n]==NULL) amap[n]=mChainCreate();
+    return mornMapWrite(amap[n],key,key_size,value,value_size);
+}
+void *m_MapRead(MMap *map,const void *key,int key_size,void *value,int value_size)
+{
+    MChain **amap = (MChain **)(map->object);
+    if(key_size<=0) key_size = strlen((char *)key);
+    unsigned char *p = (unsigned char *)key;
+    int n = p[0]+p[key_size-1];n=n&0x0ff;
+    if(amap[n]==NULL) return NULL;
+    return mornMapRead(amap[n],key,key_size,value,value_size);
+}
+void m_MapNodeDelete(MMap *map,const void *key,int key_size)
+{
+    MChain **amap = (MChain **)(map->object);
+    if(key_size<=0) key_size = strlen((char *)key);
+    unsigned char *p = (unsigned char *)key;
+    int n = p[0]+p[key_size-1];n=n&0x0ff;
+    mException(amap[n]==NULL,EXIT,"cannot find map node for delete");
+    mornMapNodeDelete(amap[n],key,key_size);
+}
+void mMapNodeOperate(MMap *map,void *function,void *para)
+{
+    MChain **amap = (MChain **)(map->object);
+    for(int n=0;n<256;n++) {if(amap[n]) mornMapNodeOperate(amap[n],function,para);}
+}
+int mMapNodeNumber(MMap *map)
+{
+    MChain **amap = (MChain **)(map->object);
+    int sum=0;
+    for(int n=0;n<256;n++) {if(amap[n]) sum+=mornMapNodeNumber(amap[n]);}
+    return sum;
 }

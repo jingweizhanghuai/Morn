@@ -70,7 +70,6 @@ MImage *mImageChannelSplit(MImage *src,int num,...);
 // void m_ImageCut(MImage *img,MImage *ROI,int src_x1,int src_x2,int src_y1,int src_y2,int dst_x,int dst_y);
 
 
-void mImageWipe(MImage *img);
 
 void mImageDiff(MImage *src1,MImage *src2,MImage *diff);
 void mImageAdd(MImage *src1,MImage *src2,MImage *dst);
@@ -227,10 +226,10 @@ void mJPGLoad(MImage *img,const char *filename);
 void mPNGSave(MImage *img,const char *filename);
 void mPNGLoad(MImage *img,const char *filename);
 #endif
-void ImageLoad(MImage *img,const char *filename);
-void ImageSave(MImage *img,const char *filename);
-#define mImageLoad(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageLoad(Img,morn_filename);}while(0)
-#define mImageSave(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageSave(Img,morn_filename);}while(0)
+void mImageLoad(MImage *img,const char *filename,...);
+void mImageSave(MImage *img,const char *filename,...);
+// #define mImageLoad(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageLoad(Img,morn_filename);}while(0)
+// #define mImageSave(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageSave(Img,morn_filename);}while(0)
 
 #define MORN_RESIZE_UNUNIFORM        DFLT
 #define MORN_RESIZE_MINUNIFORM 0xFFFFFFFE
@@ -294,8 +293,8 @@ void m_ImageDrawCurve (MImage *src,MImage *dst,MImageCurve *curve,             u
     {\
         W=(intptr_t)VA_ARG1(__VA_ARGS__);\
         if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawRect(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MImageRect *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
-        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
-        else                                             m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+        else if((W<=4)&&(W>=DFLT))                         m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                               m_ImageDrawRect(Img,Img,(MImageRect *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
     }\
     else if(VAN==3)\
     {\
@@ -340,8 +339,8 @@ void m_ImageDrawCurve (MImage *src,MImage *dst,MImageCurve *curve,             u
     {\
         W=(intptr_t)VA_ARG1(__VA_ARGS__);\
         if(sizeof(*(VA_ARG0(__VA_ARGS__)))==sizeof(MImage))m_ImageDrawShape(Img,(MImage *)VA_ARG0(__VA_ARGS__),(MList *)VA_ARG1(__VA_ARGS__),NULL,DFLT);\
-        else if((W<=4)&&(W>=DFLT))                       m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
-        else                                             m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
+        else if((W<=4)&&(W>=DFLT))                         m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),NULL,(int)W);\
+        else                                               m_ImageDrawShape(Img,Img,(MList *)VA_ARG0(__VA_ARGS__),(unsigned char *)VA_ARG1(__VA_ARGS__),DFLT);\
     }\
     else if(VAN==3)\
     {\
@@ -421,6 +420,16 @@ void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate);
     else _ImageCut(Src,NULL,__VA_ARGS__);\
 }while(0)
 
+void m_ImageWipe(MImage *img,int channel,MImageRect *rect);
+#define mImageWipe(Img,...) do{\
+    int VAN=VA_ARG_NUM(__VA_ARGS__);\
+    mException(VAN>2,EXIT,"invalid input");\
+    intptr_t VA0 = (intptr_t)(VA_ARG0(__VA_ARGS__));\
+    if(VAN==0)      m_ImageWipe(Img,-1,NULL);\
+    else if(VAN==2) m_ImageWipe(Img,VA0,(MImageRect *)VA_ARG1(__VA_ARGS__));\
+    else if((VA0>=DFLT)&&(VA0<MORN_MAX_IMAGE_CN)) m_ImageWipe(Img,VA0,NULL);\
+    else                                          m_ImageWipe(Img,DFLT,(MImageRect *)VA0);\
+}while(0)
 
 void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImagePoint *,void *),void *para);
 void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para);
@@ -435,7 +444,9 @@ int mLineCross(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l
 
 float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e);
 void _PolygonSetup(MList *polygon,int num,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float x5,float y5,float x6,float y6,float x7,float y7);
-#define mPolygon(Polygon,...) _PolygonSetup(Polygon,VA_ARG_NUM(__VA_ARGS__)/2,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__),VA_ARG6(__VA_ARGS__),VA_ARG7(__VA_ARGS__),VA_ARG8(__VA_ARGS__),VA_ARG9(__VA_ARGS__),VA_ARG10(__VA_ARGS__),VA_ARG11(__VA_ARGS__),VA_ARG12(__VA_ARGS__),VA_ARG13(__VA_ARGS__),VA_ARG14(__VA_ARGS__),VA_ARG15(__VA_ARGS__))
+#define mPolygon(Polygon,...) do{\
+    _PolygonSetup(Polygon,VA_ARG_NUM(__VA_ARGS__)/2,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__),VA_ARG6(__VA_ARGS__),VA_ARG7(__VA_ARGS__),VA_ARG8(__VA_ARGS__),VA_ARG9(__VA_ARGS__),VA_ARG10(__VA_ARGS__),VA_ARG11(__VA_ARGS__),VA_ARG12(__VA_ARGS__),VA_ARG13(__VA_ARGS__),VA_ARG14(__VA_ARGS__),VA_ARG15(__VA_ARGS__));\
+}while(0)
 #define mRectArea(Rect) ((((MImageRect *)(Rect))->x2-((MImageRect *)(Rect))->x1)*(((MImageRect *)(Rect))->y2-((MImageRect *)(Rect))->y1))
 float mPolygonArea(MList *polygon);
 float TriangleArea(float x1,float y1,float x2,float y2,float x3,float y3);
@@ -464,10 +475,14 @@ void mConvexHull(MList *point,MList *polygon);
 
 void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon);
 #define mImagePolygonBorder(Border,Height,Width,...) do{\
-    MList *Polygon=ListCreate(DFLT,NULL);\
-    mPolygon(Polygon,__VA_ARGS__);\
-    ImagePolygonBorder(Border,Height,Width,Polygon);\
-    mListRelease(Polygon);\
+    if(VA_ARG_NUM(__VA_ARGS__)==1) ImagePolygonBorder(Border,Height,Width,(MList *)((intptr_t)VA_ARG0(__VA_ARGS__)));\
+    else\
+    {\
+        MList *Polygon=ListCreate();\
+        mPolygon(Polygon,__VA_ARGS__);\
+        ImagePolygonBorder(Border,Height,Width,Polygon);\
+        mListRelease(Polygon);\
+    }\
 }while(0)
 
 void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2);

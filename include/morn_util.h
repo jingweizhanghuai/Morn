@@ -265,16 +265,20 @@ MList *ListCreate(int num,void **data);
     NULL\
 )
 void mListRelease(MList *list);
-void mListAppend(MList *list,int num);
+void m_ListAppend(MList *list,void **data,int num);
+#define mListAppend(List,...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==0) m_ListAppend(List,NULL,DFLT);\
+    else if(VA_ARG_NUM(__VA_ARGS__)==1) m_ListAppend(List,NULL,(intptr_t)VA_ARG0(__VA_ARGS__));\
+    else if(VA_ARG_NUM(__VA_ARGS__)==2) m_ListAppend(List,(void **)((intptr_t)VA_ARG0(__VA_ARGS__)),(intptr_t)VA_ARG0(__VA_ARGS__));\
+}while(0)
 void mListPlace(MList *list,void *data,int num,int size);
 void mListClear(MList *list);
-// #define mListClear(List) do{List->num = 0;}while(0)
 
 void *mListWrite(MList *list,int n,void *data,int size);
 void *mListRead(MList *list,int n,void *data,int size);
 
 void mListElementDelete(MList *list,int n);
-void mListElementInsert(MList *list,int n,void *data,int size);
+void *mListElementInsert(MList *list,int n,void *data,int size);
 void mListCopy(MList *src,MList *dst);
 void mListMerge(MList *list1,MList *list2,MList *dst);
 
@@ -284,6 +288,9 @@ void mListElementSelect(MList *list,void *function,void *para);
 int mListCluster(MList *list,int *group,void *function,void *para);
 void mListSort(MList *list,void *function,void *para);
 void mListReorder(MList *list);
+
+int *m_ListMatch(MList *src,MList *dst,float thresh,void *function,void *para);
+#define mListMatch(src,dst,thresh,function,...) m_ListMatch(src,dst,thresh,function,(VA_ARG_NUM(__VA_ARGS__)==0)?NULL:VA_ARG0(__VA_ARGS__))
 
 int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);
@@ -351,9 +358,12 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2);
     Obj2->handle->data[0] = Hdl1;\
     \
     void *Object_buff;\
-    Object_buff = *(void **)(Hdl1->handle);\
+    Object_buff = *((void **)(Hdl1->handle));\
     *(void **)(Hdl1->handle) = *(void **)(Hdl2->handle);\
     *(void **)(Hdl2->handle) = Object_buff;\
+    Object_buff = *(((void **)(Hdl1->handle))+1);\
+    *(((void **)(Hdl1->handle))+1) = *(((void **)(Hdl2->handle))+1);\
+    *(((void **)(Hdl2->handle))+1) = Object_buff;\
 }while(0)
 
 typedef struct MSheet
@@ -379,10 +389,11 @@ void mSheetClear(MSheet *sheet);
 void mSheetRowAppend(MSheet *sheet,int row);
 void mSheetColAppend(MSheet *sheet,int row,int col);
 void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size);
+MList *mSheetRowList(MSheet *sheet,int row);
 void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size);
 void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetElementDelete(MSheet *sheet,int row,int col);
-void mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
+void *mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetReorder(MSheet *sheet);
 
 MSheet *mListClassify(MList *list,void *function,void *para);
@@ -534,11 +545,12 @@ typedef struct MObject
     Morn;
     void *reserved;
 }MObject;
-MObject *mObjectCreate(const void *obj);
+MObject *m_ObjectCreate(const void *obj);
+#define mObjectCreate(...) ((VA_ARG_NUM(__VA_ARGS__)==0)?m_ObjectCreate(NULL):m_ObjectCreate(VA_ARG0(__VA_ARGS__)))
 void mObjectRelease(MObject *proc);
 void mObjectRedefine(MObject *object,const void *obj);
 
-MObject *mMornObject(void *p,int size);
+MObject *mMornObject(const void *p,int size);
 
 typedef struct MHandle
 {
@@ -584,6 +596,22 @@ void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order);
 void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode);
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
 MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
+
+
+void *m_PropertyWrite(MChain **property,const char *key,const void *value,int value_size);
+void *m_PropertyRead(MChain **property,const char *key,void *value,int value_size);
+#define ObjectProperty(Obj) (((MChain **)(((MHandle *)(Obj->handle->data[0]))->handle))+1)
+#define mPropertyWrite(Obj,Key,...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_PropertyWrite(ObjectProperty(Obj),(const char *)Key,(const void *)(_VA_ARG0(__VA_ARGS__,DFLT)),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_PropertyWrite(ObjectProperty(Obj),(const char *)Key,(const void *)(_VA_ARG0(__VA_ARGS__,DFLT)),(int)VA_ARG1(__VA_ARGS__)):\
+    NULL\
+)
+#define mPropertyRead(Obj,...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_PropertyRead(ObjectProperty(Obj),(const char *)VA_ARG0(__VA_ARGS__),NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_PropertyRead(ObjectProperty(Obj),(const char *)VA_ARG0(__VA_ARGS__),(void *)VA_ARG1(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?m_PropertyRead(ObjectProperty(Obj),(const char *)VA_ARG0(__VA_ARGS__),(void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__)):\
+    NULL\
+)
 
 #define MORN_DEVICE DFLT
 #define MORN_HOST      0
@@ -660,31 +688,40 @@ void mMemoryMerge(MMemory *mem1,MMemory *mem2,MMemory *dst);
 void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num);
 void *mMemoryWrite(MMemory *memory,void *data,int size);
 
-void *m_MapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
-#define mMapWrite(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(const void *)VA_ARG2(__VA_ARGS__),DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MapWrite(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(const void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__)):\
+
+#define MMap MObject
+MMap *mMapCreate();
+void mMapRelease(MMap *map);
+void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
+void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int value_size);
+#define mMapWrite(Map,Key,...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_MapWrite(Map,(const void *)Key,DFLT,(const void *)VA_ARG0(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MapWrite(Map,(const void *)Key,(intptr_t)VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__)):\
     NULL\
 )
-void *m_MapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
-#define mMapRead(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==2)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,NULL,DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT,(void *)VA_ARG2(__VA_ARGS__),DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MapRead(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__),(void *)VA_ARG3(__VA_ARGS__),(intptr_t)VA_ARG4(__VA_ARGS__)):\
+void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
+void *m_MapRead(MMap *map,const void *key,int key_size,void *value,int value_size);
+#define mMapRead(Map,...) (\
+    (VA_ARG_NUM(__VA_ARGS__)==1)?m_MapRead(Map,(const void *)VA_ARG0(__VA_ARGS__),DFLT,NULL,DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==2)?m_MapRead(Map,(const void *)VA_ARG0(__VA_ARGS__),DFLT,(void *)VA_ARG1(__VA_ARGS__),DFLT):\
+    (VA_ARG_NUM(__VA_ARGS__)==4)?m_MapRead(Map,(const void *)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__),(void *)VA_ARG2(__VA_ARGS__),(intptr_t)VA_ARG3(__VA_ARGS__)):\
     NULL\
 )
-void m_MapDelete(MChain *map,const void *key,int key_size);
-#define mMapNodeDelete(...) do{\
-         if(VA_ARG_NUM(__VA_ARGS__)==2) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),DFLT);\
-    else if(VA_ARG_NUM(__VA_ARGS__)==3) m_MapDelete(VA_ARG0(__VA_ARGS__),(const void *)VA_ARG1(__VA_ARGS__),(intptr_t)VA_ARG2(__VA_ARGS__));\
+void mornMapNodeDelete(MChain *map,const void *key,int key_size);
+void m_MapNodeDelete(MMap *map,const void *key,int key_size);
+#define mMapNodeDelete(Map,...) do{\
+         if(VA_ARG_NUM(__VA_ARGS__)==1) m_MapNodeDelete(Map,(const void *)VA_ARG0(__VA_ARGS__),DFLT);\
+    else if(VA_ARG_NUM(__VA_ARGS__)==2) m_MapNodeDelete(Map,(const void *)VA_ARG0(__VA_ARGS__),(intptr_t)VA_ARG1(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input parameter for mMapDelete");\
 }while(0)
-void mMapNodeOperate(MChain *map,void *function,void *para);
-void *mMapNodeKey(MChainNode *node);
-void *mMapNodeValue(MChainNode *node);
-int mMapNodeKeySize(MChainNode *node);
-int mMapNodeValueSize(MChainNode *node);
-int mMapNodeNumber(MChain *map);
+void mornMapNodeOperate(MChain *map,void *function,void *para);
+void mMapNodeOperate(MMap *map,void *function,void *para);
+void *mornMapNodeKey(MChainNode *node);
+void *mornMapNodeValue(MChainNode *node);
+int mornMapNodeKeySize(MChainNode *node);
+int mornMapNodeValueSize(MChainNode *node);
+int mornMapNodeNumber(MChain *map);
+int mMapNodeNumber(MMap *map);
 
 #define MFile MObject
 MFile *mFileCreate(const char *filename,...);

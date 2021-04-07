@@ -26,8 +26,8 @@ void mWaveSelfCorrelation(MWave *src,int check_length,int check_step,float **sel
     
     if(check_length<=0)
     {
-        float frequency = mInfoGet(&(src->info),"frequency");
-        mException(mIsNan(frequency),EXIT,"invalid check length");
+        float frequency=DFLT;mPropertyRead(src,"frequency",&frequency);
+        mException(frequency<0,EXIT,"invalid check length");
         check_length = (int)(frequency/50.0f);
         if(check_length > (src->size>>1))
             check_length = src->size>>1;
@@ -72,8 +72,8 @@ void mWavePitch(MWave *src,int check_length,int *pitch,float *correlation)
     
     if(check_length<=0)
     {
-        float frequency = mInfoGet(&(src->info),"frequency");
-        mException(mIsNan(frequency),EXIT,"invalid check length");
+        float frequency=DFLT;mPropertyRead(src,"frequency",&frequency);
+        mException(frequency<0,EXIT,"invalid check length");
         check_length = (int)(frequency/50.0f);
         if(check_length > (src->size>>1))
             check_length = src->size>>1;

@@ -148,8 +148,10 @@ void mPNGSave(MImage *src,const char *filename)
 }
 #endif
 
-void ImageLoad(MImage *img,const char *filename)
+void mImageLoad(MImage *img,const char *imgname,...)
 {
+    char filename[256];
+    va_list val;va_start(val,imgname);vsprintf(filename,imgname,val);va_end(val);
     
     MHandle *hdl=mHandle(img,ImageLoad);
     struct HandleImageLoad *handle = (struct HandleImageLoad *)(hdl->handle);
@@ -206,8 +208,11 @@ void ImageLoad(MImage *img,const char *filename)
 #ifdef __GNUC__
 #define stricmp strcasecmp
 #endif
-void ImageSave(MImage *img,const char *filename)
+void mImageSave(MImage *img,const char *imgname,...)
 {
+    char filename[256];
+    va_list val;va_start(val,imgname);vsprintf(filename,imgname,val);va_end(val);
+    
     char *type;
     int len = strlen(filename);
     for(type=(char *)filename+len;type>filename;type--)

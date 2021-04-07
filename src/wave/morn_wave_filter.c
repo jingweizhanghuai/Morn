@@ -18,16 +18,8 @@ void mWaveConvolve(MWave *src,float core[],int core_size,MWave *dst)
     
     mException((INVALID_WAVE(src))||(INVALID_POINTER(core))||(core_size <= 0),EXIT,"invalid input");
     p = dst;
-    if(INVALID_POINTER(dst))
-    {
-        dst = mWaveCreate(src->channel,src->size,NULL);
-        dst->info = src->info;
-    }
-    else
-    {
-        mWaveRedefine(dst,src->size,src->channel,dst->data);
-        dst->info = src->info;
-    }
+    if(INVALID_POINTER(dst)) dst = mWaveCreate(src->channel,src->size,NULL);
+    else                mWaveRedefine(dst,src->size,src->channel,dst->data);
     
     l = core_size>>1;
     for(cn=0;cn<src->channel;cn++)
@@ -69,16 +61,8 @@ void mWaveDeBackground(MWave *src,MWave *dst,int win_length)
    
     mException((INVALID_WAVE(src))||(win_length <= 1),EXIT,"invalid input");
     p = dst;
-    if(INVALID_POINTER(dst))
-    {
-        dst = mWaveCreate(src->channel,src->size,NULL);
-        dst->info = src->info;
-    }
-    else
-    {
-        mWaveRedefine(dst,src->size,src->channel,dst->data);
-        dst->info = src->info;
-    }
+    if(INVALID_POINTER(dst)) dst = mWaveCreate(src->channel,src->size,NULL);
+    else mWaveRedefine(dst,src->size,src->channel,dst->data);
     
     l = win_length>>1;
     win_length = (l<<1)+1;

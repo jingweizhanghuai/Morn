@@ -91,18 +91,33 @@ void mInfoSet(MInfo *info,const char *name,float value)
     mException(1,EXIT,"no enough space for %s\n",name);
 }
 
+void *m_PropertyWrite(MChain **property,const char *key,const void *value,int value_size)
+{
+    if(*property==NULL) *property = mChainCreate();
+    MChain *map = *property;
+    return mornMapWrite(map,key,DFLT,value,value_size);
+}
+
+void *m_PropertyRead(MChain **property,const char *key,void *value,int value_size)
+{
+    MChain *map = *property;
+    if(map==NULL) return NULL;
+    return mornMapRead(map,key,DFLT,value,value_size);
+}
+
 struct HandleObjectCreate
 {
     MObject *object;
+    MChain *property;
 };
-void endObjectCreate(void *info)
+void endObjectCreate(struct HandleObjectCreate *handle)
 {
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)info;
     mException((handle->object == NULL),EXIT,"invalid object");
+    if(handle->property!=NULL) mChainRelease(handle->property);
     mFree(handle->object);
 }
 #define HASH_ObjectCreate 0xbd1d8878
-MObject *mObjectCreate(const void *obj)
+MObject *m_ObjectCreate(const void *obj)
 {
     MObject *object = (MObject *)mMalloc(sizeof(MObject));
     object->handle = NULL;
@@ -267,7 +282,7 @@ void morn_end(void)
         if(morn_object_map->chainnode!=NULL)
         {
             MChainNode *node = morn_object_map->chainnode->next;
-            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mMapNodeValue(node));node=node->next;}
+            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mornMapNodeValue(node));node=node->next;}
         }
         mChainRelease(morn_object_map);
     }
@@ -302,7 +317,7 @@ __attribute__((destructor)) void morn_end() {
             MChainNode *node = morn_object_map->chainnode->next;
             while(node!=morn_object_map->chainnode)
             {
-                MObject *obj = *(MObject **)mMapNodeValue(node);
+                MObject *obj = *(MObject **)mornMapNodeValue(node);
                 mObjectRelease(obj);
                 node=node->next;
             }
@@ -315,7 +330,7 @@ __attribute__((destructor)) void morn_end() {
 #endif
 
 static int morn_object_count = 0;
-MObject *mMornObject(void *p,int size)
+MObject *mMornObject(const void *p,int size)
 {
     if(p==NULL) 
     {
@@ -324,7 +339,7 @@ MObject *mMornObject(void *p,int size)
     }
     
     if(size<0) size=strlen((char *)p);
-    MObject **pobj = mMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
+    MObject **pobj = mornMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
     
     int *psize = (int *)(pobj+1);
     void *pdata = (void *)(psize+1);
@@ -332,7 +347,7 @@ MObject *mMornObject(void *p,int size)
     {
         if(size==*psize) if(memcmp(pdata,p,size)==0) return (*pobj);
         mObjectRelease(pobj[0]);
-        mMapNodeDelete(morn_object_map,&p,sizeof(void *));
+        mornMapNodeDelete(morn_object_map,&p,sizeof(void *));
     }
     
     morn_object_count+=1;
@@ -341,19 +356,19 @@ MObject *mMornObject(void *p,int size)
         MChainNode *node = morn_object_map->chainnode->next;
         while(node!=morn_object_map->chainnode)
         {
-            pobj = mMapNodeValue(node);psize=(int *)(pobj+1);pdata=(void *)(psize+1);
+            pobj = mornMapNodeValue(node);psize=(int *)(pobj+1);pdata=(void *)(psize+1);
             node = node->next;
             if(memcmp(pobj[0]->object,pdata,*psize)!=0)
             {
                 mObjectRelease(pobj[0]);
-                mMapNodeDelete(morn_object_map,mMapNodeKey(node->last),sizeof(void *));
+                mornMapNodeDelete(morn_object_map,mornMapNodeKey(node->last),sizeof(void *));
             }
         }
         morn_object_count = 0;
     }
 
     MObject *obj = mObjectCreate(p);
-    pobj=mMapWrite(morn_object_map,&p,sizeof(void *),NULL,(sizeof(MObject *)+sizeof(int)+size));
+    pobj=mornMapWrite(morn_object_map,&p,sizeof(void *),NULL,(sizeof(MObject *)+sizeof(int)+size));
     psize=(int *)(pobj+1);pdata=(void *)(psize+1);
     *pobj=obj;*psize=size;memcpy(pdata,p,size);
     

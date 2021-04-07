@@ -12,6 +12,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleSheetCreate
 {
     MSheet *sheet;
+    MChain *property;
     int row;
     
     int *col;
@@ -27,7 +28,7 @@ void endSheetCreate(void *info)
 {
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)info;
     mException((handle->sheet == NULL),EXIT,"invalid sheet");
-    
+    if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->data!=NULL)
     {
         for(int j=0;j<handle->row;j++)
@@ -224,6 +225,50 @@ void mSheetClear(MSheet *sheet)
     if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
 }
 
+struct HandleSheetRowList
+{
+    MList **list;
+    int list_num;
+    int order;
+};
+void endSheetRowList(struct HandleSheetRowList *handle)
+{
+    if(handle->list_num>0)
+    {
+        for(int i=0;i<handle->list_num;i++)
+        {
+            if(handle->list[i]!=NULL) mListRelease(handle->list[i]);
+        }
+        mFree(handle->list);
+    }
+}
+#define HASH_SheetRowList 0x40b550d6
+MList *mSheetRowList(MSheet *sheet,int row)
+{
+    mException(INVALID_POINTER(sheet),EXIT,"invalid sheet");
+    mException(row>=sheet->row,EXIT,"invalid input");
+    MHandle *hdl = mHandle(sheet,SheetRowList);
+    struct HandleSheetRowList *handle = (struct HandleSheetRowList *)(hdl->handle);
+    if(row<0)
+    {
+        row=handle->order;
+        if(row==sheet->row) return NULL;
+    }
+    if((hdl->valid == 0)||(row>=handle->list_num))
+    {
+        MList **list = mMalloc(sheet->row*sizeof(MList *));memset(list,0,sheet->row*sizeof(MList *));
+        if(handle->list_num>0) memcpy(list,handle->list,handle->list_num*sizeof(MList *));
+        handle->list = list;
+        handle->list_num = sheet->row;
+        hdl->valid = 1;
+    }
+    handle->order = row+1;
+
+    mListClear(handle->list[row]);
+    mListAppend(handle->list[row],sheet->data[row],sheet->col[row]);
+    return handle->list[row];
+}
+
 struct HandleSheetWrite
 {
     int write_size;
@@ -340,15 +385,14 @@ void mSheetElementDelete(MSheet *sheet,int row,int col)
     memmove(sheet->data[row]+col,sheet->data[row]+col+1,(sheet->col[row]-col-1)*sizeof(void *));
 }
 
-void mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size)
+void *mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size)
 {
-    void *buff;
-    
     mSheetWrite(sheet,row,DFLT,data,size);
-    buff = sheet->data[row][sheet->col[row]-1];
+    void *buff = sheet->data[row][sheet->col[row]-1];
     
     memmove(sheet->data[row]+col+1,sheet->data[row]+col,(sheet->col[row]-col-1)*sizeof(void *));
     sheet->data[row][col] = buff;
+    return buff;
 }
 
 void mSheetReorder(MSheet *sheet)
@@ -369,6 +413,102 @@ void mSheetReorder(MSheet *sheet)
         }
     }
 }
+
+inline uint16_t _LookupHash(const void *p,int size)
+{
+    if(size==1) return ((uint16_t)(*(uint8_t *)p));
+    uint16_t *data = (uint16_t *)p;size=size/2;
+    int sum=data[0];
+    for(int i=1;i<size;i++) sum+=data[i];
+    return ((uint16_t)(sum&0x0FFFF));
+}
+
+inline int _LookupCompare(const char *mem1,int size1,const char *mem2,int size2)
+{
+    int d=mem1[0]-mem2[0];if(d) return d;
+    for(int i=1;i<MIN(size1,size2);i++) {d=mem1[i]-mem2[i];if(d) return d;}
+    return (size1-size2);
+}
+
+// inline int _LookupSearch(int **sheet_data,int num,void *key,int key_size)
+// {
+//     pthread_rwlock_rdlock(&(handle->rwlock));
+    
+//     int step = (num+1)/4;
+//     int n=MAX(num/2,1);
+
+//     int *data = sheet_data[n];
+//     int f = _LookupCompare(data+2,data[0],key,key_size);
+//     if(f==0) {pthread_rwlock_unlock(&(handle->rwlock)); return n;}
+    
+//     while(step!=0)
+//     {
+//         if(f<0) n=n+step;
+//         else    n=n-step;
+        
+//         data = sheet_data[n];
+//         f = _Compare(data+2,data[0],key,key_size);
+        
+//         if(f==0) {pthread_rwlock_unlock(&(handle->rwlock)); return n;}
+//         step=step>>1;
+//     }
+//     // if(
+// }
+
+void *mLookupWrite(MSheet *sheet,void *key,int key_size,void *value,int value_size)
+{
+    mException(INVALID_POINTER(sheet)||INVALID_POINTER(key),EXIT,"invalid input");
+    if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
+    if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
+    
+    if(sheet->row!=65536)
+    {
+        mSheetRowAppend(sheet,65536);
+        memset(sheet->col,0,65536*sizeof(int));
+    }
+    int *data;
+    uint16_t hash = _LookupHash(key,key_size);
+    int i;for(i=0;i<sheet->col[hash];i++)
+    {
+        data = (int *)(sheet->data[hash][i]);
+        if(_LookupCompare((char *)key,key_size,(char *)(data+2),data[0])<0) break;
+    }
+    data = (int *)mSheetElementInsert(sheet,hash,i,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
+    data[0]=key_size;data[1]=value_size;
+    memcpy(data+2,key,key_size);
+    if(value!=NULL) memcpy(data+2+mkey_size,value,value_size);
+    return (data+2+mkey_size);
+}
+
+void *mLookupRead(MSheet *sheet,const void *key,int key_size,void *value,int value_size)
+{
+    mException(INVALID_POINTER(sheet)||INVALID_POINTER(key),EXIT,"invalid input");
+    mException(sheet->row!=65536,EXIT,"invalid input");
+    if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
+    
+    uint16_t hash = _LookupHash(key,key_size);
+    int *data=NULL;
+    int i;for(i=0;i<sheet->col[hash];i++)
+    {
+        data = (int *)(sheet->data[hash][i]);
+        int d=_LookupCompare((char *)key,key_size,(char *)(data+2),data[0]);
+        if(d<0) return NULL;
+        if(d==0) break;
+    }
+    if(value!=NULL)
+    {
+        if(value_size <=0) value_size= data[1];
+        else               value_size= MIN(value_size,data[1]);
+        memcpy(value,data+2+mkey_size,value_size);
+    }
+    return (data+2+mkey_size);
+}
+
+void mLookupDelete(MSheet *sheet,const void *key,int key_size)
+{
+    
+}
+
 
 struct HashElement
 {
@@ -405,6 +545,7 @@ void HashSheetResize(MSheet *sheet)
         
     mSheetRelease(src);
 }
+
 
 void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
 {

@@ -66,7 +66,7 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
         }
 
         float x_locate = (p1->x);
-        float step = (p2->x - p1->x)/(p2->y - p1->y);
+        float step = (p2->x - p1->x)/(float)((int)(p2->y+0.5)-(int)(p1->y+0.5));
         step = (p1->y>p2->y)?(0.0f-step):step;
         
         for(ly=(int)(p1->y+0.5f);;ly=((p1->y>p2->y)?(ly-1):(ly+1)))
