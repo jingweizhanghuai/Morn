@@ -10,25 +10,42 @@
 
 Morn的map具有以下特点：
 
-* 适用任何数据类型。
+* 适用任何数据类型
 * 高性能
-* 接口简单（三个接口）
+* 接口简单
+* 实现简单（核心代码约250行）
+
+源码参见[morn_map.c](../src/util/morn_map.c)
 
 
 
 ### 接口
 
-映射（map）首先是链表（MChain），所以在使用映射之前，需要先使用`mChainCreate`函数来创建映射（链表），在使用结束后需要使用`mChainRelease`函数来释放映射（链表）。
+#### 创建键值映射
 
-除此以外，映射增加的操作主要有：
+```c
+MMap *mMapCreate();
+```
+
+在使用映射之前，需要先使用`mMapCreate`函数来创建映射。
+
+
+
+#### 释放键值映射
+
+```c
+void mMapRelease(MMap *map);
+```
+
+在使用结束后，必须且只能使用`mMapRelease`函数来释放映射。
 
 
 
 #### 向映射中写入键值对
 
 ``` c
-void *mMapWrite(MChain *map,const void *key,const void *value);
-void *mMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
+void *mMapWrite(MMap *map,const void *key,const void *value);
+void *mMapWrite(MMap *map,const void *key,int key_size,const void *value,int value_size);
 ```
 
 这里，key就是键，指向任意类型的指针，key_size是key的长度（字节），如果key的类型是字符串，可不设置key_size或设置为DFLT。
@@ -44,9 +61,9 @@ value是key所对应的值，也是指向任意类型的指针，value_size是va
 #### 从映射中读取键值对
 
 ```c
-void *mMapRead(MChain *map,const char *key);
-void *mMapRead(MChain *map,const char *key,char *value);
-void *mMapRead(MChain *map,const void *key,int key_size,void *value,int value_size);
+void *mMapRead(MMap *map,const char *key);
+void *mMapRead(MMap *map,const char *key,char *value);
+void *mMapRead(MMap *map,const void *key,int key_size,void *value,int value_size);
 ```
 
 key是要读取的键，key_size是键的长度（字节），key为字符串时可不设置key_size或设置为DFLT。
@@ -60,8 +77,8 @@ value是要读出值的保存位置的指针，如果只是读，不需要copy�
 #### 删除键值对
 
 ```c
-void mMapDelete(MChain *map,const char *key);
-void mMapDelete(MChain *map,const void *key,int key_size);
+void mMapDelete(MMap *map,const char *key);
+void mMapDelete(MMap *map,const void *key,int key_size);
 ```
 
 这就是把键为key的键值对从映射里删除掉。key_size在为字符串时可不设置或设置为DFLT。
@@ -97,7 +114,7 @@ key为字符串，value为整数。
 ```c
 int main()
 {
-    MChain *map = mChainCreate();
+    MMap *map = mMapCreate();
     
     int n;
     n=0; mMapWrite(map,"zero" ,DFLT,&n,sizeof(int));
@@ -124,7 +141,7 @@ int main()
     p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);
     p = mMapRead(map,"ten"  );if(p!=NULL)printf("ten  = %d\n",*p);
     
-    mChainRelease(map);
+    mMapRelease(map);
     return 0;
 }
 ```
@@ -153,7 +170,7 @@ key为整数，value为字符串。
 ```c
 int main()
 {
-    MChain *map = mChainCreate();
+    MMap *map = mMapCreate();
     
     int n;
     n=0; mMapWrite(map,&n,sizeof(int),"zero" ,DFLT);
@@ -180,7 +197,7 @@ int main()
     n=9; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
     n=10;p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
     
-    mChainRelease(map);
+    mMapRelease(map);
     return 0;
 }
 ```
@@ -210,7 +227,7 @@ int main()
 ```c
 int main()
 {
-    MChain *map = mChainCreate();
+    MMap *map = mMapCreate();
 
     //key为指针
     int *a=NULL;int idx=1;
@@ -225,8 +242,8 @@ int main()
     mMapWrite(map,&c,sizeof(float),&idx,sizeof(int));
 
     //key为数组
-    double d[3]={3,4,5};idx=4;
-    mMapWrite(map,d,(3*sizeof(double)),&idx,sizeof(int));
+    double d[4]={1,9,4,9};idx=4;
+    mMapWrite(map,d,4*sizeof(double),&idx,sizeof(int));
 
     //key为字符串
     char *e="test string";idx=5;
@@ -243,7 +260,7 @@ int main()
     printf("b idx=%d\n",*(int *)mMapRead(map,&b,sizeof(b),NULL,DFLT));
     printf("a idx=%d\n",*(int *)mMapRead(map,&a,sizeof(a),NULL,DFLT));
 
-    mChainRelease(map);
+    mMapRelease(map);
     return 0;
 }
 ```
@@ -264,7 +281,7 @@ a idx=1
 ```c
 int main()
 {
-    MChain *map = mChainCreate();
+    MMap *map = mMapCreate();
     
     char *a="abcd";int idx=1;
     mMapWrite(map,a,strlen(a),&idx,sizeof(int));
@@ -283,7 +300,7 @@ int main()
     printf("c idx=%d\n",*(int *)mMapRead(map,&c,sizeof(c),NULL,DFLT));
     printf("d idx=%d\n",*(int *)mMapRead(map,&d,sizeof(d),NULL,DFLT));
     
-    mChainRelease(map);
+    mMapRelease(map);
     return 0;
 }
 ```
@@ -297,13 +314,13 @@ c idx=4
 d idx=4
 ```
 
-可见，结果与预想的不同，这是因为程序中，虽然a、b、c、d具有不同的数据类型，但是在内存中，它们是完全一样的，其长度皆为4字节，其内存皆为0x64636261，四次写入传入`mMapWrite`的参数完全相同，因此后一次写入将覆盖前一次写入。
+以上，结果与预想的不同，是因为程序中，虽然a、b、c、d具有不同的数据类型，但是在内存中，它们是完全一样的，其长度皆为4字节，其内存皆为0x64636261，四次写入传入`mMapWrite`的参数完全相同，因此后一次写入将覆盖前一次写入。
 
 
 
 ### 性能
 
-这里主要比较Morn中映射和C++ STL中的map，测试内容包括写入、读出和删除。
+这里主要比较Morn中映射和C++ STL中的map（其实现多为红黑树）和unordered_map（其实现多为Hash表），测试内容包括写入、读出和删除。
 
 以下测试中，使用以下程序生成随机的整数和字符串：
 
@@ -318,7 +335,7 @@ void data_gerenate(struct TestData *data,int number)
     int i,j;
     for(i=0;i<number;i++)
     {
-        for(j=0;j<mRand(10,31);j++){data[i].data_s[j] = mRand('a','z'+1);}data[i].data_s[j]=0;
+        mRandString(data[i].data_s,15,31);
         data[i].data_i = mRand();
     }
 }
@@ -329,90 +346,120 @@ void data_gerenate(struct TestData *data,int number)
 key为字符串，value为整数：
 
 ```c
-mTimerBegin("STL map key string 10000*100");
+printf("\n10000 times test with 100 node for key is string and value is integer:\n");
+mTimerBegin("STL map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) stl_map[data[i].data_s]=data[i].data_i;
     for(int i=0;i<100;i++) int data_i = stl_map.find(data[i].data_s)->second;
     for(int i=0;i<100;i++) stl_map.erase(data[i].data_s);
 }
-mTimerEnd("STL map key string 10000*100");
+mTimerEnd("STL map");
 
-mTimerBegin("Morn map key string 10000*100");
+mTimerBegin("STL unordered_map");
+for(int n=0;n<10000;n++)
+{
+    for(int i=0;i<100;i++) stl_unorderedmap[data[i].data_s]=data[i].data_i;
+    for(int i=0;i<100;i++) int data_i = stl_unorderedmap.find(data[i].data_s)->second;
+    for(int i=0;i<100;i++) stl_unorderedmap.erase(data[i].data_s);
+}
+mTimerEnd("STL unordered_map");
+
+mTimerBegin("Morn map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
     for(int i=0;i<100;i++) int *data_i = (int *)mMapRead(morn_map,data[i].data_s);
     for(int i=0;i<100;i++) mMapNodeDelete(morn_map,data[i].data_s);
 }
-mTimerEnd("Morn map key string 10000*100");
+mTimerEnd("Morn map");
 ```
 
-测试了：①读写100个键值对，读写10000次，②读写1000个键值对，读写1000次，③读写10000个键值对，读写100次。其测试结果如下：
+测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-![映射1](映射1.PNG)
+[![c3o76J.png](https://z3.ax1x.com/2021/04/07/c3o76J.png)](https://imgtu.com/i/c3o76J)
 
-可见，**键值为字符串时，Morn全面优于stl**。
+可见，**键值为字符串时，Morn全面优于std::map和std::unorderd_map**。
 
 #### 测试二
 
 key为随机整数，value为字符串：
 
 ```c
-mTimerBegin("STL map key int 10000*100");
+printf("\n10000 times test with 100 node for key is integer and value is string:\n");
+mTimerBegin("STL map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) stl_map[data[i].data_i]=data[i].data_s;
     for(int i=0;i<100;i++) std::string data_s = stl_map.find(data[i].data_i)->second;
     for(int i=0;i<100;i++) stl_map.erase(data[i].data_i);
 }
-mTimerEnd("STL map key int 10000*100");
+mTimerEnd("STL map");
 
-mTimerBegin("Morn map key int 10000*100");
+mTimerBegin("STL unordered_map");
+for(int n=0;n<10000;n++)
+{
+    for(int i=0;i<100;i++) stl_unorderedmap[data[i].data_i]=data[i].data_s;
+    for(int i=0;i<100;i++) std::string data_s = stl_unorderedmap.find(data[i].data_i)->second;
+    for(int i=0;i<100;i++) stl_unorderedmap.erase(data[i].data_i);
+}
+mTimerEnd("STL unordered_map");
+
+mTimerBegin("Morn map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) mMapWrite(morn_map,&(data[i].data_i),sizeof(int),data[i].data_s,NULL);
-    for(int i=0;i<100;i++) char *data_s = (char *)mMapRead(morn_map,&(data[i].data_i),sizeof(int),NULL,DFLT);
+    for(int i=0;i<100;i++) char *data_s=(char *)mMapRead(morn_map,&(data[i].data_i),sizeof(int));
     for(int i=0;i<100;i++) mMapNodeDelete(morn_map,&(data[i].data_i),sizeof(int));
 }
-mTimerEnd("Morn map key int 10000*100");
+mTimerEnd("Morn map");
 ```
 
-测试了：①读写100个键值对，读写10000次，②读写1000个键值对，读写1000次，③读写10000个键值对，读写100次。其测试结果如下：
+测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-![映射2](映射2.PNG)
+[![c3oHX9.png](https://z3.ax1x.com/2021/04/07/c3oHX9.png)](https://imgtu.com/i/c3oHX9)
 
-可见，对于100对键值对Morn落后于stl，1000对键值对Morn优于stl，10000对键值对差别不大。**键值为整数时，Morn与stl互有胜负**。
+可见，**键值为整数时，Morn全面优于std::map；在节点数量小于1万时，Morn优于std::unordered_map，节点数量大于1万时，Morn落后于std::unordered_map**。
 
 #### 测试三
 
 key为有序整数，value为字符串：
 
 ```c
-mTimerBegin("STL map key int 10000*100");
+printf("\n10000 times test with 100 node for key is orderly integer and value is string:\n");
+mTimerBegin("STL map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) stl_map[i]=data[i].data_s;
     for(int i=0;i<100;i++) std::string data_s = stl_map.find(i)->second;
     for(int i=0;i<100;i++) stl_map.erase(i);
 }
-mTimerEnd("STL map key int 10000*100");
+mTimerEnd("STL map");
 
-mTimerBegin("Morn map key int 10000*100");
+mTimerBegin("STL unordered_map");
+for(int n=0;n<10000;n++)
+{
+    for(int i=0;i<100;i++) stl_unorderedmap[i]=data[i].data_s;
+    for(int i=0;i<100;i++) std::string data_s = stl_unorderedmap.find(i)->second;
+    for(int i=0;i<100;i++) stl_unorderedmap.erase(i);
+}
+mTimerEnd("STL unordered_map");
+
+mTimerBegin("Morn map");
 for(int n=0;n<10000;n++)
 {
     for(int i=0;i<100;i++) mMapWrite(morn_map,&i,sizeof(int),data[i].data_s,NULL);
-    for(int i=0;i<100;i++) char *data_s = (char *)mMapRead(morn_map,&i,sizeof(int),NULL,DFLT);
+    for(int i=0;i<100;i++) char *data_s = (char *)mMapRead(morn_map,&i,sizeof(int));
     for(int i=0;i<100;i++) mMapNodeDelete(morn_map,&i,sizeof(int));
 }
-mTimerEnd("Morn map key int 10000*100");
+mTimerEnd("Morn map");
 ```
 
-测试了：①读写100个键值对，读写10000次，②读写1000个键值对，读写1000次，③读写10000个键值对，读写100次。其测试结果如下：
+测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-![映射3](映射3.PNG)
+[![c3oqmR.png](https://z3.ax1x.com/2021/04/07/c3oqmR.png)](https://imgtu.com/i/c3oqmR)
 
-可见，**对于有序数据stl优于Morn**。
+可见，**对于有序key值，在节点数量小于1万时，Morn优于stl，节点数量大于1万时，Morn落后于stl**。
 
 #### 测试四
 
@@ -423,6 +470,10 @@ mTimerBegin("STL map write");
 for(int i=0;i<number;i++) stl_map[data[i].data_s]=data[i].data_i;
 mTimerEnd("STL map write");
 
+mTimerBegin("STL unordered_map write");
+for(int i=0;i<number;i++) stl_unorderedmap[data[i].data_s]=data[i].data_i;
+mTimerEnd("STL unordered_map write");
+
 mTimerBegin("Morn map write");
 for(int i=0;i<number;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
 mTimerEnd("Morn map write");
@@ -430,6 +481,10 @@ mTimerEnd("Morn map write");
 mTimerBegin("STL map read");
 for(int i=0;i<number;i++) int data_i = stl_map.find(data[i].data_s)->second;
 mTimerEnd("STL map read");
+
+mTimerBegin("STL unordered_map read");
+for(int i=0;i<number;i++) int data_i = stl_unorderedmap.find(data[i].data_s)->second;
+mTimerEnd("STL unordered_map read");
 
 mTimerBegin("Morn map read");
 for(int i=0;i<number;i++) int *data_i = (int *)mMapRead(morn_map,data[i].data_s);
@@ -439,17 +494,20 @@ mTimerBegin("STL map erase");
 for(int i=0;i<number;i++) stl_map.erase(data[i].data_s);
 mTimerEnd("STL map erase");
 
+mTimerBegin("STL unordered_map erase");
+for(int i=0;i<number;i++) stl_unorderedmap.erase(data[i].data_s);
+mTimerEnd("STL unordered_map erase");
+
 mTimerBegin("Morn map delete");
 for(int i=0;i<number;i++) mMapNodeDelete(morn_map,data[i].data_s);
 mTimerEnd("Morn map delete");
-
 ```
 
 分别测量：①十万对键值对，②百万对键值对。其测试结果如下：
 
-![映射4](映射4.PNG)
+[![c3oOTx.png](https://z3.ax1x.com/2021/04/07/c3oOTx.png)](https://imgtu.com/i/c3oOTx)
 
-可见，**键值为字符串，在数据量小于等于十万时Morn仍然保持优势，但数据量百万时Morn落后于stl**。
+可见，对于大数据量测试，**键值为字符串，Morn优于std::map，但落后于std::unorderd_map**。
 
 #### 测试五
 
@@ -460,6 +518,10 @@ mTimerBegin("STL map write");
 for(int i=0;i<number;i++) stl_map[data[i].data_i]=data[i].data_s;
 mTimerEnd("STL map write");
 
+mTimerBegin("STL unordered_map write");
+for(int i=0;i<number;i++) stl_unorderedmap[data[i].data_i]=data[i].data_s;
+mTimerEnd("STL unordered_map write");
+
 mTimerBegin("Morn map write");
 for(int i=0;i<number;i++) mMapWrite(morn_map,&(data[i].data_i),sizeof(int),data[i].data_s,DFLT);
 mTimerEnd("Morn map write");
@@ -467,6 +529,10 @@ mTimerEnd("Morn map write");
 mTimerBegin("STL map read");
 for(int i=0;i<number;i++) std::string data_s = stl_map.find(data[i].data_i)->second;
 mTimerEnd("STL map read");
+
+mTimerBegin("STL unordered_map read");
+for(int i=0;i<number;i++) std::string data_s = stl_unorderedmap.find(data[i].data_i)->second;
+mTimerEnd("STL unordered_map read");
 
 mTimerBegin("Morn map read");
 for(int i=0;i<number;i++) char *data_s = (char *)mMapRead(morn_map,&(data[i].data_i),sizeof(int),NULL,DFLT);
@@ -476,6 +542,10 @@ mTimerBegin("STL map erase");
 for(int i=0;i<number;i++) stl_map.erase(data[i].data_i);
 mTimerEnd("STL map erase");
 
+mTimerBegin("STL unordered_map erase");
+for(int i=0;i<number;i++) stl_unorderedmap.erase(data[i].data_i);
+mTimerEnd("STL unordered_map erase");
+
 mTimerBegin("Morn map delete");
 for(int i=0;i<number;i++) mMapNodeDelete(morn_map,&(data[i].data_i),sizeof(int));
 mTimerEnd("Morn map delete");
@@ -483,11 +553,11 @@ mTimerEnd("Morn map delete");
 
 分别测量：①十万对键值对，②百万对键值对。其测试结果如下：
 
-![映射5](映射5.PNG)
+[![c3ojk6.png](https://z3.ax1x.com/2021/04/07/c3ojk6.png)](https://imgtu.com/i/c3ojk6)
 
-可见，**若键值为整数，大数据量时，Morn全面落后于stl。**
+可见，对于大数据量测试，**若键值为整数，Morn全面落后于stl。**
 
-以上测试可见，①对于键值为字符串、数组、结构体等数据类型时，有很好的性能表现。②对于键值为整数、浮点数时，Morn的性能与stl相当，③Morn不适应于大数据量的情景（stl也不适用大数据量类型，但表现优于Morn），④Morn不适合键值本身有序的情况（键值本身有序的话其实不需要使用map）。
+以上测试可见，①Morn在数据量不大时（10000级别以下），有很好的性能表现。②Morn对于键值为字符串、数组、结构体等类型，有很好的性能表现。
 
 
 

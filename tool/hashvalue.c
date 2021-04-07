@@ -7,8 +7,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <string.h>
 #include <stdlib.h>
 
-#include "morn_math.h"
-#include "morn_help.h"
+#include "morn_Math.h"
+#include "morn_Help.h"
 
 int main(int argc,char *argv[])
 {

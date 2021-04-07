@@ -205,8 +205,8 @@ void *m_Malloc(int size)
             memcpy(list,info->block_list,n*sizeof(struct MAFBlock *));
             free(info->block_list);
         }
-        memset(list+n,0,64*sizeof(struct MAFBlock *));
         info->block_list=list;
+        memset(list+n,0,64*sizeof(struct MAFBlock *));
         info->block_vol=n+64;
         info->block_order=n;
     }
@@ -294,37 +294,60 @@ void endMAF()
     morn_alloc_free_info=NULL;
 }
 
-
+struct AFMessage
+{
+    void *block;
+    int order;
+    int idx;
+};
 struct AFBlock
 {
     void *info;
     unsigned short size;
     volatile unsigned short flag;
-    int info_idx;
     char data[0];
 };
 struct AFInfo
 {
-    struct MAFBlock **block_list;
-    unsigned char *flag1;
-    unsigned char *flag2;
-    int block_order;
+    struct AFBlock **block_list;
+    int free_idx[128];
+    int free_num;
+    
     int block_num;
+    int block_count;
 };
 __thread struct AFInfo morn_af_info[32];
-
+/*
 void *mm_Malloc(int size)
 {
-    intptr_t *ptr;
-    size=size+16;
-    if(size>16400) {ptr=malloc(size); ptr[0]=0; return (((char *)ptr)+16);}
+    struct AFMessage *ptr;
+    size=size+sizeof(struct AFMessage);
+    if(size>16400) {ptr=malloc(size); ptr->block=NULL; return (ptr+1);}
 
-    int i;
     int idx=morn_alloc_free_size_idx[(size-17)/32];
     size = morn_alloc_free_size[idx];
     struct AFInfo *info  = morn_af_info+idx;
+    mAtomicAdd(&(info->mem_count),1);
 
-    struct AFBlock *block = info->block;
+    int idle_idx=-1;int invalid_idx=-1;
+    for(int i=info->block_order+1;i!=info->block_order;i++)
+    {
+        if(i==info->block_num) i=0;
+        struct AFBlock *b = info->block[i];
+
+        if(b==NULL) {invalid_idx=i;continue;}
+        if(b->flag==0xFFFF) continue;
+        
+        if(idle_idx>=0) mm_Free(info->block[idle_idx]);
+        block=b;
+        if(b->flag!=0) {info->block_order=i;break;}
+        idle_idx=i;
+    }
+    
+    
+    
+
+    struct AFBlock *block = info->block_list[info->block_order];
     int invalid_block=(block==NULL);
     if(!invalid_block) invalid_block=(block->flag==0x0FFFF);
     if(invalid_block)
@@ -333,8 +356,7 @@ void *mm_Malloc(int size)
         {
             if(info->flag1[i]!=0x0FF)
             {
-                idx=morn_alloc_free_valid_idx[info->flag1[i]]
-                mAtomicOr(&(info->flag1[i]),morn_alloc_free_ref_flag1[idx]);
+                idx=morn_alloc_free_valid_idx[info->flag1[i]];
                 block=info->block_list[i*8+idx];
                 info->block_order = i;
                 invalid_block = 0;
@@ -348,29 +370,31 @@ void *mm_Malloc(int size)
     {
         idx=(block->flag>=0xFF00)?morn_alloc_free_valid_idx[(block->flag)&0x00FF]:(8+morn_alloc_free_valid_idx[(block->flag)>>8]);
         mAtomicOr(&(block->flag),morn_alloc_free_ref_flag1[idx]);
+        if(block->flag==0xFFFF)
+            mAtomicOr(&(info->flag1[i]),morn_alloc_free_ref_flag1[idx]);
         
-        ptr = (intptr_t *)(block->data+size*idx);
-        ptr[0]=(intptr_t)(block);ptr[1]=idx;
-        return (((char *)ptr)+16);
+        ptr = (struct AFMessage *)(block->data+size*idx);
+        ptr->block=block;ptr->order=info->block_order;ptr->idx=idx;
+        return (ptr+1);
     }
 
-    block = m_Malloc(sizeof(struct AFBlock)+16*size);
+    block = mm_Malloc(sizeof(struct AFBlock)+16*size);
     block->size = size;
     block->info = info;
     block->flag=0x0001;
-    ptr = (intptr_t *)(block->data);
-    ptr[0]=(intptr_t)(block);ptr[1]=idx;
+    ptr = (struct AFMessage *)(block->data);
+    ptr->block=block;ptr->idx=0;
 
     i=info->block_order;do
     {
-        if(info->flag2[i]!=0xFF)
+        if(info->flag2[i]!=0x0FF)
         {
-            idx=morn_alloc_free_valid_idx[info->flag2[i]]
-            mAtomicOr(&(info->flag1[i]),morn_alloc_free_ref_flag1[idx]);
+            idx=morn_alloc_free_valid_idx[info->flag2[i]];
             mAtomicOr(&(info->flag2[i]),morn_alloc_free_ref_flag1[idx]);
             info->block_list[i*8+idx]=block;
             info->block_order = i;
-            return (((char *)ptr)+16);
+            ptr->order=i;
+            return (ptr+1);
         }
         i++;if(i==info->block_num)i=0;
     }while(i!=info->block_order);
@@ -379,37 +403,59 @@ void *mm_Malloc(int size)
     
     void *buff= info->block_list;
     struct AFBlock **list = malloc(info->block_num*8*sizeof(struct AFBlock *));
-    if(buff) memcpy(list,buff,block_num*8*sizeof(struct MAFBlock *));
+    if(buff)memcpy(list,buff,block_num*8*sizeof(struct MAFBlock *));
     list[block_num*8]=block;
-    mAtomicSet(&(info->block_list),list);
+    info->block_list=list;
     if(buff) free(buff);
 
     buff=info->flag1;
     unsigned char *flag1  = malloc(info->block_num*sizeof(unsigned char));
     if(buff) memcpy(flag1,buff,block_num*sizeof(unsigned char));
-    flag1[block_num]=0x0FE;
-    mAtomicSet(&(info->flag1),flag1);
+    flag1[block_num]=0x0FF;
+    info->flag1=flag1;
     if(buff) free(buff);
 
     buff=info->flag2;
     unsigned char *flag2  = malloc(info->block_num*sizeof(unsigned char));
     if(buff) memcpy(flag2,buff,block_num*sizeof(unsigned char));
     flag2[block_num]=0x01;
-    mAtomicSet(&(info->flag2),flag2);
+    info->flag2=flag2;
     if(buff) free(buff);
     
-    info->block = block;
-    return (((char *)ptr)+16);
+    info->block_order = block_num;
+    ptr->order=block_num;
+    return (ptr+1);
 }
 
 void mm_Free(void *p)
 {
-}
+    if(p==NULL) return;
+    struct AFMessage *ptr=((struct AFMessage *)p)-1;
+    if(ptr->block==NULL) {free(ptr);return;}
 
-
-
-
+    struct MAFBlock *block = ptr->block;int idx=ptr->idx;
+    mAtomicAnd(&(block->flag),morn_alloc_free_ref_flag2[idx]);
     
+    if(mAtomicCompare(&(block->flag),0,0xFFFF)==0)
+    {
+        mFree(block);
+        idx = ptr->order;
+        struct MAFInfo *info = block->info;
+        
+        mAtomicAnd(&(info->flag2[idx]),morn_alloc_free_ref_flag2[idx]);
+        mAtomicOr (&(info->flag1[idx]),morn_alloc_free_ref_flag1[idx]);
+        if(mAtomicCompare(&(info->flag2[idx]),0,0xFF)==0)
+        {
+            
+        }
+        
+        
+        return;
+    }
+    
+}
+*/
+
 
 
 
