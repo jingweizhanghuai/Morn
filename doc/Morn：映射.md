@@ -105,7 +105,15 @@ para是func中使用的参数。
 
 ### 示例
 
-下面是一些示例程序：
+下面是一些示例程序，他们的源码为[test_map2.cpp](../test/test_map2.cpp)
+
+测试使用以下命令编译
+
+```shell
+g++ -O2 -fopenmp -DNDEBUG test_map2.cpp -lmorn -o test_map2.exe
+```
+
+
 
 #### 示例一
 
@@ -185,17 +193,17 @@ int main()
     n=9; mMapWrite(map,&n,sizeof(int),"nine" ,DFLT);
     
     char *p;
-    n=0; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=1; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p); 
-    n=2; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p); 
-    n=3; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=4; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=5; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=6; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=7; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=8; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=9; p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
-    n=10;p = mMapRead(map,&n,sizeof(int),NULL,DFLT);printf("%d = %s\n",n,p);
+    n=0; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=1; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p); 
+    n=2; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p); 
+    n=3; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=4; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=5; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=6; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=7; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=8; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=9; p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
+    n=10;p = mMapRead(map,&n,sizeof(int));printf("%d = %s\n",n,p);
     
     mMapRelease(map);
     return 0;
@@ -377,7 +385,7 @@ mTimerEnd("Morn map");
 
 测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-[![c3o76J.png](https://z3.ax1x.com/2021/04/07/c3o76J.png)](https://imgtu.com/i/c3o76J)
+[![c0HZGD.png](https://z3.ax1x.com/2021/04/12/c0HZGD.png)](https://imgtu.com/i/c0HZGD)
 
 可见，**键值为字符串时，Morn全面优于std::map和std::unorderd_map**。
 
@@ -417,9 +425,9 @@ mTimerEnd("Morn map");
 
 测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-[![c3oHX9.png](https://z3.ax1x.com/2021/04/07/c3oHX9.png)](https://imgtu.com/i/c3oHX9)
+[![c0HVPO.png](https://z3.ax1x.com/2021/04/12/c0HVPO.png)](https://imgtu.com/i/c0HVPO)
 
-可见，**键值为整数时，Morn全面优于std::map；在节点数量小于1万时，Morn优于std::unordered_map，节点数量大于1万时，Morn落后于std::unordered_map**。
+可见，**键值为整数时，Morn全面优于std::map和std::unorderd_map**。
 
 #### 测试三
 
@@ -457,9 +465,9 @@ mTimerEnd("Morn map");
 
 测试了：①读写100个键值对，计时10000次，②读写1000个键值对，计时1000次，③读写10000个键值对，计时100次。其测试结果如下：
 
-[![c3oqmR.png](https://z3.ax1x.com/2021/04/07/c3oqmR.png)](https://imgtu.com/i/c3oqmR)
+[![c0HAIK.png](https://z3.ax1x.com/2021/04/12/c0HAIK.png)](https://imgtu.com/i/c0HAIK)
 
-可见，**对于有序key值，在节点数量小于1万时，Morn优于stl，节点数量大于1万时，Morn落后于stl**。
+可见，**对于有序key值，Morn全面优于std::map和std::unorderd_map**。
 
 #### 测试四
 
@@ -505,9 +513,9 @@ mTimerEnd("Morn map delete");
 
 分别测量：①十万对键值对，②百万对键值对。其测试结果如下：
 
-[![c3oOTx.png](https://z3.ax1x.com/2021/04/07/c3oOTx.png)](https://imgtu.com/i/c3oOTx)
+[![c0HeRe.png](https://z3.ax1x.com/2021/04/12/c0HeRe.png)](https://imgtu.com/i/c0HeRe)
 
-可见，对于大数据量测试，**键值为字符串，Morn优于std::map，但落后于std::unorderd_map**。
+可见，对于大数据量测试，**键值为字符串，Morn优于std::map；至百万节点时，Morn开始落后于std::unorderd_map**。
 
 #### 测试五
 
@@ -553,11 +561,11 @@ mTimerEnd("Morn map delete");
 
 分别测量：①十万对键值对，②百万对键值对。其测试结果如下：
 
-[![c3ojk6.png](https://z3.ax1x.com/2021/04/07/c3ojk6.png)](https://imgtu.com/i/c3ojk6)
+[![c0Hka6.png](https://z3.ax1x.com/2021/04/12/c0Hka6.png)](https://imgtu.com/i/c0Hka6)
 
-可见，对于大数据量测试，**若键值为整数，Morn全面落后于stl。**
+可见，对于大数据量测试，**若键值为整数，Morn落后于std::unorderd_map；至百万节点时，Morn开始落后于std::map**。。
 
-以上测试可见，①Morn在数据量不大时（10000级别以下），有很好的性能表现。②Morn对于键值为字符串、数组、结构体等类型，有很好的性能表现。
+以上测试可见，①Morn在数据量不大时（100000级别以下），有很好的性能表现。②Morn对于键值为字符串、数组、结构体等复合数据类型，有很好的性能表现。
 
 
 

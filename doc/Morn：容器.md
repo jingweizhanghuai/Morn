@@ -190,10 +190,6 @@ void mListElementDelete(MList *list,int order);
 写了一个程序如下，来测试Morn的MList和C++ STL里的容器vector。
 
 ```c
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "morn_Util.h"
 
 #include <iostream>

@@ -1,7 +1,7 @@
 # Morn
 Morn是一个C语言的基础工具和基础算法库，包括数据结构、图像处理、音频处理、机器学习等，具有简单、通用、高效的特点。
 
-![logo](./doc/logo.PNG)
+[![cy0cvT.png](https://z3.ax1x.com/2021/04/13/cy0cvT.png)](https://imgtu.com/i/cy0cvT)
 
 ### 名称
 
