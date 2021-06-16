@@ -25,8 +25,7 @@ unsigned char b_to_u[512] = {0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,
 void m_ImageYUVToRGB(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    mException((src->channel!=3)||(image_type!=MORN_IMAGE_YUV),EXIT,"invalid input");
+    mException((src->channel!=3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,MAX(3,dst->channel),src->height,src->width,dst->data);
@@ -34,30 +33,66 @@ void m_ImageYUVToRGB(MImage *src,MImage *dst)
     if(!INVALID_POINTER(src->border)) dst->border = src->border;
     
     int j;
-    for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+    #pragma omp parallel for
+    for(j=ImageY1(dst);j<ImageY2(dst);j++)
     {
-        unsigned char y = src->data[0][j][i];
-        unsigned char u = src->data[1][j][i];
-        unsigned char v = src->data[2][j][i];
-        
-        short r = y + v_to_r[v];
-        short g = y - u_to_g[u] - v_to_g[v];
-        short b = y + u_to_b[u];
-        
-        if(r<0) dst->data[2][j][i]=0; else if(r>255) dst->data[2][j][i]=255; else dst->data[2][j][i] = r;
-        if(g<0) dst->data[1][j][i]=0; else if(g>255) dst->data[1][j][i]=255; else dst->data[1][j][i] = g;
-        if(b<0) dst->data[0][j][i]=0; else if(b>255) dst->data[0][j][i]=255; else dst->data[0][j][i] = b;
+        for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+        {
+            unsigned char y = src->data[0][j][i];
+            unsigned char u = src->data[1][j][i];
+            unsigned char v = src->data[2][j][i];
+            
+            short r = y + v_to_r[v];
+            short g = y - u_to_g[u] - v_to_g[v];
+            short b = y + u_to_b[u];
+            
+            if(r<0) dst->data[2][j][i]=0; else if(r>255) dst->data[2][j][i]=255; else dst->data[2][j][i] = r;
+            if(g<0) dst->data[1][j][i]=0; else if(g>255) dst->data[1][j][i]=255; else dst->data[1][j][i] = g;
+            if(b<0) dst->data[0][j][i]=0; else if(b>255) dst->data[0][j][i]=255; else dst->data[0][j][i] = b;
+        }
     }
-        
-    if(dst->channel==3) mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGB);
-    else                mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGBA);
+    
+    *ImageType(dst)=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+}
+
+void m_ImageYUV422ToRGB(MImage *src,MImage *dst)
+{
+    mException(INVALID_IMAGE(src),EXIT,"invalid input");
+    mException((src->channel!=1),EXIT,"invalid input");
+    
+    mImageRedefine(dst,MAX(3,dst->channel),src->height,src->width/2,dst->data);
+    unsigned char **sdata=src->data[0];
+
+    int j;
+    #pragma omp parallel for
+    for(j=0;j<dst->height;j++)
+    {
+        unsigned char y,u,v;
+        short r,g,b;
+        u = sdata[j][0];
+        for(int i=0;i<dst->width;i+=2)
+        {
+            y=sdata[j][i+i+1]; v=sdata[j][i+i+2];
+            r = y + v_to_r[v];g = y - u_to_g[u] - v_to_g[v];b = y + u_to_b[u];
+            if(r<0) dst->data[2][j][i]=0; else if(r>255) dst->data[2][j][i]=255; else dst->data[2][j][i] = r;
+            if(g<0) dst->data[1][j][i]=0; else if(g>255) dst->data[1][j][i]=255; else dst->data[1][j][i] = g;
+            if(b<0) dst->data[0][j][i]=0; else if(b>255) dst->data[0][j][i]=255; else dst->data[0][j][i] = b;
+
+            y=sdata[j][i+i+3];u=sdata[j][i+i+4];
+            r = y + v_to_r[v];g = y - u_to_g[u] - v_to_g[v];b = y + u_to_b[u];
+            if(r<0) dst->data[2][j][i+1]=0; else if(r>255) dst->data[2][j][i+1]=255; else dst->data[2][j][i+1] = r;
+            if(g<0) dst->data[1][j][i+1]=0; else if(g>255) dst->data[1][j][i+1]=255; else dst->data[1][j][i+1] = g;
+            if(b<0) dst->data[0][j][i+1]=0; else if(b>255) dst->data[0][j][i+1]=255; else dst->data[0][j][i+1] = b;
+        }
+    }
+    
+    *(ImageType(dst))=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
 }
 
 void m_ImageYUVToGray(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    mException(((image_type != MORN_IMAGE_YUV)||(src->channel<3)),EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(INVALID_POINTER(dst)) dst = src;
     if(dst!=src) mImageRedefine(dst,1,src->height,src->width,dst->data);
@@ -67,19 +102,15 @@ void m_ImageYUVToGray(MImage *src,MImage *dst)
     int j;
     for(j=ImageY1(dst);j<ImageY2(dst);j++)
         memcpy(dst->data[0][j]+ImageX1(dst,j),src->data[0][j],(ImageX2(src,j)-ImageX1(dst,j))*sizeof(unsigned char));
-    
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+
+    *(ImageType(dst))=MORN_IMAGE_GRAY;
     dst->channel = 1;
 }
 
 void m_ImageRGBToYUV(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    int flag = 0;
-         if((src->channel==3)&&(image_type==MORN_IMAGE_RGB )) flag=1;
-    else if((src->channel==4)&&(image_type==MORN_IMAGE_RGBA)) flag=1;
-    mException(flag==0,EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,3,src->height,src->width,dst->data);
@@ -100,18 +131,13 @@ void m_ImageRGBToYUV(MImage *src,MImage *dst)
         dst->data[1][j][i] = b_to_u[256+b-y];
         dst->data[2][j][i] = r_to_v[256+r-y];
     }
-        
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_YUV);
+    *ImageType(dst)=MORN_IMAGE_YUV;
 }
 
 void m_ImageRGBToGray(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    int flag = 0;
-         if((src->channel==3)&&(image_type==MORN_IMAGE_RGB )) flag=1;
-    else if((src->channel==4)&&(image_type==MORN_IMAGE_RGBA)) flag=1;
-    mException(flag==0,EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,1,src->height,src->width,dst->data);
@@ -127,34 +153,31 @@ void m_ImageRGBToGray(MImage *src,MImage *dst)
         
         dst->data[0][j][i] = r_to_y[r] + g_to_y[g] + b_to_y[b];
     }
-    
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+
+    *ImageType(dst)=MORN_IMAGE_GRAY;
     dst->channel = 1;
 }
 
 void m_ImageToGray(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
+    int *image_type = ImageType(src);
     
-    if(image_type == MORN_IMAGE_GRAY)
+    if(*image_type == MORN_IMAGE_GRAY)
         mImageCopy(src,dst);
-    else if((image_type == MORN_IMAGE_RGB)||(image_type == MORN_IMAGE_RGBA))
+    else if((*image_type == MORN_IMAGE_RGB)||(*image_type == MORN_IMAGE_RGBA))
         m_ImageRGBToGray(src,dst);
-    else if(image_type == MORN_IMAGE_YUV)
+    else if(*image_type == MORN_IMAGE_YUV)
         m_ImageYUVToGray(src,dst);
     else
-        mException(1,EXIT,"invalid image type %d",image_type);
+        mException(1,EXIT,"invalid image type %d",*image_type);
 }
 
 void m_ImageSaturation(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    int flag = 0;
-         if((src->channel==3)&&(image_type==MORN_IMAGE_RGB )) flag=1;
-    else if((src->channel==4)&&(image_type==MORN_IMAGE_RGBA)) flag=1;
-    mException(flag==0,EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
+    
     if(dst==NULL) dst = src;
     mImageRedefine(dst,1,src->height,src->width);
     if(!INVALID_POINTER(src->border)) dst->border = src->border;
@@ -171,17 +194,14 @@ void m_ImageSaturation(MImage *src,MImage *dst)
         
         dst->data[0][j][i] = (max==0)?0:(((max-min)*240)/max);
     }
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+
+    *ImageType(dst)=MORN_IMAGE_GRAY;
 }
 
 void m_ImageRGBToHSV(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    int flag = 0;
-         if((src->channel==3)&&(image_type==MORN_IMAGE_RGB )) flag=1;
-    else if((src->channel==4)&&(image_type==MORN_IMAGE_RGBA)) flag=1;
-    mException(flag==0,EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,3,src->height,src->width,dst->data);
@@ -218,14 +238,13 @@ void m_ImageRGBToHSV(MImage *src,MImage *dst)
         else if(max==g) dst->data[0][j][i]= 80+((b-r)*40)/value;
         else if(max==b) dst->data[0][j][i]=160+((r-g)*40)/value;
     }
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_HSV);
+    *ImageType(dst)=MORN_IMAGE_HSV;
 }
 
 void m_ImageHSVToRGB(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    mException((src->channel<3)||(image_type != MORN_IMAGE_HSV),EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,MAX(3,dst->channel),src->height,src->width,dst->data);
@@ -255,8 +274,7 @@ void m_ImageHSVToRGB(MImage *src,MImage *dst)
         dst->data[1][j][i] = g;
         dst->data[2][j][i] = r;
     }
-    if(dst->channel==3) mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGB);
-    else                mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGBA);
+    *ImageType(dst)=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
 }
 
 
@@ -303,11 +321,7 @@ unsigned char g2b[256]={0,0,1,1,2,2,2,3,3,3,4,4,5,5,5,6,6,6,7,7,8,8,8,9,9,9,10,1
 void mImageRGBToLAB(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int image_type = mInfoGet(&(src->info),"image_type");
-    int flag = 0;
-         if((src->channel==3)&&(image_type==MORN_IMAGE_RGB )) flag=1;
-    else if((src->channel==4)&&(image_type==MORN_IMAGE_RGBA)) flag=1;
-    mException(flag==0,EXIT,"invalid input");
+    mException((src->channel<3),EXIT,"invalid input");
     
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,3,src->height,src->width,dst->data);
@@ -326,8 +340,8 @@ void mImageRGBToLAB(MImage *src,MImage *dst)
         dst->data[1][j][i]=aa;
         dst->data[2][j][i]=bb;
     }
-        
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_LAB);
+
+    *ImageType(dst)=MORN_IMAGE_LAB;
 }
 
     

@@ -1,41 +1,127 @@
 /*
-Copyright (C) 2019  JingWeiZhangHuai
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// 编译：g++ -O2 -fopenmp test_sort2.cpp -o test_sort2.exe -IC:/ProgramFiles/CPackage/gsl/include -LC:/ProgramFiles/CPackage/gsl/lib_x64_mingw -lgsl -I ..\include\ -L ..\lib\x64_mingw\ -lmorn
+// build: g++ -O2 -fopenmp test_sort2.cpp -o test_sort2.exe -lgsl -lgslcblas -lmorn
 
 #include <algorithm>
 #include <gsl/gsl_sort_double.h>
 #include "morn_math.h"
 
+// void fenzusort(double *p,int num)
+// {
+//     printf("num=%d\n",num);
+//     double *data[8];for(int i=0;i<8;i++) data[i]=(double *)malloc(num*sizeof(double));
+//     int n[8]={0,0,0,0,0,0,0,0};
+//     double min=p[0],max=p[0];for(int i=num/32;i<num;i+=num/32) {if(p[i]>max) {max=p[i];}else if(p[i]<min) {min=p[i];}}
+//     double step = (max-min)/6;
+//     for(int i=0;i<num;i++)
+//     {
+//         int idx=(int)((p[i]-min)/step)+1;if(idx<0) idx=0;if(idx>7)idx=7;
+//         data[idx][n[idx]++]=p[i];
+//     }
+
+//     for(int i=0;i<8;i++)
+//     {
+//         printf("n[%d]=%d\n",i,n[i]);
+//         memcpy(p,data[i],n[i]*sizeof(double));
+//         free(data[i]);
+//         mAscSort(p,n[i]);
+//         p+=n[i];
+//     }
+//     exit(0);
+// }
+
+
 int compare(const void *v1, const void *v2) {return ((*((double *)v1))>(*((double *)v2)))?1:-1;}
 void test1()
 {
-    double *data1= (double *)mMalloc(1000000* sizeof(double));
-    double *data2= (double *)mMalloc(1000000* sizeof(double));
-    double *data3= (double *)mMalloc(1000000* sizeof(double));
-    double *data4= (double *)mMalloc(1000000* sizeof(double));
+    double *data1= (double *)mMalloc(10000000* sizeof(double));
+    double *data2= (double *)mMalloc(10000000* sizeof(double));
+    double *data3= (double *)mMalloc(10000000* sizeof(double));
+    double *data4= (double *)mMalloc(10000000* sizeof(double));
     
-    for(int n=100000;n<=1000000;n*=2)
+    for(int n=10000;n<=10000000;n*=10)
     {
-        printf("\nn=%d:\n",n);
-        for(int i=0;i<n;i++)
+        printf("\n%d data sort for %d times:\n",n,10000000/n);
+        for(int i=0;i<10000000;i++)
         {
-            data1[i]=((double)mRand(-10000,10000))/10000.0;
+            data1[i]=((double)mRand(-10000000,10000000))/((double)mRand(1,10000));
             data2[i]=data1[i];data3[i]=data1[i];data4[i]=data1[i];
         }
-        mTimerBegin("qsort"); qsort(data1,n,sizeof(int),compare);  mTimerEnd("qsort");
-        mTimerBegin("gsl"  ); gsl_sort(data2,1,n);                 mTimerEnd("gsl"  );
-        mTimerBegin("stl"  ); std::sort(data3,data3+n);            mTimerEnd("stl"  );
-        mTimerBegin("Morn" ); mAscSort(data4,n);                   mTimerEnd("Morn" );
+        
+        mTimerBegin("qsort");
+        for(int i=0;i<10000000;i+=n) qsort(data1+i,n,sizeof(double),compare);
+        mTimerEnd("qsort");
+        
+        mTimerBegin("gsl");
+        for(int i=0;i<10000000;i+=n) gsl_sort(data2+i,1,n);
+        mTimerEnd("gsl");
+        
+        mTimerBegin("stl");
+        for(int i=0;i<10000000;i+=n) std::sort(data3+i,data3+i+n);
+        mTimerEnd("stl");
+        
+        mTimerBegin("Morn");
+        for(int i=0;i<10000000;i+=n) mAscSort(data4+i,n);
+        mTimerEnd("Morn");
     }
     
     mFree(data1); mFree(data2); mFree(data3); mFree(data4);
 }
 
 void test2()
+{
+    double *data1 = (double *)mMalloc(10000000* sizeof(double));
+    double *data2 = (double *)mMalloc(10000000* sizeof(double));
+    size_t *index1= (size_t *)mMalloc(10000000* sizeof(size_t));
+    int    *index2= (int    *)mMalloc(10000000* sizeof(int   ));
+
+    for(int n=1000;n<=10000000;n*=10)
+    {
+        printf("\n%d data sort with index for %d times:\n",n,10000000/n);
+        for(int i=0;i<10000000;i++)
+        {
+            data1[i]=((double)mRand(-10000000,10000000))/((double)mRand(1,10000));
+            data2[i]=data1[i];
+        }
+        mTimerBegin("gsl");
+        for(int i=0;i<10000000;i+=n) gsl_sort_index(index1,data1+i,1,n);
+        mTimerEnd("gsl");
+        
+        mTimerBegin("Morn");
+        for(int i=0;i<10000000;i+=n) mAscSort(data2+i,NULL,index2,n);
+        mTimerEnd("Morn");
+    }
+    
+    mFree(data1); mFree(data2);mFree(index1);mFree(index2);
+}
+
+void test3_1()
+{
+    double *data1= (double *)mMalloc(10000000*sizeof(double));
+    double *data2= (double *)mMalloc(10000000*sizeof(double));
+    for(int n=100000;n<=10000000;n*=10)
+        for(int m=n/10;m<n;m+=n/5)
+        {
+            printf("\nselect %d from %d data for %d times\n",m,n,10000000/n);
+            for(int i=0;i<10000000;i++)
+            {
+                data1[i]=((double)mRand(-1000000,1000000))/((double)mRand(1,1000));
+                data2[i]=data1[i];
+            }
+            mTimerBegin("stl");
+            for(int i=0;i<10000000;i+=n) std::nth_element(data1+i,data1+i+m-1,data1+i+n);
+            mTimerEnd("stl");
+            
+            mTimerBegin("Morn");
+            for(int i=0;i<10000000;i+=n) mMinSubset(data2+i,n,m);
+            mTimerEnd("Morn");
+        }
+    mFree(data1);mFree(data2);
+}
+
+void test3_2()
 {
     int n=1000000;int m;
     double *in  = (double *)mMalloc(n * sizeof(double));
@@ -45,33 +131,12 @@ void test2()
     
     for(m=100000;m<n;m+=200000)
     {
-        printf("\nm=%d,n=%d:\n",m,n);
+        printf("\nselect %d from %d data\n",m,n);
         mTimerBegin("gsl" ); gsl_sort_smallest(out1,m,in,1,n); mTimerEnd("gsl" );
         mTimerBegin("Morn"); mMinSubset(in,n,out2,m);          mTimerEnd("Morn");
     }
 
     mFree(in); mFree(out1); mFree(out2);
-}
-
-void test3()
-{
-    double *data1 = (double *)mMalloc(1000000* sizeof(double));
-    double *data2 = (double *)mMalloc(1000000* sizeof(double));
-    size_t *index1= (size_t *)mMalloc(1000000* sizeof(size_t));
-    int    *index2= (int    *)mMalloc(1000000* sizeof(int   ));
-
-    for(int n=100000;n<=1000000;n*=2)
-    {
-        printf("\nn=%d:\n",n);
-        for(int i=0;i<n;i++)
-        {
-            data1[i]=((double)mRand(-10000,10000))/10000.0;data2[i]=data1[i];
-        }
-        mTimerBegin("gsl" ); gsl_sort_index(index1,data1,1,n);  mTimerEnd("gsl" );
-        mTimerBegin("Morn"); mAscSort(data2,NULL,index2,n);     mTimerEnd("Morn");
-    }
-    
-    mFree(data1); mFree(data2);mFree(index1);mFree(index2);
 }
 
 void test4()
@@ -84,7 +149,7 @@ void test4()
     
     for(m=100000;m<n;m+=200000)
     {
-        printf("\nm=%d,n=%d:\n",m,n);
+        printf("\nselect %d from %d data with index\n",m,n);
         mTimerBegin("gsl" ); gsl_sort_largest_index(out1,m,in,1,n); mTimerEnd("gsl" );
         mTimerBegin("Morn"); mMaxSubset(in,n,NULL,out2,m);          mTimerEnd("Morn");
     }
@@ -96,7 +161,8 @@ int main()
 {
     test1();
     test2();
-    test3();
+    test3_1();
+    test3_2();
     test4();
     return 0;
 }

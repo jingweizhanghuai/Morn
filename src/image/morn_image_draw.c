@@ -201,28 +201,6 @@ void m_ImageDrawCurve(MImage *src,MImage *dst,MImageCurve *curve,unsigned char *
     // }
 }
 
-// void ImageFillShape2(MImage *img,MList *buff)
-// {
-//     // int x0=buff[0]&0x0FFFF;int y0=buff[0]>>16;
-    
-//     if((y0<0)||(y0>=img->height)) return;
-//     unsigned char **data = img->data[0];
-//     for(int i=x0;i>=0;i--) 
-//     {
-//         if(data[y0][i]!=0) break;
-//         data[y0][i]=255;
-//         if(data[y0-1][i]==0) ImageFillShape(img,i,y0-1);
-//         if(data[y0+1][i]==0) ImageFillShape(img,i,y0+1);
-//     }
-//     for(int i=x0+1;i<img->width;i++) 
-//     {
-//         if(data[y0][i]!=0) break;
-//         data[y0][i]=255;
-//         if(data[y0-1][i]==0) ImageFillShape(img,i,y0-1);
-//         if(data[y0+1][i]==0) ImageFillShape(img,i,y0+1);
-//     }
-// }
-
 void ImageFillShape(MImage *img,int x0,int y0)
 {
     if((x0<0)||(x0>=img->width)) return;

@@ -54,16 +54,16 @@ void mPNGLoad(MImage *dst,const char *filename)
     mImageRedefine(dst,cn,img_height,img_width,dst->data);
     
     unsigned char **p_data = png_get_rows(png_ptr,info_ptr);
-
+    int image_type=DFLT;
     if(cn==1)
     {
-        mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+        image_type = MORN_IMAGE_GRAY;
         for(j=0;j<img_height;j++)
             memcpy(dst->data[0][j],p_data[j],img_width*sizeof(char));
     }
     else if(cn == 3)
     {
-        mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGB);
+        image_type = MORN_IMAGE_RGB;
         for(j=0;j<img_height;j++)
             for(i=0,k=0;i<img_width*3;i=i+3,k=k+1)
             {
@@ -74,7 +74,7 @@ void mPNGLoad(MImage *dst,const char *filename)
     }
     else if(cn == 4)
     {
-        mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGBA);
+        image_type = MORN_IMAGE_RGBA;
         for(j=0;j<img_height;j++)
             for(i=0,k=0;i<img_width*4;i=i+4,k=k+1)
             {
@@ -84,7 +84,8 @@ void mPNGLoad(MImage *dst,const char *filename)
                 dst->data[3][j][k] = p_data[j][i+3];
             }
     }
-    png_destroy_read_struct(&png_ptr,&info_ptr,0);    
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
+    png_destroy_read_struct(&png_ptr,&info_ptr,0);
     if(pf!=NULL) fclose(pf);
 }
 

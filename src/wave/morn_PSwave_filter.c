@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_wave.h"
 
 typedef struct TriangleFilter
@@ -79,27 +74,14 @@ void GetUniformPara()
         TRAINGLE_PARA(frq[i],frq[i+1],frq[i+2],g_uniform_para[i]);
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  对功率谱使用均匀分布的三角滤波器滤波
-//
-// 参数：
-//  (I)src(NO) - 输入的功率谱
-//  (I)Start(0) - 滤波的起始位置，对应滤波器的最低频率
-//  (I)End(src->size) - 滤波的终止位置，对应滤波器的最高频率
-//  (I)NumCutOffFreq(NO) - 使用的滤波器个数
-//  (O)MelFilterFeature(NO) - 输出的各通道滤波结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mUniformFilterBank(MWave *src, int Start, int End, int NumUniformFilter, float** UniformFilterFeature)
 {
     int i;
     int cn;
     
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException(((int)mInfoGet(&(src->info),"wave_type") != MORN_WAVE_PS),EXIT,"please check input wave type");
+    int wave_type = -1;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_PS),EXIT,"please check input wave type");
     mException((INVALID_POINTER(UniformFilterFeature)),EXIT,"invalid input");
     if(Start == MORN_DEFAULT)
         Start = 0;
@@ -158,36 +140,19 @@ void GetMelPara(int sample_rate,int wave_size)
     }
 }
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  对功率谱使用Mel滤波器滤波
-//
-// 参数：
-//  (I)src(NO) - 输入的功率谱
-//  (I)Start(0) - 滤波的起始位置，对应滤波器的最低频率
-//  (I)End(src->size) - 滤波的终止位置，对应滤波器的最高频率
-//  (I)NumMelFilter(NO) - 使用的滤波器个数
-//  (O)MelFilterFeature(NO) - 输出的各通道滤波结果
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveMelFilterBank(MWave *src, int Start, int End, int NumMelFilter, float** MelFilterFeature)
 {
     int i;
     int cn;
     
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException(((int)mInfoGet(&(src->info),"wave_type") != MORN_WAVE_PS),EXIT,"please check input wave type");
+    int wave_type = -1;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_PS),EXIT,"please check input wave type");
     mException((INVALID_POINTER(MelFilterFeature)),EXIT,"invalid input");
-    float frequency = mInfoGet(&(src->info),"frequency");
-    mException(mIsNan(frequency),EXIT,"invalid input");
-    if(Start == MORN_DEFAULT)
-        Start = 0;
-    mException((Start < 0),EXIT,"invalid input");
-    if(End == MORN_DEFAULT)
-        End = src->size;
-    mException((End > src->size),EXIT,"invalid input");
+    float frequency=DFLT; mException(mPropertyRead(src,"frequency",&frequency)==NULL,EXIT,"invalid input");
+    if(Start== DFLT) Start= 0;        mException((Start < 0      ),EXIT,"invalid input");
+    if(End  == DFLT) End  = src->size;mException((End > src->size),EXIT,"invalid input");
+    
     mException((NumMelFilter > 128)||(NumMelFilter <0),EXIT,"invalid operate");    
     
     if((g_mel_low_frequency != Start)||(g_mel_high_frequency != End)||(g_mel_num != NumMelFilter))
@@ -210,7 +175,8 @@ void mWaveCentroid(MWave *src,float *centroid)
     float sum1,sum2;
     
     mException(((INVALID_WAVE(src))||(INVALID_POINTER(centroid))),EXIT,"invalid input");
-    mException(((int)mInfoGet(&(src->info),"wave_type") != MORN_WAVE_PS),EXIT,"please check input wave type");
+    int wave_type = -1;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_PS),EXIT,"please check input wave type");
     
     for(cn=0;cn<src->channel;cn++)
     {
@@ -234,7 +200,8 @@ void mWaveBandwidth(MWave *src,float *centroid,float *bandwise)
     float centr;
     
     mException(((INVALID_WAVE(src))||(INVALID_POINTER(bandwise))),EXIT,"invalid input");
-    mException(((int)mInfoGet(&(src->info),"wave_type") != MORN_WAVE_PS),EXIT,"please check input wave type");
+    int wave_type = -1;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_PS),EXIT,"please check input wave type");
     
     for(cn=0;cn<src->channel;cn++)
     {
@@ -266,15 +233,16 @@ void mWaveSubbandDistribution(MWave *src,int *start,int *end,int sub_num,float *
     float sum1,sum2;
     
     mException(((INVALID_WAVE(src))||(INVALID_POINTER(distribution))),EXIT,"invalid input");
-    mException(((int)mInfoGet(&(src->info),"wave_type") != MORN_WAVE_PS),EXIT,"please check input wave type");
+    int wave_type = -1;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_PS),EXIT,"please check input wave type");
     
     if(sub_num <0)
         sub_num = 1;
     
     for(cn=0;cn<src->channel;cn++)
     {
-        float normalize_value = mInfoGet(&(src->info),"normalize");
-        if((!mIsNan(normalize_value))&&(normalize_value != MORN_NOT_NORMALIZED))
+        float normalize_value=DFLT; mPropertyRead(src,"normalize",&normalize_value);
+        if((normalize_value>0)&&(normalize_value != MORN_NOT_NORMALIZED))
             sum1 = normalize_value;
         else
         {

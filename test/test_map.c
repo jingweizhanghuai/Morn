@@ -2,13 +2,16 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// gcc -O2 -fopenmp test_map.c -I ..\include\ -L ..\lib\x64_mingw -lmorn -o test_map.exe
+// build_mingw: gcc -O2 -fopenmp test_map.c -lmorn -o test_map.exe
+// build_msvc: cl.exe -O2 -nologo -I ..\include\ test_map.c ..\lib\x64_msvc\libmorn.lib
 #include "morn_util.h"
 
 void test1()
 {
-    MChain *map = mChainCreate();
+    printf("\n\n");
+    MObject *map = mMapCreate();
     int n;
+    
     n=0; mMapWrite(map,"zero" ,DFLT,&n,sizeof(int));
     n=1; mMapWrite(map,"one"  ,DFLT,&n,sizeof(int));
     n=2; mMapWrite(map,"two"  ,DFLT,&n,sizeof(int));
@@ -32,7 +35,8 @@ void test1()
     p = mMapRead(map,"eight");if(p!=NULL)printf("eight= %d\n",*p);else printf("eight not found\n");
     p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);else printf("nine  not found\n");
     p = mMapRead(map,"ten"  );if(p!=NULL)printf("ten  = %d\n",*p);else printf("ten   not found\n");
-    
+    printf("\n");
+
     mMapNodeDelete(map,"zero" ,DFLT);
     mMapNodeDelete(map,"one"  ,DFLT);
     mMapNodeDelete(map,"two"  ,DFLT);
@@ -55,12 +59,13 @@ void test1()
     p = mMapRead(map,"eight");if(p!=NULL)printf("eight= %d\n",*p);else printf("eight deleted\n");
     p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);else printf("nine  deleted\n");
 
-    mChainRelease(map);
+    mMapRelease(map);
 }
 
 void test2()
 {
-    MChain *map = mChainCreate();
+    printf("\n\n");
+    MChain *map = mMapCreate();
     
     int n;
     n=0; mMapWrite(map,&n,sizeof(int),"zero" ,DFLT);
@@ -75,18 +80,19 @@ void test2()
     n=9; mMapWrite(map,&n,sizeof(int),"nine" ,DFLT);
     
     char *p;
-    n= 0;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 1;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n); 
-    n= 2;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n); 
-    n= 3;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 4;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 5;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 6;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 7;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 8;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n= 9;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    n=10;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-
+    n= 0;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 1;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n); 
+    n= 2;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n); 
+    n= 3;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 4;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 5;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 6;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 7;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 8;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n= 9;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    n=10;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
+    printf("\n");
+    
     n= 0;mMapNodeDelete(map,&n,sizeof(int));
     n= 1;mMapNodeDelete(map,&n,sizeof(int));
     n= 2;mMapNodeDelete(map,&n,sizeof(int));
@@ -108,51 +114,53 @@ void test2()
     n= 7;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d deleted\n",n);
     n= 8;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d deleted\n",n);
     n= 9;p=mMapRead(map,&n,sizeof(int),NULL,DFLT);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d deleted\n",n);
-    
-    mChainRelease(map);
+
+    mMapRelease(map);
 }
 
 void test3()
 {
-    MChain *map = mChainCreate();
+    printf("\n\n");
+    MChain *map = mMapCreate();
 
-    //key为指针
+    //key is pointer
     int *a=NULL;int idx=1;
     mMapWrite(map,&a,sizeof(int *),&idx,sizeof(int));
 
-    //key为整数
+    //key is int
     int b=1;idx++;
     mMapWrite(map,&b,sizeof(int),&idx,sizeof(int));
 
-    //key为浮点
+    //key is float
     float c=2;idx++;
     mMapWrite(map,&c,sizeof(float),&idx,sizeof(int));
 
-    //key为数组
-    double d[3]={3,4,5};idx++;
-    mMapWrite(map,d,(3*sizeof(double)),&idx,sizeof(int));
+    //key is array
+    double d[4]={1,9,4,9};idx++;
+    mMapWrite(map,d,(4*sizeof(double)),&idx,sizeof(int));
 
-    //key为字符串
+    //key is string
     char *e="test string";idx++;
     mMapWrite(map,e,strlen(e),&idx,sizeof(int));
 
-    //key为结构体
+    //key is struct
     struct {int d1;float d2;double d3[3];} f;idx++;
     mMapWrite(map,&f,sizeof(f),&idx,sizeof(int));
-    
-    printf("f idx=%d\n",*(int *)mMapRead(map,&f,sizeof(f),NULL,DFLT));
-    printf("e idx=%d\n",*(int *)mMapRead(map, e,strlen(e),NULL,DFLT));
-    printf("d idx=%d\n",*(int *)mMapRead(map, d,sizeof(d),NULL,DFLT));
-    printf("c idx=%d\n",*(int *)mMapRead(map,&c,sizeof(c),NULL,DFLT));
-    printf("b idx=%d\n",*(int *)mMapRead(map,&b,sizeof(b),NULL,DFLT));
-    printf("a idx=%d\n",*(int *)mMapRead(map,&a,sizeof(a),NULL,DFLT));
 
-    mChainRelease(map);
+    printf("f idx=%d\n",*(int *)mMapRead(map,&f,sizeof(f),NULL,NULL));
+    printf("e idx=%d\n",*(int *)mMapRead(map, e,strlen(e),NULL,NULL));
+    printf("d idx=%d\n",*(int *)mMapRead(map, d,sizeof(d),NULL,NULL));
+    printf("c idx=%d\n",*(int *)mMapRead(map,&c,sizeof(c),NULL,NULL));
+    printf("b idx=%d\n",*(int *)mMapRead(map,&b,sizeof(b),NULL,NULL));
+    printf("a idx=%d\n",*(int *)mMapRead(map,&a,sizeof(a),NULL,NULL));
+
+    mMapRelease(map);
 }
 
 void test4()
 {
-    MChain *map = mChainCreate();
+    printf("\n\n");
+    MChain *map = mMapCreate(NULL);
     
     char *a="abcd";int idx=1;
     mMapWrite(map,a,strlen(a),&idx,sizeof(int));
@@ -166,15 +174,13 @@ void test4()
     float d = 16777999408082104000000.0f;idx=4;
     mMapWrite(map,&d,sizeof(d),&idx,sizeof(int));
     
-    printf("a idx=%d\n",*(int *)mMapRead(map, a,strlen(a),NULL,DFLT));
-    printf("b idx=%d\n",*(int *)mMapRead(map, b,sizeof(b),NULL,DFLT));
-    printf("c idx=%d\n",*(int *)mMapRead(map,&c,sizeof(c),NULL,DFLT));
-    printf("d idx=%d\n",*(int *)mMapRead(map,&d,sizeof(d),NULL,DFLT));
+    printf("a idx=%d\n",*(int *)mMapRead(map, a,strlen(a),NULL,NULL));
+    printf("b idx=%d\n",*(int *)mMapRead(map, b,sizeof(b),NULL,NULL));
+    printf("c idx=%d\n",*(int *)mMapRead(map,&c,sizeof(c),NULL,NULL));
+    printf("d idx=%d\n",*(int *)mMapRead(map,&d,sizeof(d),NULL,NULL));
     
-    mChainRelease(map);
+    mMapRelease(map);
 }
-
-
 
 int main()
 {

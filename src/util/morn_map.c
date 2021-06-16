@@ -3,7 +3,7 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include "morn_ptc.h"
+#include "morn_math.h"
 
 inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
 {
@@ -20,20 +20,15 @@ struct HandleMornMap
     int num;
     MChainNode **list;
     int list_num;
-    int list_valid;
-    
-    pthread_rwlock_t rwlock;
 };
 void endMornMap(struct HandleMornMap *handle)
 {
-    if(handle->list!=NULL) mFree(handle->list);
-    pthread_rwlock_destroy(&(handle->rwlock));
+    if(handle->list!=NULL) mFree(handle->list); 
 }
 #define HASH_MornMap 0x197e7023
 
 void _MapListAppend(struct HandleMornMap *handle)
 {
-    if(handle->list_valid == 1) return;
     MChainNode *node0 = handle->list[0];
     
     int list_num =handle->list_num;
@@ -56,25 +51,21 @@ void _MapListAppend(struct HandleMornMap *handle)
     
     float k=(float)(list_num)/(float)(handle->num);
     
-    MChainNode *node = node0->last;
+    MChainNode *node = node0->prev;
     for(int i=handle->num-1;i>=0;i--)
     {
         int idx=(int)(k*i);list[idx]=node;
-        node = node->last;
+        node = node->prev;
     }
     list[       0]=node0;
     list[list_num]=node0;
-    
-    handle->list_valid = 1;
 }
 
 MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,int *flag)
 {
-    pthread_rwlock_rdlock(&(handle->rwlock));
-
     *flag=DFLT;
     MChainNode **list=handle->list;
-    if(handle->num==1) {pthread_rwlock_unlock(&(handle->rwlock));return list[0];}
+    if(handle->num==1) {return list[0];}
     
     int step = (handle->list_num+1)/4;
     int n=MAX(handle->list_num/2,1);
@@ -82,7 +73,7 @@ MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,i
     MChainNode *node = list[n];
     int *data = (int *)(node->data);
     int f = _Compare(data+2,data[0],key,key_size);
-    if(f==0) {*flag=n; pthread_rwlock_unlock(&(handle->rwlock)); return node;}
+    if(f==0) {*flag=n; return node;}
     
     while(step!=0)
     {
@@ -92,10 +83,10 @@ MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,i
         node = list[n];data = (int *)(node->data);
         f = _Compare(data+2,data[0],key,key_size);
         
-        if(f==0) {*flag=n; pthread_rwlock_unlock(&(handle->rwlock)); return node;}
+        if(f==0) {*flag=n; return node;}
         step=step>>1;
     }
-
+    
     MChainNode *node0=node,*node1=node;
     // if(f>0) {n=n-1;node1=node;node0=list[n  ];}
     // else    {      node0=node;node1=list[n+1];}
@@ -118,20 +109,14 @@ MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,i
     
     if(count>16)
     {
-        handle->list_valid=0;
-        pthread_rwlock_unlock(&(handle->rwlock));
-        
-        pthread_rwlock_wrlock(&(handle->rwlock));
         _MapListAppend(handle);
-        pthread_rwlock_unlock(&(handle->rwlock));
         return _MapNode(handle,key,key_size,flag);
     }
     if(count>4)
     {
-        if(n==0) list[1]=node1->last->last;
+        if(n==0) list[1]=node1->prev->prev;
         else     list[n]=node0->next->next;
     }
-    pthread_rwlock_unlock(&(handle->rwlock));
     return node;
 }
 
@@ -151,7 +136,7 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     {
         if(handle->list==NULL)
         {
-            handle->list=(MChainNode **)mMalloc(128*sizeof(MChainNode *));
+            handle->list=(MChainNode **)mMalloc(129*sizeof(MChainNode *));
             node = mChainNode(map,NULL,2*sizeof(int)+8+8);
             data = (int *)(node->data);
             memset(data,0,2*sizeof(int)+8+8);data[0]=0;data[1]=0;
@@ -167,30 +152,36 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
     if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
 
+    int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
+    if(flag!=DFLT)
+    {
+        data = (int *)(p->data);
+        if(value_size<=data[1]) 
+        {
+            if(value!=NULL) {memcpy(data+2+mkey_size,value,value_size);}
+            data[1]=value_size;
+            return (data+2+mkey_size);
+        }
+    }
+    
     node = mChainNode(map,NULL,(2+mkey_size+mvalue_size)*sizeof(int));
     data = (int *)(node->data);
     data[0] = key_size;data[1]=value_size;
     memcpy(data+2,key,key_size);
     if(value!=NULL) memcpy(data+2+mkey_size,value,value_size);
-
-    int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
+    
     if(flag!=DFLT) p->data = node->data;
     else
     {
-        pthread_rwlock_wrlock(&(handle->rwlock));
         handle->num++;
         mChainNodeInsert(NULL,node,p);
         if(handle->num>=handle->list_num*2)
-        {
-            handle->list_valid = 0;
             _MapListAppend(handle);
-        }
-        pthread_rwlock_unlock(&(handle->rwlock));
     }
     return (data+2+mkey_size);
 }
 
-void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int value_size)
+void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int *value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
     if(map->handle->num<3) return NULL;
@@ -208,12 +199,8 @@ void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int value
 
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
     int *data = (int *)(node->data);
-    if(value!=NULL)
-    {
-        if(value_size <=0) value_size= data[1];
-        else               value_size= MIN(value_size,data[1]);
-        memcpy(value,data+2+mkey_size,value_size);
-    }
+    int vsize=data[1];if(!INVALID_POINTER(value_size)) {{if(*value_size>0) vsize=MIN(*value_size,data[1]);}*value_size=data[1];}
+    if(!INVALID_POINTER(value)) memcpy(value,data+2+mkey_size,vsize);
     return (data+2+mkey_size);
 }
 
@@ -282,20 +269,51 @@ void mornMapNodeDelete(MChain *map,const void *key,int key_size)
 
     int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
     if(n==DFLT) return;
-    pthread_rwlock_wrlock(&(handle->rwlock));
-    if(n>=0) handle->list[n]=(node->last!=map->chainnode)?node->last:node->next;
+    if(n>=0) handle->list[n]=(node->prev!=map->chainnode)?node->prev:node->next;
     for(int m = n+1;handle->list[m]==node;m++)handle->list[m]=handle->list[n];
     for(int m = n-1;handle->list[m]==node;m--)handle->list[m]=handle->list[n];
     
-    node->last->next = node->next;
-    node->next->last = node->last;
+    // node->prev->next = node->next;
+    // node->next->prev = node->prev;
+    mChainNodeDelete(map,node);
     handle->num--;
     if(handle->num*2<=handle->list_num)
-    {
-        handle->list_valid = 0;
         _MapListAppend(handle);
+}
+
+void mMapCopy(MChain *src,MChain *dst)
+{
+    mChainClear(dst);
+    MChainNode *src_node = src->chainnode;
+    int *data=(int *)(src_node->data);
+    int mkey_size  =((data[0]+7)>>3)*(8/sizeof(int));
+    int mvalue_size=((data[1]+7)>>3)*(8/sizeof(int));
+    int size=(2+mkey_size+mvalue_size);
+    MChainNode *dst_node = mChainNode(dst,NULL,size*sizeof(int));
+    memcpy(dst_node->data,src_node->data,size*sizeof(int));
+    dst->chainnode=dst_node;
+    src_node=src_node->next;
+    int num=1;
+    while(src_node!=src->chainnode)
+    {
+        data=(int *)(src_node->data);
+        mkey_size  =((data[0]+7)>>3)*(8/sizeof(int));
+        mvalue_size=((data[1]+7)>>3)*(8/sizeof(int));
+        size=(2+mkey_size+mvalue_size);
+        mChainNodeInsert(dst_node,mChainNode(dst,NULL,size*sizeof(int)),NULL);
+        dst_node=dst_node->next;
+        memcpy(dst_node->data,src_node->data,size*sizeof(int));
+        src_node=src_node->next;
+        num++;
     }
-    pthread_rwlock_unlock(&(handle->rwlock));
+    
+    MHandle *hdl = mHandle(dst,MornMap);
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
+    handle->num = num;
+    handle->list_num=mBinaryFloor(num);
+    if(handle->list!=NULL) mFree(handle->list);
+    handle->list=(MChainNode **)mMalloc((MAX(handle->list_num,128)+1)*sizeof(MChainNode *));
+    _MapListAppend(handle);
 }
 
 MMap *mMapCreate()
@@ -320,7 +338,7 @@ void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int va
     if(amap[n]==NULL) amap[n]=mChainCreate();
     return mornMapWrite(amap[n],key,key_size,value,value_size);
 }
-void *m_MapRead(MMap *map,const void *key,int key_size,void *value,int value_size)
+void *m_MapRead(MMap *map,const void *key,int key_size,void *value,int *value_size)
 {
     MChain **amap = (MChain **)(map->object);
     if(key_size<=0) key_size = strlen((char *)key);
@@ -349,4 +367,59 @@ int mMapNodeNumber(MMap *map)
     int sum=0;
     for(int n=0;n<256;n++) {if(amap[n]) sum+=mornMapNodeNumber(amap[n]);}
     return sum;
+}
+
+struct HandleSingle
+{
+    MChain *map;
+};
+void endSingle(struct HandleSingle *handle)
+{
+    if(handle->map!=NULL) mChainRelease(handle->map);
+}
+#define HASH_Single 0x1ac3e363
+void m_SignalFunction(MChain *map,void *sig,int sig_size,void *function,void *para,int para_size)
+{
+    if(INVALID_POINTER(map))
+    {
+        MHandle *hdl=mHandle("Single",Single);
+        struct HandleSingle *handle = (struct HandleSingle *)(hdl->handle);
+        if(hdl->valid == 0)
+        {
+            hdl->valid = 1;
+            if(handle->map==NULL) handle->map = mChainCreate();
+        }
+        map=handle->map;
+    }
+    
+    mException(function==NULL,EXIT,"invalid input");
+    if(para_size<0)
+    {
+        if(para!=NULL) para_size = strlen((char *)para);
+        else           para_size = 0;
+    }
+    int value_size = para_size+sizeof(void *);
+    char *p = (char *)mornMapWrite(map,sig,sig_size,NULL,value_size);
+    intptr_t buff = (intptr_t)(function);
+    memcpy(p,&buff,sizeof(void *));
+    if(para!=NULL) memcpy(p+sizeof(void *),para,para_size);
+} 
+
+void m_Signal(MChain *map,void *sig,int sig_size,void *data,int data_size)
+{
+    if(INVALID_POINTER(map))
+    {
+        MHandle *hdl=mHandle("Single",Single);
+        if(hdl->valid==0) return;
+        struct HandleSingle *handle = (struct HandleSingle *)(hdl->handle);
+        map=handle->map;
+        if(map==NULL) return;
+    }
+    
+    char *p = (char *)mornMapRead(map,sig,sig_size,NULL,NULL);
+    if(p==NULL) return;
+    intptr_t buff;memcpy(&buff,p,sizeof(void *));
+    void (*func)(void *,int,void *) = (void *)buff;
+    void *para = (void *)(p+sizeof(void *));
+    func(data,data_size,para);
 }

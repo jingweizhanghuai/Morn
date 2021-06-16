@@ -19,14 +19,14 @@ struct HandleTableCreate
     int col;
     int element_size;
     void **index;
-    MMemory *memory;
+    MMemoryBlock *memory;
 };
 void endTableCreate(struct HandleTableCreate *handle)
 {
     mException((handle->tab==NULL),EXIT,"invalid table");
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->index != NULL) mFree(handle->index);
-    if(handle->memory!= NULL) mMemoryRelease(handle->memory);
+    if(handle->memory!= NULL) mMemoryBlockRelease(handle->memory);
     
     mFree(handle->tab);
 }
@@ -50,7 +50,6 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
         return tab;
     }
-
     
     handle->index = (void **)mMalloc(row*sizeof(void *));
     
@@ -69,10 +68,11 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
     }
     else if(element_size>0)
     {
-        if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST);
-        mException((handle->memory->num!=1),EXIT,"invalid table memory");
-        mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
+        if(handle->memory == NULL) handle->memory = mMemoryBlockCreate(row*col*element_size,MORN_HOST);
 
+        char *p = (char *)(handle->memory->data);
+        for(int j=0;j<row;j++) {handle->index[j]=p;p+=col*element_size;}
+    
         handle->col = col;
         handle->element_size = element_size;
         tab->data = handle->index;
@@ -135,11 +135,12 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
     tab->data = handle->index;
     
     if(!INVALID_POINTER(data)) {memcpy(handle->index,data,row*sizeof(void *));return;}
+
+    if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+    handle->memory = mMemoryBlockCreate(row*col*element_size,MORN_HOST);
+    char *p = (char *)(handle->memory->data);
+    for(int j=0;j<row;j++) {handle->index[j]=p;p+=col*element_size;}
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*element_size,MORN_HOST);
-    else mMemoryRedefine(handle->memory,1,row*col*element_size,MORN_HOST);
-    mException((handle->memory->num!=1),EXIT,"invalid table memory");
-    mMemoryIndex(handle->memory,row,col*element_size,&(handle->index),1);
     handle->col = col;
     handle->element_size = element_size;
 }
@@ -158,185 +159,4 @@ void mTableWipe(MTable *tab)
 {
     for(int j=0;j<tab->row;j++) memset(tab->dataS8[j],0,tab->col*tab->element_size);
 }
-
-struct HandleArrayCreate
-{
-    MArray *array;
-    MChain *property;
-    int num;
-    int element_size;
-    MMemory *memory;
-};
-void endArrayCreate(struct HandleArrayCreate *handle)
-{
-    mException((handle->array == NULL),EXIT,"invalid array");
-    if(handle->property!=NULL) mChainRelease(handle->property);
-    if(handle->memory!= NULL) mMemoryRelease(handle->memory);
-    
-    mFree(handle->array);
-}
-#define HASH_ArrayCreate 0xb3feafa4
-MArray *ArrayCreate(int num,int element_size,void *data)
-{
-    MArray *array = (MArray *)mMalloc(sizeof(MArray));
-    memset(array,0,sizeof(MArray));   
-    
-    if(num<0) {num = 0;} array->num = num;
-    if(element_size<0) {element_size=0;} array->element_size=element_size;
-
-    array->handle = mHandleCreate();
-    MHandle *hdl=mHandle(array,ArrayCreate);
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(hdl->handle);
-    handle->array = array;
-    array->data = NULL;
-    
-    if(num==0)
-    {
-        mException((!INVALID_POINTER(data)),EXIT,"invalid input");
-    }
-    else if(!INVALID_POINTER(data))
-        array->data = data;
-    else if(element_size>0)
-    {
-        handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST);
-        handle->num = num;
-        handle->element_size = element_size;
-        array->data = handle->memory->data[0];
-    }
-    
-    return array;
-}
-
-void mArrayRelease(MArray *array)
-{   
-    mException(INVALID_POINTER(array),EXIT,"invalid input");
-    
-    if(!INVALID_POINTER(array->handle))
-        mHandleRelease(array->handle);
-}
-
-void ArrayRedefine(MArray *array,int num,int element_size,void *data)
-{
-    mException(INVALID_POINTER(array),EXIT,"invalid input");
-    
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);
-    if(num          <=0) num = array->num;
-    if(element_size <=0) element_size = array->element_size;
-    
-    if((num!= handle->num)||(element_size!=handle->element_size)) mHandleReset(array->handle);
-    int same_size = (num*element_size <= handle->num*handle->element_size);
-    int reuse = (data==array->data);
-    int flag = (array->num>0);
-    
-    array->num = num;
-    array->element_size = element_size;
-    
-    handle->element_size = element_size;
-    if(same_size&&reuse) return;
-    if(same_size&&(INVALID_POINTER(data))&&(handle->num >0)) return;
-    
-    mException(reuse&&flag&&(handle->num==0),EXIT,"invalid redefine");
-    
-    handle->num=0;
-    if((num <= 0)||(element_size<=0)) 
-    {
-        mException((!INVALID_POINTER(data))&&(!reuse),EXIT,"invalid input");
-        array->data = NULL;
-        return;
-    }
-    
-    if(reuse) data=NULL;
-    
-    if(!INVALID_POINTER(data)) {handle->element_size = element_size;array->data = data;return;}
-        
-    if(num>handle->num)
-    {
-        handle->num = num;
-        handle->element_size = element_size;
-        if(handle->memory==NULL) handle->memory = mMemoryCreate(1,num*element_size,MORN_HOST);
-        else mMemoryRedefine(handle->memory,1,num*element_size,MORN_HOST);
-        array->data = handle->memory->data[0];
-    }
-}
-
-struct HandleStream
-{
-    char *read;
-    char *write;
-    pthread_mutex_t stream_mutex;
-};
-void endStream(void *info) {}
-#define HASH_Stream 0xcab28d39
-
-int mStreamRead(MArray *buff,void *data,int num)
-{
-    mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
-    
-    // struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
-    num = num*buff->element_size;
-    
-    MHandle *hdl=mHandle(buff,Stream);
-    struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
-    if(hdl->valid == 0) return ((0-num)/buff->element_size);
-    pthread_mutex_lock(&(handle->stream_mutex));
-    
-    int size=(handle->write>=handle->read)?(handle->write-handle->read):(buff->num*buff->element_size-(handle->read-handle->write));
-    // printf("read num=%d,size=%d\n",num,size);
-    if(num>size) goto StreamRead_end;
-
-    int size0 = (buff->dataS8+buff->num*buff->element_size)-handle->read;
-    if(size0 <= num)
-    {
-        memcpy(data,handle->read,size0);
-        data = ((char *)data) + size0;
-        handle->read = buff->dataS8;
-        num = num - size0;
-    }
-    memcpy(data,handle->read,num);
-    handle->read = handle->read + num;
-
-    StreamRead_end:
-    pthread_mutex_unlock(&(handle->stream_mutex));
-    return ((size-num)/buff->element_size);
-}
-
-int mStreamWrite(MArray *buff,void *data,int num)
-{
-    mException((buff==NULL)||(data==NULL)||(num<=0),EXIT,"invalid input");
-    
-    // struct HandleArrayCreate *handle0 = (struct HandleArrayCreate *)(((MHandle *)(buff->handle->data[0]))->handle);
-    num = num*buff->element_size;
-    
-    MHandle *hdl=mHandle(buff,Stream);
-    struct HandleStream *handle = (struct HandleStream *)(hdl->handle);
-    if(hdl->valid == 0)
-    {
-        handle->read = buff->dataS8;
-        handle->write= buff->dataS8;
-        pthread_mutex_init(&(handle->stream_mutex),NULL);
-        // handle->stream_mutex = PTHREAD_MUTEX_INITIALIZER;
-    }
-    pthread_mutex_lock(&(handle->stream_mutex));
-    
-    int size=(handle->read>handle->write)?(handle->read-handle->write):(buff->num*buff->element_size-(handle->write-handle->read));
-    // printf("write num=%d,size=%d\n",num,size);
-    if(num>size) goto StreamWrite_end;
-
-    int size0 = (buff->dataS8+buff->num*buff->element_size)-handle->write;
-    if(size0 <= num)
-    {
-        memcpy(handle->write,data,size0);
-        data = ((char *)data) + size0;
-        handle->write = buff->dataS8;
-        num = num - size0;
-    }
-    memcpy(handle->write,data,num);
-    handle->write = handle->write + num;
-  
-    StreamWrite_end:
-    hdl->valid = 1;
-    pthread_mutex_unlock(&(handle->stream_mutex));
-    return ((size-num)/buff->element_size);
-}
-
 

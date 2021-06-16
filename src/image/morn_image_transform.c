@@ -12,7 +12,6 @@ void TransformGrid(MImage *src,float (*x_func)(int,int,void *),float (*y_func)(i
     int dst_width = w->col;
     // printf("dst_height=%d,dst_width=%d\n",dst_height,dst_width);
 
-    // #pragma omp parallel for
     for(j=0;j<dst_height;j++)for(i=0;i<dst_width;i++)
     {
         float ly = y_func(i,j,para);
@@ -190,7 +189,7 @@ void mImageCoordinateTransform(MImage *src,MImage *dst,float (*x_func)(int,int,v
     int height; if(dst->height<=0) height= src->height; else height= dst->height;
     mImageRedefine(dst,src->channel,height,width,dst->data);
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
 
     MHandle *hdl=mHandle(src,ImageCoordinateTransform);
     struct HandleImageCoordinateTransform *handle = (struct HandleImageCoordinateTransform *)(hdl->handle);
@@ -286,7 +285,7 @@ void mImagePerspectiveCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImageP
         mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     else
         mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     int height = dst->height;
     int width = dst->width;
@@ -410,7 +409,7 @@ void mImageAffineCorrection(MImage *src,MImage *dst,MImagePoint *ps,MImagePoint 
     else
         mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     int height = dst->height;
     int width = dst->width;
@@ -544,7 +543,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid source image");
     if(INVALID_POINTER(dst)) dst=src;
-    
+
     float scx,scy,dcx,dcy;
     if(src_hold == NULL) {scx = ((float)(src->width))/2.0f; scy = ((float)(src->height))/2.0f;}
     else                 {scx = src_hold->x;                scy = src_hold->y;                }
@@ -591,7 +590,7 @@ void mImageRotate(MImage *src,MImage *dst,MImagePoint *src_hold,MImagePoint *dst
     
     mException(INVALID_IMAGE(dst),EXIT,"invalid error");
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(dst_hold == NULL) {dcx = ((float)width)/2.0f;dcy = ((float)height)/2.0f;}
     else                 {dcx = dst_hold->x;        dcy = dst_hold->y;         }
@@ -1018,7 +1017,7 @@ void mImageReshape(MImage *src,MImage *dst,MList *src_point,MList *dst_point,int
     else
         mImageRedefine(dst,src->channel,DFLT,DFLT,dst->data);
      
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     MHandle *hdl=mHandle(dst,ImageReshape);
     struct HandleImageReshape *handle = (struct HandleImageReshape *)(hdl->handle);

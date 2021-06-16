@@ -103,7 +103,7 @@ void DeviceSetup(int device)
     mException(device>192,EXIT,"invalid device %d\n",device);
     if(morn_cl_memory_handle ==NULL)
     {
-        MHandle *hdl = mHandle(mMornObject(NULL,DFLT),CLMemory);
+        MHandle *hdl = mHandle("CLMemory",CLMemory);
         morn_cl_memory_handle = (struct HandleCLMemory *)(hdl->handle);
         morn_cl_memory_handle->device = DFLT;
     }
@@ -180,9 +180,10 @@ MMemoryBlock *mMemoryBlockCreate(int size,int device)
         int ret;
         block->cl_data=clCreateBuffer(morn_cl_memory_handle->cl_ctx[device],CL_MEM_READ_WRITE,size,NULL,&ret);
         mException((ret!=CL_SUCCESS),EXIT,"cannot create device memory");
-        block->cl_evt =clCreateUserEvent(morn_cl_memory_handle->cl_ctx[device],&ret);
         
+        block->cl_evt =clCreateUserEvent(morn_cl_memory_handle->cl_ctx[device],&ret);
         mException((ret!=CL_SUCCESS)||(block->cl_evt==NULL),EXIT,"cannot create user event");
+        
         ret = clSetUserEventStatus(block->cl_evt,CL_COMPLETE);
         mException((ret!=CL_SUCCESS),EXIT,"cannot create user event");
     }
@@ -197,6 +198,25 @@ void mMemoryBlockRelease(MMemoryBlock *block)
     #endif
     free(block);
 }
+MMemoryBlock *MemoryBlockRedefine(MMemoryBlock *block,int size)
+{
+    block=realloc(block,sizeof(MMemoryBlock)+size);
+    block->data = (void *)(block+1);
+    block->size = size;
+    #ifdef MORN_USE_CL
+    block->flag= MORN_HOST;
+    if(block->device!=MORN_HOST)
+    {
+        if(block->cl_data!=NULL) clReleaseMemObject(block->cl_data);
+        int ret;
+        block->cl_data=clCreateBuffer(morn_cl_memory_handle->cl_ctx[device],CL_MEM_READ_WRITE,size,NULL,&ret);
+        mException((ret!=CL_SUCCESS),EXIT,"cannot create device memory");
+    }
+    #endif
+    return block;
+}
+
+
 MMemoryBlock *mMemoryBlock(void *data)
 {
     MMemoryBlock *block = ((MMemoryBlock *)data)-1;
@@ -586,21 +606,25 @@ void MemoryCollect(void *data,void *mem)
 {
     MMemory *memory = (MMemory *)mem;
     struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
-    
-    if(handle->collect_num<memory->num) 
-    {
-        if(handle->collect_valid!=NULL) free(handle->collect_valid);
-        handle->collect_valid = malloc(memory->num*sizeof(int));
-        memset(handle->collect_valid,0,memory->num*sizeof(int));
-    }
-    handle->collect_num=memory->num;
-    if(handle->collect_idx<0) handle->collect_idx = 0;
 
+    if(handle->collect_num!=memory->num)
+    {
+        if(handle->collect_num<memory->num) 
+        {
+            if(handle->collect_valid!=NULL) free(handle->collect_valid);
+            handle->collect_valid = malloc(memory->num*sizeof(int));
+        }
+        memset(handle->collect_valid,0,memory->num*sizeof(int));
+        handle->collect_num=memory->num;
+        handle->collect_idx = 0;
+    }
+    
     int idx=handle->collect_idx;
     int i=idx;do
     {
         MMemoryBlock *block = (MMemoryBlock *)(memory->data[i]);
-        if(data>=block->data)if((char *)data<((char *)(block->data))+block->size)
+        if(data>=block->data)
+            if((char *)data<((char *)(block->data))+block->size)
             {
                 handle->collect_valid[i]=1;
                 handle->collect_idx=i;
@@ -614,7 +638,7 @@ void MemoryDefrag(MMemory *memory)
 {
     struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
     mException((handle->collect_num!=memory->num)||(handle->collect_idx<0),EXIT,"invalid defrag memory");
-    handle->collect_idx = DFLT;
+    handle->collect_idx = 0;
     // printf("hhhhhhhhdddddddddddddh2hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     handle->collect_valid[handle->write_idx] = 1;
     
@@ -722,19 +746,27 @@ void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num)
     mException(INVALID_POINTER(index),EXIT,"invalid input");
     if(num<=0) num=memory->num;
 
+    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
+    struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
+
+    MMemoryBlock *block=NULL;
     for(int j=0;j<num;j++)
     {
-        MMemoryBlock *block = (MMemoryBlock *)(memory->data[j]);
+        block = (MMemoryBlock *)(memory->data[j]);
         mException((row*col_size>block->size),EXIT,"invalid memory index,with row=%d,col_size=%d,memory size=%d",row,col_size,block->size);
         index[j][0] = block->data;
         for(int i=1;i<row;i++) index[j][i]=((char *)(index[j][i-1]))+col_size;
     }
+    
+    handle->write_pdata=(char *)(block->data)+row*col_size;
+    handle->write_size =block->size-row*col_size;
 }
 
 void *mMemoryWrite(MMemory *memory,void *data,int size)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
-    if(size<0){mException(data==NULL,EXIT,"invalid input data");size=strlen(data);}
+    if(size<0){mException(data==NULL,EXIT,"invalid input data");size=strlen(data)+1;}
     
     MHandle *hdl = (MHandle *)(memory->handle->data[0]);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");

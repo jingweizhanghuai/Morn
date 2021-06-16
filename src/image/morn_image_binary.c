@@ -3,13 +3,15 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "morn_image.h"
 #include "morn_image_caculate.h"
- 
+
+// void mImageBinaryRect(MImage *src,MList *list,int distance,int min_area)
+// {
+    
+// }
+
+
 void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
 {
     int i,j,k,n;
@@ -26,37 +28,28 @@ void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
     #define SRC(x,y) data[y][x]
     
     n=0;
-    for(j=ImageY1(src);j<ImageY2(src);j++)
-        for(i=ImageX1(src,j);i<ImageX2(src,j);i++)
+    for(j=ImageY1(src);j<ImageY2(src);j++)for(i=ImageX1(src,j);i<ImageX2(src,j);i++)
+    {
+        if(SRC(i,j)!= 255) continue;
+        for(k=0;k<n;k++)
         {
-            if(SRC(i,j)!= 255)
-                continue;
-            
-            for(k=0;k<n;k++)
+            if((i>rect[k].x1-distance)&&(i<rect[k].x2+distance)&&(j<rect[k].y2+distance))
             {
-                if((i>rect[k].x1-distance)&&(i<rect[k].x2+distance)&&(j<rect[k].y2+distance))
-                {
-                    rect[k].x1 = (i<rect[k].x1)?i:rect[k].x1;
-                    rect[k].x2 = (i>rect[k].x2)?i:rect[k].x2;
-                    rect[k].y2 = (j>rect[k].y2)?j:rect[k].y2;
-                    rect_area[k] = rect_area[k]+1;
-                    break;
-                }
+                rect[k].x1 = (i<rect[k].x1)?i:rect[k].x1;
+                rect[k].x2 = (i>rect[k].x2)?i:rect[k].x2;
+                rect[k].y2 = (j>rect[k].y2)?j:rect[k].y2;
+                rect_area[k] = rect_area[k]+1;
+                break;
             }
-            
-            if(k==n)
-            {
-                rect[k].x1 = i;
-                rect[k].x2 = i;
-                rect[k].y1 = j;
-                rect[k].y2 = j;
-                
-                rect_area[k]=1;
-                rect_valid[k] =1;
-                n = n+1;
-            }
-            
         }
+        
+        if(k==n)
+        {
+            rect[k].x1 = i;rect[k].x2 = i;rect[k].y1 = j;rect[k].y2 = j;
+            rect_area[k]=1;rect_valid[k] =1;
+            n = n+1;
+        }
+    }
         
     // printf("n is %d\n",n);
     // for(i=0;i<n;i++)
@@ -67,13 +60,10 @@ void mBinaryRect(MImage *src,int distance,int min_area,MImageRect *rst,int *num)
     #define IS_AROUND_RECT(x,y,rect) ((x>rect.x1-distance)&&(x<rect.x2+distance)&&(y>rect.y1-distance)&&(y<rect.y2+distance))
     for(i=0;i<n;i++)
     {
-        if(rect_valid[i]==0)
-            continue;
-        
+        if(rect_valid[i]==0) continue;
         for(j=i+1;j<n;j++)
         {
-            if(rect_valid[j]==0)
-                continue;
+            if(rect_valid[j]==0) continue;
             
             if(IS_AROUND_RECT(rect[j].x1,rect[j].y1,rect[i]))
             {
@@ -481,7 +471,7 @@ void mImageBinaryFilter(MImage *src,MImage *dst,int r,float threshold1,float thr
     
     mImageRegion(src,r,BinaryFilter);
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }
 
@@ -509,7 +499,7 @@ void mImageBinaryDilation(MImage *src,MImage *dst)
         }
     }
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     if(p!=dst) {mImageExchange(src,dst); mImageRelease(dst);}
 }
 

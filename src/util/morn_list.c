@@ -106,6 +106,7 @@ void mListPlace(MList *list,void *data,int num,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(1,size*num,MORN_HOST);
     else mMemoryAppend(handle->memory,size*num);
     mMemoryIndex(handle->memory,num,size,&idx,1);
+    
     // printf("list_num=%d\n",list_num);
     // printf("idx0=%p,list->data[0]=%p\n",idx[0],list->data[0]);
     
@@ -197,8 +198,7 @@ void mListClear(MList *list)
 {
     list->num=0;
     struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
-    if(handle0->memory!=NULL) 
-        mMemoryClear(handle0->memory);
+    if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
 }
 
 void mListReorder(MList *list)
@@ -674,68 +674,68 @@ int mStackSize(MList *stack)
     return (handle->order+1);
 }
 
-struct HandleQueue
-{
-    volatile int read_order;
-    volatile int write_order;
-    volatile int flag;
-};
-void endQueue(void *info) {}
-#define HASH_Queue 0xd98b43dc
+// struct HandleQueue
+// {
+//     volatile int read_order;
+//     volatile int write_order;
+//     volatile int flag;
+// };
+// void endQueue(void *info) {}
+// #define HASH_Queue 0xd98b43dc
 
-int mQueueSize(MList *queue)
-{
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    MHandle *hdl=mHandle(queue,Queue);
-    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
-    if(handle->flag>0) return queue->num;
-    if(handle->flag<0) return 0;
+// int mQueueSize(MList *queue)
+// {
+//     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+//     MHandle *hdl=mHandle(queue,Queue);
+//     struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
+//     if(handle->flag>0) return queue->num;
+//     if(handle->flag<0) return 0;
     
-    int n = handle->write_order - handle->read_order;
-    return ((n>0)?n:(queue->num+n));
-}
+//     int n = handle->write_order - handle->read_order;
+//     return ((n>0)?n:(queue->num+n));
+// }
 
-void *mQueueWrite(MList *queue,void *data,int size)
-{
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    mException(queue->num<=0,EXIT,"invalid queue");
-    MHandle *hdl=mHandle(queue,Queue);
-    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
-    if(hdl->valid == 0) {handle->read_order=0;handle->write_order=0;}
-    hdl->valid = 1;
+// void *mQueueWrite(MList *queue,void *data,int size)
+// {
+//     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+//     mException(queue->num<=0,EXIT,"invalid queue");
+//     MHandle *hdl=mHandle(queue,Queue);
+//     struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
+//     if(hdl->valid == 0) {handle->read_order=0;handle->write_order=0;}
+//     hdl->valid = 1;
     
-    if(handle->flag>0) return NULL;
+//     if(handle->flag>0) return NULL;
 
-    int order=mAtomicAdd(&(handle->write_order),1);
-    if(order>=queue->num) order=order-queue->num;
-    void *p = mListWrite(queue,order,data,size);
+//     int order=mAtomicAdd(&(handle->write_order),1);
+//     if(order>=queue->num) order=order-queue->num;
+//     void *p = mListWrite(queue,order,data,size);
     
-    mAtomicCompare(&(handle->write_order),queue->num,0);
-    handle->flag =(handle->write_order == handle->read_order)?1:0;
-    return p;
-}
+//     mAtomicCompare(&(handle->write_order),queue->num,0);
+//     handle->flag =(handle->write_order == handle->read_order)?1:0;
+//     return p;
+// }
 
-void *mQueueRead(MList *queue,void *data,int size)
-{
-    mException(INVALID_POINTER(queue),EXIT,"invalid queue");
-    mException(queue->num<=0,EXIT,"invalid queue");
-    MHandle *hdl=mHandle(queue,Queue);
-    struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
-    if(hdl->valid == 0) return NULL;
+// void *mQueueRead(MList *queue,void *data,int size)
+// {
+//     mException(INVALID_POINTER(queue),EXIT,"invalid queue");
+//     mException(queue->num<=0,EXIT,"invalid queue");
+//     MHandle *hdl=mHandle(queue,Queue);
+//     struct HandleQueue *handle = (struct HandleQueue *)(hdl->handle);
+//     if(hdl->valid == 0) return NULL;
     
-    if(handle->flag<0) return NULL;
-    int order = mAtomicAdd(&(handle->read_order),1);
-    void *p = queue->data[order];
-    mAtomicCompare(&(handle->read_order),queue->num,0);
-    handle->flag =(handle->write_order == handle->read_order)?-1:0;
+//     if(handle->flag<0) return NULL;
+//     int order = mAtomicAdd(&(handle->read_order),1);
+//     void *p = queue->data[order];
+//     mAtomicCompare(&(handle->read_order),queue->num,0);
+//     handle->flag =(handle->write_order == handle->read_order)?-1:0;
     
-    if(data!=NULL)
-    {
-        if(size<=0) strcpy((char *)data,(char *)p);
-        else memcpy(data,p,size);
-    }
-    return p;
-}
+//     if(data!=NULL)
+//     {
+//         if(size<=0) strcpy((char *)data,(char *)p);
+//         else memcpy(data,p,size);
+//     }
+//     return p;
+// }
 
 // struct HashElement
 // {

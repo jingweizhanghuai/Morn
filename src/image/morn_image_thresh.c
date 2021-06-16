@@ -98,7 +98,7 @@ void mImageAdaptThreshold(MImage *src,MImage *dst,int r,int thresh)
         }
         
     dst->channel = 1;
-    mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+    int image_type=MORN_IMAGE_GRAY;mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 

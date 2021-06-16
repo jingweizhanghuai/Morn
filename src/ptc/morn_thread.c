@@ -8,15 +8,15 @@ void mNULL(void *p) {p;}
 
 static __thread int morn_thread_ID = -1;
 static int morn_thread_count = 0;
-static pthread_mutex_t morn_thread_ID_mutex = PTHREAD_MUTEX_INITIALIZER;
+static MThreadSignal morn_thread_signal = MORN_THREAD_SIGNAL;
 int mThreadID()
 {
     if(morn_thread_ID==-1)
     {
-        pthread_mutex_lock(&morn_thread_ID_mutex);
+        mThreadLockBegin(morn_thread_signal);
         morn_thread_count +=1;
         morn_thread_ID = morn_thread_count;
-        pthread_mutex_unlock(&morn_thread_ID_mutex);
+        mThreadLockEnd(morn_thread_signal);
     }
     return morn_thread_ID;
 }

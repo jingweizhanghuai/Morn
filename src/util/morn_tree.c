@@ -23,7 +23,7 @@ void endTreeCreate(void *info)
 #define HASH_TreeCreate 0x14c697eb
 MTree *mTreeCreate()
 {
-    MTree *tree = mObjectCreate(NULL);
+    MTree *tree = mObjectCreate();
     mHandle(tree,TreeCreate);
     
     return tree;

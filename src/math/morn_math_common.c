@@ -399,7 +399,7 @@ struct HandleCombination
 {
     int *idx;
     int num;
-    int total;
+    int array_num;
     int order;
 };
 void endCombination(struct HandleCombination *handle)
@@ -407,32 +407,33 @@ void endCombination(struct HandleCombination *handle)
     if(handle->idx!=NULL) mFree(handle->idx);
 }
 #define HASH_Combination 0x110249ec
-int mCombination(int *idx,int num,int total)
+// int mCombination(int *idx,int num,int total)
+int mCombination(MArray *array,int num)
 {
-    mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx,0),Combination);
+    mException(INVALID_POINTER(array),EXIT,"invalid input");
+    int array_num = array->num;
+    MHandle *hdl = mHandle(array,Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
     if(hdl->valid==0)
     {
-        mException((num<0)||(num>total),EXIT,"invalid input combination number");
+        mException((num<0)||(num>array_num),EXIT,"invalid input combination number");
         if((handle->idx!=NULL)&&(handle->num<num)) {mFree(handle->idx);handle->idx=NULL;}
         if(handle->idx==NULL) handle->idx = (int *)mMalloc(num*sizeof(int));
         for(int i=0;i<num;i++) handle->idx[i]=i;
-        handle->num = num;handle->total=total;
+        handle->num = num;handle->array_num=array_num;
         hdl->valid = 1;
 
+        memcpy(array->dataS32,handle->idx,num*sizeof(int));
         handle->order = 0;
-        memcpy(idx,handle->idx,num*sizeof(int));
         return handle->order;
     }
-    
-    mException((handle->num  !=num  )&&(num  >0),EXIT,"invalid input combination number");num  =handle->num  ;
-    mException((handle->total!=total)&&(total>0),EXIT,"invalid input combination number");total=handle->total;
+    mException((handle->num !=num)&&(num > 0),EXIT,"invalid input combination number");num=handle->num;
+    mException((handle->array_num!=array_num),EXIT,"invalid input combination number");
 
     int n;for(n=num-1;n>=0;n--)
     {
         handle->idx[n]++;
-        if(handle->idx[n]<=total-num+n) break;
+        if(handle->idx[n]<=array_num-num+n) break;
     }
     if(n<0) 
     {
@@ -440,9 +441,9 @@ int mCombination(int *idx,int num,int total)
         hdl->valid = 0;
         return DFLT;
     }
-    for(int i=n+1;i<num;i++) 
-        handle->idx[i]=handle->idx[i-1]+1;
-    memcpy(idx,handle->idx,num*sizeof(int));
+    for(int i=n+1;i<num;i++) handle->idx[i]=handle->idx[i-1]+1;
+    
+    memcpy(array->dataS32,handle->idx,num*sizeof(int));
     handle->order++;
     return handle->order;
 }
@@ -462,15 +463,15 @@ int m_Permutation(int *idx,int num)
     return 1;
 }
 
-int mPermutation(int *idx,int num,int total)
+int mPermutation(MArray *array,int num)
 {
-    mException(INVALID_POINTER(idx),EXIT,"invalid input");
-    MHandle *hdl = mHandle(mMornObject(idx,0),Combination);
+    mException(INVALID_POINTER(array),EXIT,"invalid input");
+    MHandle *hdl = mHandle(array,Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
 
-    if(hdl->valid==0) {mCombination(idx,num,total);return 0;}
+    if(hdl->valid==0) {mCombination(array,num);return 0;}
     
-    if(m_Permutation(idx,num)>0) {handle->order++;return handle->order;}
-    if(mCombination(idx,num,total)>0) return handle->order;
+    if(m_Permutation(array->dataS32,num)>0) {handle->order++;return handle->order;}
+    if(mCombination(array,num)>0) return handle->order;
     return -1;
 }

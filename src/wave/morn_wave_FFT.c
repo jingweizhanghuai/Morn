@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_wave.h"
 
 #define FFTCACL0(re0,re1) {\
@@ -95,9 +90,8 @@ void mWaveFFT(MWave *src,MWave *fft)
     MWave *p=fft;
     if((fft==NULL)||(fft == src)) fft = mWaveCreate(((src->channel)<<1),N,NULL);
     else                          mWaveRedefine(fft,((src->channel)<<1),N,fft->data);
-    fft->info = src->info;
-    mInfoSet(&(fft->info),"wave_type",MORN_WAVE_FD);
-    mInfoSet(&(fft->info),"normalize",MORN_NOT_NORMALIZED);
+    int wave_type=MORN_WAVE_FD;       mPropertyWrite(fft,"wave_type",&wave_type,sizeof(int));
+    int normalize=MORN_NOT_NORMALIZED;mPropertyWrite(fft,"normalize",&normalize,sizeof(float));
 
     N=(N>>1);
     for(int cn=0;cn<src->channel;cn++)
@@ -224,7 +218,8 @@ void mWaveIFFT(MWave *fft,MWave *dst)
 {
     int i,j,k,n;
     mException((INVALID_WAVE(fft)),EXIT,"invalid input");
-    mException((mInfoGet(&(fft->info),"wave_type") != MORN_WAVE_FD),EXIT,"invalid input");
+    int wave_type=0;mPropertyRead(fft,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_FD),EXIT,"invalid input");
 
     int N;
     MHandle *hdl=mHandle(fft,WaveIFFT);
@@ -259,9 +254,9 @@ void mWaveIFFT(MWave *fft,MWave *dst)
     MWave *p=dst;
     if((dst==NULL)||(dst==fft)) dst = mWaveCreate(fft->channel,N,NULL);
     else                        mWaveRedefine(dst,fft->channel,N,dst->data);
-    dst->info = fft->info;
-    mInfoSet(&(dst->info),"wave_type",MORN_WAVE_TD);
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = fft->info;
+        wave_type=MORN_WAVE_TD;       mPropertyWrite(dst,"wave_type",&wave_type,sizeof(int));
+    int normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     
     N=(N>>1);
     for(int cn=0;cn<dst->channel;cn+=2)
@@ -407,7 +402,8 @@ void mWavePowerSpectrum(MWave *fft,MWave *ps,int mode)
         mode = MORN_SQUAR_POWERS;
     mException(((mode<1)||(mode>3)),EXIT,"invalid input");
     mException((INVALID_WAVE(fft)),EXIT,"invalid input");
-    mException((mInfoGet(&(fft->info),"wave_type") != MORN_WAVE_FD),EXIT,"invalid input");
+    int wave_type=0;mPropertyRead(fft,"wave_type",&wave_type);
+    mException((wave_type != MORN_WAVE_FD),EXIT,"invalid input");
     
     wav_size = (fft->size)>>1;   
     
@@ -415,9 +411,9 @@ void mWavePowerSpectrum(MWave *fft,MWave *ps,int mode)
         ps = fft;
     
     mWaveRedefine(ps,((fft->channel)>>1),wav_size,ps->data);
-    ps->info = fft->info;
-    mInfoSet(&(ps->info),"wave_type",MORN_WAVE_PS);
-    mInfoSet(&(ps->info),"normalize",MORN_NOT_NORMALIZED);
+    // ps->info = fft->info;
+        wave_type=MORN_WAVE_PS;       mPropertyWrite(ps,"wave_type",&wave_type,sizeof(int));
+    int normalize=MORN_NOT_NORMALIZED;mPropertyWrite(ps,"normalize",&normalize,sizeof(float));
     
     if(mode == MORN_SQUAR_POWERS)
     {
@@ -456,7 +452,7 @@ void mWavePowerSpectrum(MWave *fft,MWave *ps,int mode)
 
 void mWaveFrequencyComponent(MWave *src,float frequency,float *component)
 {
-    float src_frequency = mInfoGet(&(src->info),"frequency");
+    float src_frequency;mException(mPropertyRead(src,"frequency",&src_frequency)==NULL,EXIT,"invalid input");
     float c = (MORN_PI+MORN_PI)*frequency/src_frequency;
     for(int cn=0;cn<src->channel;cn++)
     {
@@ -505,7 +501,7 @@ void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component
         if(num <=0) num = handle->num;
         if(INVALID_POINTER(frequency)) frequency = handle->frequency;
         
-        float src_frequency=mInfoGet(&(src->info),"frequency");
+        float src_frequency=-1;mException(mPropertyRead(src,"frequency",&src_frequency)==NULL,EXIT,"invalid input");
         if((handle->src_frequency != src_frequency)&&(src_frequency >0))
             hdl->valid = 0;
         else if(frequency != handle->frequency)
@@ -515,7 +511,7 @@ void mWaveFrequencyAnalyse(MWave *src,float *frequency,int num,float **component
     if(hdl->valid == 0)
     {
         mException((num<=0)||(INVALID_POINTER(frequency)),EXIT,"invalid input");
-        handle->src_frequency = mInfoGet(&(src->info),"frequency");
+        handle->src_frequency=-1;mPropertyRead(src,"frequency",&(handle->src_frequency));
         mException((handle->src_frequency<=0),EXIT,"invalid input");
         
         if(num>handle->num) {mFree(handle->frequency);handle->frequency=NULL;}

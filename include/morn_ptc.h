@@ -11,7 +11,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <pthread.h>
 #elif defined _MSC_VER
 #include <windows.h>
-// #include <process.h>
+#include <process.h>
 #else
 #include <stdatomic.h>
 #include <threads.h>
@@ -27,13 +27,13 @@ void mNULL(void *p);
 int mThreadID();
 
 #if defined __GNUC__
-#define mAtomicAdd(pA,B) __sync_fetch_and_add(pA,B)
-#define mAtomicSub(pA,B) __sync_fetch_and_sub(pA,B)
+#define mAtomicAdd(pA,B) __sync_add_and_fetch(pA,B)
+#define mAtomicSub(pA,B) __sync_sub_and_fetch(pA,B)
 #define mAtomicOr( pA,B) __sync_fetch_and_or( pA,B)
 #define mAtomicAnd(pA,B) __sync_fetch_and_and(pA,B)
 #define mAtomicXor(pA,B) __sync_fetch_and_xor(pA,B)
 #define mAtomicSet(pA,B) __sync_lock_test_and_set(pA,B)
-#define mAtomicCompare(pA,B,C) (__sync_val_compare_and_swap(pA,B,C)==B)
+#define mAtomicCompare(pA,B,C) __sync_bool_compare_and_swap(pA,B,C)
 #elif defined _MSC_VER
 #define mAtomicAdd(pA,B) ((sizeof(*(pA))==4)?_InterlockedAdd((int32_t *)(pA),(int32_t)(B)):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),(int8_t)(B)))))
 #define mAtomicSub(pA,B) ((sizeof(*(pA))==4)?_InterlockedAdd((int32_t *)(pA),0-(int32_t)(B)):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),0-(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),0-(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),0-(int8_t)(B)))))
@@ -55,7 +55,7 @@ int mThreadID();
 #define HASH_Thread 0xbc4bf36f
 #if defined __GNUC__
 #define MThread pthread_t
-#define mThreadBegin(pThread,Func,Para) pthread_create(pThread,NULL,(void *(*)(void *))(Func),(void *)(Para))
+#define mThreadBegin(pThread,Func,Para) mException(pthread_create(pThread,NULL,(void *(*)(void *))(Func),(void *)(Para))!=0,EXIT,"create thread error")
 #define mThreadEnd(pThread) pthread_join(*(pThread),NULL);
 typedef struct MThreadSignal
 {
@@ -105,8 +105,9 @@ typedef struct MThreadSignal
 
 #elif defined _MSC_VER
 #define MThread HANDLE
-#define mThreadBegin(pThread,Func,Para) do{*(pThread)=(HANDLE)_beginthreadex(NULL,0,(_beginthreadex_proc_type)(Func),(void *)(Para),0,NULL);}while(0)
+#define mThreadBegin(pThread,Func,Para) do{*(pThread)=(HANDLE)_beginthreadex(NULL,0,(_beginthreadex_proc_type)(Func),(void *)(Para),0,NULL);mException(pThread==NULL,EXIT,"create thread error");}while(0)
 #define mThreadEnd(pThread) do{WaitForSingleObject((*pThread),INFINITE);CloseHandle(*(pThread));}while(0)
+// GetExitCodeThread
 typedef struct MThreadSignal
 {
     CRITICAL_SECTION mutex;
@@ -121,7 +122,7 @@ typedef struct MThreadSignal
         {\
             InitializeCriticalSection(  &((Sgn).mutex    ));\
             InitializeConditionVariable(&((Sgn).condition));\
-            InitializeSRWLock(          &((Sgn).srw      ));\
+            InitializeSRWLock(          &((Sgn).rwlock   ));\
             (Sgn).valid = HASH_Thread;\
         }\
         else while((Sgn).valid!=HASH_Thread);\
@@ -141,7 +142,7 @@ typedef struct MThreadSignal
 }while(0)
 #define mThreadWake(Sgn,Cond) do{\
     if(Cond) WakeConditionVariable(&((Sgn).condition));\
-}
+}while(0)
 #define mThreadBroadcast(Sgn) do{\
     WakeAllConditionVariable(&((Sgn).condition));\
 }while(0)
@@ -199,6 +200,13 @@ typedef struct MThreadSignal
 
 #define MORN_THREAD_SIGNAL {.valid=0}
 
+#define MORN_LOCKED      0x01
+#define MORN_READLOCKED  0x02
+#define MORN_WRITELOCKED 0x04
+#define      mLocked(Sgn) ((Sgn).state&MORN_LOCKED     )
+#define  mReadLocked(Sgn) ((Sgn).state&MORN_READLOCKED )
+#define mWriteLocked(Sgn) ((Sgn).state&MORN_WRITELOCKED)
+
 #define THREAD_FUNC(F,P) mThreadBegin(pThrd++,F,P)
 #define THREAD_FUNC0(F,P) F(P)
 #define _mThread(Nl,F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,...) do{\
@@ -212,13 +220,50 @@ typedef struct MThreadSignal
     THREAD_FUNC0 F0;\
     for(int I=0;I<VAN-1;I++) {mThreadEnd(&(Thrd[I]));}\
 }while(0)
-#define mThread(...) ARG(_mThread(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL)))
+#define mThread(...) ARG(_mThread(VANumber(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL)))
 
-void *mProcTopicWrite(const char *msgname,void *data,int size);
-void *mProcTopicRead(const char *msgname,void *data,int *size);
-void *mProcMessageWrite(const char *dstname,void *data,int size);
-void *mProcMessageRead(const char *dstname,void *data,int *size);
+void *m_ProcTopicWrite(const char *msgname,void *data,int size);
+void *m_ProcTopicRead(const char *msgname,void *data,int *size);
+#define mProcTopicWrite(Msgname,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ProcTopicWrite(Msgname,(void *)_VA0(__VA_ARGS__),DFLT):\
+    (VANumber(__VA_ARGS__)==2)?m_ProcTopicWrite(Msgname,(void *)_VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__)):\
+    NULL\
+)
+#define mProcTopicRead(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ProcTopicRead((const char *)_VA0(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_ProcTopicRead((const char *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==3)?m_ProcTopicRead((const char *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__)):\
+    NULL\
+)
 
+void *m_ProcMessageWrite(const char *dstname,void *data,int size);
+void *m_ProcMessageRead(const char *dstname,void *data,int *size);
+#define mProcMessageWrite(Dst,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ProcMessageWrite(Dst,(void *)_VA0(__VA_ARGS__),DFLT):\
+    (VANumber(__VA_ARGS__)==2)?m_ProcMessageWrite(Dst,(void *)_VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__)):\
+    NULL\
+)
+#define mProcMessageRead(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ProcMessageRead((const char *)_VA0(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_ProcMessageRead((const char *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==3)?m_ProcMessageRead((const char *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__)):\
+    NULL\
+)
+
+int mQueueSize(MList *queue);
+void *mQueueWrite(MList *queue,void *data,int size);
+void *mQueueRead(MList *queue,void *data,int *size);
+
+
+void m_ThreadPool(void *function,void *para,int *flag,float priority);
+#define mThreadPool(Func,...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==0) m_ThreadPool(Func,NULL,NULL,0.0f);\
+    else if(VAN==1) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
+    else if(VAN==2) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),0.0f);\
+    else if(VAN==3) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
 
 #ifdef __cplusplus
 }

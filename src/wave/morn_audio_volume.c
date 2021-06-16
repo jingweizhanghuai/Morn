@@ -2,11 +2,6 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_wave.h"
 
 void mWavABSMean(MWave *src,float *mean);
@@ -50,15 +45,13 @@ static int WaveThresh(float *data,int size,float thresh)
 
 int mWaveActive(MWave *src,float thresh)
 {
-    int i;
-    
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
-    if(thresh == MORN_DEFAULT)
-        thresh = 0.05f;
-    mException((thresh<0.0f),EXIT,"invalid input");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
+    
+    if(thresh <0) thresh = 0.05f;
 
-    for(i=0;i<src->channel;i++)
+    for(int i=0;i<src->channel;i++)
         if(WaveThresh(src->data[i],src->size,thresh))
             return 1;
     
@@ -67,27 +60,19 @@ int mWaveActive(MWave *src,float thresh)
 
 void mWaveBackground(MWave *src,float *background)
 {
-    float *p;
-    int i,cn;
-    float mean;
-    
-    if(src->size <128)
-        mWavABSMean(src,background);
+    if(src->size <128) mWavABSMean(src,background);
     
     mException(INVALID_WAVE(src)||INVALID_POINTER(background),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
     
-    for(cn=0;cn<src->channel;cn++)
+    for(int cn=0;cn<src->channel;cn++)
     {
         background[cn] = 1.0f;
-        p = src->data[cn];
+        float *p = src->data[cn];
         while(p+128<=src->data[cn] + src->size)
         {
-            mean = 0.0f;
-            for(i=0;i<128;i++)
-                mean = mean + p[i];
-            mean = mean/128.0f;
-            
+            float mean = 0.0f;for(int i=0;i<128;i++) {mean = mean + p[i];} mean = mean/128.0f;
             background[cn] = MIN(background[cn],mean);
             p=p+128;
         }
@@ -95,10 +80,7 @@ void mWaveBackground(MWave *src,float *background)
         if(src->data[cn] + src->size > p+32)
         {
             p = src->data[cn] + (src->size-128);
-            mean = 0.0f;
-            for(i=0;i<128;i++)
-                mean = mean + p[i];
-            mean = mean/128.0f;
+            float mean = 0.0f;for(int i=0;i<128;i++) {mean = mean + p[i];} mean = mean/128.0f;
             
             background[cn] = MIN(background[cn],mean);
         }
@@ -115,14 +97,11 @@ void endWaveAdaptiveActive(void *handle) {mFree(handle);}
 #define HASH_WaveAdaptiveActive 0xa26ad0a2
 int mWaveAdaptiveActive(MWave *src,float sensibility,float thresh)
 {
-    int i;
-    int cn;
-    int active;
-    
     float background[MORN_MAX_WAVE_CN];
     
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
     
     if(thresh == MORN_DEFAULT)
         thresh = 0.02f; 
@@ -144,11 +123,11 @@ int mWaveAdaptiveActive(MWave *src,float sensibility,float thresh)
         // HandleSet(src,WaveAdaptiveActive,handle);
     // }
     
-    active = 0;
-    for(cn=0;cn<src->channel;cn++)
+    int active = 0;
+    for(int cn=0;cn<src->channel;cn++)
     {
         background[cn] = 0.0f;
-        for(i=0;i<32;i++)
+        for(int i=0;i<32;i++)
             background[cn] = background[cn] + handle->background[cn][i];
         background[cn] = background[cn]*(2.5f-sensibility)/16.0f;
         
@@ -162,7 +141,7 @@ int mWaveAdaptiveActive(MWave *src,float sensibility,float thresh)
     }
     
     mWaveBackground(src,background);    
-    for(cn=0;cn<src->channel;cn++)
+    for(int cn=0;cn<src->channel;cn++)
         handle->background[cn][handle->n] = background[cn];
     handle->n = handle->n +1;
     if(handle->n == 16)
@@ -181,7 +160,8 @@ void mWaveBurst(MWave *src,float *burst)
         mWavABSMean(src,burst);
     
     mException(INVALID_WAVE(src)||INVALID_POINTER(burst),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
     
     for(cn=0;cn<src->channel;cn++)
     {
@@ -228,7 +208,8 @@ int mWaveAdaptiveLoud(MWave *src,float sensibility,float thresh)
     float burst[MORN_MAX_WAVE_CN];
     
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
     
     if(thresh == MORN_DEFAULT)
         thresh = 0.02f; 
@@ -423,18 +404,6 @@ void mGetActive(MWave *src,MWave *dst[],int *dst_num)
 }
 */
 
-/////////////////////////////////////////////////////////
-// 接口功能:
-//  从一段音频中获取其中的活跃片段
-//
-// 参数：
-//  (I)src(NO) - 待检测的原始波形帧
-//  (O)dst(NO) - 所得到的活跃片段
-//  (I/O)dst_num(NO) - 输入为片段数量上限，输出为实际获取到的片段数量
-//
-// 返回值：
-//  无
-/////////////////////////////////////////////////////////
 void mWaveGetActive(MWave *src,int min_size,MWave *dst[],int *dst_num)
 {
     float background;
@@ -455,7 +424,8 @@ void mWaveGetActive(MWave *src,int min_size,MWave *dst[],int *dst_num)
     int i,j,n,cn;
     
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    mException((mInfoGet(&(src->info),"wave_type") != MORN_WAVE_TD),EXIT,"please check input wave type");
+    int wave_type;mPropertyRead(src,"wave_type",&wave_type);
+    mException((wave_type!= MORN_WAVE_TD),EXIT,"please check input wave type");
     
     wav_size = src->size;
     if(min_size <=0)
@@ -563,7 +533,7 @@ void mWaveGetActive(MWave *src,int min_size,MWave *dst[],int *dst_num)
                 for(cn=0;cn<src->channel;cn++)
                     memcpy(dst[n]->data[cn],(src->data[cn] + (j-valid)*frame_size),dst[n]->size*sizeof(float));
                 
-                dst[n]->info = src->info;
+                // dst[n]->info = src->info;
                 n = n+1;
                 if(n+1 == *dst_num)
                     break;
@@ -578,7 +548,7 @@ void mWaveGetActive(MWave *src,int min_size,MWave *dst[],int *dst_num)
         for(cn=0;cn<src->channel;cn++)
             memcpy(dst[n]->data[cn],(src->data[cn] + (j-valid)*frame_size),dst[n]->size*sizeof(float));
         
-        dst[n]->info = src->info;
+        // dst[n]->info = src->info;
         n = n+1;
     }
 

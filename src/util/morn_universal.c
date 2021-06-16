@@ -15,17 +15,18 @@ __thread char morn_filename[256];
 
 __thread int morn_data_type;
 __thread char morn_data_buff[8];
+char morn_char_for_test=-1;
 
 static int morn_rand_seed = -1;
 int m_Rand(int floor,int ceiling)
 {
-    // #ifndef _DEBUG
-    // if(morn_rand_seed == -1)
-    // {
-    //     morn_rand_seed = time(NULL);
-    //     srand(morn_rand_seed);
-    // }
-    // #endif
+    #ifndef _DEBUG
+    if(morn_rand_seed == -1)
+    {
+        morn_rand_seed = time(NULL);
+        srand(morn_rand_seed);
+    }
+    #endif
     
     if((floor==DFLT)&&( ceiling==DFLT)) {return rand();}
     if(floor==ceiling) return floor;
@@ -40,7 +41,7 @@ float mNormalRand(float mean,float delta)
     float u = mRand(1,32768)/32768.0f;
     float v = mRand(0,32767)/32767.0f;
     
-    float out = sqrt(0.0-2.0*log(u))*cos(2*3.14159265358979f*v);
+    float out = sqrt(0.0-2.0*log(u))*cos(2*MORN_PI*v);
     return (out*delta+mean);
 }
 
@@ -63,52 +64,39 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2)
     return (flag!=0)?flag:(size1-size2);
 }
 
-float mInfoGet(MInfo *info,const char *name)
-{
-    for(int i=0;i<8;i++)
-        if(stricmp(&(info->name[i][0]),name)==0)
-            return info->value[i];
+// float mInfoGet(MInfo *info,const char *name)
+// {
+//     for(int i=0;i<8;i++)
+//         if(stricmp(&(info->name[i][0]),name)==0)
+//             return info->value[i];
       
-    return mNan();
-}
+//     return mNan();
+// }
 
-void mInfoSet(MInfo *info,const char *name,float value)
-{
-    for(int i=0;i<8;i++)
-        if(stricmp(&(info->name[i][0]),name)==0)
-        {
-            info->value[i] = value;
-            return;
-        }
+// void mInfoSet(MInfo *info,const char *name,float value)
+// {
+//     for(int i=0;i<8;i++)
+//         if(stricmp(&(info->name[i][0]),name)==0)
+//         {
+//             info->value[i] = value;
+//             return;
+//         }
         
-    for(int i=0;i<8;i++)
-        if(info->name[i][0] == 0)
-        {
-            strcpy(&(info->name[i][0]),name);
-            info->value[i] = value;
-            return;
-        }
-    mException(1,EXIT,"no enough space for %s\n",name);
-}
-
-void *m_PropertyWrite(MChain **property,const char *key,const void *value,int value_size)
-{
-    if(*property==NULL) *property = mChainCreate();
-    MChain *map = *property;
-    return mornMapWrite(map,key,DFLT,value,value_size);
-}
-
-void *m_PropertyRead(MChain **property,const char *key,void *value,int value_size)
-{
-    MChain *map = *property;
-    if(map==NULL) return NULL;
-    return mornMapRead(map,key,DFLT,value,value_size);
-}
+//     for(int i=0;i<8;i++)
+//         if(info->name[i][0] == 0)
+//         {
+//             strcpy(&(info->name[i][0]),name);
+//             info->value[i] = value;
+//             return;
+//         }
+//     mException(1,EXIT,"no enough space for %s\n",name);
+// }
 
 struct HandleObjectCreate
 {
     MObject *object;
     MChain *property;
+    int64_t reserve[8];
 };
 void endObjectCreate(struct HandleObjectCreate *handle)
 {
@@ -146,19 +134,134 @@ void mObjectRedefine(MObject *object,const void *obj)
     }
 }
 
+struct Property
+{
+    void *var;
+    void (*func)(void *,void *);
+    void *para;
+    char value[0];
+};
+
+void m_PropertyVariate(MObject *obj,const char *key,void *var)
+{
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    if(handle->property==NULL) handle->property = mChainCreate();
+    
+    int vsize=sizeof(struct Property);
+    struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
+    
+    if(p!=NULL) {if(vsize>sizeof(struct Property)) memcpy(var,p->value,vsize-sizeof(struct Property));}
+    else p = mornMapWrite(handle->property,key,DFLT,NULL,vsize);
+    p->var = var;
+}
+
+void m_PropertyFunction(MObject *obj,const char *key,void *function,void *para)
+{
+    // func(new,para);
+    void (*func)(void *,void *) = function;
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    if(handle->property==NULL) handle->property = mChainCreate();
+    
+    int vsize=sizeof(struct Property);
+    struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
+    
+    if(p!=NULL)
+    {
+        int value_size=vsize-sizeof(struct Property);
+        if(value_size>0)
+        {
+            if(p->var!=NULL)
+            {
+                if(memcmp(p->var,p->value,value_size)!=0)
+                    {func(p->value,para);memcpy(p->value,p->var,value_size);}
+            }
+            else func(p->value,para);
+        }
+    }
+    else {p = mornMapWrite(handle->property,key,DFLT,NULL,vsize);p->var=NULL;}
+    p->func=func;p->para=para;
+}
+
+void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_size)
+{
+    if(value==NULL) value_size=-1;
+    else if(value_size<=0) value_size=strlen(value)+1;
+    
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    if(handle->property==NULL) handle->property = mChainCreate();
+
+    int vsize;
+    struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
+    if(p!=NULL)
+    {
+        if(value_size<0) {if(p->func!=NULL) {p->func(p->value,p->para);} return p->value;}
+        if(vsize==value_size+sizeof(struct Property))
+        {
+            memcpy(p->value,value,value_size);
+            if(p->var !=NULL) {if(memcmp(p->var,value,value_size)==0) return p->var;}
+            if(p->func!=NULL) p->func(p->value,p->para);
+            if(p->var !=NULL) {memcpy(p->var,value,value_size); return p->var;}
+            return p->value;
+        }
+    }
+
+    struct Property *q = mornMapWrite(handle->property,key,DFLT,NULL,sizeof(struct Property)+value_size);
+
+    if(value!=NULL) memcpy(q->value,value,value_size);
+    if(p!=NULL) {q->var=p->var;q->func=p->func;q->para=p->para;}
+    else        {q->var=  NULL;q->func=   NULL;q->para=   NULL;}
+    
+    if((q->var !=NULL)&&(value!=NULL)) memcpy(q->var,value,value_size);
+    if(q->func!=NULL) q->func(q->value,q->para);
+    return q->value;
+}
+
+void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
+{
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    if(handle->property==NULL) return NULL;
+    int vsize=0;
+    struct Property *q= mornMapRead(handle->property,key,DFLT,NULL,&vsize);
+    if(q==NULL) return NULL;
+    void *p=(q->var!=NULL)?q->var:q->value;
+
+    vsize = vsize-sizeof(struct Property);
+    int size=vsize;
+    if(value_size!=NULL) {{if(*value_size>0) size=MIN(*value_size,size);}*value_size = vsize;}
+    if(value!=NULL) memcpy(value,p,size);
+    return p;
+}
+
+void *mReserve(MObject *obj,int n)
+{
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    return (handle->reserve+n);
+}
+
 struct HandleFileCreate
 {
     char filename[272];
+    //filename[0]:redefined
+    //filename[1]:
+    //filename[2]:
+    //filename[3]:
 };
-void endFileCreate(void *info) {NULL;}
+void endFileCreate(void *info) {}
 #define HASH_FileCreate 0xfdab2bff
-MFile *mFileCreate(const char *filename,...)
+MFile *m_FileCreate0()
 {
-    MFile *file = mObjectCreate(NULL);
+    MFile *file = mObjectCreate();
     MHandle *hdl = mHandle(file,FileCreate);
     hdl->valid=1;
     struct HandleFileCreate *handle = hdl->handle;
-    file->filename = handle->filename;
+    file->filename = handle->filename+4;
+    handle->filename[0]=1;
+    return file;
+}
+MFile *m_FileCreate(const char *filename,...)
+{
+    MFile *file = m_FileCreate0();
+    if(INVALID_POINTER(filename)) return file;
     
     va_list namepara;
     va_start (namepara,filename);
@@ -167,16 +270,18 @@ MFile *mFileCreate(const char *filename,...)
     return file;
 }
 
-void mFileRedefine(MFile *file,char *filename,...)
+void mFileRedefine(MFile *file,char *file_name,...)
 {
-    if(strcmp(filename,file->filename)!=0)
-    {
-        va_list namepara;
-        va_start (namepara,filename);
-        vsnprintf(file->filename,256,filename,namepara);
-        va_end(namepara);
-        mHandleReset(file->handle);
-    }
+    if(strcmp(file_name,file->filename)==0) return;
+    char filename[256];
+    va_list namepara;
+    va_start (namepara,file_name);
+    vsnprintf(filename,256,file_name,namepara);
+    va_end(namepara);
+    if(strcmp(filename,file->filename)==0) return;
+    strcpy(file->filename,filename);
+    file->filename[-4]=1;
+    mHandleReset(file->handle);
 }
 
 int fsize(FILE *f)
@@ -228,19 +333,19 @@ void mHandleReset(MList *handle)
     }
 }
 
-static pthread_mutex_t handle_mutex = PTHREAD_MUTEX_INITIALIZER;
+// static pthread_mutex_t handle_mutex = PTHREAD_MUTEX_INITIALIZER;
 MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
 {
     mException((handle==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
-    pthread_mutex_lock(&handle_mutex);
+    // pthread_mutex_lock(&handle_mutex);
     int num = handle->num;
     for(int i=0;i<num;i++)
     {
         MHandle *handle_data = (MHandle *)(handle->data[i]);
         if(handle_data->flag == hash) 
         {
-            while(handle_data->valid==0);
-            pthread_mutex_unlock(&handle_mutex);
+            // while(handle_data->valid==0);
+            // pthread_mutex_unlock(&handle_mutex);
             return handle_data;
         }
     }
@@ -262,7 +367,7 @@ MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
     }
     handle->data[num] = Handle_context;
     handle->num = num+1;
-    pthread_mutex_unlock(&handle_mutex);
+    // pthread_mutex_unlock(&handle_mutex);
     return (MHandle *)(handle->data[num]);
 }
 
@@ -291,7 +396,7 @@ void morn_end(void)
 }
 void morn_begin()
 {
-    morn_object=mObjectCreate(NULL);
+    morn_object=mObjectCreate();
     morn_object_map=mChainCreate();
     atexit(morn_end);
 }
@@ -300,7 +405,7 @@ __declspec(allocate(".CRT$XCU")) void (* mornbegin)() = morn_begin;
 
 #else
 __attribute__((constructor)) void morn_begin() {
-    morn_object=mObjectCreate(NULL);
+    morn_object=mObjectCreate();
     morn_object_map=mChainCreate();
     // printf("before main\n");
 } 
@@ -329,52 +434,31 @@ __attribute__((destructor)) void morn_end() {
 }
 #endif
 
-static int morn_object_count = 0;
 MObject *mMornObject(const void *p,int size)
 {
     if(p==NULL) 
     {
-        if(morn_object==NULL) morn_object=mObjectCreate(NULL);
+        if(morn_object==NULL) morn_object=mObjectCreate();
         return morn_object;
     }
     
-    if(size<0) size=strlen((char *)p);
-    MObject **pobj = mornMapRead(morn_object_map,&p,sizeof(void *),NULL,DFLT);
-    
-    int *psize = (int *)(pobj+1);
-    void *pdata = (void *)(psize+1);
-    if(pobj != NULL)
+    // if(size<0) {mException((*((char *)p)>'Z'),EXIT,"invalid module name");size=strlen(p);}
+    MObject **pobj = (MObject **)mornMapRead(morn_object_map,p,size,NULL,NULL);
+    if(pobj==NULL)
     {
-        if(size==*psize) if(memcmp(pdata,p,size)==0) return (*pobj);
-        mObjectRelease(pobj[0]);
-        mornMapNodeDelete(morn_object_map,&p,sizeof(void *));
+        MObject *obj=mObjectCreate((char *)p);
+        pobj=(MObject **)mornMapWrite(morn_object_map,p,size,NULL,(sizeof(MObject *)));
+        *pobj=obj;
     }
-    
-    morn_object_count+=1;
-    if(morn_object_count>=512)
-    {
-        MChainNode *node = morn_object_map->chainnode->next;
-        while(node!=morn_object_map->chainnode)
-        {
-            pobj = mornMapNodeValue(node);psize=(int *)(pobj+1);pdata=(void *)(psize+1);
-            node = node->next;
-            if(memcmp(pobj[0]->object,pdata,*psize)!=0)
-            {
-                mObjectRelease(pobj[0]);
-                mornMapNodeDelete(morn_object_map,mornMapNodeKey(node->last),sizeof(void *));
-            }
-        }
-        morn_object_count = 0;
-    }
-
-    MObject *obj = mObjectCreate(p);
-    pobj=mornMapWrite(morn_object_map,&p,sizeof(void *),NULL,(sizeof(MObject *)+sizeof(int)+size));
-    psize=(int *)(pobj+1);pdata=(void *)(psize+1);
-    *pobj=obj;*psize=size;memcpy(pdata,p,size);
-    
-    return obj;
+    return (*pobj);
 }
 
+void mornObjectRemove(void *no_use,char *name)
+{
+    MObject **pobj = (MObject **)mornMapRead(morn_object_map,name,DFLT,NULL,NULL);
+    mObjectRelease(*pobj);
+    mornMapNodeDelete(morn_object_map,name,DFLT);
+}
 
 void _CNum(double data,char *out,int *flag)
 {
@@ -487,18 +571,3 @@ void m_Exception(int err,int ID,const char *file,int line,const char *function,c
     }
 }
 
-// struct FuncPara
-// {
-//     int parasize[16];
-//     int64_t para[16];
-// };
-// #define MORN_FUNC(func,...)
-// {
-//     mFunc(func,N,
-//           sizeof(
-//     struct FuncPara para##func;
-//     int N = VA_ARG_NUM(__VA_ARG__);
-//     if(N>0)
-//     {
-//         int parasize = sizeof(VA_ARG0(__VA_ARG__);mException(parasize>8,EXIT,"invalid func para");
-//         para##func->parasize = parasize;

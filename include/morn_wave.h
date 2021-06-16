@@ -22,10 +22,10 @@ extern "C"
 #define MORN_NOT_NORMALIZED   0
 
 typedef struct MWave {
+    Morn;
     int channel;
     int size;
     float *data[MORN_MAX_WAVE_CN];
-    Morn;
     void *reserve;
 }MWave;
 

@@ -263,7 +263,7 @@ void ImageHoughLineDrawImage(MImage *src,MList *list,char *filename)
     for(int i=0;i<list->num;i++)
     {
         MImagePoint *point = (MImagePoint *)(list->data[i]);
-        mImageDrawLine(dst,NULL,&(point[0]),&(point[1]),color,4);
+        mImageDrawLine(dst,&(point[0]),&(point[1]),color,4);
     }
     mBMPSave(dst,filename);
     mImageRelease(dst);

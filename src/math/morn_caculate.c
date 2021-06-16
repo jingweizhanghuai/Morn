@@ -18,6 +18,11 @@ struct CaculateFunction
         double (*func1)(double);
         double (*func2)(double,double);
         double (*func3)(double,double,double);
+        double (*func4)(double,double,double,double);
+        double (*func5)(double,double,double,double,double);
+        double (*func6)(double,double,double,double,double,double);
+        double (*func7)(double,double,double,double,double,double,double);
+        double (*func8)(double,double,double,double,double,double,double,double);
     };
 };
 struct CaculateFunction morn_caculate_function[128];
@@ -100,7 +105,7 @@ double Caculate(char **ptr)
 double GetValue(char **ptr)
 {
     char *p = *ptr;
-    double value,v1,v2,v3;
+    double value,v1,v2,v3,v4,v5,v6,v7,v8;
     
     int sign=0;if(*p=='-') {sign=1;p++;} else if(*p=='+') {sign=0;p++;} 
     char *str=p;
@@ -140,6 +145,11 @@ double GetValue(char **ptr)
                     v1=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func1(v1);
                     v2=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func2(v1,v2);
                     v3=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func3(v1,v2,v3);
+                    v4=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func4(v1,v2,v3,v4);
+                    v5=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func5(v1,v2,v3,v4,v5);
+                    v6=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func6(v1,v2,v3,v4,v5,v6);
+                    v7=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func7(v1,v2,v3,v4,v5,v6,v7);
+                    v8=Caculate(ptr);p=*ptr;*ptr=p+1; if(*p==')') return morn_caculate_function[i].func8(v1,v2,v3,v4,v5,v6,v7,v8);
                     return NAN;
                 }
             }

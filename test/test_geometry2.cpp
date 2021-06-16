@@ -152,8 +152,7 @@ int main()
 {
     MImagePoint pt[10000];
     CGALPoint cgal_point[10000];
-    MList *list = mListCreate();
-
+    
     MImagePoint center;mPoint(&center,50,50);
     for(int i=0;i<10000;i++)
     {
@@ -163,6 +162,8 @@ int main()
         }while(mPointDistance(pt+i,&center)>50);
         cgal_point[i]=CGALPoint(pt[i].x,pt[i].y);
     }
+    
+    MList *list = mListCreate();
     mListPlace(list,pt,10000,sizeof(MImagePoint));
 
     CGALPoint cgal_result[10000];

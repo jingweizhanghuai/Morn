@@ -3,12 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-
 #include "morn_image.h"
 
 struct HandleImageCreate
@@ -20,10 +14,13 @@ struct HandleImageCreate
     int width;
     unsigned char **index;
     MMemory *memory;
-    
+
     unsigned char **backup_index;
     MMemory *backup_memory;
     unsigned char **backup_data[MORN_MAX_IMAGE_CN];
+
+    int image_type;
+    int border_type;
 };
 void endImageCreate(void *info) 
 {
@@ -48,26 +45,30 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     MImage *img = (MImage *)mMalloc(sizeof(MImage));
     memset(img,0,sizeof(MImage));
     img->height = height;img->width = width;img->channel = cn;
-    
-         if(cn==1) mInfoSet(&(img->info),"image_type",MORN_IMAGE_GRAY);
-    else if(cn==3) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGB);
-    else if(cn==4) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGBA);
 
     img->handle = mHandleCreate();
     MHandle *hdl=mHandle(img,ImageCreate);
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
-    
+
+    mPropertyVariate(img,"image_type",&(handle->image_type));
+         if(cn==1) handle->image_type=MORN_IMAGE_GRAY;
+    else if(cn==3) handle->image_type=MORN_IMAGE_RGB ;
+    else if(cn==4) handle->image_type=MORN_IMAGE_RGBA;
+    else           handle->image_type=DFLT;
+
+    mPropertyVariate(img,"border_type",&(handle->border_type));
+    handle->border_type=DFLT;
     if((cn==0)||(height == 0))
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
         return img;
     }
-    
+
     if(!INVALID_POINTER(data))
     {
         memcpy(img->data,data,cn*sizeof(unsigned char **));
-        mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
+        handle->border_type = MORN_BORDER_INVALID;
         return img;
     }
     
@@ -81,7 +82,7 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     {
         mException(!INVALID_POINTER(data),EXIT,"invalid input");
         memset(handle->index,0,row*cn*sizeof(unsigned char *));
-        mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
+        handle->border_type = MORN_BORDER_INVALID;
         return img;
     }
     
@@ -92,8 +93,8 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     
     for(int i=0;i<cn*row;i++) handle->index[i] = &(handle->index[i][16]);
     for(int k=0;k<cn;k++) img->data[k] = handle->index + k*row+8;
-    
-    mInfoSet(&(img->info),"border_type",MORN_BORDER_UNDEFINED);
+
+    handle->border_type = MORN_BORDER_UNDEFINED;
     
     return img;
 }
@@ -112,13 +113,6 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     int reuse = (data==img->data);
     int flag = (img->channel&&img->height&&img->width);
     
-    if(cn!= img->channel)
-    {
-             if(cn==1) mInfoSet(&(img->info),"image_type",MORN_IMAGE_GRAY);
-        else if(cn==3) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGB);
-        else if(cn==4) mInfoSet(&(img->info),"image_type",MORN_IMAGE_RGBA);
-    }
-    
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input channel");
     img->channel = cn;
     img->height = height;
@@ -126,6 +120,12 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     
     if(same_size&&reuse) return;
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    if(cn!= img->channel)
+    {
+             if(cn==1) handle->image_type=MORN_IMAGE_GRAY;
+        else if(cn==3) handle->image_type=MORN_IMAGE_RGB ;
+        else if(cn==4) handle->image_type=MORN_IMAGE_RGBA;
+    }
     if(same_size&&INVALID_POINTER(data)&&(handle->width >0)) return;
     // 
     mException(reuse&&flag&&(handle->width==0),EXIT,"invalid redefine");
@@ -133,7 +133,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     handle->width = 0;
     
     img->border = NULL;
-    mInfoSet(&(img->info),"border_type",MORN_BORDER_UNDEFINED);
+    handle->border_type = MORN_BORDER_UNDEFINED;
     
     if((height<=0)||(cn<=0)||(width<=0))
     {
@@ -168,7 +168,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
             handle->backup_index=NULL;
             handle->backup_memory=NULL;
         }
-        else mInfoSet(&(img->info),"border_type",MORN_BORDER_INVALID);
+        else handle->border_type = MORN_BORDER_INVALID;
         return;
     }
 
@@ -182,7 +182,6 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     handle->width = width;
     
     for(int k=0;k<cn;k++) img->data[k] = handle->index + k*row+8;
-    
 }
 
 void mImageRelease(MImage *img)
@@ -191,6 +190,17 @@ void mImageRelease(MImage *img)
     
     if(!INVALID_POINTER(img->handle))
         mHandleRelease(img->handle);
+}
+
+int *ImageType(MImage *img)
+{
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    return &(handle->image_type);
+}
+int *ImageBorderType(MImage *img)
+{
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    return &(handle->border_type);
 }
 
 unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
@@ -219,7 +229,7 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
 void mImageExpand(MImage *img,int r,int border_type) 
 {
     mException((r>8)||(border_type < MORN_BORDER_BLACK)||(border_type > MORN_BORDER_REFLECT),EXIT,"invalid border type");
-    int img_border_type = (int)mInfoGet(&(img->info),"border_type");
+    int *p_border_type = ImageBorderType(img);int img_border_type = *p_border_type;
     mException((img_border_type == MORN_BORDER_INVALID),EXIT,"image expand is invalid");
     
     #define EXPEND_LEFT(Y,X1) {\
@@ -309,8 +319,8 @@ void mImageExpand(MImage *img,int r,int border_type)
         for(j=y2+1;j<=y2+r;j++)
             EXPEND_BUTTOM(j,y2,x1,x2);
     }
-    
-    mInfoSet(&(img->info),"border_type",border_type);
+
+    *p_border_type = border_type;
 }
 
 void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate)
@@ -398,7 +408,7 @@ void mImageCopy(MImage *src,MImage *dst)
     mImageRedefine(dst,src->channel,src->height,src->width,dst->data);
     
     dst->border = src->border;
-    dst->info = src->info;
+    // dst->info = src->info;
     
     for(int cn=0;cn<src->channel;cn++)
     {

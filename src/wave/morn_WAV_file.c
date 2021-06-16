@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_wave.h"
 
 #define fread(Data,Size,Num,Fl) mException((fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error");
@@ -106,7 +101,7 @@ void WAVLoad(MWave *dst,const char *filename)
     
     int cn = info.channel;int data_num = info.data_num;
     mWaveRedefine(dst,cn,data_num,dst->data);
-    mInfoSet(&(dst->info),"frequency",info.sample_rate);
+    float frequency=info.sample_rate;mPropertyWrite(dst,"frequency",&frequency,sizeof(float));
     
     int i,n;
     if(info.data_type == 16)
@@ -152,7 +147,7 @@ void WAVSave(MWave *src,const char *filename)
     mException((f == NULL),EXIT,"file cannot open");
 
     int datasize = src->size*sizeof(short)*src->channel;
-    float frequency = mInfoGet(&(src->info),"frequency");
+    float frequency;mPropertyRead(src,"frequency",&frequency);
     mException(mIsNan(frequency),EXIT,"invalid input wave sample rate");
     
     struct MWAVHeader fmt;
@@ -212,8 +207,12 @@ int mWAVRead(MFile *file,MWave *dst)
     }
     
     MWave *wave;int data_num;
-    float frequency = mInfoGet(&(dst->info),"frequency");
-    if(mIsNan(frequency)) {frequency=handle->sample_rate;mInfoSet(&(dst->info),"frequency",handle->sample_rate);}
+    float frequency=-1;
+    if(mPropertyRead(dst,"frequency",&frequency)==NULL) 
+    {
+        frequency=handle->sample_rate;
+        mPropertyWrite(dst,"frequency",&frequency,sizeof(float));
+    }
     if(frequency == handle->sample_rate) 
     {
         wave = dst;
@@ -312,7 +311,7 @@ int mWAVWrite(MObject *file,MWave *src)
     mException((src->channel >2),EXIT,"invalid input");
     mException(INVALID_POINTER(file),EXIT,"invalid input");
     
-    float frequency = mInfoGet(&(src->info),"frequency");
+    float frequency = -1;mPropertyRead(src,"frequency",&frequency);
     
     MHandle *hdl=mHandle(file,WAVWrite);
     struct MWAVInfo *handle = (struct MWAVInfo *)(hdl->handle);
@@ -321,7 +320,7 @@ int mWAVWrite(MObject *file,MWave *src)
         handle->f = fopen(file->filename,"wb");
         mException((handle->f == NULL),EXIT,"file cannot open");
         
-        mException(mIsNan(frequency),EXIT,"invalid input wave sample rate");
+        mException(frequency<0,EXIT,"invalid input wave sample rate");
         handle->channel = src->channel;
         handle->sample_rate = frequency;
         handle->data_num = 0;
@@ -334,7 +333,7 @@ int mWAVWrite(MObject *file,MWave *src)
     
     if(src->channel<handle->channel) return MORN_FAIL;
     
-    if((!mIsNan(frequency))&&(frequency!=handle->sample_rate))
+    if((frequency>0)&&(frequency!=handle->sample_rate))
     {
         if(handle->wave==NULL) handle->wave = mWaveCreate(handle->channel,DFLT,NULL);
         mWaveResample(src,handle->wave,DFLT,DFLT);

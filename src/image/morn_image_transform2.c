@@ -151,7 +151,7 @@ void mImageTemplateTransform(MImage *src,MImage *dst,MObject *temp,int x,int y,i
             dst->data[cn][j][i] = src->data[cn][(wy<8)?y+1:y][(wx<8)?x+1:x];
     }
     
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst)
     {

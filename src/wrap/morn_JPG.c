@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "morn_image.h"
 
 #if defined MORN_USE_JPEG
@@ -18,7 +14,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 void JPGRGBSave(MImage *src,const char *filename)
 {
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
-    int image_type = (int)mInfoGet(&(src->info),"image_type");
+    int image_type=DFLT; mPropertyRead(src,"image_type",&image_type);
     mException(((image_type != MORN_IMAGE_RGB)&&(image_type != MORN_IMAGE_RGBA))||(src->channel<3),EXIT,"invlid input");
 
     FILE *f = fopen(filename,"wb");
@@ -72,7 +68,7 @@ void JPGRGBSave(MImage *src,const char *filename)
 void JPGGraySave(MImage *src,const char *filename)
 {
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
-    int image_type = (int)mInfoGet(&(src->info),"image_type");
+    int image_type=DFLT; mPropertyRead(src,"image_type",&image_type);
     mException((image_type != MORN_IMAGE_GRAY),EXIT,"invlid input");
 
     FILE *f = fopen(filename,"wb");
@@ -110,7 +106,7 @@ void mJPGSave(MImage *src,const char *filename)
 {
     mException(INVALID_IMAGE(src),EXIT,"invlid input");
     
-    int image_type = (int)mInfoGet(&(src->info),"image_type");
+    int image_type=DFLT; mPropertyRead(src,"image_type",&image_type);
     if(image_type == MORN_IMAGE_GRAY)
         JPGGraySave(src,filename);
     else if(image_type == MORN_IMAGE_RGB)
@@ -157,15 +153,16 @@ void mJPGLoad(MImage *dst,const char *filename)
     int cn = cinfo.output_components;
     
     mImageRedefine(dst,cn,img_height,img_width,dst->data);
+    int image_type=DFLT;
     if(cn==1)
     {
-        mInfoSet(&(dst->info),"image_type",MORN_IMAGE_GRAY);
+        image_type=MORN_IMAGE_GRAY;
         for(int j=0;j<img_height;j++)
             jpeg_read_scanlines(&cinfo,&dst->data[0][j],1);
     }
     else if(cn == 3)
     {
-        mInfoSet(&(dst->info),"image_type",MORN_IMAGE_RGB);
+        image_type=MORN_IMAGE_RGB;
         JSAMPROW data_buff = (JSAMPROW)mMalloc(img_width*cn);
         
         for(int j=0;j<img_height;j++)
@@ -187,6 +184,7 @@ void mJPGLoad(MImage *dst,const char *filename)
         }
         mFree(data_buff);
     }
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
     

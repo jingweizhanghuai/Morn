@@ -19,12 +19,12 @@ extern "C"
 #define MORN_BACKWARD 1
 
 typedef struct MTensor{
+    Morn;
     int batch;
     int channel;
     int height;
     int width;
     float **data;
-    Morn;
     void *reserve;
 }MTensor;
 #define INVALID_TENSOR(Tns) ((((Tns) ==NULL)||((intptr_t)(Tns) == DFLT))?1:(((Tns)->data == NULL)||((intptr_t)((Tns)->data) == DFLT)\
@@ -34,19 +34,19 @@ typedef struct MTensor{
 
 MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int dev);
 #define mTensorCreate(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==0)?TensorCreate(DFLT,DFLT,DFLT,DFLT,NULL,DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==4)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),NULL,DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==5)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),DFLT):\
-    (VA_ARG_NUM(__VA_ARGS__)==6)?TensorCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==0)?TensorCreate(DFLT,DFLT,DFLT,DFLT,NULL,DFLT):\
+    (VANumber(__VA_ARGS__)==4)?TensorCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),NULL,DFLT):\
+    (VANumber(__VA_ARGS__)==5)?TensorCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),(float**)VA4(__VA_ARGS__),DFLT):\
+    (VANumber(__VA_ARGS__)==6)?TensorCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),(float**)VA4(__VA_ARGS__),VA5(__VA_ARGS__)):\
     NULL\
 )
 void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,float **data,int dev);
 #define mTensorRedefine(Tns,...) do{\
-    int N=VA_ARG_NUM(__VA_ARGS__);\
+    int N=VANumber(__VA_ARGS__);\
          if(N==0) TensorRedefine(Tns,DFLT,DFLT,DFLT,DFLT,(Tns)->data,DFLT);\
-    else if(N==4) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(Tns)->data,DFLT);\
-    else if(N==5) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),DFLT);\
-    else if(N==6) TensorRedefine(Tns,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__),(float**)VA_ARG4(__VA_ARGS__),VA_ARG5(__VA_ARGS__));\
+    else if(N==4) TensorRedefine(Tns,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),(Tns)->data,DFLT);\
+    else if(N==5) TensorRedefine(Tns,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),(float**)VA4(__VA_ARGS__),DFLT);\
+    else if(N==6) TensorRedefine(Tns,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),(float**)VA4(__VA_ARGS__),VA5(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 void mTensorRelease(MTensor *tns);

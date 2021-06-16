@@ -16,6 +16,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp strcasecmp
 #endif
 
+uint64_t mTime()
+{
+    uint64_t t;
+    #ifdef _MSC_VER
+    int cv = clock();t=cv*1000/CLOCKS_PER_SEC;
+    #else
+    struct timeval tv;gettimeofday(&tv,NULL);t=tv.tv_sec*1000000;t+=tv.tv_usec+500;t/=1000;
+    #endif
+    return t;
+}
+
 struct HandleTimer
 {
     MList *timer_list;

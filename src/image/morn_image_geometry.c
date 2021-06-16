@@ -3,37 +3,31 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-
 #include "morn_image.h"
+
+#define  BH(Border)   Border->dataS16[0]
+#define  BW(Border)   Border->dataS16[1]
+#define BY1(Border)   Border->dataS16[2]
+#define BY2(Border)   Border->dataS16[3]
+#define BX1(Border,N) Border->dataS16[N+N+4]
+#define BX2(Border,N) Border->dataS16[N+N+5]
 
 void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
 {
     mException(INVALID_POINTER(polygon),EXIT,"invalid input polygon");
     mException((polygon->num<3),EXIT,"invalid input polygon");
     mException(INVALID_POINTER(border),EXIT,"invalid input");
-    mArrayRedefine(border,height*2,sizeof(short),border->dataS16);
+    mArrayRedefine(border,height*2+4,sizeof(short));
+    memset(border->dataS16,0,border->num*sizeof(short));
+
+    BH(border)=height;BW(border)=width;
     
     MImagePoint **point = (MImagePoint **)(polygon->data);
-    
-    char *str;
-    str=&(border->info.name[0][0]);if(strlen(str)>0) mException((strcmp(str,"y1"    )!=0),EXIT,"invalid border");else strcpy(str,"y1");
-    str=&(border->info.name[1][0]);if(strlen(str)>0) mException((strcmp(str,"y2"    )!=0),EXIT,"invalid border");else strcpy(str,"y2");
-    str=&(border->info.name[2][0]);if(strlen(str)>0) mException((strcmp(str,"height")!=0),EXIT,"invalid border");else strcpy(str,"height");
-    str=&(border->info.name[3][0]);if(strlen(str)>0) mException((strcmp(str,"width" )!=0),EXIT,"invalid border");else strcpy(str,"width");
-
     int y1 = (int)(point[0]->y+0.5f);int y2 = (int)(point[0]->y+0.5f);
     for(int n=1;n<polygon->num;n++)
         {y1 = MIN(y1,(int)(point[n]->y+0.5f));y2 = MAX(y2,(int)(point[n]->y+0.5f));}
     y1 = MAX(y1,0);y2 = MIN(y2+1,height);
-    
-    border->info.value[0]=y1;border->info.value[1]=y2;border->info.value[2]=height;border->info.value[3]=width;
-
-    memset(border->dataS16,0,border->num*sizeof(short));
+    BY1(border)=y1;BY2(border)=y2;
     
     for(int n=0;n<polygon->num;n++)
     {
@@ -41,26 +35,16 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
         int lx,ly;
 
         p1 = point[n];
-        if(n+1<polygon->num)
-            p2 = point[n+1];
-        else
-            p2 = point[0];
+        if(n+1<polygon->num) p2 = point[n+1];
+        else p2 = point[0];
 
         if(p1->y==p2->y)
         {
             ly=(short)(p1->y + 0.5f);
             if((ly>=0)&&(ly<height))
             {
-                if(p1->x<p2->x)
-                {
-                    border->dataS16[ly+ly  ] = p1->x;
-                    border->dataS16[ly+ly+1] = p2->x;
-                }
-                else
-                {
-                    border->dataS16[ly+ly  ] = p2->x;
-                    border->dataS16[ly+ly+1] = p1->x;
-                }
+                if(p1->x<p2->x) {BX1(border,ly) = p1->x;BX2(border,ly) = p2->x;}
+                else            {BX1(border,ly) = p2->x;BX2(border,ly) = p1->x;}
             }
             continue;
         }
@@ -77,20 +61,12 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
             
             if((ly>=0)&&(ly<height))
             {
-                if( border->dataS16[ly+ly] == 0)
-                    border->dataS16[ly+ly] = lx;
-                else if(lx<border->dataS16[ly+ly])
-                {
-                    border->dataS16[ly+ly+1] = border->dataS16[ly+ly];
-                    border->dataS16[ly+ly  ] = lx;
-                }
-                else if(lx>border->dataS16[ly+ly+1])
-                    border->dataS16[ly+ly+1] = lx;
+                if(BX1(border,ly)==0)                                     BX1(border,ly)=lx;
+                else if(lx<BX1(border,ly)) {BX2(border,ly)=BX1(border,ly);BX1(border,ly)=lx;}
+                else if(lx>BX2(border,ly))                                BX2(border,ly)=lx;
             }
             
-            if(ly==(int)(p2->y+0.5f))
-                break;
-                
+            if(ly==(int)(p2->y+0.5f)) break;
             x_locate = x_locate + step;
         }
     }
@@ -126,26 +102,19 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
 void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,int y2)
 {
     mException(INVALID_POINTER(border),EXIT,"invalid input");
-    mArrayRedefine(border,height*2,sizeof(short),border->dataS16);
+    mArrayRedefine(border,height*2+4,sizeof(short),border->dataS16);
+    memset(border->dataS16,0,border->num*sizeof(short));
     
     int buff;
     if(x1>x2) {buff=x1;x1=x2;x2=buff;} x1 = MAX(0,x1); x2 = MIN(width ,x2);
     if(y1>y2) {buff=y1;y1=y2;y2=buff;} y1 = MAX(0,y1); y2 = MIN(height,y2);
-
-    char *str;
-    str=&(border->info.name[0][0]);if(strlen(str)>0) mException((strcmp(str,"y1"    )!=0),EXIT,"invalid border");else strcpy(str,"y1");
-    str=&(border->info.name[1][0]);if(strlen(str)>0) mException((strcmp(str,"y2"    )!=0),EXIT,"invalid border");else strcpy(str,"y2");
-    str=&(border->info.name[2][0]);if(strlen(str)>0) mException((strcmp(str,"height")!=0),EXIT,"invalid border");else strcpy(str,"height");
-    str=&(border->info.name[3][0]);if(strlen(str)>0) mException((strcmp(str,"width" )!=0),EXIT,"invalid border");else strcpy(str,"width");
-    border->info.value[0]=y1;border->info.value[0]=y2;border->info.value[0]=height;border->info.value[0]=width;
-
-    memset(border->dataS16,0,(y1+y1)*sizeof(short));
+    BH(border)=height;BW(border)=width;BY1(border)=y1;BY2(border)=y2;
+    
     for(int i=y1;i<y2;i++)
     {
-        border->dataS16[i+i  ] = x1;
-        border->dataS16[i+i+1] = x2;
+        BX1(border,i)=x1;
+        BX2(border,i)=x2;
     }
-    memset(border->dataS16+y2+y2,0,(height-y2)*2*sizeof(short));
 }
 
 void mLine(MList *line,float x1,float y1,float x2,float y2)

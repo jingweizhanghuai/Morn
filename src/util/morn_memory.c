@@ -5,9 +5,9 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
  
 #include "morn_ptc.h"
 
-pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef DEBUG
+pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct MemoryElement
 {
     char info[128];
@@ -152,6 +152,8 @@ struct MAFInfo
     int block_order;
 };
 __thread struct MAFInfo *morn_alloc_free_info=NULL;
+static struct MAFInfo *morn_alloc_free_info_list[512];
+static int morn_alloc_free_info_num=0;
 
 void *m_Malloc(int size)
 {
@@ -166,6 +168,9 @@ void *m_Malloc(int size)
     {
         morn_alloc_free_info=malloc(32*sizeof(struct MAFInfo));
         memset(morn_alloc_free_info,0,32*sizeof(struct MAFInfo));
+        int m=morn_alloc_free_info_num;if(m>=512) {printf("thread memory error\n");exit(0);}
+        morn_alloc_free_info_list[m]=morn_alloc_free_info;
+        morn_alloc_free_info_num=m++;
     }
     struct MAFInfo *info  = morn_alloc_free_info+idx;
     
@@ -283,17 +288,21 @@ void *m_Realloc(void *p,int size)
 
 void endMAF()
 {
-    if(morn_alloc_free_info==NULL) return;
-    for(int i=0;i<32;i++)
+    for(int m=0;m<morn_alloc_free_info_num;m++)
     {
-        if(morn_alloc_free_info[i].spare!=morn_alloc_free_info[i].block) m_Free(morn_alloc_free_info[i].spare);
-        if(morn_alloc_free_info[i].block     !=NULL) m_Free(morn_alloc_free_info[i].block);
-        if(morn_alloc_free_info[i].block_list!=NULL)   free(morn_alloc_free_info[i].block_list);
+        struct MAFInfo *info = morn_alloc_free_info_list[m];
+        if(info==NULL) return;
+        for(int i=0;i<32;i++)
+        {
+            if(info[i].spare!=info[i].block) m_Free(info[i].spare);
+            if(info[i].block     !=NULL)     m_Free(info[i].block);
+            if(info[i].block_list!=NULL)       free(info[i].block_list);
+        }
+        free(info);
     }
-    free(morn_alloc_free_info);
-    morn_alloc_free_info=NULL;
 }
 
+/*
 struct AFMessage
 {
     void *block;
@@ -317,7 +326,7 @@ struct AFInfo
     int block_count;
 };
 __thread struct AFInfo morn_af_info[32];
-/*
+
 void *mm_Malloc(int size)
 {
     struct AFMessage *ptr;

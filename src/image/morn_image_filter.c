@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_image.h"
 #include "morn_image_caculate.h"
 
@@ -68,7 +64,7 @@ void mImageMidValueFilter(MImage *src,MImage *dst)
         
         mImageRegion(src,1,MidValueFilter);
     }
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }
@@ -97,7 +93,7 @@ void mImageMidValueFilter2(MImage *src,MImage *dst,int r)
         
         mImageRegion(src,r,MidValueFilter2);
     }
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }
@@ -132,7 +128,7 @@ void mImageConverlotion(MImage *src,MImage *dst,float *kernel,int r)
         
         mImageRegion(src,r,Converlotion);
     }
-    memcpy(&(dst->info),&(src->info),sizeof(MInfo));
+    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst) { mImageExchange(src,dst); mImageRelease(dst);}
 }

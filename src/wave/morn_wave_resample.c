@@ -12,34 +12,27 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 void mWaveHalfResample(MWave *src,MWave *dst)
 {
-    int src_size;
-    int dst_size;
-    
-    int i;
-    
-    int cn;
-                 
     float w[5]={0.632537035f,-0.200145897f,0.107834221f,-0.064897519f,0.039258993f/*,-0.022279798,0.010658657*/};
 
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
-    src_size = src->size;    
-    dst_size = src_size/2;
+    int src_size = src->size;    
+    int dst_size = src_size/2;
     
     if(INVALID_POINTER(dst)) dst = src;
     else mWaveRedefine(dst,src->channel,dst_size,dst->data);
     
-    float frequency = mInfoGet(&(src->info),"frequency");
-    if(!mIsNan(frequency)) mInfoSet(&(src->info),"frequency",frequency/2.0f);
+    float frequency=0;
+    if(mPropertyRead(src,"frequency",&frequency)) {frequency /=2.0; mPropertyWrite(src,"frequency",&frequency,sizeof(float));}
 
-    for(cn=0;cn<src->channel;cn++)
-    {        
+    for(int cn=0;cn<src->channel;cn++)
+    {
         dst->data[cn][0] = src->data[cn][0];
         dst->data[cn][1] = src->data[cn][2];
         dst->data[cn][2] = src->data[cn][4];
         dst->data[cn][3] = src->data[cn][6];
         dst->data[cn][4] = src->data[cn][8];
         
-        for(i=5;i<dst_size-5;i++)
+        int i;for(i=5;i<dst_size-5;i++)
         {
             dst->data[cn][i] = (src->data[cn][(i<<1)] + 
                              +(src->data[cn][(i<<1)+1] + src->data[cn][(i<<1)-1])*w[0]
@@ -58,9 +51,9 @@ void mWaveHalfResample(MWave *src,MWave *dst)
     }
 }
 
-static float g_resample_w[11] = {0.0f};
-static float g_resample_wsum = 0.0f;
-static float g_resample_n = 0.0f;
+static float morn_resample_w[11] = {0.0f};
+static float morn_resample_wsum = 0.0f;
+static float morn_resample_n = 0.0f;
 
 void mWaveIntegerResample(MWave *src,MWave *dst,int n)
 {
@@ -75,25 +68,24 @@ void mWaveIntegerResample(MWave *src,MWave *dst,int n)
     int src_size = src->size;
     int dst_size = (int)(((float)src_size)/((float)n));    
     mException(((n <= 0)||(dst_size<=1)),EXIT,"invalid input");
-    
-    dst->info = src->info;
-    float frequency = mInfoGet(&(src->info),"frequency");
-    if(!mIsNan(frequency)) mInfoSet(&(src->info),"frequency",frequency/(float)n);
-    
+
+    float frequency=0;
+    if(mPropertyRead(src,"frequency",&frequency)) {frequency /=n; mPropertyWrite(src,"frequency",&frequency,sizeof(float));}
+
     mWaveRedefine(dst,src->channel,dst_size,dst->data);
 
-    if(n != g_resample_n)
+    if(n != morn_resample_n)
     {
         double l = 0;
-        g_resample_wsum = 0.0f;
+        morn_resample_wsum = 0.0f;
         for(i=1;i<=10;i++)
         {
             l = l+(double)(MORN_PI/(double)n);
-            g_resample_w[i] = (float)(sin(l)/l);  
-            g_resample_wsum = g_resample_wsum + g_resample_w[i];            
+            morn_resample_w[i] = (float)(sin(l)/l);  
+            morn_resample_wsum = morn_resample_wsum + morn_resample_w[i];            
         }
-        g_resample_wsum = g_resample_wsum+g_resample_wsum+1.0f;
-        g_resample_n = n;
+        morn_resample_wsum = morn_resample_wsum+morn_resample_wsum+1.0f;
+        morn_resample_n = n;
     }
         
     for(int cn=0;cn<src->channel;cn++)
@@ -108,9 +100,9 @@ void mWaveIntegerResample(MWave *src,MWave *dst,int n)
             
             float result = src->data[cn][locate];
             for(j=1;j<=10;j++)
-                result = result + (src->data[cn][locate-j] + src->data[cn][locate+j])*g_resample_w[j];
+                result = result + (src->data[cn][locate-j] + src->data[cn][locate+j])*morn_resample_w[j];
             
-            dst->data[cn][i] = result/g_resample_wsum;
+            dst->data[cn][i] = result/morn_resample_wsum;
         }
         
         dst->data[cn][i]   = src->data[cn][n*i];
@@ -156,21 +148,19 @@ static float g_sin_value[51] = {
 
 void mWaveResample(MWave *src,MWave *dst,int src_rate,int dst_rate)
 {
-    int i,j;
     mException((INVALID_WAVE(src)),EXIT,"invalid input");
     
+    float frequency=0; 
     if(src_rate <= 0) 
     {
-        float frequency = mInfoGet(&(src->info),"frequency");
-        if(!mIsNan(frequency)) src_rate = (int)frequency;
-        mException((src_rate<=0),EXIT,"no frequency info");
+        mException(mPropertyRead(src,"frequency",&frequency)==NULL,EXIT,"no frequency info");
+        src_rate = (int)frequency;
     }
     
     if(dst_rate <= 0) 
     {
-        float frequency = mInfoGet(&(dst->info),"frequency");
-        if(!mIsNan(frequency)) dst_rate = (int)frequency;
-        if(dst_rate<=0) dst_rate=src_rate;
+        if(mPropertyRead(src,"frequency",&frequency)==NULL) dst_rate=src_rate;
+        else dst_rate = (int)frequency;
     }
     
     if(INVALID_POINTER(dst)) dst = src;
@@ -180,8 +170,7 @@ void mWaveResample(MWave *src,MWave *dst,int src_rate,int dst_rate)
         if(dst!=src) 
         {
             mWaveCopy(src,dst);
-            dst->info = src->info;
-            mInfoSet(&(dst->info),"frequency",(float)dst_rate);
+            frequency=(float)dst_rate;mPropertyWrite(dst,"frequency",&frequency,sizeof(float));
         }
         return;
     }
@@ -199,8 +188,7 @@ void mWaveResample(MWave *src,MWave *dst,int src_rate,int dst_rate)
     int dst_size = (int)(((float)src_size)/k);
     mException((dst_size <= 1),EXIT,"invalid operate");    
     mWaveRedefine(dst,src->channel,dst_size,dst->data);
-    dst->info = src->info;
-    mInfoSet(&(dst->info),"frequency",(float)dst_rate);
+    frequency=(float)dst_rate; mPropertyWrite(dst,"frequency",&frequency,sizeof(float));
     
     for(int cn=0;cn<src->channel;cn++)
     {
@@ -214,7 +202,7 @@ void mWaveResample(MWave *src,MWave *dst,int src_rate,int dst_rate)
         dst->data[cn][7] = src->data[cn][(int)(k+k+k+k+k+k+k+k+0.5f)];
         
         float l = 7*k;
-        for(i=8;i<dst_size-8;i++)
+        int i;for(i=8;i<dst_size-8;i++)
         {
             l = l+k;
             int n1 = (int)l;
@@ -223,7 +211,7 @@ void mWaveResample(MWave *src,MWave *dst,int src_rate,int dst_rate)
             float result = 0.0f;
             float sum = 0.0f;
             float data;
-            for(j=0;j<8;j++)
+            for(int j=0;j<8;j++)
             {
                 SINC(((l-(float)n1)/k),data);
                 result = result + src->data[cn][n1]*data;

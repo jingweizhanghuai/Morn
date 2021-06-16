@@ -22,7 +22,7 @@ void endBtreeCreate(void *info)
 #define HASH_BtreeCreate 0x14c697eb
 MBtree *mBtreeCreate()
 {
-    MBtree *btree = mObjectCreate(NULL);
+    MBtree *btree = mObjectCreate();
     
     mHandle(btree,BtreeCreate);
     

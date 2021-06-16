@@ -42,9 +42,9 @@ int mBinaryFloor(int data);
 int mBinaryRound(int data);
 
 int GreatestCommonDivisor(int n,...);
-#define mGCD(...) GreatestCommonDivisor(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__)
+#define mGCD(...) GreatestCommonDivisor(VANumber(__VA_ARGS__),__VA_ARGS__)
 int LowestCommonMultiple(int n,...);
-#define mLCM(...) LowestCommonMultiple(VA_ARG_NUM(__VA_ARGS__),__VA_ARGS__)
+#define mLCM(...) LowestCommonMultiple(VANumber(__VA_ARGS__),__VA_ARGS__)
 
 static inline float mSup() {float a=0.0f;return  1.0f/a;}
 static inline float mInf() {float a=0.0f;return -1.0f/a;}
@@ -58,34 +58,34 @@ static inline float mInf() {float a=0.0f;return -1.0f/a;}
 #define mIsNan(A) isnan(A)
 #define mIsInteger(A) (ABS(A-((int)(A+0.5f)))<0.00001f)
 
-int mPermutation(int *idx,int n,int m);
-int mCombination(int *idx,int n,int m);
+int mPermutation(MArray *array,int n);
+int mCombination(MArray *array,int n);
 
 double mSigmoid(float x);
 
 typedef struct MVector{
+    Morn;
     int size;
     float *data;
-    Morn;
 }MVector;
 
 #define INVALID_VEC(Vec) ((((Vec) ==NULL)||((intptr_t)(Vec) == -1))?1:(((Vec)->size <= 0)||((intptr_t)((Vec)->data) <= 0)))
 
 MVector *VectorCreate(int size,float *data,int dev);
 #define mVectorCreate(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==0)?VectorCreate(DFLT,NULL,DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==1)?VectorCreate(VA_ARG0(__VA_ARGS__),NULL,DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==2)?VectorCreate(VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?VectorCreate(VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==0)?VectorCreate(DFLT,NULL,DFLT):(\
+    (VANumber(__VA_ARGS__)==1)?VectorCreate(VA0(__VA_ARGS__),NULL,DFLT):(\
+    (VANumber(__VA_ARGS__)==2)?VectorCreate(VA0(__VA_ARGS__),(float *)VA1(__VA_ARGS__),DFLT):(\
+    (VANumber(__VA_ARGS__)==3)?VectorCreate(VA0(__VA_ARGS__),(float *)VA1(__VA_ARGS__),VA2(__VA_ARGS__)):\
     NULL)))\
 )
 
 void VectorRedefine(MVector *vec,int size,float *data,int dev);
 #define mVectorRedefine(Vec,...) do{\
-    int N=VA_ARG_NUM(__VA_ARGS__);\
-         if(N==1) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(Vec)->data,DFLT);\
-    else if(N==2) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),DFLT);\
-    else if(N==3) VectorRedefine(Vec,VA_ARG0(__VA_ARGS__),(float *)VA_ARG1(__VA_ARGS__),VA_ARG2(__VA_ARGS__));\
+    int N=VANumber(__VA_ARGS__);\
+         if(N==1) VectorRedefine(Vec,VA0(__VA_ARGS__),(Vec)->data,DFLT);\
+    else if(N==2) VectorRedefine(Vec,VA0(__VA_ARGS__),(float *)VA1(__VA_ARGS__),DFLT);\
+    else if(N==3) VectorRedefine(Vec,VA0(__VA_ARGS__),(float *)VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 
@@ -101,10 +101,10 @@ void mVectorRelease(MVector *vec);
 #define mVectorReset(Vec) mHandleReset(Vec->handle)
 
 typedef struct MMatrix{
+    Morn;
     int row;
     int col;
     float **data;
-    Morn;
     void *reserve;
 }MMatrix;
 
@@ -114,10 +114,10 @@ typedef struct MMatrix{
 
 MMatrix *MatrixCreate(int row,int col,float **data,int dev);
 #define mMatrixCreate(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==0)?MatrixCreate(DFLT,DFLT,NULL,DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==2)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),NULL,DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),DFLT):(\
-    (VA_ARG_NUM(__VA_ARGS__)==4)?MatrixCreate(VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==0)?MatrixCreate(DFLT,DFLT,NULL,DFLT):(\
+    (VANumber(__VA_ARGS__)==2)?MatrixCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL,DFLT):(\
+    (VANumber(__VA_ARGS__)==3)?MatrixCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),(float **)VA2(__VA_ARGS__),DFLT):(\
+    (VANumber(__VA_ARGS__)==4)?MatrixCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),(float **)VA2(__VA_ARGS__),VA3(__VA_ARGS__)):\
     NULL)))\
 )
 
@@ -125,10 +125,10 @@ void mMatrixRelease(MMatrix *mat);
 
 void MatrixRedefine(MMatrix *mat,int row,int col,float ** data,int dev);
 #define mMatrixRedefine(Mat,...) do{\
-    int N=VA_ARG_NUM(__VA_ARGS__);\
-         if(N==2) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(Mat)->data,DFLT);\
-    else if(N==3) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),DFLT);\
-    else if(N==4) MatrixRedefine(Mat,VA_ARG0(__VA_ARGS__),VA_ARG1(__VA_ARGS__),(float **)VA_ARG2(__VA_ARGS__),VA_ARG3(__VA_ARGS__));\
+    int N=VANumber(__VA_ARGS__);\
+         if(N==2) MatrixRedefine(Mat,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(Mat)->data,DFLT);\
+    else if(N==3) MatrixRedefine(Mat,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(float **)VA2(__VA_ARGS__),DFLT);\
+    else if(N==4) MatrixRedefine(Mat,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(float **)VA2(__VA_ARGS__),VA3(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 
@@ -201,12 +201,12 @@ void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num
     else mException(1,EXIT,"invalid input dD64ata type");\
 }while(0)
 #define mAscSort(...) do{\
-    int VAN=VA_ARG_NUM(__VA_ARGS__);\
-    intptr_t VA1=(intptr_t)VA_ARG1(__VA_ARGS__),VA2=(intptr_t)VA_ARG2(__VA_ARGS__),VA3=(intptr_t)VA_ARG3(__VA_ARGS__),VA4=(intptr_t)VA_ARG4(__VA_ARGS__);\
-         if(VAN==2) m_AscSort(VA_ARG0(__VA_ARGS__),      NULL,       NULL,      NULL,(int)VA1);\
-    else if(VAN==3) m_AscSort(VA_ARG0(__VA_ARGS__),      NULL,(void *)VA1,      NULL,(int)VA2);\
-    else if(VAN==4) m_AscSort(VA_ARG0(__VA_ARGS__),      NULL,(void *)VA1,(int *)VA2,(int)VA3);\
-    else if(VAN==5) m_AscSort(VA_ARG0(__VA_ARGS__),(int *)VA1,(void *)VA2,(int *)VA3,(int)VA4);\
+    int VAN=VANumber(__VA_ARGS__);\
+    intptr_t VA1=(intptr_t)VA1(__VA_ARGS__),VA2=(intptr_t)VA2(__VA_ARGS__),VA3=(intptr_t)VA3(__VA_ARGS__),VA4=(intptr_t)VA4(__VA_ARGS__);\
+         if(VAN==2) m_AscSort(VA0(__VA_ARGS__),      NULL,       NULL,      NULL,(int)VA1);\
+    else if(VAN==3) m_AscSort(VA0(__VA_ARGS__),      NULL,(void *)VA1,      NULL,(int)VA2);\
+    else if(VAN==4) m_AscSort(VA0(__VA_ARGS__),      NULL,(void *)VA1,(int *)VA2,(int)VA3);\
+    else if(VAN==5) m_AscSort(VA0(__VA_ARGS__),(int *)VA1,(void *)VA2,(int *)VA3,(int)VA4);\
     else mException(1,EXIT,"invalid input");\
 }while(0)
 
@@ -235,25 +235,25 @@ void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int nu
     else mException(1,EXIT,"invalid input data type");\
 }while(0)
 #define mDescSort(...) do{\
-    int VAN=VA_ARG_NUM(__VA_ARGS__);\
-    intptr_t VA1=(intptr_t)VA_ARG1(__VA_ARGS__),VA2=(intptr_t)VA_ARG2(__VA_ARGS__),VA3=(intptr_t)VA_ARG3(__VA_ARGS__),VA4=(intptr_t)VA_ARG4(__VA_ARGS__);\
-         if(VAN==2) m_DescSort(VA_ARG0(__VA_ARGS__),      NULL,       NULL,      NULL,(int)VA1);\
-    else if(VAN==3) m_DescSort(VA_ARG0(__VA_ARGS__),      NULL,(void *)VA1,      NULL,(int)VA2);\
-    else if(VAN==4) m_DescSort(VA_ARG0(__VA_ARGS__),      NULL,(void *)VA1,(int *)VA2,(int)VA3);\
-    else if(VAN==5) m_DescSort(VA_ARG0(__VA_ARGS__),(int *)VA1,(void *)VA2,(int *)VA3,(int)VA4);\
+    int VAN=VANumber(__VA_ARGS__);\
+    intptr_t VA1=(intptr_t)VA1(__VA_ARGS__),VA2=(intptr_t)VA2(__VA_ARGS__),VA3=(intptr_t)VA3(__VA_ARGS__),VA4=(intptr_t)VA4(__VA_ARGS__);\
+         if(VAN==2) m_DescSort(VA0(__VA_ARGS__),      NULL,       NULL,      NULL,(int)VA1);\
+    else if(VAN==3) m_DescSort(VA0(__VA_ARGS__),      NULL,(void *)VA1,      NULL,(int)VA2);\
+    else if(VAN==4) m_DescSort(VA0(__VA_ARGS__),      NULL,(void *)VA1,(int *)VA2,(int)VA3);\
+    else if(VAN==5) m_DescSort(VA0(__VA_ARGS__),(int *)VA1,(void *)VA2,(int *)VA3,(int)VA4);\
     else mException(1,EXIT,"invalid input");\
 }while(0)
 
-double mMinSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out);
-double mMinSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out);
-double mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
-double mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
-double mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
-double mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
-double mMinSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out);
-double mMinSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out);
-double mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
-double mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
+U8  mMinSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out);
+S8  mMinSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out);
+U16 mMinSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
+S16 mMinSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
+U32 mMinSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
+S32 mMinSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
+U64 mMinSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out);
+S64 mMinSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out);
+F32 mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
+D64 mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
 #define m_MinSubset(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) (\
  (mDataType(DataIn)==MORN_TYPE_U8 )?mMinSubsetU8 ((U8  *)DataIn,IndexIn,NumIn,(U8  *)DataOut,IndexOut,NumOut):(\
     (morn_data_type==MORN_TYPE_S8 )?mMinSubsetS8 ((S8  *)DataIn,IndexIn,NumIn,(S8  *)DataOut,IndexOut,NumOut):(\
@@ -267,23 +267,23 @@ double mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *in
     (morn_data_type==MORN_TYPE_D64)?mMinSubsetD64((D64 *)DataIn,IndexIn,NumIn,(D64 *)DataOut,IndexOut,NumOut):DFLT)))))))))\
 )
 #define mMinSubset(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MinSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA_ARG2(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==4)?m_MinSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),(intptr_t)VA_ARG2(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG3(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MinSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),(intptr_t)VA_ARG2(__VA_ARGS__),(int *)((intptr_t)VA_ARG3(__VA_ARGS__)),(int)((intptr_t)VA_ARG4(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==6)?m_MinSubset(VA_ARG0(__VA_ARGS__),(int *)((intptr_t)VA_ARG1(__VA_ARGS__)),(int)((intptr_t)VA_ARG2(__VA_ARGS__)),(intptr_t)VA_ARG3(__VA_ARGS__),(int *)((intptr_t)VA_ARG4(__VA_ARGS__)),(int)((intptr_t)VA_ARG5(__VA_ARGS__))): \
+    (VANumber(__VA_ARGS__)==3)?m_MinSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA2(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==4)?m_MinSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA3(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==5)?m_MinSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__),(int *)((intptr_t)VA3(__VA_ARGS__)),(int)((intptr_t)VA4(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==6)?m_MinSubset(VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),(int)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__),(int *)((intptr_t)VA4(__VA_ARGS__)),(int)((intptr_t)VA5(__VA_ARGS__))): \
     DFLT)))\
 )
 
-double mMaxSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out);
-double mMaxSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out);
-double mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
-double mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
-double mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
-double mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
-double mMaxSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out);
-double mMaxSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out);
-double mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
-double mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
+U8  mMaxSubsetU8 (U8  *data_in,int *index_in,int num_in,U8  *data_out,int *index_out,int num_out);
+S8  mMaxSubsetS8 (S8  *data_in,int *index_in,int num_in,S8  *data_out,int *index_out,int num_out);
+U16 mMaxSubsetU16(U16 *data_in,int *index_in,int num_in,U16 *data_out,int *index_out,int num_out);
+S16 mMaxSubsetS16(S16 *data_in,int *index_in,int num_in,S16 *data_out,int *index_out,int num_out);
+U32 mMaxSubsetU32(U32 *data_in,int *index_in,int num_in,U32 *data_out,int *index_out,int num_out);
+S32 mMaxSubsetS32(S32 *data_in,int *index_in,int num_in,S32 *data_out,int *index_out,int num_out);
+U64 mMaxSubsetU64(U64 *data_in,int *index_in,int num_in,U64 *data_out,int *index_out,int num_out);
+S64 mMaxSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index_out,int num_out);
+F32 mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
+D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
 #define m_MaxSubset(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) (\
  (mDataType(DataIn)==MORN_TYPE_U8 )?mMaxSubsetU8 ((U8  *)DataIn,IndexIn,(int)NumIn,(U8  *)DataOut,IndexOut,(int)NumOut):(\
     (morn_data_type==MORN_TYPE_S8 )?mMaxSubsetS8 ((S8  *)DataIn,IndexIn,(int)NumIn,(S8  *)DataOut,IndexOut,(int)NumOut):(\
@@ -297,16 +297,23 @@ double mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *in
     (morn_data_type==MORN_TYPE_D64)?mMaxSubsetD64((D64 *)DataIn,IndexIn,(int)NumIn,(D64 *)DataOut,IndexOut,(int)NumOut):DFLT)))))))))\
 )
 #define mMaxSubset(...) (\
-    (VA_ARG_NUM(__VA_ARGS__)==3)?m_MaxSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA_ARG2(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==4)?m_MaxSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),(intptr_t)VA_ARG2(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG3(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==5)?m_MaxSubset(VA_ARG0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA_ARG1(__VA_ARGS__)),(intptr_t)VA_ARG2(__VA_ARGS__),(int *)((intptr_t)VA_ARG3(__VA_ARGS__)),(int)((intptr_t)VA_ARG4(__VA_ARGS__))):(\
-    (VA_ARG_NUM(__VA_ARGS__)==6)?m_MaxSubset(VA_ARG0(__VA_ARGS__),(int *)((intptr_t)VA_ARG1(__VA_ARGS__)),(int)((intptr_t)VA_ARG2(__VA_ARGS__)),(intptr_t)VA_ARG3(__VA_ARGS__),(int *)((intptr_t)VA_ARG4(__VA_ARGS__)),(int)((intptr_t)VA_ARG5(__VA_ARGS__))): \
+    (VANumber(__VA_ARGS__)==3)?m_MaxSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA2(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==4)?m_MaxSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA3(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==5)?m_MaxSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__),(int *)((intptr_t)VA3(__VA_ARGS__)),(int)((intptr_t)VA4(__VA_ARGS__))):(\
+    (VANumber(__VA_ARGS__)==6)?m_MaxSubset(VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),(int)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__),(int *)((intptr_t)VA4(__VA_ARGS__)),(int)((intptr_t)VA5(__VA_ARGS__))): \
     DFLT)))\
 )
 
 #define MAX_TENSOR_BATCH 32
 
 double mCaculate(char *str);
+void m_CaculateFunction(const char *name,void *func);
+// #define _CaculateFunction(Func) m_CaculateFunction(#Func,Func);
+#define mCaculateFunction(Func,...) do{\
+    int VA=VANumber(__VA_ARGS__);\
+    if(VA==0) m_CaculateFunction(#Func,(void *)Func);\
+    else m_CaculateFunction((const char*)Func,(void *)VA0(__VA_ARGS__));\
+}while(0)
 
 unsigned int mHash(const char *in,int size);
 

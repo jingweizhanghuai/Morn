@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_wave.h"
 
 struct HandleWaveCreate
@@ -154,7 +150,7 @@ void mWaveCut(MWave *src,MWave *dst,int locate,int size)
     if(dst != src)
     {
         mWaveRedefine(dst,src->channel,size,dst->data);
-        dst->info = src->info;
+        // dst->info = src->info;
     }
     
     for(cn=0;cn<src->channel;cn++)
@@ -231,8 +227,8 @@ void mWaveAdd(MWave *src1,MWave *src2,MWave *dst)
 
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
     
     if(src2->channel == 0)
@@ -260,8 +256,8 @@ void mWaveSub(MWave *src1,MWave *src2,MWave *dst)
 
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
     
     if(src2->channel == 1)
@@ -289,8 +285,8 @@ void mWaveAverage(MWave *src1,MWave *src2,MWave *dst)
 
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
     
     if(src2->channel == 1)
@@ -330,8 +326,8 @@ void mWaveWeightedAverage(MWave *src1,MWave *src2,MWave *dst,float weight1,float
     
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
     
     if(src2->channel == 1)
@@ -358,8 +354,8 @@ void mWaveScale(MWave *src,MWave *dst,float k)
     
     if(INVALID_POINTER(dst))
         dst = src;
-    dst->info = src->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src->channel,wav_size,dst->data);
     
     for(cn = 0;cn<src->channel;cn++)
@@ -378,8 +374,8 @@ void mWaveMul(MWave *src1,MWave *src2,MWave *dst)
 
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
     
     if(src2->channel == 1)
@@ -407,8 +403,8 @@ void mWaveDiv(MWave *src1,MWave *src2,MWave *dst)
 
     if(INVALID_POINTER(dst))
         dst = src1;
-    dst->info = src1->info;
-    mInfoSet(&(dst->info),"normalize",MORN_NOT_NORMALIZED);
+    // dst->info = src1->info;
+    float normalize=MORN_NOT_NORMALIZED;mPropertyWrite(dst,"normalize",&normalize,sizeof(float));
     mWaveRedefine(dst,src1->channel,wav_size,dst->data);
   
     for(cn = 0;cn<src1->channel;cn++)
