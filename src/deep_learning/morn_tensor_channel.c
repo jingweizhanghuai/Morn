@@ -17,7 +17,7 @@ struct TensorMergePara
     int res_valid2;
 };
 
-void *mTensorMergePara(MFile *ini,char *name)
+void *mTensorMergePara(MList *ini,char *name)
 {
     struct TensorMergePara *para = (struct TensorMergePara *)mMalloc(sizeof(struct TensorMergePara));
    
@@ -143,7 +143,7 @@ struct TensorSplitPara
     int end;
 };
 
-void *mTensorSplitPara(MFile *ini,char *name)
+void *mTensorSplitPara(MList *ini,char *name)
 {
     struct TensorSplitPara *para = (struct TensorSplitPara *)mMalloc(sizeof(struct TensorSplitPara));
    

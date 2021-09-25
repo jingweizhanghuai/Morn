@@ -20,7 +20,7 @@ struct TensorConnectPara
     float decay;
     float momentum;
 };
-void *mTensorConnectPara(MFile *ini,char *name)
+void *mTensorConnectPara(MList *ini,char *name)
 {
     struct TensorConnectPara *para=(struct TensorConnectPara *)mMalloc(sizeof(struct TensorConnectPara));
     

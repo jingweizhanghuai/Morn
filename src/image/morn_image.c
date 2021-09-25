@@ -9,6 +9,9 @@ struct HandleImageCreate
 {
     MImage *img;
     MChain *property;
+    int64_t reserve[8];
+    int writeable;
+    
     int cn;
     int height;
     int width;
@@ -22,9 +25,8 @@ struct HandleImageCreate
     int image_type;
     int border_type;
 };
-void endImageCreate(void *info) 
+void endImageCreate(struct HandleImageCreate *handle) 
 {
-    struct HandleImageCreate *handle = (struct HandleImageCreate *)info;
     mException((handle->img == NULL),EXIT,"invalid image");
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->index   !=NULL) mFree(handle->index);
@@ -34,19 +36,20 @@ void endImageCreate(void *info)
     if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
 
     memset(handle->img,0,sizeof(MImage));
-    mFree(handle->img);
+    mFree(((MList **)(handle->img))-1);
 }
 #define HASH_ImageCreate 0xccb34f86
 MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
 {
     if(cn <0) {cn = 0;} if(height <0) {height = 0;} if(width <0) {width = 0;}
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input");
-   
-    MImage *img = (MImage *)mMalloc(sizeof(MImage));
+
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MImage));
+    MImage *img = (MImage *)(phandle+1);
     memset(img,0,sizeof(MImage));
     img->height = height;img->width = width;img->channel = cn;
 
-    img->handle = mHandleCreate();
+    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(img,ImageCreate);
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
@@ -90,6 +93,7 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     mException(handle->memory->num!=1,EXIT,"invalid image memory");
     mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
     handle->width = width;
+    mPropertyFunction(img,"device",mornMemoryDevice,handle->memory);
     
     for(int i=0;i<cn*row;i++) handle->index[i] = &(handle->index[i][16]);
     for(int k=0;k<cn;k++) img->data[k] = handle->index + k*row+8;
@@ -107,7 +111,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     if(height <= 0)           height=img->height;
     if(width<=0)              width =img->width;
     
-    if((cn!=img->channel)||(height!=img->height)||(width!=img->width)) mHandleReset(img->handle);
+    if((cn!=img->channel)||(height!=img->height)||(width!=img->width)) mHandleReset(img);
     
     int same_size = ((cn<=img->channel)&&(height<=img->height)&&(width<=img->width));
     int reuse = (data==img->data);
@@ -119,7 +123,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     img->width = width;
     
     if(same_size&&reuse) return;
-    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(ObjHandle(img,0)->handle);
     if(cn!= img->channel)
     {
              if(cn==1) handle->image_type=MORN_IMAGE_GRAY;
@@ -171,9 +175,12 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
         else handle->border_type = MORN_BORDER_INVALID;
         return;
     }
-
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST);
+    if(handle->memory == NULL)
+    {
+        handle->memory = mMemoryCreate(1,cn*row*col*sizeof(unsigned char),MORN_HOST);
+        mPropertyFunction(img,"device",mornMemoryDevice,handle->memory);
+    }
     else mMemoryRedefine(handle->memory,1,cn*row*col*sizeof(unsigned char),DFLT);
     mException(handle->memory->num!=1,EXIT,"invalid image memory");
     mMemoryIndex(handle->memory,cn*row,col*sizeof(unsigned char),(void ***)(&(handle->index)),1);
@@ -186,21 +193,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
 
 void mImageRelease(MImage *img)
 {
-    mException(INVALID_POINTER(img),EXIT,"invalid input");
-    
-    if(!INVALID_POINTER(img->handle))
-        mHandleRelease(img->handle);
-}
-
-int *ImageType(MImage *img)
-{
-    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
-    return &(handle->image_type);
-}
-int *ImageBorderType(MImage *img)
-{
-    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
-    return &(handle->border_type);
+    mHandleRelease(img);
 }
 
 unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
@@ -212,7 +205,7 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
     int col = width + 32;
     int row = height+ 16;
     
-    struct HandleImageCreate *handle = (struct HandleImageCreate *)(((MHandle *)(img->handle->data[0]))->handle);
+    struct HandleImageCreate *handle = (struct HandleImageCreate *)(ObjHandle(img,0)->handle);
     if(handle->backup_index!=NULL) mFree(handle->backup_index);
     handle->backup_index = (unsigned char **)mMalloc(cn*row*sizeof(unsigned char *));
     
@@ -229,8 +222,8 @@ unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
 void mImageExpand(MImage *img,int r,int border_type) 
 {
     mException((r>8)||(border_type < MORN_BORDER_BLACK)||(border_type > MORN_BORDER_REFLECT),EXIT,"invalid border type");
-    int *p_border_type = ImageBorderType(img);int img_border_type = *p_border_type;
-    mException((img_border_type == MORN_BORDER_INVALID),EXIT,"image expand is invalid");
+    int *img_border_type = (int *)mPropertyRead(img,"border_type");
+    mException((*img_border_type == MORN_BORDER_INVALID),EXIT,"image expand is invalid");
     
     #define EXPEND_LEFT(Y,X1) {\
         if(border_type == MORN_BORDER_BLACK)\
@@ -279,7 +272,7 @@ void mImageExpand(MImage *img,int r,int border_type)
     int y1 = ImageY1(img);
     int y2 = ImageY2(img)-1;
     
-    if(img_border_type == MORN_BORDER_IMAGE)
+    if(*img_border_type == MORN_BORDER_IMAGE)
     {
         for(int cn=0;cn<img->channel;cn++)
         {
@@ -320,7 +313,7 @@ void mImageExpand(MImage *img,int r,int border_type)
             EXPEND_BUTTOM(j,y2,x1,x2);
     }
 
-    *p_border_type = border_type;
+    mPropertyWrite(img,"border_type",&border_type,sizeof(int));
 }
 
 void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate)
@@ -749,9 +742,8 @@ struct HandleImageChannelSplit
     MImage *img[64];
     int n;
 };
-void endImageChannelSplit(void *info)
+void endImageChannelSplit(struct HandleImageChannelSplit *handle)
 {
-    struct HandleImageChannelSplit *handle = (struct HandleImageChannelSplit *)info;
     for(int i=0;i<64;i++)
     {
         if(handle->img[i]!=NULL)

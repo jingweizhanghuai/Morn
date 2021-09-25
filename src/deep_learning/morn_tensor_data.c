@@ -128,7 +128,7 @@ void endTrainData(void *info)
     }
 }
 #define HASH_TrainData 0xeef2f995
-void mTrainData(MFile *ini)
+void mTrainData(MList *ini)
 {
     MHandle *hdl=mHandle(ini,TrainData);
     struct HandleTrainData *handle = (struct HandleTrainData *)(hdl->handle);
@@ -352,7 +352,7 @@ void endNetworkTensor(void *info)
     if(handle->idx != NULL) mFree(handle->idx);
 }
 #define HASH_NetworkTensor 0xed589636
-void mNetworkTensor(MFile *ini,char *name[],MTensor *tns[])
+void mNetworkTensor(MList *ini,char *name[],MTensor *tns[])
 {
     MHandle *hdl=mHandle(ini,NetworkTensor);
     struct HandleNetworkTensor *handle = (struct HandleNetworkTensor *)(hdl->handle);

@@ -318,7 +318,7 @@ void mFileDecrypt(MFile *file,uint64_t key)
     
     char name[32];sprintf(handle->name_out,"./%stmp",tmpnam(name));
     mObjectRedefine(file,handle->name_out);hdl->valid = 1;
-    
+
     mDecrypt(name_in,handle->name_out,key);
 }
 

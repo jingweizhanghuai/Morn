@@ -300,6 +300,7 @@ void endMAF()
         }
         free(info);
     }
+    morn_alloc_free_info_num=0;
 }
 
 /*

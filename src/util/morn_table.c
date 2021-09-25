@@ -4,17 +4,13 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 #include "morn_ptc.h"
 
-// int ElementSize(const char *str,int size)
-// {
-//     if(size!=sizeof(DFLT)) return size;
-//     if(strcmp(str,"DFLT")==0) return -1;
-//     return size;
-// }
-
 struct HandleTableCreate
 {
     MTable *tab;
     MChain *property;
+    int64_t reserve[8];
+    int writeable;
+    
     int row;
     int col;
     int element_size;
@@ -27,20 +23,22 @@ void endTableCreate(struct HandleTableCreate *handle)
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->index != NULL) mFree(handle->index);
     if(handle->memory!= NULL) mMemoryBlockRelease(handle->memory);
-    
-    mFree(handle->tab);
+
+    memset(handle->tab,0,sizeof(MTable));
+    mFree(((MList **)(handle->tab))-1);
 }
 #define HASH_TableCreate 0x56f55a7f
 MTable *TableCreate(int row,int col,int element_size,void **data)
 {
-    MTable *tab = (MTable *)mMalloc(sizeof(MTable));
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MTable));
+    MTable *tab = (MTable *)(phandle+1);
     memset(tab,0,sizeof(MTable));
     
     if(col <0) {col = 0;} tab->col = col;
     if(row <0) {row = 0;} tab->row = row;
     if(element_size<0) {element_size=0;} tab->element_size=element_size;
 
-    tab->handle = mHandleCreate();
+    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(tab,TableCreate);
     struct HandleTableCreate *handle = (struct HandleTableCreate *)(hdl->handle);
     handle->tab = tab;
@@ -78,28 +76,26 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
         tab->data = handle->index;
     }
     // else mException(1,EXIT,"invalid input");
+    mPropertyFunction(tab,"device",mornMemoryDevice,handle->memory);
     
     return tab;
 }
 
 void mTableRelease(MTable *tab)
 {
-    mException(INVALID_POINTER(tab),EXIT,"invalid input");
-    
-    if(!INVALID_POINTER(tab->handle))
-        mHandleRelease(tab->handle);
+    mHandleRelease(tab);
 }
 
 void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
 {
     mException((INVALID_POINTER(tab)),EXIT,"invalid input");
     
-    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(tab->handle->data[0]))->handle);
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(ObjHandle(tab,0)->handle);
     if(row<=0) row = tab->row;
     if(col<=0) col = tab->col;
     if(element_size<=0) element_size=tab->element_size;
     
-    if((row!=tab->row)||(col!=tab->col)||(element_size!=handle->element_size)) mHandleReset(tab->handle);
+    if((row!=tab->row)||(col!=tab->col)||(element_size!=handle->element_size)) mHandleReset(tab);
     
     int same_size = (row<=tab->row)&&(col*element_size<=tab->col*handle->element_size);
     int reuse = (data==tab->data);
@@ -147,7 +143,7 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)
 
 void mTableCopy(MTable *src,MTable *dst)
 {
-    struct HandleTableCreate *handle = (struct HandleTableCreate *)(((MHandle *)(src->handle->data[0]))->handle);
+    struct HandleTableCreate *handle = (struct HandleTableCreate *)(ObjHandle(src,0)->handle);
     int element_size = handle->element_size;
     
     TableRedefine(dst,src->row,src->col,element_size,(void **)(dst->dataS8));

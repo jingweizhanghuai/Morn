@@ -15,8 +15,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdarg.h>
 #include <errno.h>
 
-// 
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -32,6 +30,9 @@ extern "C"
 
 #define MORN_FAIL   -1
 #define MORN_SUCCESS 0
+
+void mMornBegin();
+void mMornEnd();
 
 #define ARG(X) X
 #define _VA_ARG_NUM(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,N,M,...) ((N==M+1)?((N==1)?((#A0)[0]!=0):N):DFLT)
@@ -114,50 +115,87 @@ typedef intptr_t PTR;
 #define MORN_TYPE_P32 11
 #define MORN_TYPE_P64 12
 #if(__STDC_VERSION__>=201112)
-#define mDataType(P) _Generic((P),\
-       uint8_t *:MORN_TYPE_U8 , int8_t *:MORN_TYPE_S8 ,\
-      uint16_t *:MORN_TYPE_U16,int16_t *:MORN_TYPE_S16,\
-      uint32_t *:MORN_TYPE_U32,int32_t *:MORN_TYPE_S32,\
-      uint64_t *:MORN_TYPE_U64,int64_t *:MORN_TYPE_S64,\
-      float    *:MORN_TYPE_F32,double  *:MORN_TYPE_D64,\
-      char     *:((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
-   signed long *:((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
- unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-      uint8_t **:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-       int8_t **:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-     uint16_t **:MORN_TYPE_P16,int16_t **:MORN_TYPE_P16,\
-     uint32_t **:MORN_TYPE_P32,int32_t **:MORN_TYPE_P32,\
-     uint64_t **:MORN_TYPE_P64,int64_t **:MORN_TYPE_P64,\
-     float    **:MORN_TYPE_P32,double  **:MORN_TYPE_P64,\
-     char     **:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-  signed long **:((sizeof(  signed long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
-unsigned long **:((sizeof(unsigned long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
+#define mDataType(Data) _Generic((Data),\
+       uint8_t :MORN_TYPE_U8 , int8_t:MORN_TYPE_S8 ,\
+      uint16_t :MORN_TYPE_U16,int16_t:MORN_TYPE_S16,\
+      uint32_t :MORN_TYPE_U32,int32_t:MORN_TYPE_S32,\
+      uint64_t :MORN_TYPE_U64,int64_t:MORN_TYPE_S64,\
+      float    :MORN_TYPE_F32,double :MORN_TYPE_D64,\
+      char     :((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
+   signed long :((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
+ unsigned long :((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
+      uint8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
+       int8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
+     uint16_t *:MORN_TYPE_P16,int16_t *:MORN_TYPE_P16,\
+     uint32_t *:MORN_TYPE_P32,int32_t *:MORN_TYPE_P32,\
+     uint64_t *:MORN_TYPE_P64,int64_t *:MORN_TYPE_P64,\
+     float    *:MORN_TYPE_P32,double  *:MORN_TYPE_P64,\
+     char     *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
+  signed long *:((sizeof(  signed long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
+unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
 default:DFLT)
 #else
 extern __thread int  morn_data_type;
 extern __thread char morn_data_buff[8];
-#define mDataType(P) (\
-    memcpy(morn_data_buff,(P),sizeof((P)[0])),\
-    (P)[0]=-16,\
-    morn_data_type= (sizeof((P)[0])==1)?((((P)[0])<0)?MORN_TYPE_S8 :MORN_TYPE_U8 ):(\
-                    (sizeof((P)[0])==2)?((((P)[0])<0)?MORN_TYPE_S16:MORN_TYPE_U16):(\
-                    (sizeof((P)[0])==4)?((*((int32_t *)(P))!=-16)?MORN_TYPE_F32:(((P)[0]<0)?MORN_TYPE_S32:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+2)?MORN_TYPE_P16:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+4)?MORN_TYPE_P32:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+8)?MORN_TYPE_P64:(\
+#define mDataType(Data) (\
+    memcpy(morn_data_buff,&(Data),sizeof(Data)),\
+    Data=-16,\
+    morn_data_type= (sizeof(Data)==1)?((Data<0)?MORN_TYPE_S8 :MORN_TYPE_U8 ):(\
+                    (sizeof(Data)==2)?((Data<0)?MORN_TYPE_S16:MORN_TYPE_U16):(\
+                    (sizeof(Data)==4)?((*((int32_t *)(&(Data)))!=-16)?MORN_TYPE_F32:((Data<0)?MORN_TYPE_S32:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+2)?MORN_TYPE_P16:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+4)?MORN_TYPE_P32:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+8)?MORN_TYPE_P64:(\
                         MORN_TYPE_U32)))))):(\
-                    (sizeof((P)[0])==8)?((*((int64_t *)(P))!=-16)?MORN_TYPE_D64:(((P)[0]<0)?MORN_TYPE_S64:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+2)?MORN_TYPE_P16:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+4)?MORN_TYPE_P32:(\
-                        ((intptr_t)((P)[0]+1)==((intptr_t)((P)[0]))+8)?MORN_TYPE_P64:(\
+                    (sizeof(Data)==8)?((*((int64_t *)(&(Data)))!=-16)?MORN_TYPE_D64:((Data<0)?MORN_TYPE_S64:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+2)?MORN_TYPE_P16:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+4)?MORN_TYPE_P32:(\
+                        ((intptr_t)(Data+1)==((intptr_t)Data)+8)?MORN_TYPE_P64:(\
                         MORN_TYPE_U64)))))):\
                     DFLT))),\
-    memcpy((P),morn_data_buff,sizeof((P)[0])),\
+    memcpy(&(Data),morn_data_buff,sizeof(Data)),\
     morn_data_type\
 )
 #endif
 
 extern __thread char morn_filename[256];
+
+#define PrintVal(Name,V,Type) do{\
+         if((Type==MORN_TYPE_S8 )||(Type==MORN_TYPE_U8 )) printf("%s=%d(%c), ",Name,(int)V,(char)V);\
+    else if((Type==MORN_TYPE_S16)||(Type==MORN_TYPE_U16)||(Type==MORN_TYPE_S32)||(Type==MORN_TYPE_U32)) printf("%s=%d, ",Name,(int)V);\
+    else if((Type==MORN_TYPE_S64)||(Type==MORN_TYPE_U64)) printf("%s=%lld(%x), ",Name,(int64_t)V,(int64_t)V);\
+    else if( Type==MORN_TYPE_F32) printf("%s=%f, " ,Name,(float )V);\
+    else if( Type==MORN_TYPE_D64) printf("%s=%lf, ",Name,(double)V);\
+    else if((Type==MORN_TYPE_P16)||(Type==MORN_TYPE_P32)||(Type==MORN_TYPE_P64)) printf("%s=%p,",Name,(void *)((intptr_t)V));\
+}while(0)
+
+#define mDebug(...) do{\
+    char *Name[16];int Num=0;int Flag=1;\
+    strcpy(morn_filename,# __VA_ARGS__);\
+    for(char *p=morn_filename;*p!=0;p++)\
+    {\
+        if((*p==' ')||(*p==',')) {*p=0;Flag=1;continue;}\
+        else if(Flag==1) {Name[Num++]=p;Flag=0;}\
+    }\
+    printf("morn debug: ");\
+    if(Num> 0) PrintVal(Name[ 0], VA0(__VA_ARGS__),mDataType( VA0(__VA_ARGS__)));\
+    if(Num> 1) PrintVal(Name[ 1], VA1(__VA_ARGS__),mDataType( VA1(__VA_ARGS__)));\
+    if(Num> 2) PrintVal(Name[ 2], VA2(__VA_ARGS__),mDataType( VA2(__VA_ARGS__)));\
+    if(Num> 3) PrintVal(Name[ 3], VA3(__VA_ARGS__),mDataType( VA3(__VA_ARGS__)));\
+    if(Num> 4) PrintVal(Name[ 4], VA4(__VA_ARGS__),mDataType( VA4(__VA_ARGS__)));\
+    if(Num> 5) PrintVal(Name[ 5], VA5(__VA_ARGS__),mDataType( VA5(__VA_ARGS__)));\
+    if(Num> 6) PrintVal(Name[ 6], VA6(__VA_ARGS__),mDataType( VA6(__VA_ARGS__)));\
+    if(Num> 7) PrintVal(Name[ 7], VA7(__VA_ARGS__),mDataType( VA7(__VA_ARGS__)));\
+    if(Num> 8) PrintVal(Name[ 8], VA8(__VA_ARGS__),mDataType( VA8(__VA_ARGS__)));\
+    if(Num> 9) PrintVal(Name[ 9], VA9(__VA_ARGS__),mDataType( VA9(__VA_ARGS__)));\
+    if(Num>10) PrintVal(Name[10],VA10(__VA_ARGS__),mDataType(VA10(__VA_ARGS__)));\
+    if(Num>11) PrintVal(Name[11],VA11(__VA_ARGS__),mDataType(VA11(__VA_ARGS__)));\
+    if(Num>12) PrintVal(Name[12],VA12(__VA_ARGS__),mDataType(VA12(__VA_ARGS__)));\
+    if(Num>13) PrintVal(Name[13],VA13(__VA_ARGS__),mDataType(VA13(__VA_ARGS__)));\
+    if(Num>14) PrintVal(Name[14],VA14(__VA_ARGS__),mDataType(VA14(__VA_ARGS__)));\
+    if(Num>15) PrintVal(Name[15],VA15(__VA_ARGS__),mDataType(VA15(__VA_ARGS__)));\
+    printf("\n");\
+}while(0)
 
 const char *mTimeNowString();
 const char *m_TimeString(int64_t time_value,const char *format);
@@ -225,11 +263,16 @@ extern __thread int morn_layer_order;//=-1;
 // #define mSleep(T) _sleep(T)
 #endif
 
-uint64_t mTime();
+double mTime();
 void _mTimerBegin(const char *name);
 float _mTimerEnd(const char *name,const char *file,int line,const char *function);
 #define mTimerBegin(...) _mTimerBegin((const char *)VA0(__VA_ARGS__))
 #define mTimerEnd(...) _mTimerEnd((const char *)VA0(__VA_ARGS__),__FILE__,__LINE__,__FUNCTION__)
+#define MORN_CHRONO_CYCLE(n) n
+#define MORN_CHRONO_ONCE     0
+void mChronoFunction(void *function,void *para,int delay,int mode);
+void mChrono();
+
 
 extern __thread char morn_shu[256];
 const char *mShu(double data);
@@ -238,30 +281,15 @@ const char *mShu(double data);
 
 unsigned int mHash(const char *in,int size);
 
-#define Morn struct{struct MList *handle;int device;}
-// typedef union MReserve
-// {
-//     unsigned char dataU8;
-//     char dataS8;
-//     unsigned short dataU16;
-//     short dataS16;
-//     unsigned int dataU32;
-//     int dataS32;
-//     int64_t dataS64;
-//     uint64_t dataU64;
-//     float dataF32;
-//     double dataD64;
-//     void *dataptr;
-// }MReserve;
+// #define Morn struct{struct MList *handle;int device;}
+#define Morn struct MList *handle
 
-#define RESERVE union{void *p_reserve;int64_t i_reserve;double f_reserve;}
+// #define RESERVE union{void *p_reserve;int64_t i_reserve;double f_reserve;}
 
 typedef struct MList
 {
-    Morn;
     int num;
     void **data;
-    RESERVE;
 }MList;
 
 MList *ListCreate(int num,void **data);
@@ -297,7 +325,7 @@ void mListSort(MList *list,void *function,void *para);
 void mListReorder(MList *list);
 
 int *m_ListMatch(MList *src,MList *dst,float thresh,void *function,void *para);
-#define mListMatch(src,dst,thresh,function,...) m_ListMatch(src,dst,thresh,function,(VANumber(__VA_ARGS__)==0)?NULL:VA0(__VA_ARGS__))
+#define mListMatch(src,dst,thresh,function,...) m_ListMatch(src,dst,thresh,function,(VANumber(__VA_ARGS__)==0)?NULL:(void *)((intptr_t)VA0(__VA_ARGS__)))
 
 #define MORN_FILE_TYPE 0
 #define MORN_DIR_TYPE 16
@@ -326,37 +354,16 @@ void m_Free(void *p);
 
 int mCompare(const void *mem1,int size1,const void *mem2,int size2);
 
-#define mObjectExchange(Obj1,Obj2,Type) do{\
-    Type Obj_buff;\
-    Obj_buff = *Obj1;\
-    *Obj1 = *Obj2;\
-    *Obj2 = Obj_buff;\
-    \
-    Obj2->handle = Obj1->handle;\
-    Obj1->handle = Obj_buff.handle;\
-    \
-    MHandle *Hdl1= (MHandle *)(Obj1->handle->data[0]);\
-    MHandle *Hdl2= (MHandle *)(Obj2->handle->data[0]);\
-    Obj1->handle->data[0] = Hdl2;\
-    Obj2->handle->data[0] = Hdl1;\
-    \
-    void *Object_buff;\
-    Object_buff = *((void **)(Hdl1->handle));\
-    *(void **)(Hdl1->handle) = *(void **)(Hdl2->handle);\
-    *(void **)(Hdl2->handle) = Object_buff;\
-    Object_buff = *(((void **)(Hdl1->handle))+1);\
-    *(((void **)(Hdl1->handle))+1) = *(((void **)(Hdl2->handle))+1);\
-    *(((void **)(Hdl2->handle))+1) = Object_buff;\
-}while(0)
+
 
 typedef struct MSheet
 {
-    Morn;
+    // Morn;
     int row;
     int *col;
     void ***data;
     
-    RESERVE;
+    // RESERVE;
 }MSheet;
 MSheet *SheetCreate(int row,int *col,void ***data);
 #define mSheetCreate(...) (\
@@ -374,8 +381,12 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size);
 MList *mSheetRowList(MSheet *sheet,int row);
 void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size);
 void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size);
-void mSheetElementDelete(MSheet *sheet,int row,int col);
-void *mSheetElementInsert(MSheet *sheet,int row,int col,void *data,int size);
+void m_SheetDelete(MSheet *sheet,int row,int col);
+#define mSheetDelete(Sheet,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_SheetDelete(Sheet,(int)VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__));\
+    else                         m_SheetDelete(Sheet,(int)VA0(__VA_ARGS__),DFLT);\
+}while(0)
+void *mSheetInsert(MSheet *sheet,int row,int col,void *data,int size);
 void mSheetReorder(MSheet *sheet);
 
 MSheet *mListClassify(MList *list,void *function,void *para);
@@ -383,8 +394,10 @@ MSheet *mListClassify(MList *list,void *function,void *para);
 // int ElementSize(const char *str,int size);
 // #define mElementSize(Type) ElementSize(#Type,sizeof(Type))
 
+// typedef struct MString
+
 typedef struct MTable{
-    Morn;
+    // Morn;
     int row;
     int col;
     int element_size;
@@ -404,7 +417,7 @@ typedef struct MTable{
         void ***dataptr;
     };
     
-    RESERVE;
+    // RESERVE;
 }MTable;
 
 MTable *TableCreate(int row,int col,int element_size,void **data);
@@ -426,15 +439,15 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
     else if(Num_Args>=4) ARG(_TableRedefine(__VA_ARGS__,DFLT,DFLT,DFLT,DFLT));\
 }while(0)
 
-#define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
+// #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
 #define mTableReset(Tab) mHandleReset(Tab->handle)
 void mTableCopy(MTable *src,MTable *dst);
 void mTableWipe(MTable *tab);
 
 typedef struct MArray{
-    Morn;
+    // Morn;
     int num;
-    int element_size;
+    short element_size;
     union
     {
         void *data;
@@ -450,8 +463,6 @@ typedef struct MArray{
         double *dataD64;
         void **dataptr;
     };
-    
-    RESERVE;
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
 #define _ArrayCreate(Num,EelementSize,...) (ArrayCreate(Num+0,EelementSize,(void **)ARG(_VA0(__VA_ARGS__,DFLT))))
@@ -469,43 +480,12 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
     else if(VAN==3) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input with argument number");\
 }while(0)
-
+#define mArrayClear(Array) do{Array->num=0;}while(0)
 void mArrayElementDelete(MArray *array,int n);
-void ArrayExpand(MArray *array,int n);
-#define _ArrayPushBack(Sz,Array,Data) {\
-    int N=Array->num;\
-    if(!(N&0x3FF)) ArrayExpand(Array,N);\
-    Array->num=N+1;\
-    Array->dataS##Sz[N]=*((S##Sz *)(Data));\
-}
-void _ArrayWrite_1(MArray *Array,int Order,void *Data);
-void _ArrayWrite_2(MArray *Array,int Order,void *Data);
-void _ArrayWrite_4(MArray *Array,int Order,void *Data);
-void _ArrayWrite_8(MArray *Array,int Order,void *Data);
-void m_ArrayWrite( MArray *array,int Order,void *data);
-#define _mArrayWrite(Array,Order,Data) do{\
-         if(Array->element_size==1) _ArrayWrite_1(Array,Order,Data);\
-    else if(Array->element_size==2) _ArrayWrite_2(Array,Order,Data);\
-    else if(Array->element_size==4) _ArrayWrite_4(Array,Order,Data);\
-    else if(Array->element_size==8) _ArrayWrite_8(Array,Order,Data);\
-    else                             m_ArrayWrite(Array,Order,Data);\
-}while(0)
-
-#define mArrayWrite(Array,...) do{\
-    int VA=VANumber(__VA_ARGS__);\
-         if(VA==0) _mArrayWrite(Array,Array->num,NULL);\
-    else if(VA==1)\
-    {\
-             if(Array->element_size==1) _ArrayPushBack( 8,Array,(void *)(VA0(__VA_ARGS__)))\
-        else if(Array->element_size==2) _ArrayPushBack(16,Array,(void *)(VA0(__VA_ARGS__)))\
-        else if(Array->element_size==4) _ArrayPushBack(32,Array,(void *)(VA0(__VA_ARGS__)))\
-        else if(Array->element_size==8) _ArrayPushBack(64,Array,(void *)(VA0(__VA_ARGS__)))\
-        else                      m_ArrayWrite(Array,Array->num,(void *)(VA0(__VA_ARGS__)));\
-    }\
-    else           _mArrayWrite(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__));\
-}while(0)
-
-// #define mArrayWrite(Array,...)
+// void ArrayExpand(MArray *array,int n);
+void *m_ArrayPushBack(MArray *arr,void *data);
+void *m_ArrayWrite(MArray *arr,intptr_t n,void *data);
+#define mArrayWrite(Array,...) ((VANumber(__VA_ARGS__)==1)?m_ArrayPushBack(Array,(void *)_VA0(__VA_ARGS__)):m_ArrayWrite(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__)))
 
 void *m_ArrayRead(MArray *array,int n,void *data);
 #define mArrayRead(Array,...) (\
@@ -527,11 +507,13 @@ int m_RandString(char *str,int l1,int l2);
     DFLT\
 )
 
+#define MString MObject
+
 #define mString(a) #a
 int mStringRegular(const char *str1,const char *str2);
 MList *mStringSplit(const char *str_in,const char *flag);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
-char *m_StringArgument(int argc,char **argv,const char *flag,char *format,...);
+char *m_StringArgument(int argc,char **argv,const char *flag,const char *format,...);
 #define mStringArgument(...) m_StringArgument(__VA_ARGS__,NULL)
 
 typedef struct MChainNode
@@ -560,27 +542,74 @@ typedef struct MBtreeNode
 #define MORN_RIGHT 1
 
 
+// typedef struct MObject
+// {
+//     union
+//     {
+//         void *object;
+//         MTreeNode  *treenode;
+//         MBtreeNode *btreenode;
+//         MChainNode *chainnode;
+//         char *filename;
+//         char *string;
+//     };
+// }MObject;
+// MObject *m_ObjectCreate(const void *obj);
+// #define mObjectCreate(...) ((VANumber(__VA_ARGS__)==0)?m_ObjectCreate(NULL):m_ObjectCreate(VA0(__VA_ARGS__)))
+// void mObjectRelease(MObject *proc);
+// void mObjectRedefine(MObject *object,const void *obj);
+
 typedef struct MObject
 {
-    Morn;
+    int size;
     union
     {
+         uint8_t *dataU8;
+          int8_t *dataS8;
+        uint16_t *dataU16;
+         int16_t *dataS16;
+        uint32_t *dataU32;
+         int32_t *dataS32;
+        uint64_t *dataU64;
+         int64_t *dataS64;
+           float *dataF32;
+          double *dataD64;
         void *object;
         MTreeNode  *treenode;
         MBtreeNode *btreenode;
         MChainNode *chainnode;
         char *filename;
+        char *string;
     };
-    
-    RESERVE;
 }MObject;
-MObject *m_ObjectCreate(const void *obj);
-#define mObjectCreate(...) ((VANumber(__VA_ARGS__)==0)?m_ObjectCreate(NULL):m_ObjectCreate(VA0(__VA_ARGS__)))
-void mObjectRelease(MObject *proc);
-void mObjectRedefine(MObject *object,const void *obj);
+
+MObject *m_ObjectCreate(void *p,int size);
+#define mObjectCreate(...) (\
+    (VANumber(__VA_ARGS__)==0)?m_ObjectCreate(NULL,DFLT):(\
+    (VANumber(__VA_ARGS__)==1)?((((intptr_t)VA0(__VA_ARGS__)<=16384)&&((intptr_t)(VA0(__VA_ARGS__))>0))?m_ObjectCreate(NULL,(intptr_t)(VA0(__VA_ARGS__))):m_ObjectCreate((void *)((intptr_t)VA0(__VA_ARGS__)),DFLT)):(\
+    (VANumber(__VA_ARGS__)==2)?m_ObjectCreate((void *)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__)):\
+    NULL))\
+)
+
+void m_ObjectRedefine(MObject *object,void *p,int size);
+#define mObjectRedefine(...) do{\
+    int VAN = VANumber(__VA_ARGS__);\
+    MObject *Object = (MObject *)((intptr_t)VA0(__VA_ARGS__));\
+         if(VAN==1) m_ObjectRedefine(Object,NULL,DFLT);\
+    else if(VAN==2) {intptr_t A=(intptr_t)(VA1(__VA_ARGS__)); if((A<=16384)&&(A>0)) {m_ObjectRedefine(Object,NULL,A);} else {m_ObjectRedefine(Object,(void *)A,DFLT);}}\
+    else if(VAN==3) m_ObjectRedefine(Object,(void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__));\
+}while(0)
+
+void mObjectRelease(MObject *object);
 
 MObject *mMornObject(const void *p,int size);
 void mornObjectRemove(void *no_use,char *name);
+
+void HandleExchange(void *obj1,void *obj2);
+#define mObjectExchange(Obj1,Obj2,Type) do{\
+    Type Obj_buff=*Obj1;*Obj1 = *Obj2;*Obj2 = Obj_buff;\
+    HandleExchange(Obj1,Obj2);\
+}while(0)
 
 void *mReserve(MObject *obj,int n);
 
@@ -588,18 +617,19 @@ typedef struct MHandle
 {
     volatile unsigned int flag;
     volatile int valid;
-    void *handle;
     void (*destruct)(void *);
+    void *handle;
 }MHandle;
 
 MList *mHandleCreate(void);
-void mHandleRelease(MList *handle);
-void mHandleReset(MList *handle);
-MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *));
+void mHandleRelease(void *p);
+void mHandleReset(void *p);
+MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 // inline MObject *m_Object(const void *p,int s) {return (MObject *)((s==sizeof(char))?mMornObject(p,DFLT):p);}
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
-#define mHandle(Obj,Func) GetHandle(mObject(Obj)->handle,sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
-#define mReset(Obj) mHandleReset(Obj->handle)
+#define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
+#define ObjHandle(Obj,N) ((MHandle *)(((MList **)Obj)[-1]->data[N]))
+#define mReset(Obj) mHandleReset(Obj)
 
 #define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
 
@@ -638,7 +668,7 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size);
 #define mPropertyVariate(Obj,Key,Var) m_PropertyVariate(mObject(Obj),Key,Var)
 #define mPropertyFunction(Obj,Key,...) do {\
     if(VANumber(__VA_ARGS__)==1) m_PropertyFunction(mObject(Obj),Key,(void *)(_VA0(__VA_ARGS__,DFLT)),NULL);\
-    else                           m_PropertyFunction(mObject(Obj),Key,(void *)(_VA0(__VA_ARGS__,DFLT)),(void *)VA1(__VA_ARGS__,DFLT));\
+    else                         m_PropertyFunction(mObject(Obj),Key,(void *)(_VA0(__VA_ARGS__,DFLT)),(void *)VA1(__VA_ARGS__,DFLT));\
 }while(0)
 #define mPropertyWrite(Obj,...) (\
     (VANumber(__VA_ARGS__)==1)?m_PropertyWrite(mObject(Obj),(const char *)(_VA0(__VA_ARGS__,DFLT)),NULL,DFLT):\
@@ -653,8 +683,6 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size);
     NULL\
 )
 
-
-
 #define MORN_DEVICE DFLT
 #define MORN_HOST      0
 #define MORN_CL_CPU(N)         ((0<<6)+MIN(MAX(N,0),64))
@@ -663,9 +691,9 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size);
 
 typedef struct MMemoryBlock
 {
-    void *data;
-    int size;
     int device;
+    int size;
+    void *data;
     
     void *cl_data;
     void *cl_evt;
@@ -715,6 +743,7 @@ int CLSize(int n,int s1,int s2,int s3,int s4);
 MMemory *mMemoryCreate(int num,int size,int dev);
 void mMemoryRelease(MMemory *memory);
 void mMemoryRedefine(MMemory *memory,int num,int size,int dev);
+void mornMemoryDevice(int *dev,MMemory *memory);
 void mMemoryDevice(MMemory *memory,int dev);
 
 int mMemorySize(MMemory *memory);
@@ -787,19 +816,22 @@ void m_Signal(MChain *map,void *sig,int sig_size,void *data,int data_size);
 }while(0)
 
 #define MFile MObject
-MFile *m_FileCreate0();
-MFile *m_FileCreate(const char *filename,...);
-#define mFileCreate(...) ((VANumber(__VA_ARGS__)==0)?m_FileCreate0():m_FileCreate(__VA_ARGS__))
+MFile *mFileCreate(const char *filename,...);
+// MFile *m_FileCreate0();
+// MFile *m_FileCreate(const char *filename,...);
+// #define mFileCreate(...) ((VANumber(__VA_ARGS__)==0)?m_FileCreate0():m_FileCreate(__VA_ARGS__))
 #define mFileRelease  mObjectRelease
 void mFileRedefine(MFile *file,char *filename,...);
-typedef struct MFileState
-{
-    char redefined;
-    char changed;
-    char reserve1;
-    char reserve2;
-}MFileState;
-#define mFileState(File) ((MFileState *)(File->filename-4))
+void mFile(MObject *object,const char *file_name,...);
+
+// typedef struct MFileState
+// {
+//     char redefined;
+//     char changed;
+//     char reserve1;
+//     char reserve2;
+// }MFileState;
+// #define mFileState(File) ((MFileState *)(File->filename-4))
 int fsize(FILE *f);
 
 #define MProc  MObject
@@ -813,11 +845,22 @@ void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
 
-extern __thread char *morn_string_result;
-char *m_INIRead(MObject *file,const char *section,const char *key,const char *format,...);
+// extern __thread char *morn_string_result;
+
+void mINIFile(char *ininame);
+MList *mINI();
+void mINILoad(MList *list,char *filename);
+char *m_INIRead(MList *ini,const char *section,const char *key,const char *format,...);
 #define mINIRead(...) m_INIRead(__VA_ARGS__,NULL)
+char *m_INIWrite(MList *ini,const char *section,const char *key,const char *format,...);
+#define mINIWrite(...) m_INIWrite(__VA_ARGS__,NULL)
+void m_INIDelete(MList *ini,const char *section,const char *key);
+#define mINIDelete(Ini,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_INIDelete(Ini,(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
+    else                         m_INIDelete(Ini,(const char *)_VA0(__VA_ARGS__),NULL);\
+}while(0)
+void mINISave(MList *ini,char *filename);
 MList *mINIKey(MFile *file,const char *section);
-MList *mINISection(MFile *file);
 
 #define JSON_UNKNOWN     0
 #define JSON_KEY_UNKNOWN 1
@@ -838,36 +881,44 @@ struct JSONNode
 {
     union
     {
-        char   value_b;
-        int    value_i;
-        double value_f;
+        char   dataBool;
+        int    dataS32;
+        double dataD64;
         char   *string;
     };
     char *key;
     char type;
-    // uint8_t li1;
-    // uint16_t li2;
 };
+struct JSONNode *mJSONParse(MObject *jsondata);
+struct JSONNode *mJSONLoad(MFile *jsonfile);
+struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);
+#define mJSONRead(...) ((VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0):m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__)))
 
-void mJSONLoad(MArray *json,const char *filename,...);
-void mJSONSave(MArray *json,const char *filename,...);
+// void mJsonParse(MArray *json,char *jsondata,int size);
+// void mJSONLoad(MArray *json,const char *filename,...);
+// void mJSONSave(MArray *json,const char *filename,...);
 
 extern char *morn_json_type[15];
 #define mJSONNodeType(Node) morn_json_type[MAX(MIN((Node)->type,14),0)]
 
+// struct JSONNode *mJSONSubnode(struct JSONNode *node);
+int mJSONNodeNumber(struct JSONNode *node);
+
 void mJSONArray(MArray *array,struct JSONNode *node);
 
-struct JSONNode *m_JSONRead(struct JSONNode *node0,char *key,struct JSONNode *data);
-#define GetNode(P) ((sizeof(*P)==sizeof(struct JSONNode))?(struct JSONNode *)(P):*(struct JSONNode **)mReserve((MObject *)(P),7))
-#define mJSONRead(Json,...) (\
-    (VANumber(__VA_ARGS__)==1)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),NULL):\
-    (VANumber(__VA_ARGS__)==2)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),(struct JSONNode *)VA1(__VA_ARGS__)):\
-    NULL\
-)
+// struct JSONNode *m_JSONRead(struct JSONNode *node0,char *key,struct JSONNode *data);
+// #define GetNode(P) ((sizeof(*P)==sizeof(struct JSONNode))?(struct JSONNode *)(P):*(struct JSONNode **)mReserve((MObject *)(P),7))
+// #define mJSONRead(Json,...) (\
+//     (VANumber(__VA_ARGS__)==1)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),NULL):\
+//     (VANumber(__VA_ARGS__)==2)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),(struct JSONNode *)VA1(__VA_ARGS__)):\
+//     NULL\
+// )
+
 
 void m_JSONDelete0(MArray *json,int n);
 void m_JSONDelete1(MArray *json,char *key);
 #define mJSONDelete(Json,V) do{if((intptr_t)(V)<Json->num) m_JSONDelete0(Json,(intptr_t)(V));else m_JSONDelete1(Json,(char *)((intptr_t)(V)));}while(0)
+
 
 int mMORNSize (MFile *file,int ID);
 int mMORNRead (MFile *file,int ID,void **data,int num,int size);
@@ -877,11 +928,21 @@ int mMORNWrite(MFile *file,int ID,void **data,int num,int size);
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
-
-
 // uint64_t mIPAddress(const char *addr);
-char *mUDPWrite(const char *address,void *data,int size);
-char *mUDPRead(const char *address,void *data,int *size);
+// char *mUDPWrite(const char *address,void *data,int size);
+// char *mUDPRead(const char *address,void *data,int *size);
+char *m_UDPWrite(MObject *obj,const char *address,void *data,int size);
+char *m_UDPRead(MObject *obj,const char *address,void *data,int *size);
+#define mUDPWrite(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_UDPWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==4)?m_UDPWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
+    NULL\
+)
+#define mUDPRead(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_UDPRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==4)?m_UDPRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
+    NULL\
+)
 
 #ifdef __cplusplus
 }

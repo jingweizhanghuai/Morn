@@ -232,7 +232,7 @@ struct TensorActivationPara
     // float (*dfunc)(float,float *);
     float argv[4];
 };
-void *mTensorActivationPara(MFile *ini,char *name)
+void *mTensorActivationPara(MList *ini,char *name)
 {
     struct TensorActivationPara *para = (struct TensorActivationPara *)mMalloc(sizeof(struct TensorActivationPara));
    

@@ -8,10 +8,12 @@ struct HandleTensorCreate
 {
     MTensor *tns;
     MChain *property;
+    int64_t reserve[8];
+    int writeable;
+    
     int batch;
     int size;
 
-    int device;
     float **data;
     MMemory *memory;
 
@@ -19,9 +21,8 @@ struct HandleTensorCreate
     MMemory *backup_memory;
 };
 #define HASH_TensorCreate 0x6b6cf658
-void endTensorCreate(void *info)
+void endTensorCreate(struct HandleTensorCreate *handle)
 {
-    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)info;
     mException((handle->tns ==NULL),EXIT,"invalid tensor");
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->data    !=NULL) mFree(handle->data);
@@ -29,13 +30,14 @@ void endTensorCreate(void *info)
 
     if(handle->backup_data  !=NULL) mFree(handle->backup_data);
     if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
-    
-    mFree(handle->tns);
+    memset(handle->tns,0,sizeof(MTensor));
+    mFree(((MList **)(handle->tns))-1);
 }
 
 MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int device)
 {
-    MTensor *tns = (MTensor *)mMalloc(sizeof(MTensor));
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MTensor));
+    MTensor *tns = (MTensor *)(phandle+1);
     memset(tns,0,sizeof(MTensor));
     
     if(batch  <0) {batch  = 0;        } tns->batch  = batch;
@@ -44,7 +46,7 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     if(width  <0) {width  = 0;        } tns->width  = width;
     if(device <0) {device = MORN_HOST;} tns->device = MORN_HOST;
 
-    tns->handle = mHandleCreate();
+    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(tns,TensorCreate);
     struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(hdl->handle);
     handle->tns = tns;
@@ -68,13 +70,14 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     }
     
     handle->size= size;
-    handle->device = device;
     handle->memory = mMemoryCreate(batch,size*sizeof(float),device);
     
     void ***idx = malloc(batch*sizeof(void **));
     for(int i=0;i<batch;i++) idx[i]=(void **)(&(handle->data[i]));
     mMemoryIndex(handle->memory,1,size*sizeof(float),idx,batch);
     free(idx);
+
+    mPropertyFunction(tns,"device",mornMemoryDevice,handle->memory);
 
     for(int b=0;b<batch;b++) tns->data[b][channel*height*width]=1.0f;
 
@@ -83,10 +86,7 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     
 void mTensorRelease(MTensor *tns)
 {
-    mException(INVALID_POINTER(tns),EXIT,"invalid input");
-    
-    if(!INVALID_POINTER(tns->handle))
-        mHandleRelease(tns->handle);
+    mHandleRelease(tns);
 }
 
 MMemoryBlock *mTensorMemory(MTensor *tns,int batch)
@@ -94,9 +94,12 @@ MMemoryBlock *mTensorMemory(MTensor *tns,int batch)
     int size = tns->channel*tns->height*tns->width+8;
     float *data = tns->data[batch];
 
-    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(((MHandle *)(tns->handle->data[0]))->handle);
-
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(batch,size*sizeof(float),tns->device);
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(ObjHandle(tns,0)->handle);
+    if(handle->memory == NULL) 
+    {
+        handle->memory = mMemoryCreate(batch,size*sizeof(float),MORN_HOST);
+        mPropertyFunction(tns,"device",mornMemoryDevice,handle->memory);
+    }
     MMemoryBlock *mem = handle->memory->data[batch];
     if(mem->size<size)
     {
@@ -124,18 +127,17 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
     int size = channel*height*width+8;
     
     if((batch!=tns->batch)||(channel!=tns->channel)||(height!=tns->height)||(width!=tns->width))
-        mHandleReset(tns->handle);
+        mHandleReset(tns);
     
     int same_size = (batch<=tns->batch)&&(size<tns->channel*tns->height*tns->width)&&(data==tns->data);
     tns->batch=batch; tns->height=height; tns->width=width; tns->channel=channel;
     if(same_size&&(data==NULL)) goto tensor_redefine_end;
     if(same_size&&((device<0)||(device==mMemoryBlock(data[0])->device))) goto tensor_redefine_end;
     
-    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(((MHandle *)(tns->handle->data[0]))->handle);
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(ObjHandle(tns,0)->handle);
     if(device<0)
     {
         if((data!=tns->data)&&(data!=NULL)) device=mMemoryBlock(data[0])->device;
-        else device=handle->device;
     }
     
     if((data!=tns->data)&&(data!=NULL)) 
@@ -144,7 +146,7 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
             mException(mMemoryBlock(data[bc])->device!=device,EXIT,"invalid data device");
     }
 
-    if((batch<=handle->batch)&&(size<=handle->size)&&(data==handle->data)&&(device==handle->device)) return;
+    if((batch<=handle->batch)&&(size<=handle->size)&&(data==handle->data)) return;
     
     // int flag = (tns->batch)&&(tns->channel)&&(tns->height)&&(tns->width);
     // mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
@@ -172,7 +174,11 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
         goto tensor_redefine_end;
     }
     
-    if(handle->memory == NULL) handle->memory = mMemoryCreate(batch,size*sizeof(float),device);
+    if(handle->memory == NULL) 
+    {
+        handle->memory = mMemoryCreate(batch,size*sizeof(float),device);
+        mPropertyFunction(tns,"device",mornMemoryDevice,handle->memory);
+    }
     else mMemoryRedefine(handle->memory,batch,size*sizeof(float),device);
 
     void ***idx = malloc(batch*sizeof(void **));
@@ -182,7 +188,6 @@ void TensorRedefine(MTensor *tns,int batch,int channel,int height,int width,floa
     
     tns->data = handle->data;
     handle->size  = size;
-    handle->device= device;
 
     tensor_redefine_end:
     for(int b=0;b<batch;b++) tns->data[b][channel*height*width]=1.0f;
@@ -197,7 +202,7 @@ float **mTensorBackup(MTensor *tns,int batch,int cn,int height,int width)
 
     int size = cn*height*width;
 
-    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(((MHandle *)(tns->handle->data[0]))->handle);
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(ObjHandle(tns,0)->handle);
     if(handle->backup_data!=NULL) mFree(handle->backup_data);
     handle->backup_data = (float **)mMalloc(batch*sizeof(float *));
 

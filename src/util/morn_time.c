@@ -16,15 +16,125 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp strcasecmp
 #endif
 
-uint64_t mTime()
+double mTime()
 {
     uint64_t t;
     #ifdef _MSC_VER
-    int cv = clock();t=cv*1000/CLOCKS_PER_SEC;
+    int cv = clock();t=cv*1000/CLOCKS_PER_SEC; return (double)t;
     #else
-    struct timeval tv;gettimeofday(&tv,NULL);t=tv.tv_sec*1000000;t+=tv.tv_usec+500;t/=1000;
+    struct timeval tv;gettimeofday(&tv,NULL);t=tv.tv_sec*1000000;t+=tv.tv_usec+500; return ((double)t/1000.0);
     #endif
-    return t;
+}
+
+struct ChronoData
+{
+    void (*func)(void *);
+    void *para;
+    double t;
+    int mode;
+    int cycle;
+};
+
+struct HandleChrono
+{
+    MChain *chain;
+    int num;
+};
+void endChrono(struct HandleChrono *handle)
+{
+    if(handle->chain!=NULL) mChainRelease(handle->chain);
+}
+#define HASH_Chrono 0x86cdabb2
+void mChronoFunction(void *function,void *para,int delay,int mode)
+{
+    double t = mTime()+(double)delay;
+    mException((function==NULL)||(delay<0)||(mode<-1),EXIT,"invalid input");
+    
+    MHandle *hdl = mHandle("Chrono",Chrono);
+    struct HandleChrono *handle = (struct HandleChrono *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->chain==NULL) handle->chain = mChainCreate();
+        hdl->valid = 1;
+    }
+
+    handle->num++;
+    MChainNode *node= mChainNode(handle->chain,NULL,sizeof(struct ChronoData));
+    struct ChronoData *data = node->data;
+    data->func = function;
+    data->para = para;
+    data->mode = mode;
+    data->t    = t;
+    data->cycle=delay;
+
+    if(handle->num==1) {handle->chain->chainnode = node;return;}
+    MChainNode *p = handle->chain->chainnode;
+    struct ChronoData *pdata = p->data;
+    if(t<pdata->t) {mChainNodeInsert(NULL,node,p);handle->chain->chainnode=node;return;}
+    p=p->next;
+    while(p!=handle->chain->chainnode)
+    {
+        pdata = p->data;
+        if(t<pdata->t) break;
+        p=p->next;
+    }
+    mChainNodeInsert(NULL,node,p);
+}
+
+void mChronoNodeDelete(void *function,void *para)
+{
+    MHandle *hdl = mHandle("Chrono",Chrono);
+    struct HandleChrono *handle = (struct HandleChrono *)(hdl->handle);
+    MChain *chain = handle->chain;
+    for(MChainNode *node=chain->chainnode;;node=node->next)
+    {
+        struct ChronoData *data = node->data;
+        if((data->func==function)&&(data->para==para))
+        {
+            mChainNodeDelete(chain,node);
+            return;
+        }
+    }
+}
+
+void mChrono()
+{
+    MHandle *hdl = mHandle("Chrono",Chrono);
+    struct HandleChrono *handle = (struct HandleChrono *)(hdl->handle);
+    MChain *chain = handle->chain;
+    double t = mTime();
+    while(handle->num>0)
+    {
+        MChainNode *node = chain->chainnode;
+        struct ChronoData *data = node->data;
+        int d = (int)(data->t-t);
+        if(d>0) mSleep(d);
+        
+        while(t<data->t) t=mTime();
+        (data->func)(data->para);
+        
+        if(data->mode!=MORN_CHRONO_ONCE) data->mode--;
+        if(data->mode==MORN_CHRONO_ONCE){mChainNodeDelete(chain,node);handle->num--;continue;}
+
+        data->t=data->t+data->cycle;
+        if(handle->num == 1) continue;
+
+        MChainNode *p=chain->chainnode;
+        struct ChronoData *pdata = p->data;
+        if(data->t<pdata->t) continue;
+        
+        node->prev->next = p;
+        p->prev = node->prev;
+        chain->chainnode=p;
+        p=p->next;
+        while(p!=chain->chainnode)
+        {
+            pdata = p->data;
+            if(data->t<pdata->t) break;
+            p=p->next;
+        }
+        mChainNodeInsert(NULL,node,p);
+    }
 }
 
 struct HandleTimer

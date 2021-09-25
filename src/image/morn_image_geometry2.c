@@ -3,12 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <stdarg.h>
-
 #include "morn_image.h"
 
 // #define PointLineCheck(px,py,lx1,ly1,lx2,ly2) ((lx1 - lx2)*(py-ly2)-(ly1 - ly2)*(px-lx2))
@@ -95,12 +89,16 @@ int mLineRectCrossCheck(MImagePoint *ls,MImagePoint *le,MImageRect *rect)
 float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e)
 {
     MImagePoint pt;pt.x=0;pt.y=0;
-    if(l1s==NULL)l1s=&pt;
-    if(l1e==NULL)l1e=&pt;
-    if(l2s==NULL)l2s=&pt;
-    if(l2e==NULL)l2e=&pt;
-    float a1;if(l1s==l1e) a1=0;else a1=atan((l1s->y-l1e->y)/(l1s->x-l1e->x));
-    float a2;if(l2s==l2e) a2=0;else a2=atan((l2s->y-l2e->y)/(l2s->x-l2e->x));
+    if(l1s==NULL){l1s=&pt;}if(l1e==NULL){l1e=&pt;}if(l2s==NULL){l2s=&pt;}if(l2e==NULL){l2e=&pt;}
+    float a1;
+    if(l1s==l1e) {a1=0;} 
+    else if(l1s->x==l1e->x) a1=(l1s->y>l1e->y)?(0-MORN_PI/2):MORN_PI/2;
+    else {a1=atan((l1s->y-l1e->y)/(l1s->x-l1e->x));if(l1s->x>l1e->x) {if(l1s->y>l1e->y) {a1-=MORN_PI;} else {a1+=MORN_PI;}}}
+
+    float a2;if(l2s==l2e) {a2=0;}
+    else if(l2s->x==l2e->x) a2=(l2s->y>l2e->y)?(0-MORN_PI/2):MORN_PI/2;
+    else {a2=atan((l2s->y-l2e->y)/(l2s->x-l2e->x));if(l2s->x>l2e->x) {if(l2s->y>l2e->y) {a2-=MORN_PI;} else {a2+=MORN_PI;}}}
+
     return ((a1-a2)*180.0/MORN_PI);
 }
 

@@ -33,7 +33,7 @@ struct TensorSampleConvPara
     float decay;
     float momentum;
 };
-void *mTensorSampleConvPara(MFile *ini,char *name)
+void *mTensorSampleConvPara(MList *ini,char *name)
 {
     struct TensorSampleConvPara *para = (struct TensorSampleConvPara *)mMalloc(sizeof(struct TensorSampleConvPara));
    
@@ -423,7 +423,7 @@ struct TensorDirConvPara
     float decay;
     float momentum;
 };
-void *mTensorDirConvPara(MFile *ini,char *name)
+void *mTensorDirConvPara(MList *ini,char *name)
 {
     struct TensorDirConvPara *para = (struct TensorDirConvPara *)mMalloc(sizeof(struct TensorDirConvPara));
    

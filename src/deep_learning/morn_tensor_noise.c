@@ -16,7 +16,7 @@ struct TensorDropoutPara
     float prob;
 };
 
-void *mTensorDropoutPara(MFile *ini,char *name)
+void *mTensorDropoutPara(MList *ini,char *name)
 {
     struct TensorDropoutPara *para = (struct TensorDropoutPara *)mMalloc(sizeof(struct TensorDropoutPara));
    
@@ -112,7 +112,7 @@ struct TensorJitterPara
     float delta;
 };
 
-void *mTensorJitterPara(MFile *ini,char *name)
+void *mTensorJitterPara(MList *ini,char *name)
 {
     struct TensorJitterPara *para = (struct TensorJitterPara *)mMalloc(sizeof(struct TensorJitterPara));
    

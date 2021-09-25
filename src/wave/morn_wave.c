@@ -14,15 +14,13 @@ struct HandleWaveCreate
     float *index[MORN_MAX_WAVE_CN];
     MMemory *memory;
 };
-void endWaveCreate(void *info)
+void endWaveCreate(struct HandleWaveCreate *handle)
 {
-    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)info;
     mException((handle->wave == NULL),EXIT,"invalid wave");
     if(handle->property!=NULL) mChainRelease(handle->property);
-    if(handle->memory != NULL)
-        mMemoryRelease(handle->memory);
-    
-    mFree(handle->wave);
+    if(handle->memory != NULL) mMemoryRelease(handle->memory);
+    memset(handle->wave,0,sizeof(MWave));
+    mFree(((MList **)(handle->wave))-1);
 }
 #define HASH_WaveCreate 0xa08b9c64
 MWave *mWaveCreate(int cn,int size,float **data)
@@ -30,15 +28,16 @@ MWave *mWaveCreate(int cn,int size,float **data)
     if(size <0) size = 0;
     if(cn <0)   cn = 0;
     mException((cn>MORN_MAX_WAVE_CN),EXIT,"invalid input");
-    
-    MWave *wave = (MWave *)mMalloc(sizeof(MWave));
+
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MWave));
+    MWave *wave = (MWave *)(phandle+1);
     memset(wave,0,sizeof(MWave));
     
     wave->size = size;
     wave->channel = cn;
 
-    wave->handle = mHandleCreate();
-    MHandle *hdl=mHandle(wave,WaveCreate);
+    *phandle = mHandleCreate();
+    MHandle *hdl = mHandle(wave,WaveCreate);
     struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(hdl->handle);
     handle->wave = wave;
     

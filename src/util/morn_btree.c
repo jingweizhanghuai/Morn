@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_util.h"
 
 struct HandleBtreeCreate
@@ -36,7 +32,7 @@ void mBtreeRelease(MBtree *btree)
 
 MBtreeNode *mBtreeNode(MBtree *btree,void *data,int size)
 {
-    MHandle *hdl = (MHandle *)(btree->handle->data[0]);
+    MHandle *hdl = ObjHandle(btree,1);
     mException((hdl->flag != HASH_BtreeCreate),EXIT,"invalid input btree");
     struct HandleBtreeCreate *handle = (struct HandleBtreeCreate *)(hdl->handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);

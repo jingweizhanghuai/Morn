@@ -8,6 +8,9 @@ struct HandleListCreate
 {
     MList *list;
     MChain *property;
+    int64_t reserve[8];
+    int writeable;
+    
     int num;
     void **data;
     MMemory *memory;
@@ -20,16 +23,18 @@ void endListCreate(struct HandleListCreate *handle)
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory !=NULL) mMemoryRelease(handle->memory);
     if(handle->data != NULL) mFree(handle->data);
-    
-    mFree(handle->list);
+
+    memset(handle->list,0,sizeof(MList));
+    mFree(((MList **)(handle->list))-1);
 }
 #define HASH_ListCreate 0xfa6c59f
 MList *ListCreate(int num,void **data)
 {
-    MList *list = (MList *)mMalloc(sizeof(MList));
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MList));
+    MList *list = (MList *)(phandle+1);
     memset(list,0,sizeof(MList));
 
-    list->handle=mHandleCreate();
+    *phandle=mHandleCreate();
     MHandle *hdl=mHandle(list,ListCreate);
     struct HandleListCreate *handle = (struct HandleListCreate *)(hdl->handle);
     handle->list = list;
@@ -46,6 +51,8 @@ MList *ListCreate(int num,void **data)
     }
     else
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
+
+    mPropertyFunction(list,"device",mornMemoryDevice,NULL);
     
     list->data = handle->data;
     return list;
@@ -53,10 +60,7 @@ MList *ListCreate(int num,void **data)
 
 void mListRelease(MList *list)
 {
-    mException(INVALID_POINTER(list),EXIT,"invalid input source list");
-    
-    if(!INVALID_POINTER(list->handle))
-        mHandleRelease(list->handle);
+    mHandleRelease(list);
 }
 
 void m_ListAppend(MList *list,void **data,int n)
@@ -65,7 +69,7 @@ void m_ListAppend(MList *list,void **data,int n)
     if(n<0) n=list->num+1;
     else mException(n<list->num,EXIT,"invalid list append number");
     
-    struct HandleListCreate *handle= (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    struct HandleListCreate *handle= (struct HandleListCreate *)(ObjHandle(list,0)->handle);
     if(n<=handle->num) 
     {
         if((list->data!= handle->data)&&(list->num>0))
@@ -100,7 +104,7 @@ void mListPlace(MList *list,void *data,int num,int size)
     int list_num = list->num;
     mListAppend(list,list_num+num);
     
-    struct HandleListCreate *handle = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    struct HandleListCreate *handle = (struct HandleListCreate *)(ObjHandle(list,0)->handle);
 
     void **idx = list->data+list_num;
     if(handle->memory == NULL) handle->memory = mMemoryCreate(1,size*num,MORN_HOST);
@@ -136,7 +140,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
         size = strlen((char *)data)+1;
     }
     
-    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(ObjHandle(list,0)->handle);
 
     if(n<0) n = list->num;
 
@@ -174,7 +178,7 @@ void *mListWrite(MList *list,int n,void *data,int size)
 void *mListRead(MList *list,int n,void *data,int size)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input");
-    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(ObjHandle(list,0)->handle);
 
     // MHandle *hdl=mHandle(list,ListRead);
     // struct HandleListRead *handle = (struct HandleListRead *)(hdl->handle);
@@ -197,7 +201,7 @@ void *mListRead(MList *list,int n,void *data,int size)
 void mListClear(MList *list)
 {
     list->num=0;
-    struct HandleListCreate *handle0 = (struct HandleListCreate *)(((MHandle *)(list->handle->data[0]))->handle);
+    struct HandleListCreate *handle0 = (struct HandleListCreate *)(ObjHandle(list,0)->handle);
     if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
 }
 
@@ -221,14 +225,14 @@ void mListCopy(MList *src,MList *dst)
 {
     mListAppend(dst,src->num);
     
-    struct HandleListCreate *src_handle = (struct HandleListCreate *)(((MHandle *)(src->handle->data[0]))->handle);
+    struct HandleListCreate *src_handle = (struct HandleListCreate *)(ObjHandle(src,0)->handle);
     if(src_handle->memory == NULL)
     {
         memcpy(dst->data,src->data,src->num*sizeof(void *));
         return;
     }
     
-    struct HandleListCreate *dst_handle = (struct HandleListCreate *)(((MHandle *)(dst->handle->data[0]))->handle);
+    struct HandleListCreate *dst_handle = (struct HandleListCreate *)(ObjHandle(dst,0)->handle);
     if(dst_handle->memory == NULL)
         dst_handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
         
@@ -240,10 +244,9 @@ void mListMerge(MList *list1,MList *list2,MList *dst)
     if(list1->num+list2->num==0) {mListClear(dst); return;}
     mListAppend(dst,list1->num+list2->num);
     
-    struct HandleListCreate *handle1 = (struct HandleListCreate *)(((MHandle *)(list1->handle->data[0]))->handle);
-    struct HandleListCreate *handle2 = (struct HandleListCreate *)(((MHandle *)(list2->handle->data[0]))->handle);
-    struct HandleListCreate *dst_handle =(struct HandleListCreate *)(((MHandle *)(dst->handle->data[0]))->handle);
-    
+    struct HandleListCreate *handle1   =(struct HandleListCreate *)(ObjHandle(list1,0)->handle);
+    struct HandleListCreate *handle2   =(struct HandleListCreate *)(ObjHandle(list2,0)->handle);
+    struct HandleListCreate *dst_handle=(struct HandleListCreate *)(ObjHandle(  dst,0)->handle);
     int num1 = list1->num;
     int num2 = list2->num;
     

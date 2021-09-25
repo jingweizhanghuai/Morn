@@ -22,7 +22,7 @@ struct TensorBatchNormPara
     float momentum;
 };
 
-void *mTensorBatchNormPara(MFile *ini,char *name)
+void *mTensorBatchNormPara(MList *ini,char *name)
 {
     struct TensorBatchNormPara *para = (struct TensorBatchNormPara *)mMalloc(sizeof(struct TensorBatchNormPara));
    

@@ -99,7 +99,7 @@ struct TensorDeconvPara
     float decay;
     float momentum;
 };
-void *mTensorDeconvPara(MFile *ini,char *name)
+void *mTensorDeconvPara(MList *ini,char *name)
 {
     struct TensorDeconvPara *para = (struct TensorDeconvPara *)mMalloc(sizeof(struct TensorDeconvPara));
    

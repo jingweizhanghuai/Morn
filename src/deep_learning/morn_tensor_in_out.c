@@ -17,7 +17,7 @@ struct TensorInputPara
     int width;
     int channel;
 };
-void *mTensorInputPara(MFile *ini,char *name)
+void *mTensorInputPara(MList *ini,char *name)
 {
     struct TensorInputPara *para = (struct TensorInputPara *)mMalloc(sizeof(struct TensorInputPara));
     
@@ -53,7 +53,7 @@ void mTensorInputBackward(MLayer *layer)
     }
 }
 
-void *mTensorOutputPara(MFile *ini,char *name)
+void *mTensorOutputPara(MList *ini,char *name)
 {
     struct TensorOutputPara *para = (struct TensorOutputPara *)mMalloc(sizeof(struct TensorOutputPara));
     
@@ -178,7 +178,7 @@ void mTensorOutputBackward(MLayer *layer)
     {
         para->dloss(layer,para->prev);
     }
-
+    
     if(PARA_SAVE)
     {
         morn_network_parafile = mFileCreate("%s/network_para_%d.morn",morn_network_para_dir,morn_network_time);

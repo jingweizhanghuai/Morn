@@ -1,6 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 #include "morn_util.h"
 
 #if defined MORN_USE_SOCKET
@@ -14,9 +12,11 @@
 #else
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #define SOCKET int
 #define closesocket close
 #define ADDR(S) (S).s_addr
+#define SOCKET_ERROR (-1)
 #endif
 
 #ifdef __GNUC__
@@ -70,12 +70,12 @@ int UDPSetup(struct HandleUDP *handle)
 #define HandleUDPWrite HandleUDP
 void endUDPWrite(struct HandleUDP *handle) {endUDP(handle);}
 #define HASH_UDPWrite 0xc953a45
-char *mUDPWrite(const char *address,void *data,int size)
+char *m_UDPWrite(MObject *obj,const char *address,void *data,int size)
 {
     mException((data==NULL),EXIT,"invalid input size");
     if(size<0) size=strlen(data);
     
-    MHandle *hdl=mHandle("UDP",UDPWrite);
+    MHandle *hdl=mHandle(obj,UDPWrite);
     struct HandleUDP *handle = hdl->handle;
     uint32_t addr=handle->addr;uint32_t port=handle->port;
     if(address!=NULL) IPAddress(address,&addr,&port);
@@ -104,18 +104,18 @@ char *mUDPWrite(const char *address,void *data,int size)
 #define HandleUDPRead HandleUDP
 void endUDPRead(struct HandleUDP *handle) {endUDP(handle);}
 #define HASH_UDPRead 0xf222ef4a
-char *mUDPRead(const char *address,void *data,int *size)
+char *m_UDPRead(MObject *obj,const char *address,void *data,int *size)
 {
     mException((size==NULL)||(data==NULL),EXIT,"invalid input size");
 
-    MHandle *hdl=mHandle("UDP",UDPRead);
+    MHandle *hdl=mHandle(obj,UDPRead);
     struct HandleUDP *handle = hdl->handle;
     uint32_t addr=htonl(INADDR_ANY);uint32_t port=handle->port;
     if(address!=NULL) IPAddress(address,&addr,&port);
     if((hdl->valid==0)||(handle->addr!=addr)||(handle->port!=port))
     {
         handle->wait_time=DFLT;
-        mPropertyVariate("UDP","wait_time",&(handle->wait_time));
+        mPropertyVariate(obj,"UDP_wait",&(handle->wait_time));
         handle->addr = addr;handle->port=port;
         mException(handle->port==0,EXIT,"invalid UDP port");
         if(hdl->valid==0) {if(UDPSetup(handle)==MORN_FAIL) return 0;}
@@ -133,7 +133,7 @@ char *mUDPRead(const char *address,void *data,int *size)
     {
         struct timeval wait_time;wait_time.tv_sec=handle->wait_time/1000;wait_time.tv_usec=(handle->wait_time%1000)*1000;
 
-        struct fd_set fds;
+        fd_set fds;
         FD_ZERO(&fds);
         FD_SET(handle->udp,&fds);
         #if defined(_WIN64)||defined(_WIN32)

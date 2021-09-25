@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_util.h"
 
 struct HandleTreeCreate
@@ -14,11 +10,9 @@ struct HandleTreeCreate
     MMemory *memory;
     int node_num;
 };
-void endTreeCreate(void *info)
+void endTreeCreate(struct HandleTreeCreate *handle)
 {
-    struct HandleTreeCreate *handle = (struct HandleTreeCreate *)info;
-    if(handle->memory != NULL)
-        mMemoryRelease(handle->memory);
+    if(handle->memory != NULL) mMemoryRelease(handle->memory);
 }
 #define HASH_TreeCreate 0x14c697eb
 MTree *mTreeCreate()
@@ -52,7 +46,7 @@ void _TreeMemoryCollect(MTree *tree)
 #define HASH_TreeNode 0xa8930197
 MTreeNode *mTreeNode(MTree *tree,void *data,int size)
 {
-    MHandle *hdl = (MHandle *)(tree->handle->data[1]);
+    MHandle *hdl = ObjHandle(tree,0);
     mException((hdl->flag != HASH_TreeCreate),EXIT,"invalid input tree");
     struct HandleTreeCreate *handle =(struct HandleTreeCreate *)(hdl->handle);
     
@@ -202,89 +196,3 @@ MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *par
     return NULL;
 }
 
-/*
-struct Shadow
-{
-    int ID;
-    MTree *tree;
-};
-void TreeShadow(MTree *node,MTree *sd_node,int *ID)
-{
-    struct Shadow sd;
-    sd.ID = *ID;
-    sd.tree = node;
-    memcpy(sd_node->data,&sd,sizeof(struct Shadow));
-    
-    *ID = *ID +1;
-    
-    int n = node->child_num;
-    sd_node->child_num = n;
-    if(n>0)
-    {
-        sd_node->child = (MTree **)mMalloc(n*sizeof(MTree *));
-        for(int i=0;i<n;i++)
-        {
-            sd_node->child[i] = mTreeCreate(sizeof(struct Shadow),NULL);
-            TreeShadow(node->child[i],sd_node->child[i],ID);
-        }
-    }
-}
-
-void TreeListWrite(MTree *sd_node,void *para)
-{
-    MList *list = (MList *)para;
-    
-    int child_num = sd_node->child_num;
-    
-    int size = sizeof(int)
-             + sizeof(int)
-             + sizeof(int)
-             + child_num*sizeof(int)
-             + sizeof(int);
-             
-    struct Shadow *sd = sd_node->data;
-    MTree *node = sd->tree;
-    
-    mListWrite(list,DFLT,NULL,size+node->size);
-    
-    int *data = (int *)(list->data[list->num-1]);
-    
-    data[0] = sd->ID;
-    
-    struct Shadow *parent_sd = sd_node->parent->data;
-    data[1] = parent_sd->ID;
-    
-    data[2] = child_num;
-    
-    for(int i=0;i<child_num;i++)
-    {
-        struct Shadow *child_sd = sd_node->child[i]->data;
-        data[3+i] = child_sd->ID;
-    }
-    
-    data[1+1+1+child_num] = node->size;
-    
-    memcpy(data+1+1+1+child_num+1,node->data,node->size);
-}
-
-void TreeToList(MTree *tree,MList *list)
-{
-    MTree *shadow = mTreeCreate(sizeof(struct Shadow),NULL);
-    int ID = 0;
-    
-    TreeShadow(tree,shadow,&ID);
-    
-    list->num = 0;
-    mTreeTraversal(shadow,TreeListWrite,(void *)list,MORN_TREE_PREORDER_TRAVERSAL);
-    
-    mTreeRelease(shadow);
-}
-*/
-    
-    
-    
-    
-    
-    
-    
-    

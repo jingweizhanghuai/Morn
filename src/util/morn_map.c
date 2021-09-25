@@ -127,10 +127,10 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     mException(INVALID_POINTER(value)&&(value_size<=0),EXIT,"invalid input map value");
     MChainNode *node;
     int *data;
-    
-    MHandle *hdl;
-    if(map->handle->num<3) hdl = mHandle(map,MornMap);
-    else {hdl = (MHandle *)(map->handle->data[2]);mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");}
+
+    MList *hlist = ((MList **)map)[-1];MHandle *hdl;
+    if(hlist->num<3) hdl = mHandle(map,MornMap);
+    else {hdl = (MHandle *)(hlist->data[2]);mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");}
     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0)
     {
@@ -184,12 +184,13 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
 void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int *value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
-    if(map->handle->num<3) return NULL;
+    MList *hlist = ((MList **)map)[-1];
+    if(hlist->num<3) return NULL;
     
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
 
-    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    MHandle *hdl = (MHandle *)(hlist->data[2]);
     mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0) return NULL;
@@ -232,8 +233,9 @@ int mornMapNodeValueSize(MChainNode *node)
 
 int mornMapNodeNumber(MChain *map)
 {
-    if(map->handle->num<3) return 0;
-    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    MList *hlist = ((MList **)map)[-1];
+    if(hlist->num<3) return 0;
+    MHandle *hdl = (MHandle *)(hlist->data[2]);
     mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     return (handle->num-1);
@@ -262,7 +264,7 @@ void mornMapNodeDelete(MChain *map,const void *key,int key_size)
     mException(INVALID_POINTER(key),EXIT,"invalid input map key");
     if(key_size<=0) key_size = strlen((char *)key);
     
-    MHandle *hdl = (MHandle *)(map->handle->data[2]);
+    MHandle *hdl = ObjHandle(map,2);
     mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     if(hdl->valid == 0) return;

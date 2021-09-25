@@ -22,7 +22,7 @@ struct TensorReshapePara
     int res_valid;
 };
 
-void *mTensorReshapePara(MFile *ini,char *name)
+void *mTensorReshapePara(MList *ini,char *name)
 {
     struct TensorReshapePara *para = (struct TensorReshapePara *)mMalloc(sizeof(struct TensorReshapePara));
    

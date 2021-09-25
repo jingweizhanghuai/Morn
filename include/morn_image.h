@@ -16,19 +16,18 @@ extern "C"
 #define MORN_MAX_IMAGE_CN 4
 
 typedef struct MImage {
-    Morn;
+    // Morn;
     int channel;
     int height;
     int width;
     unsigned char **data[MORN_MAX_IMAGE_CN];
     MArray *border;
-    void *reserve;
 }MImage;
 
 #define INVALID_IMAGE(Img) ((((Img) ==NULL)||((intptr_t)(Img) == DFLT))?1:(((Img)->data == NULL)||((intptr_t)((Img)->data) == DFLT)\
                                                                     ||((Img)->channel <= 0)\
                                                                     ||((Img)->height <= 0)||((Img)->width <= 0)\
-                                                                    ||((Img)->handle == NULL)))
+                                                                    ||(((MList **)(Img))[-1] == NULL)))
 
 MImage *ImageCreate(int channel,int height,int width,unsigned char **data[]);
 #define mImageCreate(...) (\
@@ -100,7 +99,7 @@ void mImageDataInputS64(MImage *img,S64 *stream,int stream_type,void *func,void 
 void mImageDataInputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
 #define m_ImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
-    int data_type = mDataType(Stream);\
+    int data_type = mDataType(Stream[0]);\
          if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (img,(U8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (img,(S8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_U16) mImageDataInputU16(img,(U16 *)Stream,Stream_type,Func,Para);\
@@ -135,7 +134,7 @@ void mImageDataOutputS64(MImage *img,S64 *stream,int stream_type,void *func,void
 void mImageDataOutputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
 #define m_ImageDataOutput(Img,Stream,Stream_type,Func,Para) do{\
-    int data_type = mDataType(Stream);\
+    int data_type = mDataType(Stream[0]);\
          if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8 (Img,(U8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8 (Img,(S8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_U16) mImageDataOutputU16(Img,(U16 *)Stream,Stream_type,Func,Para);\
@@ -489,8 +488,8 @@ void mImageRectBorder(MArray *border,int height,int width,int x1,int x2,int y1,i
 
 #define ImageY1(Img)   (((Img)->border==NULL)?0              :(int)(((Img)->border)->dataS16[2]))
 #define ImageY2(Img)   (((Img)->border==NULL)?((Img)->height):(int)(((Img)->border)->dataS16[3]))
-#define ImageX1(Img,n) (((Img)->border==NULL)?0              :(int)(((Img)->border)->dataS16[n+n+4]))
-#define ImageX2(Img,n) (((Img)->border==NULL)?((Img)->width) :(int)(((Img)->border)->dataS16[n+n+5]))
+#define ImageX1(Img,N) (((Img)->border==NULL)?0              :(int)(((Img)->border)->dataS16[N+N+4]))
+#define ImageX2(Img,N) (((Img)->border==NULL)?((Img)->width) :(int)(((Img)->border)->dataS16[N+N+5]))
 
 void m_ImageBinaryEdge(MImage *src,MSheet *edge,MList *rect);
 #define mImageBinaryEdge(Src,...) do{\

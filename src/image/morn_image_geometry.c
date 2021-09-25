@@ -17,7 +17,7 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
     mException(INVALID_POINTER(polygon),EXIT,"invalid input polygon");
     mException((polygon->num<3),EXIT,"invalid input polygon");
     mException(INVALID_POINTER(border),EXIT,"invalid input");
-    mArrayRedefine(border,height*2+4,sizeof(short));
+    ArrayRedefine(border,height*2+4,sizeof(short),NULL);
     memset(border->dataS16,0,border->num*sizeof(short));
 
     BH(border)=height;BW(border)=width;
@@ -61,7 +61,13 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
             
             if((ly>=0)&&(ly<height))
             {
-                if(BX1(border,ly)==0)                                     BX1(border,ly)=lx;
+                     if(BX1(border,ly)==0)                                     BX1(border,ly)=lx;
+                // else if(BX2(border,ly)==0)
+                // {
+                //     else if(lx<BX1(border,ly)) {BX2(border,ly)=BX1(border,ly);BX1(border,ly)=lx;}
+                //     else                                                      BX2(border,ly)=lx;
+                // }
+                
                 else if(lx<BX1(border,ly)) {BX2(border,ly)=BX1(border,ly);BX1(border,ly)=lx;}
                 else if(lx>BX2(border,ly))                                BX2(border,ly)=lx;
             }
@@ -167,6 +173,7 @@ void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImageP
     int i;float step;int num;
     float x_min,x_max,y_min,y_max;
     // printf("p1 is %f,%f,p2 is %f,%f\n",p1->x,p1->y,p2->x,p2->y);
+    // func(p1,para);func(p2,para);
     if(ABS(p1->x-p2->x)>ABS(p1->y-p2->y))
     {
         if(p1->x==p2->x) return;
@@ -199,6 +206,7 @@ void mLineTravel(MImagePoint *p1,MImagePoint *p2,int stride,void (*func)(MImageP
             func(&point,para);
         }
     }
+    
 }
 void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,void *),void *para)
 {

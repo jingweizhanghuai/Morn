@@ -21,7 +21,7 @@ struct TensorResizePara
     int res_valid;
 };
 
-void *mTensorResizePara(MFile *ini,char *name)
+void *mTensorResizePara(MList *ini,char *name)
 {
     struct TensorResizePara *para = (struct TensorResizePara *)mMalloc(sizeof(struct TensorResizePara));
    

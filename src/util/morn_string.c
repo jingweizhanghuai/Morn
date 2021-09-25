@@ -214,7 +214,7 @@ void mStringReplace(char *src,char *dst,const char *replace_in,const char *repla
 
 char morn_string_argument[2]={'?',0};
 int morn_string_arg_idx = 0;
-char *m_StringArgument(int argc,char **argv,const char *flag,char *format,...)
+char *m_StringArgument(int argc,char **argv,const char *flag,const char *format,...)
 {
     if(argc<=1) return NULL;
     char *result;

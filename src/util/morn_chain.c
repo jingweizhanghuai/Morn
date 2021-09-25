@@ -33,7 +33,7 @@ void mChainRelease(MChain *chain)
 
 void mChainClear(MChain *chain)
 {
-    MHandle *hdl = (MHandle *)(chain->handle->data[1]);
+    MHandle *hdl = ObjHandle(chain,1);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     if(handle->memory!=NULL) mMemoryClear(handle->memory);
@@ -43,7 +43,7 @@ void mChainClear(MChain *chain)
 
 MChainNode *mChainNode(MChain *chain,void *data,int size)
 {
-    MHandle *hdl = (MHandle *)(chain->handle->data[1]);
+    MHandle *hdl = ObjHandle(chain,1);
     mException(hdl->flag!= HASH_ChainCreate,EXIT,"invalid chain");
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     if(size<0) {if(data==NULL) size=0; else size=strlen(data);}
@@ -89,12 +89,11 @@ void mChainNodeDelete(MChain *chain,MChainNode *node)
         chain->chainnode=node->next;
     }
     
-    MHandle *hdl = (MHandle *)(chain->handle->data[1]);
-    struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
+    struct HandleChainCreate *handle = (struct HandleChainCreate *)(ObjHandle(chain,1)->handle);
     handle->collec_num++;
     if(handle->collec_num>=1024)
     {
-        if(handle->memory>16)
+        if(handle->memory->num>16)
         {
             mChainNodeOperate(chain,MemoryCollect,handle->memory);
             MemoryDefrag(handle->memory);
@@ -126,9 +125,8 @@ struct HandleChainReorder
 {
     MList *list;
 };
-void endChainReorder(void *info)
+void endChainReorder(struct HandleChainReorder *handle)
 {
-    struct HandleChainReorder *handle = (struct HandleChainReorder *)info;
     if(handle->list!=NULL) mListRelease(handle->list);
 }
 #define HASH_ChainReorder 0x6d9002b9
@@ -208,9 +206,9 @@ void mChainCopy(MChain *src,MChain *dst)
 */
 void mChainMerge(MChain *src1,MChain *src2,MChain *dst)
 {
-    struct HandleChainCreate *handle1 = (struct HandleChainCreate *)(((MHandle *)(src1->handle->data[1]))->handle);
-    struct HandleChainCreate *handle2 = (struct HandleChainCreate *)(((MHandle *)(src2->handle->data[1]))->handle);
-    struct HandleChainCreate *dst_handle=(struct HandleChainCreate *)(((MHandle *)(dst->handle->data[1]))->handle);
+    struct HandleChainCreate *handle1   =(struct HandleChainCreate *)(ObjHandle(src1,1)->handle);
+    struct HandleChainCreate *handle2   =(struct HandleChainCreate *)(ObjHandle(src2,1)->handle);
+    struct HandleChainCreate *dst_handle=(struct HandleChainCreate *)(ObjHandle(dst ,1)->handle);
 
     MChainNode *node11 = src1->chainnode; MChainNode *node12 = node11->prev;
     MChainNode *node21 = src2->chainnode; MChainNode *node22 = node21->prev;

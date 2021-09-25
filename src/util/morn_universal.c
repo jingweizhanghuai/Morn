@@ -9,6 +9,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp strcasecmp
 #endif
 
+int morn_dflt=DFLT;
+
 __thread void *morn_test=NULL;
 
 __thread char morn_filename[256];
@@ -97,32 +99,92 @@ struct HandleObjectCreate
     MObject *object;
     MChain *property;
     int64_t reserve[8];
+    int writeable;
+
+    
+    uint64_t buff1;
+    void *buff2;
+    int buff_size;
+};
+#define HASH_ObjectCreate 0xbd1d8878
+void endObjectCreate(struct HandleObjectCreate *handle)
+{
+    mException((handle->object == NULL),EXIT,"invalid object");
+    if(handle->buff2!=NULL) mFree(handle->buff2);
+    if(handle->property!=NULL) mChainRelease(handle->property);
+    mFree(((MList **)(handle->object))-1);
+}
+MObject *m_ObjectCreate(void *p,int size)
+{
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MObject));
+    MObject *object = (MObject *)(phandle+1);
+    *phandle = mHandleCreate();
+    MHandle *hdl=mHandle(object,ObjectCreate);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(hdl->handle);
+    handle->object = object;
+
+    object->size = size;
+    object->object = p;
+    if((p==NULL)&&(size>0)) 
+    {
+        if(size<=sizeof(uint64_t)) p=&(handle->buff1);
+        else {handle->buff2=mMalloc(size);p=handle->buff2;handle->buff_size=size;}
+        object->object=p;
+    }
+    else if((p!=NULL)&&(size<=0))
+    {
+        size = strlen(p);
+        object->size = size;
+    }
+    return object;
+}
+
+void m_ObjectRedefine(MObject *object,void *p,int size)
+{
+    if(size<=0) {if(p!=NULL) {size=strlen(p);} else {size=object->size;}}
+    
+    if((p==NULL)&&(size!=object->size))
+    {
+        struct HandleObjectCreate *handle= (struct HandleObjectCreate *)(ObjHandle(object,0)->handle);
+        if(handle->buff_size<size) {if(handle->buff2!=NULL) {mFree(handle->buff2);} handle->buff2=mMalloc(size);handle->buff_size = size;}
+        object->object = handle->buff2;
+        p=object->object;
+    }
+    
+    object->size =size;
+    object->object = p;
+    
+    mHandleReset(object);
+}
+
+
+/*
+struct HandleObjectCreate
+{
+    MObject *object;
+    MChain *property;
+    int64_t reserve[8];
+    int writeable;
+    // int size;
 };
 void endObjectCreate(struct HandleObjectCreate *handle)
 {
     mException((handle->object == NULL),EXIT,"invalid object");
     if(handle->property!=NULL) mChainRelease(handle->property);
-    mFree(handle->object);
+    mFree(((MList **)(handle->object))-1);
 }
 #define HASH_ObjectCreate 0xbd1d8878
 MObject *m_ObjectCreate(const void *obj)
 {
-    MObject *object = (MObject *)mMalloc(sizeof(MObject));
-    object->handle = NULL;
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MObject));
+    MObject *object = (MObject *)(phandle+1);
 
-    object->handle = mHandleCreate();
+    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(object,ObjectCreate);
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(hdl->handle);
     handle->object = object;
-    
     object->object = (void *)obj;
     return object;
-}
- 
-void mObjectRelease(MObject *object)
-{
-    if(!INVALID_POINTER(object->handle))
-        mHandleRelease(object->handle);
 }
 
 void mObjectRedefine(MObject *object,const void *obj)
@@ -130,8 +192,35 @@ void mObjectRedefine(MObject *object,const void *obj)
     if(object->object != obj)
     {
         object->object = (void *)obj;
-        mHandleReset(object->handle);
+        mHandleReset(object);
     }
+}
+
+*/
+ 
+void mObjectRelease(MObject *object)
+{
+    mHandleRelease(object);
+}
+
+
+
+void HandleExchange(void *obj1,void *obj2)
+{
+    // void buff[256];
+    // memcpy(buff,obj1,size);
+    // memcpy(obj1,obj2,size);
+    // memcpy(obj2,buff,size);
+    
+    MList *hlist1 = ((MList **)obj1)[-1];
+    MList *hlist2 = ((MList **)obj2)[-1];
+    MHandle *hdl1= (MHandle *)(hlist1->data[0]);
+    MHandle *hdl2= (MHandle *)(hlist2->data[0]);
+    hlist1->data[0]=hdl2;hlist2->data[0]=hdl1;
+
+    struct HandleObjectCreate *handle1=hdl1->handle;
+    struct HandleObjectCreate *handle2=hdl2->handle;
+    struct HandleObjectCreate handle_buff=*handle1;*handle1=*handle2;*handle2=handle_buff;
 }
 
 struct Property
@@ -144,7 +233,7 @@ struct Property
 
 void m_PropertyVariate(MObject *obj,const char *key,void *var)
 {
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     if(handle->property==NULL) handle->property = mChainCreate();
     
     int vsize=sizeof(struct Property);
@@ -159,12 +248,12 @@ void m_PropertyFunction(MObject *obj,const char *key,void *function,void *para)
 {
     // func(new,para);
     void (*func)(void *,void *) = function;
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     if(handle->property==NULL) handle->property = mChainCreate();
-    
+
     int vsize=sizeof(struct Property);
     struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
-    
+
     if(p!=NULL)
     {
         int value_size=vsize-sizeof(struct Property);
@@ -187,7 +276,7 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
     if(value==NULL) value_size=-1;
     else if(value_size<=0) value_size=strlen(value)+1;
     
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     if(handle->property==NULL) handle->property = mChainCreate();
 
     int vsize;
@@ -218,7 +307,7 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
 
 void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
 {
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     if(handle->property==NULL) return NULL;
     int vsize=0;
     struct Property *q= mornMapRead(handle->property,key,DFLT,NULL,&vsize);
@@ -232,57 +321,80 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
     return p;
 }
 
+
+
+
+
 void *mReserve(MObject *obj,int n)
 {
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(((MHandle *)(obj->handle->data[0]))->handle);
+    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     return (handle->reserve+n);
 }
 
-struct HandleFileCreate
+MFile *mFileCreate(const char *filename,...)
 {
-    char filename[272];
-    //filename[0]:redefined
-    //filename[1]:
-    //filename[2]:
-    //filename[3]:
-};
-void endFileCreate(void *info) {}
-#define HASH_FileCreate 0xfdab2bff
-MFile *m_FileCreate0()
-{
-    MFile *file = mObjectCreate();
-    MHandle *hdl = mHandle(file,FileCreate);
-    hdl->valid=1;
-    struct HandleFileCreate *handle = hdl->handle;
-    file->filename = handle->filename+4;
-    handle->filename[0]=1;
-    return file;
-}
-MFile *m_FileCreate(const char *filename,...)
-{
-    MFile *file = m_FileCreate0();
-    if(INVALID_POINTER(filename)) return file;
+    MFile *file = mObjectCreate(NULL,256);
     
     va_list namepara;
     va_start (namepara,filename);
     vsnprintf(file->filename,256,filename,namepara);
     va_end(namepara);
+    
     return file;
 }
 
-void mFileRedefine(MFile *file,char *file_name,...)
+void mFileRedefine(MFile *file,char *filename,...)
 {
-    if(strcmp(file_name,file->filename)==0) return;
-    char filename[256];
+    mObjectRedefine(file,NULL,256);
     va_list namepara;
-    va_start (namepara,file_name);
-    vsnprintf(filename,256,file_name,namepara);
+    va_start (namepara,filename);
+    vsnprintf(file->filename,256,filename,namepara);
     va_end(namepara);
-    if(strcmp(filename,file->filename)==0) return;
-    strcpy(file->filename,filename);
-    file->filename[-4]=1;
-    mHandleReset(file->handle);
 }
+
+// struct HandleFileCreate
+// {
+//     char filename[272];
+// };
+// void endFileCreate(void *info) {}
+// #define HASH_FileCreate 0xfdab2bff
+// MFile *m_FileCreate0()
+// {
+//     MFile *file = mObjectCreate();
+//     MHandle *hdl = mHandle(file,FileCreate);
+//     hdl->valid=1;
+//     struct HandleFileCreate *handle = hdl->handle;
+//     file->filename = handle->filename+4;
+//     handle->filename[0]=1;
+//     return file;
+// }
+
+// MFile *m_FileCreate(const char *filename,...)
+// {
+//     MFile *file = m_FileCreate0();
+//     if(INVALID_POINTER(filename)) return file;
+    
+//     va_list namepara;
+//     va_start (namepara,filename);
+//     vsnprintf(file->filename,256,filename,namepara);
+//     va_end(namepara);
+    
+//     return file;
+// }
+
+// void mFileRedefine(MFile *file,char *file_name,...)
+// {
+//     if(strcmp(file_name,file->filename)==0) return;
+//     char filename[256];
+//     va_list namepara;
+//     va_start (namepara,file_name);
+//     vsnprintf(filename,256,file_name,namepara);
+//     va_end(namepara);
+//     if(strcmp(filename,file->filename)==0) return;
+//     strcpy(file->filename,filename);
+//     file->filename[-4]=1;
+//     mHandleReset(file);
+// }
 
 int fsize(FILE *f)
 {
@@ -292,91 +404,94 @@ int fsize(FILE *f)
     return size;
 }
 
+void mFile(MObject *object,const char *file_name,...)
+{
+    char filename[256];
+    va_list namepara;
+    va_start (namepara,file_name);
+    vsnprintf(filename,256,file_name,namepara);
+    va_end(namepara);
+    FILE *f = fopen(filename,"rb");
+    int size = fsize(f);
+    mObjectRedefine(object,NULL,size+1);
+    fread(object->string,size,1,f);
+    object->string[size]=0;
+    fclose(f);
+}
+
 MList *mHandleCreate(void)
 {
     MList *handle = (MList *)mMalloc(sizeof(MList));
     handle->num = 0;
     handle->data = NULL;
-   
+    
     return handle;
 }
 
-void mHandleRelease(MList *handle)
+void mHandleRelease(void *obj)
 {
-    if(INVALID_POINTER(handle)) return;
-    
-    MHandle *hdl;
-    for(int i=1;i<handle->num;i++)
+    if(INVALID_POINTER(obj)) return;
+    MList *hlist = ((MList **)obj)[-1];
+    for(int i=hlist->num-1;i>=0;i--)
     {
-        hdl = (MHandle *)(handle->data[i]);
+        MHandle *hdl = (MHandle *)(hlist->data[i]);
         (hdl->destruct)(hdl->handle);
-        mFree(hdl->handle);
         mFree(hdl);
     }
     
-    hdl = (MHandle *)(handle->data[0]);
-    (hdl->destruct)(hdl->handle);
-    mFree(hdl->handle);
-    mFree(hdl);
-    
-    mFree(handle->data);
-    mFree(handle);
+    mFree(hlist->data);
+    mFree(hlist);
 }
 
-void mHandleReset(MList *handle) 
+void mHandleReset(void *obj) 
 {
-    if(INVALID_POINTER(handle)) return;
-    for(int i=1;i<handle->num;i++)
+    if(INVALID_POINTER(obj)) return;
+    MList *hlist = ((MList **)obj)[-1];
+    for(int i=1;i<hlist->num;i++)
     {
-        MHandle *hdl = (MHandle *)(handle->data[i]);
+        MHandle *hdl = (MHandle *)(hlist->data[i]);
         hdl->valid = 0;
     }
 }
 
-// static pthread_mutex_t handle_mutex = PTHREAD_MUTEX_INITIALIZER;
-MHandle *GetHandle(MList *handle,int size,unsigned int hash,void (*end)(void *))
+MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
 {
-    mException((handle==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
-    // pthread_mutex_lock(&handle_mutex);
-    int num = handle->num;
+    mException((obj==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
+    MList *hlist = ((MList **)obj)[-1];
+    int num = hlist->num;
     for(int i=0;i<num;i++)
     {
-        MHandle *handle_data = (MHandle *)(handle->data[i]);
+        MHandle *handle_data = (MHandle *)(hlist->data[i]);
         if(handle_data->flag == hash) 
-        {
-            // while(handle_data->valid==0);
-            // pthread_mutex_unlock(&handle_mutex);
             return handle_data;
-        }
     }
 
-    MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle));
+    MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle)+size);
     Handle_context->flag    = hash;
     Handle_context->valid   = 0;
-    Handle_context->handle  =mMalloc(size);memset(Handle_context->handle,0,size);
+    Handle_context->handle  =Handle_context+1;memset(Handle_context->handle,0,size);
     Handle_context->destruct= end;
     if(num%16 == 0)
     {
         void **handle_buff = (void **)mMalloc((num+16)*sizeof(void *));
         if(num>0)
         {
-            memcpy(handle_buff,handle->data,num*sizeof(void *));
-            mFree(handle->data);
+            memcpy(handle_buff,hlist->data,num*sizeof(void *));
+            mFree(hlist->data);
         }
-        handle->data = handle_buff;
+        hlist->data = handle_buff;
     }
-    handle->data[num] = Handle_context;
-    handle->num = num+1;
-    // pthread_mutex_unlock(&handle_mutex);
-    return (MHandle *)(handle->data[num]);
+    hlist->data[num] = Handle_context;
+    hlist->num = num+1;
+    return (MHandle *)(hlist->data[num]);
 }
 
 void endMAF();
 
 __thread MObject *morn_object=NULL;
-MChain *morn_object_map;
+MChain *morn_object_map=NULL;
 #ifdef _MSC_VER
-void morn_end(void)
+void mMornEnd(void)
 {
     // printf("endendendendendendendendendendend\n");
     if(morn_object!=NULL) mObjectRelease(morn_object);
@@ -394,7 +509,7 @@ void morn_end(void)
     morn_object_map = NULL;
     endMAF();
 }
-void morn_begin()
+void mMornBegin()
 {
     morn_object=mObjectCreate();
     morn_object_map=mChainCreate();
@@ -404,16 +519,18 @@ void morn_begin()
 __declspec(allocate(".CRT$XCU")) void (* mornbegin)() = morn_begin;
 
 #else
-__attribute__((constructor)) void morn_begin() {
-    morn_object=mObjectCreate();
-    morn_object_map=mChainCreate();
+__attribute__((constructor)) void mMornBegin()
+{
+    if(morn_object==NULL) morn_object=mObjectCreate();
+    if(morn_object_map==NULL) morn_object_map=mChainCreate();
     // printf("before main\n");
 } 
 
-__attribute__((destructor)) void morn_end() {
-    
+__attribute__((destructor)) void mMornEnd()
+{
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
+    // printf("aaaaaaaaaaa\n");
     
     if(morn_object_map!=NULL)
     {
@@ -441,12 +558,14 @@ MObject *mMornObject(const void *p,int size)
         if(morn_object==NULL) morn_object=mObjectCreate();
         return morn_object;
     }
+
+    MObject **pobj=NULL;
+    if(morn_object_map==NULL) morn_object_map=mChainCreate();
+    else pobj = (MObject **)mornMapRead(morn_object_map,p,size,NULL,NULL);
     
-    // if(size<0) {mException((*((char *)p)>'Z'),EXIT,"invalid module name");size=strlen(p);}
-    MObject **pobj = (MObject **)mornMapRead(morn_object_map,p,size,NULL,NULL);
     if(pobj==NULL)
     {
-        MObject *obj=mObjectCreate((char *)p);
+        MObject *obj=mObjectCreate(p,size);
         pobj=(MObject **)mornMapWrite(morn_object_map,p,size,NULL,(sizeof(MObject *)));
         *pobj=obj;
     }

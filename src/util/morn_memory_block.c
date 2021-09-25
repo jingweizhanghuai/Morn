@@ -264,7 +264,7 @@ void mMemoryBlockCopy(MMemoryBlock *block,int device)
 
     mMemoryBlockWrite(block);
 }
-
+ 
 static __thread MMemoryBlock *morn_cl_memory_block=NULL;
 static __thread cl_event morn_cl_function_event[16];
 static __thread int morn_cl_function_event_num=0;
@@ -415,10 +415,11 @@ void endMemory(struct HandleMemory *handle)
 #define HASH_Memory 0x25793220
 MMemory *mMemoryCreate(int num,int size,int device)
 {
-    MMemory *memory = (MMemory *)malloc(sizeof(MMemory));
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MMemory));
+    MMemory *memory = (MMemory *)(phandle+1);
     memset(memory,0,sizeof(MMemory));
 
-    memory->handle = mHandleCreate();
+    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(memory,Memory);hdl->valid = 1;
     if(num<0) {mException(size>0,EXIT,"invalid input"); return memory;}
     
@@ -426,7 +427,7 @@ MMemory *mMemoryCreate(int num,int size,int device)
     if(device<0) device = MORN_CL_GPU(0);
     handle->device = device;
     handle->devflag= MORN_HOST;
-    memory->device = MORN_HOST;
+    // memory->device = MORN_HOST;
     
     handle->mem_num = num;
     memory->num = handle->mem_num;
@@ -447,30 +448,30 @@ MMemory *mMemoryCreate(int num,int size,int device)
 void mMemoryRelease(MMemory *memory)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
-    struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(ObjHandle(memory,0)->handle);
     
     for(int i=0;i<handle->mem_num;i++)
     {
         if(memory->data[i]!=NULL) mMemoryBlockRelease((MMemoryBlock *)(memory->data[i]));
     }
     
-    if(!INVALID_POINTER(memory->handle))
-        mHandleRelease(memory->handle);
+    mHandleRelease(memory);
     
     if(memory->data!=NULL) free(memory->data);
-    free(memory);
-    
+    mFree(((MList **)memory)-1);
 }
 
 void mMemoryRedefine(MMemory *memory,int num,int size,int device)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     
     if(num<=0) {num=memory->num;} if(num<=0) {return;}
-    if(device<0) {device=memory->device;}
+
+    MMemoryBlock *block; 
+    if(device<0) {block = memory->data[0];device=block->device;}
     
     if(num>handle->mem_num)
     {
@@ -487,7 +488,7 @@ void mMemoryRedefine(MMemory *memory,int num,int size,int device)
 
     for(int i=0;i<num;i++)
     {
-        MMemoryBlock *block = memory->data[i];
+        block = memory->data[i];
         int s = size;
         if(block==NULL){if(s>0) {memory->data[i]=mMemoryBlockCreate(s,device);}}
         else
@@ -502,7 +503,7 @@ void mMemoryRedefine(MMemory *memory,int num,int size,int device)
     
     if(device>0) handle->device=device;
     handle->devflag= MORN_HOST;
-    memory->device = MORN_HOST;
+    // memory->device = MORN_HOST;
 }
 
 void *mMemoryAppend(MMemory *memory,int size)
@@ -510,7 +511,7 @@ void *mMemoryAppend(MMemory *memory,int size)
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     mException((size<=0),EXIT,"invalid input");
     
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
 
@@ -525,14 +526,14 @@ void *mMemoryAppend(MMemory *memory,int size)
     
     for(int i=1;i<memory->num;i++) mMemoryBlockRead(memory->data[i]);
     handle->devflag= MORN_HOST;
-    memory->device = MORN_HOST;
+    // memory->device = MORN_HOST;
     return (((MMemoryBlock *)(memory->data[0]))->data);
 }
 
 void mMemoryClear(MMemory *memory)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
 
@@ -548,26 +549,27 @@ void mMemoryClear(MMemory *memory)
     handle->write_size =p->size;
 }
 
-void mMemoryDevice(MMemory *memory,int device)
+void mornMemoryDevice(int *dev,MMemory *memory)
 {
     #ifdef MORN_USE_CL
+    int device = *dev;
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
 
-    if(device<0) device=memory->device;
+    if(device<0) {MMemoryBlock *block = (MMemoryBlock *)(memory->data[0]); device=block->device;}
     
     if(device==MORN_HOST)
     {
-        memory->device = MORN_HOST;
+        // memory->device = MORN_HOST;
         if(handle->devflag==MORN_HOST) return;
         for(int i=0;i<memory->num;i++) mMemoryBlockRead((MMemoryBlock *)(memory->data[i]));
         handle->devflag = MORN_HOST;
     }
     else if(device==handle->device)
     {
-        memory->device = handle->device;
+        // memory->device = handle->device;
         if(handle->devflag==MORN_DEVICE) return;
         for(int i=0;i<memory->num;i++) mMemoryBlockWrite((MMemoryBlock *)(memory->data[i]));
         handle->devflag = MORN_DEVICE;
@@ -575,11 +577,16 @@ void mMemoryDevice(MMemory *memory,int device)
     else
     {
         for(int i=0;i<memory->num;i++) mMemoryBlockCopy((MMemoryBlock *)(memory->data[i]),device);
-        memory->device = device;
+        // memory->device = device;
         handle->device = device;
         handle->devflag= MORN_DEVICE;
     }
     #endif
+}
+
+void mMemoryDevice(MMemory *memory,int device)
+{
+    mornMemoryDevice(&device,memory);
 }
 
 int mMemorySize(MMemory *memory)
@@ -605,7 +612,7 @@ int mMemoryCheck(MMemory *memory,void *check)
 void MemoryCollect(void *data,void *mem)
 {
     MMemory *memory = (MMemory *)mem;
-    struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(ObjHandle(memory,0)->handle);
 
     if(handle->collect_num!=memory->num)
     {
@@ -636,7 +643,7 @@ void MemoryCollect(void *data,void *mem)
 
 void MemoryDefrag(MMemory *memory)
 {
-    struct HandleMemory *handle = ((MHandle *)(memory->handle->data[0]))->handle;
+    struct HandleMemory *handle = (struct HandleMemory *)(ObjHandle(memory,0)->handle);
     mException((handle->collect_num!=memory->num)||(handle->collect_idx<0),EXIT,"invalid defrag memory");
     handle->collect_idx = 0;
     // printf("hhhhhhhhdddddddddddddh2hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
@@ -662,8 +669,8 @@ void mMemoryCopy(MMemory *src,void ***isrc,MMemory *dst,void ***idst,int batch,i
 {
     mException(INVALID_POINTER(src)||INVALID_POINTER(dst)||(dst==src),EXIT,"invalid input");
     mMemoryRedefine(dst,src->num,DFLT,DFLT);
-    struct HandleMemory *handle1 = ((MHandle *)(src->handle->data[0]))->handle;
-    struct HandleMemory *handle2 = ((MHandle *)(dst->handle->data[0]))->handle;
+    struct HandleMemory *handle1 = (struct HandleMemory *)(ObjHandle(src,0)->handle);
+    struct HandleMemory *handle2 = (struct HandleMemory *)(ObjHandle(dst,0)->handle);
     int dev1=handle1->device;int dev2=handle2->device;
     for(int i=0;i<src->num;i++)
     {
@@ -676,8 +683,8 @@ void mMemoryCopy(MMemory *src,void ***isrc,MMemory *dst,void ***idst,int batch,i
     }
     handle1->devflag = MORN_HOST;
     handle2->devflag = MORN_HOST;
-    src->device = MORN_HOST;
-    dst->device = MORN_HOST;
+    // src->device = MORN_HOST;
+    // dst->device = MORN_HOST;
 
     for(int j=0;j<batch;j++)for(int i=0;i<num[j];i++)
     {
@@ -706,8 +713,8 @@ void mMemoryMerge(MMemory *memory1,MMemory *memory2,MMemory *dst)
     if(dst==memory2) {mMemoryMerge(memory2,memory1,dst);return;}
     
     struct HandleMemory *handle=NULL;
-    struct HandleMemory *handle1=NULL;int num1=0;if(memory1!=NULL) {handle1 = ((MHandle *)(memory1->handle->data[0]))->handle;num1 = memory1->num;}
-    struct HandleMemory *handle2=NULL;int num2=0;if(memory2!=NULL) {handle2 = ((MHandle *)(memory2->handle->data[0]))->handle;num2 = memory2->num;}
+    struct HandleMemory *handle1=NULL;int num1=0;if(memory1!=NULL) {handle1 = (struct HandleMemory *)(ObjHandle(memory1,0)->handle);num1 = memory1->num;}
+    struct HandleMemory *handle2=NULL;int num2=0;if(memory2!=NULL) {handle2 = (struct HandleMemory *)(ObjHandle(memory2,0)->handle);num2 = memory2->num;}
 
     if((memory1!=NULL)&&(memory2!=NULL))
     {
@@ -719,7 +726,7 @@ void mMemoryMerge(MMemory *memory1,MMemory *memory2,MMemory *dst)
     if(dst==memory1) handle=handle1;
     else
     {
-        handle  = ((MHandle *)(dst->handle->data[0]))->handle;
+        handle  = (struct HandleMemory *)(ObjHandle(dst,0)->handle);
         for(int i=0;i<dst->num;i++) {if(dst->data[i]!=NULL) mMemoryBlockRelease(dst->data[i]);} dst->num=0;
         handle->device = handle1->device;
 
@@ -746,7 +753,7 @@ void mMemoryIndex(MMemory *memory,int row,int col_size,void ***index,int num)
     mException(INVALID_POINTER(index),EXIT,"invalid input");
     if(num<=0) num=memory->num;
 
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
 
@@ -768,11 +775,11 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     if(size<0){mException(data==NULL,EXIT,"invalid input data");size=strlen(data)+1;}
     
-    MHandle *hdl = (MHandle *)(memory->handle->data[0]);
+    MHandle *hdl = ObjHandle(memory,0);
     mException(hdl->flag!= HASH_Memory,EXIT,"invalid memory");
     struct HandleMemory *handle = (struct HandleMemory *)(hdl->handle);
     int device = handle->device;
-    if(memory->device!=MORN_HOST) mMemoryDevice(memory,MORN_HOST);
+    if(device!=MORN_HOST) mMemoryDevice(memory,MORN_HOST);
 
     if(memory->num==0) mMemoryRedefine(memory,1,MAX(8192,(size<<6)),device);
     
