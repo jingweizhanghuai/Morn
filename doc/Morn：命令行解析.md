@@ -84,7 +84,7 @@ no para
 ```c
 int main(int argc,char **argv)
 {
-    if(mStringArgument(argc,argv,"-help")!=NULL)
+    if(mStringArgument(argc,argv,"-help"))
     {
         ...
     }

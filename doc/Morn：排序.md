@@ -32,6 +32,7 @@ num是数据的个数。
 例如：
 
 ```c
+int data[10];
 printf("in :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
 mAscSort(data,NULL,index,10);
@@ -62,6 +63,7 @@ void mDescSort(Type *data_in,int *index_in,Type *data_out,int *index_out,int num
 例如：
 
 ```c
+int data[10];
 printf("in :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
 mDescSort(data,10);
@@ -98,6 +100,7 @@ num_in即输入数据的个数。num_out即输出数据的个数。
 例如：
 
 ```c
+int data[10];
 printf("in :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
 int threshold = mMinSubset(data,10,NULL,index,4);
@@ -132,6 +135,7 @@ Type mMaxSubset(Type,Type *data_in,int *index_in,int num_in, Type *data_out,int 
 例如：
 
 ```c
+int data[10];
 printf("\nin :");
 for(int i=0;i<10;i++) {data[i] = mRand(-100,100);printf("%d,",data[i]);}
 int threshold=mMaxSubset(data,10,4);

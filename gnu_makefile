@@ -47,6 +47,7 @@ TOOLSOURCES = $(wildcard ./tool/*.c)
 TOOLEXE = $(patsubst %.c,%.exe,$(TOOLSOURCES))
 
 CSOURCES  = $(wildcard ./src/util/*.c)
+CSOURCES += $(wildcard ./src/ptc/*.c)
 CSOURCES += $(wildcard ./src/math/*.c)
 CSOURCES += $(wildcard ./src/wave/*.c)
 CSOURCES += $(wildcard ./src/image/*.c)

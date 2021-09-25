@@ -2,7 +2,7 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// build_mingw: g++ -O2 -fopenmp -DNDEBUG test_map2.cpp -lmorn -o test_map2.exe
+// build_mingw: g++ -O2 -DNDEBUG test_map2.cpp -lmorn -o test_map2.exe
 // build_msvc: cl.exe -O2 -nologo -I ..\include\ test_map2.cpp ..\lib\x64_msvc\libmorn.lib
 #include "morn_util.h"
 
@@ -25,6 +25,8 @@ void data_gerenate(struct TestData *data,int number)
         data[i].data_i = mRand();
     }
 }
+
+
 
 void test1()
 {
@@ -414,6 +416,50 @@ void test5(int number)
     free(data);
 }
 
+void test6()
+{
+    struct TestData *data = (struct TestData *)malloc(1000000*sizeof(struct TestData));
+    data_gerenate(data,1000000);
+    
+    std::map<std::string,int> stl_map;
+    std::unordered_map<std::string,int> stl_unorderedmap;
+    MMap *morn_map = mMapCreate();
+    int i;
+
+    printf("\n100 node for key is string and value is integer:\n");
+    mTimerBegin("STL map");
+    for(i=0;i<100;i++) stl_map[data[i].data_s]=data[i].data_i;
+    for(;i<1000000;i++)
+    {
+        int data_i = stl_map.find(data[i-100].data_s)->second;
+        stl_map.erase(data[i-100].data_s);
+        stl_map[data[i].data_s]=data[i].data_i;
+    }
+    mTimerEnd("STL map");
+
+    mTimerBegin("STL unordered_map");
+    for(i=0;i<100;i++) stl_unorderedmap[data[i].data_s]=data[i].data_i;
+    for(;i<1000000;i++)
+    {
+        int data_i = stl_unorderedmap.find(data[i-100].data_s)->second;
+        stl_unorderedmap.erase(data[i-100].data_s);
+        stl_unorderedmap[data[i].data_s]=data[i].data_i;
+    }
+    mTimerEnd("STL unordered_map");
+
+    mTimerBegin("Morn map");
+    for(i=0;i<100;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+    for(;i<1000000;i++)
+    {
+        int *data_i = (int *)mMapRead(morn_map,data[i-100].data_s);
+        mMapNodeDelete(morn_map,data[i-100].data_s);
+        mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+    }
+    mTimerEnd("Morn map");
+    
+    mMapRelease(morn_map);
+}
+
 int main()
 {
     test1();
@@ -425,6 +471,8 @@ int main()
     
     test5(100000);
     test5(1000000);
+
+    test6();
     return 0;
 }
 

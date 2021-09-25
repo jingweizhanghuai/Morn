@@ -11,8 +11,8 @@
 #### 接口
 
 ```c
-void mImageDataInput(TypeName,MImage *img,Type *stream,int stream_type,unsigned char (*func)(Type,void *),void *para);
-void mImageDataOutput(TypeName,MImage *img,Type *stream,int stream_type,unsigned char (*func)(Type,void *),void *para);
+void mImageDataInput(MImage *img,Type *stream,int stream_type,unsigned char (*func)(Type,void *),void *para);
+void mImageDataOutput(MImage *img,Type *stream,int stream_type,unsigned char (*func)(Type,void *),void *para);
 ```
 
 以上是数据的导入和导出。和Morn中其它接口一样，Type可以选择（U8、S8、U16、S16、U32、S32、F32和D64）。
@@ -40,7 +40,7 @@ int main()
     Mat src = imread("./test.jpg");
     
     MImage *dst = mImageCreate(src.channels(),src.rows,src.cols,NULL);
-    mImageDataInput(U8,dst,src.data,DFLT,NULL,NULL);
+    mImageDataInput(dst,src.data);
     
     mImageSave(dst,"./test_out.bmp");
     
@@ -58,7 +58,7 @@ int main()
     mImageLoad("./test.jpg",src);
     
     Mat dst = Mat(src->height,src->width,CV_8UC3);
-    mImageDataOutput(U8,src,dst.data,DFLT,NULL,NULL);
+    mImageDataOutput(src,dst.data);
     
     imwrite("./test_out.png",dst);
     

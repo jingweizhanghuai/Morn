@@ -21,6 +21,8 @@ void test(void *para)
         {
             int size = mRand(0,16384);
             data[idx] = malloc(size);
+            count++;
+            if(count==TEST_NUM) break;
         }
         else
         {
@@ -28,7 +30,6 @@ void test(void *para)
             data[idx] = NULL;
         }
     }
-
     
     for(int i=0;i<1024;i++)
         if(data[i]!=NULL)
@@ -47,23 +48,20 @@ void test(void *para)
     memset(data,0,1024*sizeof(int *));
 
     mTimerBegin("Morn");
-    
-    for(int i=0;i<TEST_NUM;i++)
+    int count = 0;
+    while(1)
     {
         int idx = mRand(0,1024);
-        // if(i==63842) printf("data[%d]=%d\n",idx,data[idx]);
         if(data[idx]==NULL)
         {
             int size =mRand(0,16384);
-            // if(i==63842) {size=99;printf("aaaaa1\n");}
             data[idx] = mMalloc(size);
-            // if(i==63842) printf("aaaaa2\n");
+            count++;
+            if(count==TEST_NUM) break;
         }
         else
         {
-            // printf("bbbbbbb1\n");
             mFree(data[idx]);
-            // printf("bbbbbbb2\n");
             data[idx] = NULL;
         }
     }
@@ -85,13 +83,16 @@ void test(void *para)
     memset(data,0,1024*sizeof(int *));
 
     mTimerBegin("tcmalloc");
-    for(int i=0;i<TEST_NUM;i++)
+    int count = 0;
+    while(1)
     {
         int idx = mRand(0,1024);
         if(data[idx]==NULL)
         {
             int size = mRand(0,16384);
             data[idx] = tc_malloc(size);
+            count++;
+            if(count==TEST_NUM) break;
         }
         else
         {
@@ -116,13 +117,16 @@ void test(void *para)
     memset(data,0,1024*sizeof(int *));
 
     mTimerBegin("jemalloc");
-    for(int i=0;i<TEST_NUM;i++)
+    int count = 0;
+    while(1)
     {
         int idx = mRand(0,1024);
         if(data[idx]==NULL)
         {
             int size = mRand(0,16384);
             data[idx] = malloc(size);
+            count++;
+            if(count==TEST_NUM) break;
         }
         else
         {
@@ -147,13 +151,16 @@ void test(void *para)
     memset(data,0,1024*sizeof(int *));
 
     mTimerBegin("mimalloc");
-    for(int i=0;i<TEST_NUM;i++)
+    int count = 0;
+    while(1)
     {
         int idx = mRand(0,1024);
         if(data[idx]==NULL)
         {
             int size = mRand(0,16384);
             data[idx] = mi_malloc(size);
+            count++;
+            if(count==TEST_NUM) break;
         }
         else
         {

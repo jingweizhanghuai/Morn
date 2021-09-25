@@ -8,19 +8,24 @@ Licensed under the Apache License, Version 2.0; you may not use this json except
 
 int main()
 {
-    MArray *json = mArrayCreate();
-    JSONLoad(json,"./test_json.json");
+    // MObject *obj = mObjectCreate();
+    // mFile(obj,"./test_json.json");
+    // struct JSONNode *json=mJSONParse(obj);
+    
+    MFile *file = mFileCreate("./test_json.json");
 
+    struct JSONNode *json=mJSONLoad(file);
     struct JSONNode *node;
-
+    
     node=mJSONRead(json,"t");
     if(node->type==JSON_BOOL)
     {
-        printf("t=%d\n",node->value_b);
+        printf("t=%d\n",node->dataBool);
     }
+    // return 0;
 
     node=mJSONRead(json,"f");
-    if(node!=NULL) printf("f=%d\n",node->value_b);
+    if(node!=NULL) printf("f=%d\n",node->dataBool);
 
     int i=*(int *)mJSONRead(json,"i");
     printf("i=%d\n",i);
@@ -30,60 +35,61 @@ int main()
 
     node = mJSONRead(json,"n");
     printf("type=%d,nul=%p\n",node->type,node->string);
-
+    // return 1;
+    
     node=mJSONRead(json,"date");
     struct JSONNode *year=mJSONRead(node,"year");
-    printf("date.year=%d,type=%s\n",year->value_i,mJSONNodeType(year));
+    printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
     struct JSONNode *month=mJSONRead(node,"month");
-    printf("date.month=%s,type=%s\n",month->value_i,mJSONNodeType(month));
+    printf("date.month=%s,type=%s\n",month->dataS32,mJSONNodeType(month));
     struct JSONNode *day=mJSONRead(node,"day");
-    printf("date.day=%d,type=%s\n",day->value_i,mJSONNodeType(day));
+    printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
 
     year=mJSONRead(json,"date.year");
-    printf("date.year=%d,type=%s\n",year->value_i,mJSONNodeType(year));
+    printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
     month=mJSONRead(json,"date.month");
-    printf("date.month=%s,type=%s\n",month->value_i,mJSONNodeType(month));
+    printf("date.month=%s,type=%s\n",month->dataS32,mJSONNodeType(month));
     day=mJSONRead(json,"date.day");
-    printf("date.day=%d,type=%s\n",day->value_i,mJSONNodeType(day));
+    printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
 
     node=mJSONRead(json,"date");
     MArray *date=mArrayCreate();
     mJSONArray(date,node);
     struct JSONNode *p=date->data;
     printf("date->num=%d\n",date->num);
-    printf("p[0] key=%s, data=%d, type=%s\n",p[0].key,p[0].value_i,mJSONNodeType(p+0));
+    printf("p[0] key=%s, data=%d, type=%s\n",p[0].key,p[0].dataS32,mJSONNodeType(p+0));
     printf("p[1] key=%s, data=%s, type=%s\n",p[1].key,p[1].string ,mJSONNodeType(p+1));
-    printf("p[2] key=%s, data=%d, type=%s\n",p[2].key,p[2].value_i,mJSONNodeType(p+2));
+    printf("p[2] key=%s, data=%d, type=%s\n",p[2].key,p[2].dataS32,mJSONNodeType(p+2));
 
 
     node = mJSONRead(json,"a1[0]");
-    printf("a1[0]=%d\n",node->value_i);
+    printf("a1[0]=%d\n",node->dataS32);
     node = mJSONRead(json,"a1[1]");
-    printf("a1[1]=%d\n",node->value_i);
+    printf("a1[1]=%d\n",node->dataS32);
     node = mJSONRead(json,"a1[2]");
-    printf("a1[2]=%d\n",node->value_i);
+    printf("a1[2]=%d\n",node->dataS32);
     node = mJSONRead(json,"a1[3]");
-    printf("a1[3]=%d\n",node->value_i);
+    printf("a1[3]=%d\n",node->dataS32);
 
     node=mJSONRead(json,"a1");
     p = mJSONRead(node,"[0]");
-    printf("a1[0]=%d\n",p->value_i);
+    printf("a1[0]=%d\n",p->dataS32);
     p = mJSONRead(node,"[1]");
-    printf("a1[1]=%d\n",p->value_i);
+    printf("a1[1]=%d\n",p->dataS32);
     p = mJSONRead(node,"[2]");
-    printf("a1[2]=%d\n",p->value_i);
+    printf("a1[2]=%d\n",p->dataS32);
     p = mJSONRead(node,"[3]");
-    printf("a1[3]=%d\n",p->value_i);
+    printf("a1[3]=%d\n",p->dataS32);
     
     node = mJSONRead(json,"a1");
     MArray *a1=mArrayCreate();
     mJSONArray(a1,node);
     p=a1->data;
     for(int i=0;i<a1->num;i++)
-        printf("a1[%d]=%d\n",i,p[i].value_i);
+        printf("a1[%d]=%d\n",i,p[i].dataS32);
 
     node = mJSONRead(json,"a2[1][2]");
-    printf("a2[1][2]=%d\n",node->value_i);
+    printf("a2[1][2]=%d\n",node->dataS32);
 
     // node = mJSONRead(json,"a1");
     // MArray *a1=mArrayCreate();
@@ -91,7 +97,23 @@ int main()
     // p=a1->data;
     // for(int i=0;i<a1->num;i++)
 
+    // mObjectRelease(obj);
+    mFileRelease(file);
+}
+
 /*
+
+
+
+
+
+    
+
+    int *a=mObjectCreate(5*sizeof(int));
+    char *str = mObjectCreate("abcd");
+    MTree *tree = mObjectCreate(sizeof(MTreeNode));
+    MT
+
     int *year = mJSONRead(date,"year");
     printf("year=%d\n",*year);
     int *day = mJSONRead(date,"day");
@@ -157,7 +179,7 @@ int main()
 
     struct JSONArrayNode *p_a1 = a1->data;
     for(int i=0;i<a1->num;i++)
-        printf("a1_%d=%d\n",i,p_a1[i].value_i);
+        printf("a1_%d=%d\n",i,p_a1[i].dataS32);
 
     
 
@@ -174,8 +196,8 @@ int main()
 
     for(int i=1;i<a1->num;i++)
     {
-        p_a1[i].value_i+=40;
-        printf("a1_%d=%d\n",i,p_a1[i].value_i);
+        p_a1[i].dataS32+=40;
+        printf("a1_%d=%d\n",i,p_a1[i].dataS32);
     }
 
     char *city = "Chongqing";
@@ -198,8 +220,7 @@ int main()
 
     mJSONSave(json,"./test_json_out.json");
 */
-    mArrayRelease(json);
-}
+
 
 
     

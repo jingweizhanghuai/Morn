@@ -1,8 +1,8 @@
 /*
-Copyright (C) 2019-2021 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this json except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lmorn
+//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn
 
 #include "morn_util.h"
 
@@ -15,65 +15,245 @@ Licensed under the Apache License, Version 2.0; you may not use this json except
 
 #include "nlohmann/json.hpp"
 
+#include "yyjson.h"
 
+int cjson_test1()
+{
+    FILE *f = fopen("./citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+
+    mTimerBegin("cjson");
+    cJSON * cjson_root = cJSON_Parse(jsondata); 
+    int n=0;
+    cJSON *performances_array = cJSON_GetObjectItem(cjson_root,"performances");
+    for(int i=0;i<cJSON_GetArraySize(performances_array);i++)
+    {
+        cJSON *performances = cJSON_GetArrayItem(performances_array,i);
+        cJSON *seatCategories_array = cJSON_GetObjectItem(performances,"seatCategories");
+        for(int j=0;j<cJSON_GetArraySize(seatCategories_array);j++)
+        {
+            cJSON *seatCategories = cJSON_GetArrayItem(seatCategories_array,j);
+            cJSON *areas_array = cJSON_GetObjectItem(seatCategories,"areas");
+            for(int k=0;k<cJSON_GetArraySize(areas_array);k++)
+            {
+                cJSON *areas = cJSON_GetArrayItem(areas_array,k);
+                cJSON *areaId = cJSON_GetObjectItem(areas,"areaId");
+                int id=areaId->valueint;
+                n++;
+                // printf("id=%d\n",id);return 0;
+            }
+        }
+    }
+    mTimerEnd("cjson");
+
+    free(jsondata);
+    cJSON_Delete(cjson_root);
+    return n;
+}
+
+int jsoncpp_test1()
+{
+    Json::CharReaderBuilder reader;
+    Json::Value jsoncpp_root;
+    JSONCPP_STRING errs;
+    
+    std::ifstream jsondata("./citm_catalog.json");
+
+    mTimerBegin("jsoncpp");
+    Json::parseFromStream(reader, jsondata, &jsoncpp_root, &errs);
+    int n=0;
+    Json::Value performances = jsoncpp_root["performances"];
+    for(int i=0;i<performances.size();i++)
+    {
+        Json::Value seatCategories = performances[i]["seatCategories"];
+        for(int j=0;j<seatCategories.size();j++)
+        {
+            Json::Value areas = seatCategories[j]["areas"];
+            for(int k=0;k<areas.size();k++)
+            {
+                Json::Value areaId = areas[k]["areaId"];
+                int id = areaId.asInt();
+                n++;
+                // printf("id=%d\n",id);return 0;
+            }
+        }
+    }
+    mTimerEnd("jsoncpp");
+    
+    return n;
+}
+
+int nlohmann_test1()
+{
+    nlohmann::json nlohmannjson;
+    
+    std::ifstream jsondata("./citm_catalog.json");
+    
+    mTimerBegin("nlohmann");
+    jsondata >> nlohmannjson;
+    int n=0;
+    nlohmann::json performances = nlohmannjson["performances"];
+    for(int i=0;i<performances.size();i++)
+    {
+        nlohmann::json seatCategories=performances[i]["seatCategories"];
+        for(int j=0;j<seatCategories.size();j++)
+        {
+            nlohmann::json areas=seatCategories[j]["areas"];
+            for(int k=0;k<areas.size();k++)
+            {
+                int id = areas[k]["areaId"];
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
+    mTimerEnd("nlohmann");
+    return n;
+}
+
+int rapidjson_test1()
+{
+    rapidjson::Document document;
+    
+    FILE *f = fopen("./citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+
+    mTimerBegin("rapidjson");
+    document.Parse(jsondata);
+    int n=0;
+    const rapidjson::Value& performances= document["performances"];
+    for(int i=0;i<performances.Size();i++)
+    {
+        const rapidjson::Value& seatCategories=performances[i]["seatCategories"];
+        for(int j=0;j<seatCategories.Size();j++)
+        {
+            const rapidjson::Value& areas=seatCategories[j]["areas"];
+            for(int k=0;k<areas.Size();k++)
+            {
+                const rapidjson::Value& areaId=areas[k]["areaId"];
+                int id = areaId.GetInt();
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
+    mTimerEnd("rapidjson");
+
+    free(jsondata);
+    return n;
+}
+
+int yyjson_test1()
+{
+    FILE *f = fopen("./citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+
+    mTimerBegin("yyjson");
+    yyjson_doc *doc = yyjson_read(jsondata,size,0);
+    int n=0;
+    yyjson_val *root=yyjson_doc_get_root(doc);
+    yyjson_val *performances_array=yyjson_obj_get(root,"performances");
+    for(int i=0;i<yyjson_arr_size(performances_array);i++)
+    {
+        yyjson_val *performances = yyjson_arr_get(performances_array,i);
+        yyjson_val *seatCategories_array = yyjson_obj_get(performances,"seatCategories");
+        for(int j=0;j<yyjson_arr_size(seatCategories_array);j++)
+        {
+            yyjson_val *seatCategories = yyjson_arr_get(seatCategories_array,j);
+            yyjson_val *areas_array = yyjson_obj_get(seatCategories,"areas");
+            for(int k=0;k<yyjson_arr_size(areas_array);k++)
+            {
+                yyjson_val *areas = yyjson_arr_get(areas_array,k);
+                yyjson_val *areaId = yyjson_obj_get(areas,"areaId");
+                int id=yyjson_get_uint(areaId);
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
+    mTimerEnd("yyjson");
+    
+    yyjson_doc_free(doc);
+    free(jsondata);
+    return n;
+}
+
+int Morn_test1()
+{
+    MObject *jsondata=mObjectCreate();
+    mFile(jsondata,"./citm_catalog.json");
+    
+    mTimerBegin("Morn Json");
+    struct JSONNode *json = mJSONParse(jsondata);
+    int n=0;
+    struct JSONNode *performances_array = mJSONRead(json,"performances");
+    for(int i=0;i<mJSONNodeNumber(performances_array);i++)
+    {
+        struct JSONNode *performances = mJSONRead(performances_array,i);
+        struct JSONNode *seatCategories_array = mJSONRead(performances,"seatCategories");
+        for(int j=0;j<mJSONNodeNumber(seatCategories_array);j++)
+        {
+            struct JSONNode *seatCategories = mJSONRead(seatCategories_array,j);
+            struct JSONNode *areas_array = mJSONRead(seatCategories,"areas");
+            for(int k=0;k<mJSONNodeNumber(areas_array);k++)
+            {
+                struct JSONNode *areas = mJSONRead(areas_array,k);
+                struct JSONNode *areaId=mJSONRead(areas,"areaId");
+                int id=areaId->dataS32;
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
+    mTimerEnd("Morn Json");
+
+    mObjectRelease(jsondata);
+    return n;
+}
 
 void test1()
 {
     printf("\n\n");
+    int n;
+
+    n=cjson_test1();
+    printf("get %d areaId\n\n",n);
+
+    n=jsoncpp_test1();
+    printf("get %d areaId\n\n",n);
     
-    mTimerBegin("cjson");
-    FILE *f1 = fopen("./citm_catalog.json","rb");
-    int size1 = fsize(f1);
-    char *cjson=(char *)malloc(size1);
-    fread(cjson,size1,1,f1);
-    fclose(f1);
-    cJSON * cjson_root = cJSON_Parse(cjson); 
-    free(cjson);
-    mTimerEnd("cjson");
-
-    std::ifstream ifs;
-    Json::CharReaderBuilder reader;
-    Json::Value jsoncpp_root;
-    JSONCPP_STRING errs;
-    mTimerBegin("jsoncpp");
-    ifs.open("./citm_catalog.json");
-    Json::parseFromStream(reader, ifs, &jsoncpp_root, &errs);
-    mTimerEnd("jsoncpp");
-
-    nlohmann::json nlohmannjson;
-    std::ifstream jfile("./citm_catalog.json");
-    mTimerBegin("nlohmann");
-    jfile >> nlohmannjson;
-    mTimerEnd("nlohmann");
-
-    rapidjson::Document document;
-    mTimerBegin("rapidjson");
-    FILE *f2 = fopen("./citm_catalog.json","rb");
-    int size2 = fsize(f2);
-    char *rapidjson=(char *)malloc(size2);
-    fread(rapidjson,size2,1,f2);
-    fclose(f2);
-    document.Parse(rapidjson);
-    free(rapidjson);
-    mTimerEnd("rapidjson");
+    n=nlohmann_test1();
+    printf("get %d areaId\n\n",n);
     
-    MArray *json=mArrayCreate();
-    mTimerBegin("Morn");
-    mJSONLoad(json,"./citm_catalog.json");
-    mTimerEnd("Morn");
-    mArrayRelease(json);
+    n=rapidjson_test1();
+    printf("get %d areaId\n\n",n);
+
+    n=yyjson_test1();
+    printf("get %d areaId\n\n",n);
+
+    n=Morn_test1();
+    printf("get %d areaId\n\n",n);
 }
 
-int cjson_test()
+int cjson_test2()
 {
     FILE *f = fopen("./canada.json","rb");
     int size = fsize(f);
-    char *json=(char *)malloc(size);
-    fread(json,size,1,f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
     fclose(f);
-    cJSON * root = cJSON_Parse(json); 
-    free(json);
 
+    mTimerBegin("cJSON");
+    cJSON *root = cJSON_Parse(jsondata); 
     int n=0;
     cJSON *features_array = cJSON_GetObjectItem(root,"features");
     cJSON *features       = cJSON_GetArrayItem(features_array,0);
@@ -86,26 +266,28 @@ int cjson_test()
         {
             cJSON *coordinates2 = cJSON_GetArrayItem(coordinates1,j);
             double x=cJSON_GetArrayItem(coordinates2,0)->valuedouble;
-            cJSON *y=cJSON_GetArrayItem(coordinates2,1);
+            double y=cJSON_GetArrayItem(coordinates2,1)->valuedouble;
             n++;
             // printf("x=%f,y=%f\n",x,y);
         }
     }
-    
+    mTimerEnd("cJSON");
+
+    free(jsondata);
     cJSON_Delete(root);
     return n;
 }
 
-int jsoncpp_test()
+int jsoncpp_test2()
 {
-    std::ifstream ifs;
-    ifs.open("./canada.json");
-
     Json::CharReaderBuilder reader;
     Json::Value root;
     JSONCPP_STRING errs;
-    Json::parseFromStream(reader, ifs, &root, &errs);
+    
+    std::ifstream jsondata("./canada.json");
 
+    mTimerBegin("jsoncpp");
+    Json::parseFromStream(reader,jsondata,&root, &errs);
     int n=0;
     Json::Value coordinates0 = root["features"][0]["geometry"]["coordinates"];
     for(int j=0;j<coordinates0.size();j++)
@@ -120,15 +302,19 @@ int jsoncpp_test()
             // printf("x=%f,y=%f\n",x,y);
         }
     }
+    mTimerEnd("jsoncpp");
+    
     return n;
 }
 
-int nlohmann_test()
+int nlohmann_test2()
 {
     nlohmann::json nlohmannjson;
-    std::ifstream jfile("./canada.json");
-    jfile >> nlohmannjson;
+    
+    std::ifstream jsondata("./canada.json");
 
+    mTimerBegin("nlohmann");
+    jsondata >> nlohmannjson;
     int n=0;
     nlohmann::json coordinates0 = nlohmannjson["features"][0]["geometry"]["coordinates"];
     for(int j=0;j<coordinates0.size();j++)
@@ -143,69 +329,101 @@ int nlohmann_test()
             // printf("x=%f,y=%f\n",x,y);
         }
     }
+    mTimerEnd("nlohmann");
+    
     return n;
 }
 
-int rapidjson_test()
+int rapidjson_test2()
 {
     rapidjson::Document doc;
     
     FILE *f = fopen("./canada.json","rb");
     int size = fsize(f);
-    char *json=(char *)malloc(size);
-    fread(json,size,1,f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
     fclose(f);
-    doc.Parse(json);
-    free(json);
-    
+
+    mTimerBegin("rapidjson");
+    doc.Parse(jsondata);
     int n=0;
     const rapidjson::Value& coordinates0= doc["features"][0]["geometry"]["coordinates"];
-    for(int i=0;i<coordinates0.Size();i++)
+    for(int j=0;j<coordinates0.Size();j++)
     {
-        const rapidjson::Value& coordinates1= coordinates0[i];
-        for(int j=0;j<coordinates1.Size();j++)
+        const rapidjson::Value& coordinates1= coordinates0[j];
+        for(int i=0;i<coordinates1.Size();i++)
         {
-            const rapidjson::Value& coordinates2= coordinates1[j];
+            const rapidjson::Value& coordinates2= coordinates1[i];
             double x= coordinates2[0].GetDouble();
             double y= coordinates2[1].GetDouble();
             n++;
             // printf("x=%f,y=%f\n",x,y);
         }
     }
+    mTimerEnd("rapidjson");
+
+    free(jsondata);
     return n;
 }
 
-int Morn_test()
+int yyjson_test2()
 {
-    MArray *json=mArrayCreate();
-    mJSONLoad(json,"./canada.json");
-    
-    MArray *coordinates0 = mArrayCreate();
-    MArray *coordinates1 = mArrayCreate();
-    MArray *coordinates2 = mArrayCreate();
+    FILE *f = fopen("./canada.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
 
+    mTimerBegin("yyjson");
+    yyjson_doc *doc = yyjson_read(jsondata,size,0); 
     int n=0;
-    mJSONArray(coordinates0,mJSONRead(json,"features[0].geometry.coordinates"));
-    struct JSONNode *node0=(struct JSONNode *)coordinates0->data;
-    for(int j=0;j<coordinates0->num;j++)
+    yyjson_val *root           = yyjson_doc_get_root(doc);
+    yyjson_val *features_array = yyjson_obj_get(root,"features");
+    yyjson_val *features       = yyjson_arr_get(features_array,0);
+    yyjson_val *geometry       = yyjson_obj_get(features,"geometry");
+    yyjson_val *coordinates0   = yyjson_obj_get(geometry,"coordinates");
+    for(int i=0;i<yyjson_arr_size(coordinates0);i++)
     {
-        mJSONArray(coordinates1,node0+j);
-        struct JSONNode *node1=(struct JSONNode *)coordinates1->data;
-        for(int i=0;i<coordinates1->num;i++)
+        yyjson_val *coordinates1 = yyjson_arr_get(coordinates0,i);
+        for(int j=0;j<yyjson_arr_size(coordinates1);j++)
         {
-            mJSONArray(coordinates2,node1+i);
-            struct JSONNode *node2=(struct JSONNode *)coordinates2->data;
-            double x=node2[0].value_f;
-            double y=node2[1].value_f;
+            yyjson_val *coordinates2 = yyjson_arr_get(coordinates1,j);
+            double x=yyjson_get_real(yyjson_arr_get(coordinates2,0));
+            double y=yyjson_get_real(yyjson_arr_get(coordinates2,1));
             n++;
             // printf("x=%f,y=%f\n",x,y);
         }
     }
+    mTimerEnd("yyjson");
+
+    free(jsondata);
+    yyjson_doc_free(doc);
+    return n;
+}
+
+int Morn_test2()
+{
+    MObject *jsondata=mObjectCreate();
+    mFile(jsondata,"./canada.json");
+    int i,j;
     
-    mArrayRelease(coordinates0);
-    mArrayRelease(coordinates1);
-    mArrayRelease(coordinates2);
-    mArrayRelease(json);
+    mTimerBegin("Morn json");
+    struct JSONNode *json=mJSONParse(jsondata);
+    int n=0;
+    struct JSONNode *coordinates0,*coordinates1,*coordinates2;
+    coordinates0=mJSONRead(json,"features[0].geometry.coordinates");
+    for(coordinates1=mJSONRead(coordinates0),j=0;j<mJSONNodeNumber(coordinates0);j++,coordinates1++)
+        for(coordinates2=mJSONRead(coordinates1),i=0;i<mJSONNodeNumber(coordinates1);i++,coordinates2++)
+        {
+            struct JSONNode *node = mJSONRead(coordinates2);
+            double x=node[0].dataD64;
+            double y=node[1].dataD64;
+            n++;
+            // printf("x=%f,y=%f\n",x,y);
+        }
+    mTimerEnd("Morn json");
+    
+    mObjectRelease(jsondata);
     return n;
 }
 
@@ -213,29 +431,22 @@ void test2()
 {
     printf("\n\n");
     int n;
-    mTimerBegin("cjson");
-    n=cjson_test();
-    mTimerEnd("cjson");
+    n=cjson_test2();
     printf("get %d coordinates\n\n",n);
 
-    mTimerBegin("jsoncpp");
-    n=jsoncpp_test();
-    mTimerEnd("jsoncpp");
+    n=jsoncpp_test2();
     printf("get %d coordinates\n\n",n);
 
-    mTimerBegin("nlohmann");
-    n=nlohmann_test();
-    mTimerEnd("nlohmann");
+    n=nlohmann_test2();
     printf("get %d coordinates\n\n",n);
     
-    mTimerBegin("rapidjson");
-    n=rapidjson_test();
-    mTimerEnd("rapidjson");
+    n=rapidjson_test2();
     printf("get %d coordinates\n\n",n);
 
-    mTimerBegin("Morn");
-    n=Morn_test();
-    mTimerEnd("Morn");
+    n=yyjson_test2();
+    printf("get %d coordinates\n\n",n);
+
+    n=Morn_test2();
     printf("get %d coordinates\n\n",n);
 }
 
