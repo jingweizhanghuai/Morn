@@ -264,7 +264,6 @@ struct JSONNode *mJSONParse(MObject *jsondata)
         if(p[0]=='[') {handle->node0[1].type=JSON_ARRAY; JSONArrayLoad(&p,handle,1);break;}
     }
     int num=handle->layer[1].num;
-    // json->num=num;json->element_size=sizeof(struct JsonNode);json->data=handle->layer[0].node;
     handle->node0[1].data.idx  =1;
     handle->node0[1].data.num  =num;
     handle->node0[1].data.layer=1;
@@ -306,7 +305,6 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
         if(p[0]=='[') {handle->node0[1].type=JSON_ARRAY; JSONArrayLoad(&p,handle,1);break;}
     }
     int num=handle->layer[1].num;
-    // json->num=num;json->element_size=sizeof(struct JsonNode);json->data=handle->layer[0].node;
     handle->node0[1].data.idx  =1;
     handle->node0[1].data.num  =num;
     handle->node0[1].data.layer=1;

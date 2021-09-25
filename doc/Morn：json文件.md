@@ -66,10 +66,11 @@ struct JSONNode
 {
     union
     {
-        char   dataBool;
-        int    dataS32;
-        double dataD64;
-        char   *string;
+        int8_t   dataBool;	 //type为JSON_KEY_BOOL或JSON_BOOL时有效
+        int32_t  dataS32;	 //type为JSON_KEY_INT或JSON_INT时有效
+        double   dataD64;	//type为JSON_KEY_DOUBLE或JSON_DOUBLE时有效
+        char    *string;		  //type为JSON_KEY_STRING或JSON_STRING时有效
+        uint16_t num;		 //子节点数量，type为JSON_KEY_ARRAY、JSON_ARRAY、JSON_KEY_LIST或JSON_LIST时有效
     };
     char *key;
     char type;
@@ -139,130 +140,11 @@ child = mJSONRead(mother,"child5");	//mother是list类型，读取mother所有�
 child = mJSONRead(mother,"a.b[3].c.d[6]");	//读取深层节点
 ```
 
-#### json子节点数量
-
-```c
-int mJSONNodeNumber(struct JSONNode *node);
-```
-
-例如上例中：
-
-```c
-MFile *file = mFileCreate("./test_json.json");
-
-struct JSONNode *json=mJSONLoad(file);
-int json_num = mJSONNodeNumber(json);//结果为12，分别为"hello","t","f","n","i","a1","a2","a3","a4","date","city","province"
-
-struct JSONNode *date=mJSONRead(json,"date");
-int date_num = mJSONNodeNumber(date);//结果为3，分别为“year","month","day"
-
-struct JSONNode *a1=mJSONRead(json,"a1");
-int a1_num = mJSONNodeNumber(a1);//结果为4，分别为0,1,2,3
-
-mFileRelease(file);
-```
 
 
 
 
 
-
-
-
-
-#### 树节点的json信息
-
-```c
-char *mJSONName(MTreeNode *node);
-char *mJSONValue(MTreeNode *node);
-```
-
-其中`mJSONName`是获取树节点的json名，`mJSONValue`是获取树节点的json值。
-
-例如`"年级":"3"`，这里“年级”就是json名，“3”就是json值。不论json名还是json值都是一个字符串。
-
-例如，以下程序
-
-```c
-MTreeNode *node = json->treenode->child[0];
-for(int i=0;i<node->child_num;i++)
-    printf("%s是%s\n",mJSONName(node->child[i]),mJSONValue(node->child[i]));
-```
-
-得到的结果会是：
-
-```
-年级是3         
-班级是2         
-班主任是李老师      
-任课老师是王老师     
-任课老师是张老师     
-任课老师是刘老师     
-学生是          
-学生是          
-学生是          
-学生是
-```
-
-
-
-#### json搜索
-
-```c
-void mJSONSearch(MTree *tree,MList *list,char *name);
-```
-
-这个是用来获取特定节点的值。tree是`mJSONLoad`的输出结果，list是一个用来保存搜索结果的容器，name是所搜索的节点名。
-
-例如，想获取“班主任”的值：
-
-```c
-mJSONSearch(json,list,"班主任");
-printf("班主任是%s\n",list->data[0]);
-```
-
-得到的结果将是：
-
-```
-班主任是李老师
-```
-
-再例如，想获取“任课老师”的值：
-
-```c
-mJSONSearch(json,list,"任课老师");
-for(int i=0;i<list->num;i++) printf("任课老师%d是%s\n",i,list->data[i]);
-```
-
-得到的结果将是：
-
-```
-任课老师0是王老师
-任课老师1是张老师
-任课老师2是刘老师
-```
-
-再例如，想获取学生的数学成绩的值：
-
-```c
-MList *name = mListCreate(DFLT,NULL);mJSONSearch(json,name,"学生.姓名");
-MList *score= mListCreate(DFLT,NULL);mJSONSearch(json,score,"学生.成绩.数学");
-for(int i=0;i<list->num;i++) 
-    printf("%s的数学成绩是%d\n",name->data[i],atoi(score->data[i]));
-mListRelease(name);
-mListRelease(score);
-```
-
-注意，因为学生的姓名在树的第三层，数学成绩在树的第四层，所以这里需要**用`.`分割各层的名字**，即找数学成绩就需要先找“学生”节点，再在其中找“成绩”节点，然后在其中找“数学”节点。
-
-得到的结果是：
-
-```
-张三的数学成绩是70
-李四的数学成绩是100
-赵五的数学成绩是60
-王二麻的数学成绩是98
-```
 
 
 
