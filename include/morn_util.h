@@ -122,7 +122,7 @@ typedef intptr_t PTR;
       uint64_t :MORN_TYPE_U64,int64_t:MORN_TYPE_S64,\
       float    :MORN_TYPE_F32,double :MORN_TYPE_D64,\
       char     :((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
-   signed long :((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
+   signed long :((sizeof(  signed /long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
  unsigned long :((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
       uint8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
        int8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
@@ -191,7 +191,7 @@ extern __thread char morn_filename[256];
     if(Num>10) PrintVal(Name[10],VA10(__VA_ARGS__),mDataType(VA10(__VA_ARGS__)));\
     if(Num>11) PrintVal(Name[11],VA11(__VA_ARGS__),mDataType(VA11(__VA_ARGS__)));\
     if(Num>12) PrintVal(Name[12],VA12(__VA_ARGS__),mDataType(VA12(__VA_ARGS__)));\
-    if(Num>13) PrintVal(Name[13],VA13(__VA_ARGS__),mDataType(VA13(__VA_ARGS__)));\
+    if(Num>13) PrintVal(Name[13],V/A13(__VA_ARGS__),mDataType(VA13(__VA_ARGS__)));\
     if(Num>14) PrintVal(Name[14],VA14(__VA_ARGS__),mDataType(VA14(__VA_ARGS__)));\
     if(Num>15) PrintVal(Name[15],VA15(__VA_ARGS__),mDataType(VA15(__VA_ARGS__)));\
     printf("\n");\
@@ -601,6 +601,7 @@ void m_ObjectRedefine(MObject *object,void *p,int size);
 }while(0)
 
 void mObjectRelease(MObject *object);
+void *mObjectMemory(MObject *object);
 
 MObject *mMornObject(const void *p,int size);
 void mornObjectRemove(void *no_use,char *name);
@@ -894,9 +895,6 @@ struct JSONNode *mJSONLoad(MFile *jsonfile);
 struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);
 #define mJSONRead(...) ((VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0):m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__)))
 
-// void mJsonParse(MArray *json,char *jsondata,int size);
-// void mJSONLoad(MArray *json,const char *filename,...);
-// void mJSONSave(MArray *json,const char *filename,...);
 
 extern char *morn_json_type[15];
 #define mJSONNodeType(Node) morn_json_type[MAX(MIN((Node)->type,14),0)]
@@ -905,14 +903,6 @@ extern char *morn_json_type[15];
 int mJSONNodeNumber(struct JSONNode *node);
 
 void mJSONArray(MArray *array,struct JSONNode *node);
-
-// struct JSONNode *m_JSONRead(struct JSONNode *node0,char *key,struct JSONNode *data);
-// #define GetNode(P) ((sizeof(*P)==sizeof(struct JSONNode))?(struct JSONNode *)(P):*(struct JSONNode **)mReserve((MObject *)(P),7))
-// #define mJSONRead(Json,...) (\
-//     (VANumber(__VA_ARGS__)==1)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),NULL):\
-//     (VANumber(__VA_ARGS__)==2)?m_JSONRead(GetNode(Json),(char *)_VA0(__VA_ARGS__),(struct JSONNode *)VA1(__VA_ARGS__)):\
-//     NULL\
-// )
 
 
 void m_JSONDelete0(MArray *json,int n);

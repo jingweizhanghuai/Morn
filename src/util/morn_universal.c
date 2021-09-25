@@ -142,11 +142,13 @@ MObject *m_ObjectCreate(void *p,int size)
 void m_ObjectRedefine(MObject *object,void *p,int size)
 {
     if(size<=0) {if(p!=NULL) {size=strlen(p);} else {size=object->size;}}
+    if((p==object->object)&&(size==object->size)) return;
     
-    if((p==NULL)&&(size!=object->size))
+    if(p==NULL)
     {
         struct HandleObjectCreate *handle= (struct HandleObjectCreate *)(ObjHandle(object,0)->handle);
         if(handle->buff_size<size) {if(handle->buff2!=NULL) {mFree(handle->buff2);} handle->buff2=mMalloc(size);handle->buff_size = size;}
+        if(object->object==handle->buff2) return;
         object->object = handle->buff2;
         p=object->object;
     }
@@ -203,7 +205,12 @@ void mObjectRelease(MObject *object)
     mHandleRelease(object);
 }
 
-
+void *mObjectMemory(MObject *object)
+{
+    struct HandleObjectCreate *handle= (struct HandleObjectCreate *)(ObjHandle(object,0)->handle);
+    if(object->size>8) return handle->buff2;
+    return &(handle->buff1);
+}
 
 void HandleExchange(void *obj1,void *obj2)
 {

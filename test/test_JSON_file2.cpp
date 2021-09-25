@@ -2,16 +2,16 @@
 Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this json except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn
+//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn -lpthread
 
 #include "morn_util.h"
 
 #include <fstream>
-#include "json/json.h"
+#include "jsoncpp/json/json.h"
 
 #include "rapidjson/document.h"
 
-#include "cJSON.h"
+#include "cjson/cJSON.h"
 
 #include "nlohmann/json.hpp"
 
@@ -128,21 +128,21 @@ int rapidjson_test1()
     document.Parse(jsondata);
     int n=0;
     const rapidjson::Value& performances= document["performances"];
-    for(int i=0;i<performances.Size();i++)
-    {
-        const rapidjson::Value& seatCategories=performances[i]["seatCategories"];
-        for(int j=0;j<seatCategories.Size();j++)
-        {
-            const rapidjson::Value& areas=seatCategories[j]["areas"];
-            for(int k=0;k<areas.Size();k++)
-            {
-                const rapidjson::Value& areaId=areas[k]["areaId"];
-                int id = areaId.GetInt();
-                n++;
-                // printf("id=%d\n",id);
-            }
-        }
-    }
+    // for(int i=0;i<performances.Size();i++)
+    // {
+    //     const rapidjson::Value& seatCategories=performances[i]["seatCategories"];
+    //     for(int j=0;j<seatCategories.Size();j++)
+    //     {
+    //         const rapidjson::Value& areas=seatCategories[j]["areas"];
+    //         for(int k=0;k<areas.Size();k++)
+    //         {
+    //             const rapidjson::Value& areaId=areas[k]["areaId"];
+    //             int id = areaId.GetInt();
+    //             n++;
+    //             // printf("id=%d\n",id);
+    //         }
+    //     }
+    // }
     mTimerEnd("rapidjson");
 
     free(jsondata);
@@ -225,6 +225,9 @@ void test1()
     printf("\n\n");
     int n;
 
+    n=rapidjson_test1();
+    printf("get %d areaId\n\n",n);
+
     n=cjson_test1();
     printf("get %d areaId\n\n",n);
 
@@ -234,9 +237,6 @@ void test1()
     n=nlohmann_test1();
     printf("get %d areaId\n\n",n);
     
-    n=rapidjson_test1();
-    printf("get %d areaId\n\n",n);
-
     n=yyjson_test1();
     printf("get %d areaId\n\n",n);
 
@@ -431,6 +431,10 @@ void test2()
 {
     printf("\n\n");
     int n;
+
+    n=rapidjson_test2();
+    printf("get %d coordinates\n\n",n);
+
     n=cjson_test2();
     printf("get %d coordinates\n\n",n);
 
@@ -440,9 +444,6 @@ void test2()
     n=nlohmann_test2();
     printf("get %d coordinates\n\n",n);
     
-    n=rapidjson_test2();
-    printf("get %d coordinates\n\n",n);
-
     n=yyjson_test2();
     printf("get %d coordinates\n\n",n);
 
@@ -450,9 +451,10 @@ void test2()
     printf("get %d coordinates\n\n",n);
 }
 
-int main()
+int main(int argc,char *argv[])
 {
-    test1();
-    test2();
+    if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
+    if(strcmp(argv[1],"test1")==0) {test1();return 0;}
+    if(strcmp(argv[1],"test2")==0) {test2();return 0;}
     return 0;
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
@@ -14,7 +14,7 @@ union JsonData
     int    dataS32;
     double dataD64;
     char   *string;
-    struct {int32_t idx ;int32_t flag;};
+    struct {int32_t flag;int32_t idx;};
     MArray *array;
     void *handle0;
 };
@@ -32,21 +32,6 @@ struct JsonLayer
     int cap;
     int num;
 };
-
-// void LayerWrite(struct JsonLayer *layer,struct JsonNode *node)
-// {
-//     int num = layer->num;
-//     if(num==layer->cap)
-//     {
-//         int n=MAX(256,num+num);
-//         struct JsonNode *buff=mMalloc(n*sizeof(struct JsonNode));
-//         memcpy(buff,layer->node,num*sizeof(struct JsonNode));if(num>1) mFree(layer->node);
-//         layer->node=buff;layer->cap=n;
-//     }
-//     layer->node[num]=*node;
-//     layer->num=num+1;
-//     // printf("node=%p,node->key=%s\n",layer->node+num,layer->node[num].key);
-// }
 
 struct JsonNode *LayerNode(struct JsonLayer *layer)
 {
@@ -215,7 +200,7 @@ void JSONArrayLoad(char **file,struct HandleJSON *handle,int l)
     
     while(1)
     {
-        p++;// printf("p[0]=%c",p[0]);
+        p++;
         if((p[0]==' ')||(p[0]=='\t')||(p[0]=='\n')||(p[0]=='\r')||(p[0]==',')) continue;
         else if(p[0]==']') {*file=p;return;}
 
@@ -243,14 +228,12 @@ void JSONArrayLoad(char **file,struct HandleJSON *handle,int l)
         else if(p[0]=='f') {node->type=JSON_BOOL  ;node->data.dataBool = 0;p+=4;}
         else if(p[0]=='n') {node->type=JSON_STRING;node->data.string=NULL;p+=3;}
         else                p=StringNumber(p,&(node->data),&(node->type))-1;
-        // LayerWrite(layer,&node);
     }
 }
 
 struct JSONNode *mJSONParse(MObject *jsondata)
 {
-    if(jsondata->size<0) jsondata->size=strlen(jsondata->string)+1;
-    int size=jsondata->size;
+    if(jsondata->size<0) jsondata->size=strlen(jsondata->string);
     
     MHandle *hdl = mHandle(jsondata,JSON);
     struct HandleJSON *handle=hdl->handle;
@@ -265,12 +248,12 @@ struct JSONNode *mJSONParse(MObject *jsondata)
         
         hdl->valid=1;
     }
-    
-    if(handle->file!=NULL) mFree(handle->file);
-    handle->file=(char *)mMalloc(size);
-    memcpy(handle->file,jsondata->string,size);
 
-    for(char *p=handle->file;;p++)
+    char *string = jsondata->string;
+    mObjectRedefine(jsondata,NULL,jsondata->size);
+    if(string!=jsondata->string) memcpy(jsondata->string,string,jsondata->size);
+
+    for(char *p=jsondata->string;;p++)
     {
         if(p[0]=='{') {handle->node0[1].type=JSON_LIST ; JSONListLoad( &p,handle,1);break;}
         if(p[0]=='[') {handle->node0[1].type=JSON_ARRAY; JSONArrayLoad(&p,handle,1);break;}
