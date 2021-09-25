@@ -882,10 +882,11 @@ struct JSONNode
 {
     union
     {
-        char   dataBool;
-        int    dataS32;
-        double dataD64;
-        char   *string;
+        int8_t   dataBool;
+        int32_t  dataS32;
+        double   dataD64;
+        char    *string;
+        uint16_t num;
     };
     char *key;
     char type;
@@ -898,9 +899,6 @@ struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);
 
 extern char *morn_json_type[15];
 #define mJSONNodeType(Node) morn_json_type[MAX(MIN((Node)->type,14),0)]
-
-// struct JSONNode *mJSONSubnode(struct JSONNode *node);
-int mJSONNodeNumber(struct JSONNode *node);
 
 void mJSONArray(MArray *array,struct JSONNode *node);
 

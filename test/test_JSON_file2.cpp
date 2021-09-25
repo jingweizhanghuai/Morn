@@ -17,6 +17,8 @@ Licensed under the Apache License, Version 2.0; you may not use this json except
 
 #include "yyjson.h"
 
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
+
 int cjson_test1()
 {
     FILE *f = fopen("./citm_catalog.json","rb");
@@ -128,21 +130,21 @@ int rapidjson_test1()
     document.Parse(jsondata);
     int n=0;
     const rapidjson::Value& performances= document["performances"];
-    // for(int i=0;i<performances.Size();i++)
-    // {
-    //     const rapidjson::Value& seatCategories=performances[i]["seatCategories"];
-    //     for(int j=0;j<seatCategories.Size();j++)
-    //     {
-    //         const rapidjson::Value& areas=seatCategories[j]["areas"];
-    //         for(int k=0;k<areas.Size();k++)
-    //         {
-    //             const rapidjson::Value& areaId=areas[k]["areaId"];
-    //             int id = areaId.GetInt();
-    //             n++;
-    //             // printf("id=%d\n",id);
-    //         }
-    //     }
-    // }
+    for(int i=0;i<performances.Size();i++)
+    {
+        const rapidjson::Value& seatCategories=performances[i]["seatCategories"];
+        for(int j=0;j<seatCategories.Size();j++)
+        {
+            const rapidjson::Value& areas=seatCategories[j]["areas"];
+            for(int k=0;k<areas.Size();k++)
+            {
+                const rapidjson::Value& areaId=areas[k]["areaId"];
+                int id = areaId.GetInt();
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
     mTimerEnd("rapidjson");
 
     free(jsondata);
@@ -196,15 +198,15 @@ int Morn_test1()
     struct JSONNode *json = mJSONParse(jsondata);
     int n=0;
     struct JSONNode *performances_array = mJSONRead(json,"performances");
-    for(int i=0;i<mJSONNodeNumber(performances_array);i++)
+    for(int i=0;i<performances_array->num;i++)
     {
         struct JSONNode *performances = mJSONRead(performances_array,i);
         struct JSONNode *seatCategories_array = mJSONRead(performances,"seatCategories");
-        for(int j=0;j<mJSONNodeNumber(seatCategories_array);j++)
+        for(int j=0;j<seatCategories_array->num;j++)
         {
             struct JSONNode *seatCategories = mJSONRead(seatCategories_array,j);
             struct JSONNode *areas_array = mJSONRead(seatCategories,"areas");
-            for(int k=0;k<mJSONNodeNumber(areas_array);k++)
+            for(int k=0;k<areas_array->num;k++)
             {
                 struct JSONNode *areas = mJSONRead(areas_array,k);
                 struct JSONNode *areaId=mJSONRead(areas,"areaId");
@@ -412,8 +414,8 @@ int Morn_test2()
     int n=0;
     struct JSONNode *coordinates0,*coordinates1,*coordinates2;
     coordinates0=mJSONRead(json,"features[0].geometry.coordinates");
-    for(coordinates1=mJSONRead(coordinates0),j=0;j<mJSONNodeNumber(coordinates0);j++,coordinates1++)
-        for(coordinates2=mJSONRead(coordinates1),i=0;i<mJSONNodeNumber(coordinates1);i++,coordinates2++)
+    for(coordinates1=mJSONRead(coordinates0),j=0;j<coordinates0->num;j++,coordinates1++)
+        for(coordinates2=mJSONRead(coordinates1),i=0;i<coordinates1->num;i++,coordinates2++)
         {
             struct JSONNode *node = mJSONRead(coordinates2);
             double x=node[0].dataD64;
