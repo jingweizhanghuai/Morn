@@ -159,7 +159,7 @@ void JSONListLoad(char **file,struct HandleJSON *handle,int l)
         else if(p[0]=='"')
         {
             p=p+1;
-            if(flag==0) {node->key=p;{for(;p[0]!='"';p++);}p[0]=0;node->key[-1]=p-node->key;}//printf("l=%d,key=%s\n",l,node->key);}
+            if(flag==0) {node->key=p;{for(;p[0]!='"';p++);}p[0]=0;node->key[-1]=p-node->key;}
             else        {node->data.string=p;node->type=JSON_STRING;p=JSONString(p);}
         }
         else if(p[0]==':') {mException(flag==1,EXIT,"json file error");flag=1;}

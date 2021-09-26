@@ -131,7 +131,7 @@ void mTrainData(MList *ini);
 // void mPredictData(MList *ini,char *name[],MTensor *tns[]);
 void mNetworkTensor(MList *ini,char *name[],MTensor *tns[]);
 
-void mDeeplearningTrain(char *filename);
+void mDeeplearningTrain(MFile *file);
 void mNetworkTrain(MList *ini,char *name[],MTensor *tns[]);
 void mNetworkPredict(MList *ini,char *name[],MTensor *tns[]);
 

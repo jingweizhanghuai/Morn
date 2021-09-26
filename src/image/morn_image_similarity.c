@@ -26,7 +26,7 @@ uint32_t *mImageSimilarityFeature(MImage *src)
     if(hdl->valid == 1) return &(handle->feature[0][0]);
     hdl->valid =1;
     
-    int image_type=DFLT; mPropertyRead(src,"image_type",image_type);
+    int image_type=DFLT; mPropertyRead(src,"image_type",&image_type);
     mException((image_type != MORN_IMAGE_GRAY)&&(image_type != MORN_IMAGE_RGB),EXIT,"invalid input");
     MTable *tab = mTableCreate(src->height+1,src->width+1,sizeof(int),NULL);
     memset(tab->dataS32[0],0,(src->width+1)*sizeof(float));

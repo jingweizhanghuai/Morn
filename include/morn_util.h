@@ -191,7 +191,7 @@ extern __thread char morn_filename[256];
     if(Num>10) PrintVal(Name[10],VA10(__VA_ARGS__),mDataType(VA10(__VA_ARGS__)));\
     if(Num>11) PrintVal(Name[11],VA11(__VA_ARGS__),mDataType(VA11(__VA_ARGS__)));\
     if(Num>12) PrintVal(Name[12],VA12(__VA_ARGS__),mDataType(VA12(__VA_ARGS__)));\
-    if(Num>13) PrintVal(Name[13],V/A13(__VA_ARGS__),mDataType(VA13(__VA_ARGS__)));\
+    if(Num>13) PrintVal(Name[13],VA13(__VA_ARGS__),mDataType(VA13(__VA_ARGS__)));\
     if(Num>14) PrintVal(Name[14],VA14(__VA_ARGS__),mDataType(VA14(__VA_ARGS__)));\
     if(Num>15) PrintVal(Name[15],VA15(__VA_ARGS__),mDataType(VA15(__VA_ARGS__)));\
     printf("\n");\
@@ -848,17 +848,27 @@ void mFileDecrypt(MFile *file,uint64_t key);
 
 // extern __thread char *morn_string_result;
 
-void mINIFile(char *ininame);
+void mINIFile(MFile *file);
 MList *mINI();
-void mINILoad(MList *list,char *filename);
+MList *m_INILoad(MFile *file);
+#define mINILoad(...) ((VANumber(__VA_ARGS__)==1)?m_INILoad(_VA0(__VA_ARGS__)):m_INILoad(NULL))
 char *m_INIRead(MList *ini,const char *section,const char *key,const char *format,...);
-#define mINIRead(...) m_INIRead(__VA_ARGS__,NULL)
+#define mINIRead(P,...) ((sizeof(P[0])==sizeof(MList))?m_INIRead((MList *)P,__VA_ARGS__,NULL):m_INIRead(mINI(),(const char *)P,__VA_ARGS__,NULL))
 char *m_INIWrite(MList *ini,const char *section,const char *key,const char *format,...);
-#define mINIWrite(...) m_INIWrite(__VA_ARGS__,NULL)
+#define mINIWrite(P,...) ((sizeof(P[0])==sizeof(MList))?m_INIWrite((MList *)P,__VA_ARGS__,NULL):m_INIWrite(mINI(),(const char *)P,__VA_ARGS__,NULL))
 void m_INIDelete(MList *ini,const char *section,const char *key);
-#define mINIDelete(Ini,...) do{\
-    if(VANumber(__VA_ARGS__)==2) m_INIDelete(Ini,(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
-    else                         m_INIDelete(Ini,(const char *)_VA0(__VA_ARGS__),NULL);\
+#define mINIDelete(P,...) do{\
+    int VAN = VANumber(__VA_ARGS__);\
+    if(sizeof(P[0])==sizeof(MList))\
+    {\
+        if(VAN==2) m_INIDelete((MList *)(P),(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
+        else       m_INIDelete((MList *)(P),(const char *)_VA0(__VA_ARGS__),NULL);\
+    }\
+    else\
+    {\
+        if(VAN==1) m_INIDelete(mINI(),(const char *)P,(const char *)_VA0(__VA_ARGS__));\
+        else       m_INIDelete(mINI(),(const char *)P,NULL);\
+    }\
 }while(0)
 void mINISave(MList *ini,char *filename);
 MList *mINIKey(MFile *file,const char *section);

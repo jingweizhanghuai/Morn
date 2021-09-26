@@ -208,12 +208,10 @@ void mNetworkBackward(MList *net)
 
 int morn_network_flag = MORN_PREDICT;
 
-void mDeeplearningTrain(char *filename)
+void mDeeplearningTrain(MFile *file)
 {
     morn_network_flag = MORN_TRAIN;
-    MList *ini = mListCreate();
-    mINILoad(ini,filename);
-    // mFileCreate(filename);
+    MList *ini = mINILoad(file);
     
     MList *net = mNetworkGenerate(ini);
     
@@ -225,8 +223,6 @@ void mDeeplearningTrain(char *filename)
         mLog(MORN_INFO,"%05d:error is %f\n",morn_network_time,morn_network_error);
         if(morn_network_error <= morn_network_error_thresh) break;
     }
-    
-    mListRelease(ini);
 }
 
 void mNetworkTrain(MList *ini,char *name[],MTensor *tns[])
