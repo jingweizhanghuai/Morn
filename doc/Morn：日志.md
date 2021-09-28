@@ -44,79 +44,20 @@ this is a Morn log, num=1
 
 
 
-#### 日志设置
+#### 日志格式
 
-```c
-void mLogSet(int levelset);
-void mLogSet(const char *filename);
-void mLogSet(int levelset,const char *filename);
-void mLogSet(int output,const char *filename);
-void mLogSet(int levelset,int output,const char *filename);
-void mLogSet(int levelset,int output,const char *filename,int64_t filesize);
-void mLogSet(int levelset,int output,void (*func)(void *,int,void *),void *para);
-void mLogSet(int levelset,int output,const char *filename,int64_t filesize,void (*func)(void *,int,void *),void *para);
-```
-
-`mLogSet`用来设置日志相关的参数，它包括以上7种形式。
-
-程序中并非必须使用mLogSet函数，当没有使用mLogSet函数时，默认将日志打印在控制台上，日志级别为Info（Release版本）或Debug（Debug版本）。
-
-`mLogSet`通常写在程序的开头，用以配置日志参数。也可以在程序中多次调用，用以改变日志配置。
-
-以上`mLogSet`接口中：
-
-* levelset为设定的日志输出级别，当`mLog`函数中指定的日志级别大于等于此levelset时，日志才会被输出，否则被忽略。此项可设置为DFLT。
-
-* output为日志输出方式，包括`MORN_LOG_CONSOLE`（控制台）、`MORN_LOG_FILE`（文件）`MORN_LOG_CUSTOM`（用户自定义），同时也可以设置为`MORN_LOG_CONSOLE & MORN_LOG_FILE`表示即在控制台输出，也在文件中输出。此项可指定为DFLT，若已设置filename则默认输出到文件，若已设置func则默认按照用户自定义方式输出，否则默认输出到控制台。
-
-* filename为日志输出的文件名，若指定output为文件，则必须设置此项。
-
-* filesize：日志文件分割大小，单位为字节，只有设置了output为文件时此项才有效。若不设置此项，则所有日志将输出到同一文件中（不作分割）。否则日志文件大小超过此值时，将会新建一日志文件。
-
-* func：日志处理函数。它必须遵循以下形式：
-
-  ```c
-  void func(char *log_data,int log_size,void *para);
-  ```
-
-* para：即func项所需要的para。
-
-
-
-### 使用
-
-#### 设置日志级别
-
-此函数中的level即为日志级别。当此level大于等于`mLogSet`所配置的日志等级（未配置时使用默认配置）时，日志才会输出，否则忽略。
-
-Morn预设的日志级别由低到高分别是`MORN_DEBUG`，`MORN_INFO`，`MORN_WARNING`，`MORN_ERROR `，他们的定义分别为：
-
-```c
-#define MORN_DEBUG    0
-#define MORN_INFO    16
-#define MORN_WARNING 32
-#define MORN_ERROR   48
-```
-
-用户除了可以使用以上四种级别外，还可以自定义日志级别。例如定义一种日志级别为NOTICE，其日志级别高于INFO低于WARNING，则可定义为
-
-```c
-#define NOTICE (MORN_INFO+1)
-mLog(NOTICE, "this is a Morn log, num=%d\n",1);
-```
-
-#### 使用预定义格式
+**预定义格式**
 
 Morn里使用语法糖`mLogFormat`预设了**5种**日志格式。以下例说明之：
 
 ```c
 int main()
 {
-    mLog(MORN_INFO, mLogFormat(1,"this is a Morn log, num=%d"),1);
-    mLog(MORN_INFO, mLogFormat(2,"this is a Morn log, num=%d"),2);
-    mLog(MORN_INFO, mLogFormat(3,"this is a Morn log, num=%d"),3);
-    mLog(MORN_INFO, mLogFormat(4,"this is a Morn log, num=%d"),4);
-    mLog(MORN_INFO, mLogFormat(5,"this is a Morn log, num=%d"),5);
+    mLog(MORN_INFO, mLogFormat(1,"this is a Morn log, format %d"),1);
+    mLog(MORN_INFO, mLogFormat(2,"this is a Morn log, format %d"),2);
+    mLog(MORN_INFO, mLogFormat(3,"this is a Morn log, format %d"),3);
+    mLog(MORN_INFO, mLogFormat(4,"this is a Morn log, format %d"),4);
+    mLog(MORN_INFO, mLogFormat(5,"this is a Morn log, format %d"),5);
     return 0;
 }
 ```
@@ -124,14 +65,12 @@ int main()
 此程序的输出为：
 
 ```
-[test_log.c,line 16,function main]Info: this is a Morn log, num=1
-[2020.09.13 18:03:43]Info: this is a Morn log, num=2
-[thread001]Info: this is a Morn log, num=3
-[2020.09.13 18:03:43 thread001]Info: this is a Morn log, num=4
-[2020.09.13 18:03:43 thread001 test_log.c,line 20,function main]Info: this is a Morn log, num=5
+[test_log.c,line 16,function main]Info: this is a Morn log, format 1
+[2020.09.13 18:03:43]Info: this is a Morn log, format 2
+[thread001]Info: this is a Morn log, format 3
+[2020.09.13 18:03:43 thread001]Info: this is a Morn log, format 4
+[2020.09.13 18:03:43 thread001 test_log.c,line 20,function main]Info: this is a Morn log, format 5
 ```
-
-以上可见，Morn所输出的日志格式包括：①日志所在文件、②日志所在行、③日志所在函数，③日志生产日期和时间，④日志所属线程，⑤日志级别。以上5种预设格式是以上这些信息的组合。
 
 Morn库所有自带的日志输出（例如定时信息、异常信息），皆采用格式1。
 
@@ -148,7 +87,7 @@ mLog(MORN_INFO, mLogFormat(5,"%s"),message);		//正确用法
 
 如果误用`mLogFormat`，将会导致编译语法错误。
 
-#### 自定义格式
+**自定义格式**
 
 Morn认为：任何的预设格式都未必能满足用户的所有需求，Morn鼓励用户自定义日志格式。
 
@@ -200,60 +139,219 @@ int mThreadID();
 
 返回值为当前线程编号，此编号并非系统中的线程ID，是由1开始递增的整数，如第一个线程返回1，第二个线程返回2等。
 
-#### 日志的多种输出
 
-Morn日志可选择三种输出方式，分别为：
+
+#### 设置属性
+
+对日志属性的设置使用`mPropertyWrite`接口，向`"Log"`模块写入属性。日志行为在`mPropertyWrite`后生效。
+
+**设置日志输出等级**
 
 ```c
-#define MORN_LOG_CONSOLE  (~1)	//输出到控制台
-#define MORN_LOG_FILE     (~2)	//输出到日志文件
-#define MORN_LOG_CUSTOM   (~4)	//用户自定义输出
+mPropertyWrite("Log","log_level",(int *)p_log_level,sizeof(int));
 ```
 
-以上三种方式可以混合使用，例如：
+属性名为`"log_level"`。属性为int型整数。
+
+当`mLog`函数中指定的日志级别大于等于此level_level时，日志才会被输出，否则被忽略。
+
+Morn预设的日志级别由低到高分别是`MORN_DEBUG`，`MORN_INFO`，`MORN_WARNING`，`MORN_ERROR `，他们的定义分别为：
 
 ```c
-mLogSet(MORN_INFO);//输出到控制台
-mLogSet(MORN_INFO,"./test.log");//输出到文件
-mLogSet(MORN_INFO,MORN_LOG_CONSOLE&MORN_LOG_FILE,"./test.log");//既输出到控制台，也输出到文件
-mLogSet(MORN_INFO,MORN_LOG_CUSTOM,my_log_func,my_log_func_para);//以用户自定义方式输出
-mLogSet(MORN_INFO,MORN_LOG_CONSOLE&MORN_LOG_FILE&MORN_LOG_CUSTOM,"./test.log",DFLT,my_log_func,my_log_func_para);//同时以控制台、文件、用户自定义三种方式输出
+#define MORN_DEBUG    0
+#define MORN_INFO    16
+#define MORN_WARNING 32
+#define MORN_ERROR   48
 ```
 
-其中用户自定义输出详见下文。
-
-#### 日志文件分割
-
-当日志过多，文件过大时，往往并不希望所有的日志都保存在同一文件里，这是需要对日志文件进行分割。设置`mLogSet`接口中的filesize项可实现此功能。
-
-例如：
+例如，设置日志输出级别为MORN_WARNING，则程序应如下：
 
 ```c
-mLogSet(DFLT,"./test.log",1024*1024);
+int log_level = MORN_WARNING;
+mPropertyWrite("Log","log_level",&log_level,sizeof(int));
 ```
 
-以上表示每个日志文件的大小不超过1M字节。此时会在指定目录下生成test.log、test_1.log、test_2.log……等一系列不超过1M字节的日志文件。
+未设置日志级别时，默认日志级别为Info（Release版本）或Debug（Debug版本）。
 
-#### 日志自定义输出
-
-Morn已提供了控制台和文件两种输出方式，但是Morn认为：无论提供多少种日志输出方式都未必能够满足所有的应用场景，最好的办法是允许用户自定义日志的输出方式。
-
-用户自定义日志输出方式是通过在`mLogSet`接口中设置func和para选项来实现的。
-
-例如，将日志通过UDP上传到另一台计算机：
+用户除了可以使用以上四种级别外，还可以自定义日志级别。例如定义一种日志级别为NOTICE，其日志级别高于INFO低于WARNING，则可定义为
 
 ```c
-void my_log_func(char *log_data,int log_size,char *udp_address)
-{
-    mUDPSend(udp_address,log_data,log_size);
-}
-...
+#define NOTICE (MORN_INFO+1)
+mLog(NOTICE, "this is a Morn log, num=%d\n",1);
+```
+
+一个示例程序如下：
+
+```c
 int main()
 {
-    mLogSet(DFLT,MORN_LOG_CUSTOM,my_log_func,"192.168.0.123:8888");
-    ...
-    mLog(MORN_INFO,"this is a Morn log");
-    ...
+    int log_level = MORN_INFO;
+    mPropertyWrite("Log","log_level",&log_level,sizeof(int));
+    
+    mLog(MORN_DEBUG  ,"this is a debug log\n");
+    mLog(MORN_INFO   ,"this is a info log\n");
+    mLog(MORN_WARNING,"this is a warning log\n");
+    mLog(MORN_ERROR  ,"this is a error log\n\n");
+
+    #define REMARK MORN_INFO+1
+    log_level = REMARK;
+    mPropertyWrite("Log","log_level",&log_level,sizeof(int));
+
+    mLog(MORN_DEBUG  , "this is a debug log\n");
+    mLog(MORN_INFO   , "this is a info log\n");
+    mLog(REMARK      , "this is a remark log\n");
+    mLog(MORN_WARNING, "this is a warning log\n");
+    mLog(MORN_ERROR  , "this is a error log\n\n");
+    
+    return 0;
+}
+```
+
+此程序的输出结果如下：
+
+```
+this is a info log
+this is a warning log
+this is a error log
+
+this is a remark log
+this is a warning log
+this is a error log
+```
+
+
+
+**设置日志文件**
+
+```c
+mPropertyWrite("Log","log_file",(const char *)filename); //向文件中打印日志
+mPropertyWrite("Log","log_file","exit"); 				 //停止向日志中打印日志
+```
+
+属性名为`"log_file"`。属性为字符串。
+
+**设置日志文件大小**
+
+```c
+mPropertyWrite("Log","log_filesize",(int *)p_filesize,sizeof(int));
+```
+
+属性名为`"log_filesize"`。属性为int型整数，代表文件字节数。
+
+只有设置了`"log_file"`时此项才有效。若不设置此项，则所有日志将输出到同一文件中（不作分割）。否则日志文件大小超过此值时，将会新建一个新的日志文件。
+
+
+
+**设置日志的控制台输出**
+
+```c
+mPropertyWrite("Log","log_console",&p_log_console,sizeof(int));
+```
+
+属性名为`"log_filesize"`。属性为int型布尔值，非0表示使能控制台打印，0表示禁能控制台打印。
+
+未设置此项时，默认使能控制台输出。
+
+
+
+以下程序示例了日志的文件和控制台混合输出：
+
+```c
+int main()
+{
+    mLog(MORN_INFO, "this is log No.1\n");
+    mPropertyWrite("Log","log_file","./test_log.log");
+    mLog(MORN_INFO, "this is log No.2\n");
+    mPropertyWrite("Log","log_file","exit");
+    mLog(MORN_INFO, "this is log No.3\n");
+    mPropertyWrite("Log","log_file","./test_log2.log");
+    mLog(MORN_INFO, "this is log No.4\n");
+    int log_console = 1;
+    mPropertyWrite("Log","log_console",&log_console,sizeof(int));
+    mLog(MORN_INFO, "this is log No.5\n");
+    log_console = 0;
+    mPropertyWrite("Log","log_console",&log_console,sizeof(int));
+    mLog(MORN_INFO, "this is log No.6\n");
+    mPropertyWrite("Log","log_file","exit");
+    mLog(MORN_INFO, "this is log No.7\n");
+    return 0;
+}
+```
+
+以上：
+
+第一条日志未设置输出方式，默认为控制台输出。
+
+第二条日志设置了输出到文件`"./test_log.log"`，因此将输出到文件。
+
+第三条日志因设置了结束文件输出，因此将输出到控制台
+
+第四条日志设置了输出到文件`"./test_log2.log"`，因此将输出到文件。
+
+第五条日志设置了控制台输出使能，因此将同时输出到文件和控制台。
+
+第六条日志因禁能了控制台输出，因此将输出到文件。
+
+第七条日志因设置了结束文件输出，因此将输出到控制台。
+
+因此：在控制台将得到：
+
+```
+this is log No.1
+this is log No.3
+this is log No.5
+this is log No.7
+```
+
+在`"./test_log.log"`文件将得到：
+
+```
+this is log No.2
+```
+
+在`"./test_log2.log"`文件将得到：
+
+```c
+this is log No.4
+this is log No.5
+this is log No.6
+```
+
+
+
+**自定义日志输出**
+
+```c
+mPropertyWrite("Log","log_function",&func,sizeof(void *));  //设置日志输出函数
+```
+
+属性名为`"log_function"`。属性为void**型指针。
+
+```c
+mPropertyWrite("Log","log_func_para",&para,sizeof(void *));	//设置日志函数的参数
+```
+
+属性名为`"log_func_para"`。属性为void**型指针。
+
+Morn认为：无论提供多少种日志输出方式都未必能够满足所有的应用场景，最好的办法是允许用户自定义日志的输出方式。
+
+其使用方法如下例：自定义文件通过UDP协议传输到另一台计算机上，云端计算机的IP地址和端口号作为函数参数。
+
+```c
+void send_log(char *log,int size,char *addr)
+{
+    mUDPWrite(addr,log,size);
+}
+
+int main()
+{
+    void *func=send_log;
+    mPropertyWrite("Log","log_function",&func,sizeof(void *));
+    
+    char *para = "192.168.1.111:1234";
+    mPropertyWrite("Log","log_func_para",&para,sizeof(char *));
+    
+    mLog(MORN_INFO, "this is a Morn log\n");
     return 0;
 }
 ```
@@ -338,11 +436,11 @@ int main(int argc, char** argv)
     mTimerEnd("log4cpp");
 
     mTimerBegin("Morn");
-    mLogSet(DFLT,DFLT,"./test_log_morn.log");
+    mPropertyWrite("Log","log_file","./test_log_morn.log");
     for(int n=0;n<1000000;n++)
     {
         int i=n%100;
-        mLog(MORN_INFO,mLogFormat(5,"Hello Morn, datai=%d, datad=%f, datas=%s"),datai[i],datad[i],&(datas[i][0]));
+        mLog(MORN_INFO,mLogFormat5("Hello Morn, datai=%d, datad=%f, datas=%s"),datai[i],datad[i],&(datas[i][0]));
     }
     mTimerEnd("Morn");
 
@@ -386,4 +484,4 @@ I20200913 21:14:36.839823   148 test_log2.cpp:48] : Hello glog, datai=17729, dat
 | log4cpp | 9979          | 16574       |
 | Morn    | 61977         | 87197       |
 
-Morn的速度稍慢于spdlog，但是远快于glog和log4cpp。
+Morn的速度慢于spdlog，但是远快于glog和log4cpp。

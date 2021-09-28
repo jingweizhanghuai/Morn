@@ -148,7 +148,6 @@ void m_ObjectRedefine(MObject *object,void *p,int size)
     {
         struct HandleObjectCreate *handle= (struct HandleObjectCreate *)(ObjHandle(object,0)->handle);
         if(handle->buff_size<size) {if(handle->buff2!=NULL) {mFree(handle->buff2);} handle->buff2=mMalloc(size);handle->buff_size = size;}
-        if(object->object==handle->buff2) return;
         object->object = handle->buff2;
         p=object->object;
     }

@@ -901,7 +901,6 @@ struct JSONNode
     char *key;
     char type;
 };
-struct JSONNode *mJSONParse(MObject *jsondata);
 struct JSONNode *mJSONLoad(MFile *jsonfile);
 struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);
 #define mJSONRead(...) ((VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0):m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__)))

@@ -1,8 +1,8 @@
 /*
-Copyright (C) 2019-2021 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this json except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： gcc -O2 -fopenmp test_JSON_file.c -lmorn -o test_JSON_file.exe
+//build: gcc -O2 -fopenmp test_JSON_file.c -lmorn -o test_JSON_file.exe
 
 #include "morn_util.h"
 
@@ -267,17 +267,17 @@ int main()
     
 //     MList *list = mListCreate(DFLT,NULL);
     
-//     mJSONSearch(json,list,"班主任");
-//     for(int i=0;i<list->num;i++) printf("班主任%d是%s\n",i,list->data[i]);
+//     mJSONSearch(json,list,"????");
+//     for(int i=0;i<list->num;i++) printf("????%d?%s\n",i,list->data[i]);
 //     printf("\n");
 
-//     mJSONSearch(json,list,"任课老师");
-//     for(int i=0;i<list->num;i++) printf("任课老师%d是%s\n",i,list->data[i]);
+//     mJSONSearch(json,list,"?????");
+//     for(int i=0;i<list->num;i++) printf("?????%d?%s\n",i,list->data[i]);
 //     printf("\n");
 
-//     MList *name = mListCreate(DFLT,NULL);mJSONSearch(json,name,"学生.姓名");
-//     MList *score= mListCreate(DFLT,NULL);mJSONSearch(json,score,"学生.成绩.数学");
-//     for(int i=0;i<name->num;i++) printf("%s的数学成绩是%d\n",name->data[i],atoi(score->data[i]));
+//     MList *name = mListCreate(DFLT,NULL);mJSONSearch(json,name,"学?.??");
+//     MList *score= mListCreate(DFLT,NULL);mJSONSearch(json,score,"学?.?杉?.?学");
+//     for(int i=0;i<name->num;i++) printf("%s???学?杉??%d\n",name->data[i],atoi(score->data[i]));
 //     mListRelease(name);
 //     mListRelease(score);
 //     printf("\n");
@@ -290,17 +290,17 @@ int main()
 //         int score[3];
 //     };
 //     int func1(MTreeNode *ptr,void *para) {return (strcmp(mJSONName(ptr),para)==0);}
-//     node = json->treenode;  // 从树根开始搜索
+//     node = json->treenode;  // ???????始??
 //     while(1)
 //     {
 //         struct Student student;
-//         MTreeNode *student_node = mTreeSearch(node,func1,"学生",0);
+//         MTreeNode *student_node = mTreeSearch(node,func1,"学?",0);
 //         if(student_node == NULL) break;
-//         node = mTreeSearch(student_node,func1,"姓名",0);
+//         node = mTreeSearch(student_node,func1,"??",0);
 //         student.name = mJSONValue(node);
-//         node = mTreeSearch(student_node,func1,"性别",0);
+//         node = mTreeSearch(student_node,func1,"???",0);
 //         student.sex  = mJSONValue(node);
-//         node = mTreeSearch(student_node,func1,"成绩",0);
+//         node = mTreeSearch(student_node,func1,"?杉?",0);
 //         student.course[0] = mJSONName(node->child[0]);
 //         student. score[0] = atoi(mJSONValue(node->child[0]));
 //         student.course[1] = mJSONName(node->child[1]);
@@ -313,13 +313,13 @@ int main()
 //     printf("\n");
 
 //     int func2(MTreeNode *ptr,void *para)
-//     {return ((strcmp(mJSONName(ptr),"数学")==0)&&(atoi(mJSONValue(ptr))>=90));}
+//     {return ((strcmp(mJSONName(ptr),"?学")==0)&&(atoi(mJSONValue(ptr))>=90));}
 //     node = json->treenode;
 //     while(1)
 //     {
 //         node = mTreeSearch(node,func2,NULL,0);
 //         if(node == NULL) break;
-//         printf("姓名%s\n",mJSONValue(node->parent->parent->child[0]));
+//         printf("??%s\n",mJSONValue(node->parent->parent->child[0]));
 //     }
 
 //     mListRelease(list);

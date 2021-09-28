@@ -24,13 +24,13 @@ void test1()
 void test2()
 {
     mLog(MORN_INFO,"this is a Morn log, num=%d\n",1);
-    mLog(MORN_INFO,mLogFormat1("this is a Morn log, num=%d"),1);
-    mLog(MORN_INFO,mLogFormat2("this is a Morn log, num=%d"),2);
-    mLog(MORN_INFO,mLogFormat3("this is a Morn log, num=%d"),3);
-    mLog(MORN_INFO,mLogFormat4("this is a Morn log, num=%d"),4);
-    mLog(MORN_INFO,mLogFormat5("this is a Morn log, num=%d"),5);
-    mLog(MORN_INFO,LOG_FORMAT1("this is a Morn log, num=%d"),6);
-    mLog(MORN_INFO,LOG_FORMAT2("this is a Morn log, num=%d"),7);
+    mLog(MORN_INFO,mLogFormat1("this is a Morn log, format %d"),1);
+    mLog(MORN_INFO,mLogFormat2("this is a Morn log, format %d"),2);
+    mLog(MORN_INFO,mLogFormat3("this is a Morn log, format %d"),3);
+    mLog(MORN_INFO,mLogFormat4("this is a Morn log, format %d"),4);
+    mLog(MORN_INFO,mLogFormat5("this is a Morn log, format %d"),5);
+    mLog(MORN_INFO,LOG_FORMAT1("this is a Morn log, format %d"),6);
+    mLog(MORN_INFO,LOG_FORMAT2("this is a Morn log, format %d"),7);
 }
 
 void test3()
@@ -66,7 +66,6 @@ void test3()
 
 void test4()
 {
-    
     int log_level = MORN_INFO;
     mPropertyWrite("Log","log_level",&log_level,sizeof(int));
     
@@ -129,10 +128,10 @@ void test5()
 
 int main()
 {
-    // test1();
-    // test2();
-    // test3();
-    // test4();
+    test1();
+    test2();
+    test3();
+    test4();
     test5();
     return 0;
 }

@@ -195,7 +195,7 @@ int Morn_test1()
     mFile(jsondata,"./citm_catalog.json");
     
     mTimerBegin("Morn Json");
-    struct JSONNode *json = mJSONParse(jsondata);
+    struct JSONNode *json = mJSONLoad(jsondata);
     int n=0;
     struct JSONNode *performances_array = mJSONRead(json,"performances");
     for(int i=0;i<performances_array->num;i++)
@@ -410,7 +410,7 @@ int Morn_test2()
     int i,j;
     
     mTimerBegin("Morn json");
-    struct JSONNode *json=mJSONParse(jsondata);
+    struct JSONNode *json=mJSONLoad(jsondata);
     int n=0;
     struct JSONNode *coordinates0,*coordinates1,*coordinates2;
     coordinates0=mJSONRead(json,"features[0].geometry.coordinates");
@@ -428,6 +428,8 @@ int Morn_test2()
     mObjectRelease(jsondata);
     return n;
 }
+
+
 
 void test2()
 {
@@ -453,10 +455,133 @@ void test2()
     printf("get %d coordinates\n\n",n);
 }
 
+void rapidjson_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("rapidjson");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        rapidjson::Document doc;
+        doc.Parse(jsondata->string);
+    }
+    mTimerEnd("rapidjson");
+    mObjectRelease(jsondata);
+}
+
+void yyjson_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("yyjson");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        yyjson_doc *doc = yyjson_read(jsondata->string,jsondata->size,0);
+    }
+    mTimerEnd("yyjson");
+    mObjectRelease(jsondata);
+}
+
+void Morn_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("Morn json");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        mJSONLoad(jsondata);
+    }
+    mTimerEnd("Morn json");
+    mObjectRelease(jsondata);
+}
+
+void test3()
+{
+    const char *filename;
+
+    filename = "./canada.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./citm_catalog.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/twitter.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/github_events.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/apache_builds.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/mesh.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/mesh.pretty.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/update-center.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+}
+
+
+
 int main(int argc,char *argv[])
 {
-    if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
-    if(strcmp(argv[1],"test1")==0) {test1();return 0;}
-    if(strcmp(argv[1],"test2")==0) {test2();return 0;}
+    // if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
+    // if(strcmp(argv[1],"test1")==0) {test1();return 0;}
+    // if(strcmp(argv[1],"test2")==0) {test2();return 0;}
+    test3();
     return 0;
+
+    // yyjson_test3("./testdata/mesh.pretty.json",100);
+    // Morn_test3("./testdata/mesh.pretty.json",100);
+    // rapidjson_test3("./canada.json",100);
+    // yyjson_test3("./canada.json",100);
+    // Morn_test3("./canada.json",100);
+
+    // yyjson_test3("./citm_catalog.json",100);
+    // Morn_test3("./citm_catalog.json",100);
+
+    // rapidjson_test3("./testdata/twitter.json",100);
+    // yyjson_test3("./testdata/twitter.json",100);
+    // Morn_test3("./testdata/twitter.json",100);
+
+    // mTimerBegin();
+    // for(int i=0;i<100;i++) yyjson_test1();
+    // mTimerEnd();
+
+    // printf("%d,%d,%d,%d,%d\n",' ','n','t','b','r');
+    // printf("%d,%d,%d,%d,%d\n",' ','\n','\t','\b','\r');
+    // printf("%d,%d,%d,%d,%d\n",',','}','"','[','.');
+
+    // mTimerBegin();
+    // for(int i=0;i<100;i++) 
+        // Morn_test2();
+    // mTimerEnd();
+
 }
