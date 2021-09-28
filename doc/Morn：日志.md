@@ -473,15 +473,7 @@ I20200913 21:14:36.839823   148 test_log2.cpp:48] : Hello glog, datai=17729, dat
 
 测试结果为：
 
-![](日志.PNG)
+[![4hPlHs.png](https://z3.ax1x.com/2021/09/28/4hPlHs.png)](https://imgtu.com/i/4hPlHs)
 
-以上可见：
+以上可见：Morn的速度慢于spdlog，但是远快于glog和log4cpp。
 
-| 类别    | 速度（条/秒） | 速度（kB/s) |
-| ------- | ------------- | ----------- |
-| glog    | 18432         | 22319       |
-| spdlog  | 82072         | 119414      |
-| log4cpp | 9979          | 16574       |
-| Morn    | 61977         | 87197       |
-
-Morn的速度慢于spdlog，但是远快于glog和log4cpp。
