@@ -898,8 +898,8 @@ struct JSONNode
         char    *string;
         uint16_t num;
     };
-    char *key;
     char type;
+    char *key;
 };
 struct JSONNode *mJSONLoad(MFile *jsonfile);
 struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);

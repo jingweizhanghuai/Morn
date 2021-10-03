@@ -57,6 +57,16 @@ int main1()
 
 int main()
 {
+    char str[1024];
+    MLInt a;
+    mS64ToLInt(1000,&a);
+    for(int i=999;i>1;i--)mLIntMulU32(&a,i,&a);
+    mLIntToString(&a,str);
+    printf("%s\n",str);
+}
+
+int main2()
+{
     char str[128];
     mpz_t ga,gb,gc;
     mpz_init(ga);mpz_init(gb);mpz_init(gc);

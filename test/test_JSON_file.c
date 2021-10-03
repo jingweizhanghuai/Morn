@@ -15,24 +15,28 @@ int main()
     MFile *file = mFileCreate("./test_json.json");
 
     struct JSONNode *json=mJSONLoad(file);
+    printf("json->type=%d\n",json->type);
+    printf("json->num=%d\n",json->num);
+    // return 0;
+
     struct JSONNode *node;
     
     node=mJSONRead(json,"t");
-    if(node->type==JSON_BOOL)
+    if(node->type==JSON_KEY_BOOL)
     {
         printf("t=%d\n",node->dataBool);
     }
-    // return 0;
+    
 
     node=mJSONRead(json,"f");
     if(node!=NULL) printf("f=%d\n",node->dataBool);
 
+
     int i=*(int *)mJSONRead(json,"i");
     printf("i=%d\n",i);
     double *pi=(double *)mJSONRead(json,"pi");
-    printf("pi=%f\n",*pi);
+    printf("pi=%lf\n",*pi);
     
-
     node = mJSONRead(json,"n");
     printf("type=%d,nul=%p\n",node->type,node->string);
     // return 1;
@@ -45,22 +49,14 @@ int main()
     struct JSONNode *day=mJSONRead(node,"day");
     printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
 
+
     year=mJSONRead(json,"date.year");
     printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
     month=mJSONRead(json,"date.month");
     printf("date.month=%s,type=%s\n",month->dataS32,mJSONNodeType(month));
     day=mJSONRead(json,"date.day");
     printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
-
-    node=mJSONRead(json,"date");
-    MArray *date=mArrayCreate();
-    mJSONArray(date,node);
-    struct JSONNode *p=date->data;
-    printf("date->num=%d\n",date->num);
-    printf("p[0] key=%s, data=%d, type=%s\n",p[0].key,p[0].dataS32,mJSONNodeType(p+0));
-    printf("p[1] key=%s, data=%s, type=%s\n",p[1].key,p[1].string ,mJSONNodeType(p+1));
-    printf("p[2] key=%s, data=%d, type=%s\n",p[2].key,p[2].dataS32,mJSONNodeType(p+2));
-
+    
 
     node = mJSONRead(json,"a1[0]");
     printf("a1[0]=%d\n",node->dataS32);
@@ -70,23 +66,19 @@ int main()
     printf("a1[2]=%d\n",node->dataS32);
     node = mJSONRead(json,"a1[3]");
     printf("a1[3]=%d\n",node->dataS32);
+    
 
+    struct JSONNode *p;
     node=mJSONRead(json,"a1");
-    p = mJSONRead(node,"[0]");
+    p = mJSONRead(node);
     printf("a1[0]=%d\n",p->dataS32);
-    p = mJSONRead(node,"[1]");
+    p = mJSONRead(node,1);
     printf("a1[1]=%d\n",p->dataS32);
     p = mJSONRead(node,"[2]");
     printf("a1[2]=%d\n",p->dataS32);
-    p = mJSONRead(node,"[3]");
+    p = mJSONRead(json,"a1[3]");
     printf("a1[3]=%d\n",p->dataS32);
-    
-    node = mJSONRead(json,"a1");
-    MArray *a1=mArrayCreate();
-    mJSONArray(a1,node);
-    p=a1->data;
-    for(int i=0;i<a1->num;i++)
-        printf("a1[%d]=%d\n",i,p[i].dataS32);
+    return 1;
 
     node = mJSONRead(json,"a2[1][2]");
     printf("a2[1][2]=%d\n",node->dataS32);

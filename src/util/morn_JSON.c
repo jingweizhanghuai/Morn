@@ -15,51 +15,75 @@ union JsonData
     double dataD64;
     char   *string;
     struct {uint16_t num;uint16_t layer;int32_t idx;};
-    MArray *array;
     void *handle0;
 };
-struct JsonNode
+
+struct ListNode
 {
     union JsonData data;
-    char *key;
     char type;
     uint32_t li:24;
-    // uint8_t li1;
-    // uint16_t li2;
+    char *key;
 };
-struct JsonLayer
+struct ListLayer
 {
-    struct JsonNode *node;
+    struct ListNode *node;
     int cap;
     int num;
 };
 
-struct JsonNode *LayerNode(struct JsonLayer *layer)
+struct ArrayNode
+{
+    union JsonData data;
+    char type;
+    uint32_t li:24;
+};
+struct ArrayLayer
+{
+    struct ArrayNode *node;
+    int cap;
+    int num;
+};
+
+struct ListNode *ListLayerNode(struct ListLayer *layer)
 {
     int num = layer->num;
     if(num>=layer->cap)
     {
         int n=MAX(256,num+num);//printf("n=%d,num=%d\n",n,num);
-        struct JsonNode *buff=mMalloc(n*sizeof(struct JsonNode));
-        memcpy(buff,layer->node,num*sizeof(struct JsonNode));if(num>1) mFree(layer->node);
+        struct ListNode *buff=mMalloc(n*sizeof(struct ListNode));
+        memcpy(buff,layer->node,num*sizeof(struct ListNode));if(num>1) mFree(layer->node);
+        layer->node=buff;layer->cap=n;
+    }
+    layer->num=num+1;
+    return (layer->node+num);
+}
+struct ArrayNode *ArrayLayerNode(struct ArrayLayer *layer)
+{
+    int num = layer->num;
+    if(num>=layer->cap)
+    {
+        int n=MAX(256,num+num);
+        struct ArrayNode *buff=mMalloc(n*sizeof(struct ArrayNode));
+        memcpy(buff,layer->node,num*sizeof(struct ArrayNode));if(num>1) mFree(layer->node);
         layer->node=buff;layer->cap=n;
     }
     layer->num=num+1;
     return (layer->node+num);
 }
 
-int LayerAppend(struct JsonLayer *layer,int idx,int n1,int n2,struct JsonNode *node)
+int ListLayerAppend(struct ListLayer *layer,int idx,int n1,int n2,struct ListNode *node)
 {
     int num0=layer->num;
     if(idx+n1==num0) {idx=idx+n1;n2=n2-n1;n1=0;}
     if(layer->cap-num0<n2)
     {
         int n=num0+MAX(num0,n2);
-        struct JsonNode *buff=mMalloc(n*sizeof(struct JsonNode));
-        memcpy(buff,layer->node,num0*sizeof(struct JsonNode));if(num0>1) mFree(layer->node);
+        struct ListNode *buff=mMalloc(n*sizeof(struct ListNode));
+        memcpy(buff,layer->node,num0*sizeof(struct ListNode));if(num0>1) mFree(layer->node);
         layer->node=buff;layer->cap=n;
     }
-    if(n1>0) memcpy(layer->node+num0,layer->node+idx,n1*sizeof(struct JsonNode));
+    if(n1>0) memcpy(layer->node+num0,layer->node+idx,n1*sizeof(struct ListNode));
     int i;for(i=num0+n1;i<num0+n2-1;i++)
     {
         layer->node[i].data.string=NULL;
@@ -70,27 +94,56 @@ int LayerAppend(struct JsonLayer *layer,int idx,int n1,int n2,struct JsonNode *n
     return num0;
 }
 
-// int LayerCopy(struct JsonLayer *src,int idx,int num,struct JsonLayer *dst)
+int ArrayLayerAppend(struct ArrayLayer *layer,int idx,int n1,int n2,struct ArrayNode *node)
+{
+    int num0=layer->num;
+    if(idx+n1==num0) {idx=idx+n1;n2=n2-n1;n1=0;}
+    if(layer->cap-num0<n2)
+    {
+        int n=num0+MAX(num0,n2);
+        struct ArrayNode *buff=mMalloc(n*sizeof(struct ArrayNode));
+        memcpy(buff,layer->node,num0*sizeof(struct ArrayNode));if(num0>1) mFree(layer->node);
+        layer->node=buff;layer->cap=n;
+    }
+    if(n1>0) memcpy(layer->node+num0,layer->node+idx,n1*sizeof(struct ArrayNode));
+    int i;for(i=num0+n1;i<num0+n2-1;i++)
+    {
+        layer->node[i].data.string=NULL;
+        layer->node[i].type=JSON_STRING;
+    }
+    // if(node!=NULL) layer->node[i].key=node->key;
+    layer->num=num0+n2;
+    return num0;
+}
+
+// int LayerCopy(struct ListLayer *src,int idx,int num,struct ListLayer *dst)
 // {
 //     if(dst->cap-dst->num<num)
 //     {
 //         int n=dst->num+MAX(dst->num,num);
-//         struct JsonNode *buff=mMalloc(n*sizeof(struct JsonNode));
-//         memcpy(buff,layer->node,dst->num*sizeof(struct JsonNode));if(dst->num>1) mFree(layer->node);
+//         struct ListNode *buff=mMalloc(n*sizeof(struct ListNode));
+//         memcpy(buff,layer->node,dst->num*sizeof(struct ListNode));if(dst->num>1) mFree(layer->node);
 //         layer->node=buff;layer->cap=n;
 //     }
-//     memcpy(dst->node+dst->num,src->node+idx,num*sizeof(struct JsonNode)
+//     memcpy(dst->node+dst->num,src->node+idx,num*sizeof(struct ListNode)
 // }
 
-void LayerDelete(struct JsonLayer *layer,int idx,int num,int del)
+void ListLayerDelete(struct ListLayer *layer,int idx,int num,int del)
 {
-    memmove(layer->node+idx+del,layer->node+idx+del+1,(num-del-1)*sizeof(struct JsonNode));
+    memmove(layer->node+idx+del,layer->node+idx+del+1,(num-del-1)*sizeof(struct ListNode));
+}
+
+void ArrayLayerDelete(struct ArrayLayer *layer,int idx,int num,int del)
+{
+    memmove(layer->node+idx+del,layer->node+idx+del+1,(num-del-1)*sizeof(struct ArrayNode));
 }
 
 struct HandleJSON
 {
-    struct JsonLayer layer[64];
-    struct JsonNode node0[2];
+    struct ListLayer   list_layer[64];
+    struct ArrayLayer array_layer[64];
+    struct ListNode    list_node0[2];
+    struct ArrayNode  array_node0[2];
     
     char *file;
     MMemory *memory;
@@ -98,7 +151,11 @@ struct HandleJSON
 #define HASH_JSON 0x1eb02389
 void endJSON(struct HandleJSON *handle)
 {
-    for(int i=0;i<64;i++) {if(handle->layer[i].num>1) {mFree(handle->layer[i].node);}}
+    for(int i=0;i<64;i++) 
+    {
+        if(handle-> list_layer[i].num>1) {mFree(handle-> list_layer[i].node);}
+        if(handle->array_layer[i].num>1) {mFree(handle->array_layer[i].node);}
+    }
     if(handle->file  !=NULL) mFree(handle->file);
     if(handle->memory!=NULL) mMemoryRelease(handle->memory);
 }
@@ -130,21 +187,21 @@ char *StringNumber(char *p,union JsonData *data,char *type)
 {
     *type=JSON_INT;
     int flag=0;int v=0;float d=0;
-         if(p[0]=='-') {flag=1;p++;}
-    else if(p[0]=='+')         p++;
-    for(;(p[0]>='0')&&(p[0]<='9');p++) v=v*10+(p[0]-'0');
-    if(p[0]=='.')
+         if(*p=='-') {flag=1;p++;}
+    else if(*p=='+')         p++;
+    for(;(*p>='0')&&(*p<='9');p++) v=v*10+(*p-'0');
+    if(*p=='.')
     {
         d=(float)v;p++;
-        for(int i=0;(p[0]>='0')&&(p[0]<='9');p++,i++) d=d+morn_char_number[MIN(i,19)][p[0]-'0'];
-        *type=JSON_DOUBLE;
+        int i;for(i=0;(p[i]>='0')&&(p[i]<='9');i++) d=d+morn_char_number[MIN(i,19)][p[i]-'0'];
+        *type=JSON_DOUBLE;p=p+i;
     }
-    if((p[0]=='e')||(p[0]=='E'))
+    if((*p=='e')||(*p=='E'))
     {
         if(*type==JSON_INT) {d=(float)v;*type=JSON_DOUBLE;}
         p++;
-        int f=0;if(p[0]=='-') {f=1;p++;} else if(p[0]=='+') {p++;}
-        int e=0;for(;(p[0]>='0')&&(p[0]<='9');p++) e=e*10+(p[0]-'0');
+        int f=0;if(*p=='-') {f=1;p++;} else if(*p=='+') {p++;}
+        int e=0;for(;(*p>='0')&&(*p<='9');p++) e=e*10+(*p-'0');
         d=d*pow(10.0,((f==1)?(0-e):e));
     }
     if(*type==JSON_DOUBLE) {data->dataD64=(flag)?(0-d):d;return p;}
@@ -177,9 +234,9 @@ char *JSONString(char *p)
 void JSONArrayLoad(char **file,struct HandleJSON *handle,int l);
 void JSONListLoad(char **file,struct HandleJSON *handle,int l)
 {
-    struct JsonLayer *layer = handle->layer+l;
+    struct ListLayer *layer = handle->list_layer+l;
     char *p=*file;int flag=0;
-    struct JsonNode *node=LayerNode(layer);
+    struct ListNode *node=ListLayerNode(layer);
     
     while(1)
     {
@@ -189,45 +246,41 @@ void JSONListLoad(char **file,struct HandleJSON *handle,int l)
         {
             p=p+1;
             if(flag==0) {node->key=p;{for(;p[0]!='"';p++);}p[0]=0;node->key[-1]=p-node->key;}
-            else        {node->data.string=p;node->type=JSON_STRING;p=JSONString(p);}
+            else        {node->data.string=p;node->type=JSON_KEY_STRING;p=JSONString(p);}
         }
         else if(p[0]==':') {mException(flag==1,EXIT,"json file error");flag=1;}
-        else if(p[0]==',') {node=LayerNode(layer);flag=0;node->data.string=NULL;}
+        else if(p[0]==',') {node=ListLayerNode(layer);flag=0;node->data.string=NULL;}
         else if(p[0]=='}') {*file=p;return;}
         else if(p[0]=='{') 
         {
-            int n=(layer+1)->num;
+            int n=handle->list_layer[l+1].num;
             JSONListLoad( &p,handle,l+1);
             node->data.idx  =n;
-            node->data.num  =((layer+1)->num-n);
+            node->data.num  =(handle->list_layer[l+1].num-n);
             node->data.layer=l+1;
-            node->type=JSON_LIST;
+            node->type=JSON_KEY_LIST;
             node->li = layer->num-1;
-            // uint32_t layer_num = layer->num-1;
-            // node->li1=layer_num>>16;node->li2=layer_num&0x0ffff; 
         }
         else if(p[0]=='[') 
         {
-            int n=(layer+1)->num;
+            int n=handle->array_layer[l+1].num;
             JSONArrayLoad(&p,handle,l+1);
             node->data.idx  =n;
-            node->data.num  =((layer+1)->num-n);
+            node->data.num  =(handle->array_layer[l+1].num-n);
             node->data.layer=l+1;
-            node->type=JSON_ARRAY;
+            node->type=JSON_KEY_ARRAY;
             node->li = layer->num-1;
-            // uint32_t layer_num = layer->num-1;
-            // node->li1=layer_num>>16;node->li2=layer_num&0x0ffff;
         }
-        else if(p[0]=='t') {node->type=JSON_BOOL  ;node->data.dataBool = 1;p+=3;}
-        else if(p[0]=='f') {node->type=JSON_BOOL  ;node->data.dataBool = 0;p+=4;}
-        else if(p[0]=='n') {node->type=JSON_STRING;node->data.string =NULL;p+=3;}
-        else                p=StringNumber(p,&(node->data),&(node->type))-1;
+        else if(p[0]=='t') {node->type=JSON_KEY_BOOL  ;node->data.dataBool = 1;p+=3;}
+        else if(p[0]=='f') {node->type=JSON_KEY_BOOL  ;node->data.dataBool = 0;p+=4;}
+        else if(p[0]=='n') {node->type=JSON_KEY_STRING;node->data.string =NULL;p+=3;}
+        else               {p=StringNumber(p,&(node->data),&(node->type))-1;node->type++;}
     }
 }
 
 void JSONArrayLoad(char **file,struct HandleJSON *handle,int l)
 {
-    struct JsonLayer *layer = handle->layer+l;
+    struct ArrayLayer *layer = handle->array_layer+l;
     char *p=*file;
     
     while(1)
@@ -236,30 +289,26 @@ void JSONArrayLoad(char **file,struct HandleJSON *handle,int l)
         if((p[0]<=' ')||(p[0]==',')) continue;
         else if(p[0]==']') {*file=p;return;}
 
-        struct JsonNode *node=LayerNode(layer);node->key=NULL;
+        struct ArrayNode *node=ArrayLayerNode(layer);
         if(p[0]=='{')
         {
-            int n=(layer+1)->num;
+            int n=handle->list_layer[l+1].num;
             JSONListLoad( &p,handle,l+1);
             node->data.idx  =n;
-            node->data.num  =((layer+1)->num-n);
+            node->data.num  =(handle->list_layer[l+1].num-n);
             node->data.layer=l+1;
             node->type=JSON_LIST;
             node->li=layer->num-1;
-            // uint32_t layer_num = layer->num-1;
-            // node->li1=layer_num>>16;node->li2=layer_num&0x0ffff;
         }
         else if(p[0]=='[') 
         {
-            int n=(layer+1)->num;
+            int n=handle->array_layer[l+1].num;
             JSONArrayLoad(&p,handle,l+1);
             node->data.idx  =n;
-            node->data.num  =((layer+1)->num-n);
+            node->data.num  =(handle->array_layer[l+1].num-n);
             node->data.layer=l+1;
             node->type=JSON_ARRAY;
             node->li=layer->num-1;
-            // uint32_t layer_num = layer->num-1;
-            // node->li1=layer_num>>16;node->li2=layer_num&0x0ffff;
         }
         else if(p[0]=='"') {node->type=JSON_STRING; p=p+1;node->data.string=p;p=JSONString(p);}
         else if(p[0]=='t') {node->type=JSON_BOOL  ;node->data.dataBool = 1;p+=3;}
@@ -277,11 +326,12 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
     struct HandleJSON *handle=hdl->handle;
     if(hdl->valid==0)
     {
-        handle->node0[0].data.handle0 = handle;
+        handle-> list_node0[0].data.handle0 = handle;
+        handle->array_node0[0].data.handle0 = handle;
         for(int i=0;i<64;i++) 
         {
-            handle->layer[i].node = handle->node0;
-            handle->layer[i].num=1;handle->layer[i].cap=1;
+            handle-> list_layer[i].node = handle-> list_node0;handle-> list_layer[i].num=1;handle-> list_layer[i].cap=1;
+            handle->array_layer[i].node = handle->array_node0;handle->array_layer[i].num=1;handle->array_layer[i].cap=1;
         }
         
         hdl->valid=1;
@@ -310,113 +360,112 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
         fclose(f);
         string=handle->file;
     }
-    
+
+    struct ArrayNode *node0 = &(handle->array_node0[1]);
+    node0->data.idx =1;node0->data.layer=1;node0->li =1;
     for(char *p=string;;p++)
     {
-        if(p[0]=='{') {handle->node0[1].type=JSON_LIST ; JSONListLoad( &p,handle,1);break;}
-        if(p[0]=='[') {handle->node0[1].type=JSON_ARRAY; JSONArrayLoad(&p,handle,1);break;}
+        if(p[0]=='{') 
+        {
+            JSONListLoad( &p,handle,1);
+            node0->type=JSON_LIST ;
+            node0->data.num =handle->list_layer[1].num-1;
+            return (struct JSONNode *)node0;
+        }
+        if(p[0]=='[') 
+        {
+            JSONArrayLoad(&p,handle,1);
+            node0->type=JSON_ARRAY;
+            node0->data.num =handle->array_layer[1].num-1;
+            return (struct JSONNode *)node0;
+        }
     }
-    int num=handle->layer[1].num;
-    handle->node0[1].data.idx  =1;
-    handle->node0[1].data.num  =num;
-    handle->node0[1].data.layer=1;
-    handle->node0[1].li =1;
-    // handle->node0[1].li1=0;handle->node0[1].li2=1;
-    
-    return (struct JSONNode *)(&(handle->node0[1]));
 }
 
-struct JsonNode *JSONArrayRead(struct JsonNode *node0,char *key);
-struct JsonNode *JSONListRead( struct JsonNode *node0,char *key)
+inline struct JSONNode *JSONSubNode(struct JSONNode *node0)
 {
-    // int lll=0-(((int)(node0->li1))<<16)-node0->li2;printf("lll=%d\n",lll);
-    // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
-    struct HandleJSON *handle=node0[0-node0->li].data.handle0;
-    int idx=node0->data.idx;int num=node0->data.num; int li=node0->data.layer;
+    struct HandleJSON *handle;int idx,li;
+    if(node0->type&0x01) 
+    {
+        struct  ListNode * list_node=(struct ListNode *)node0;
+        handle= list_node[0- list_node->li].data.handle0;
+        idx=list_node->data.idx; li=list_node->data.layer;
+    }
+    else
+    {
+        struct ArrayNode *array_node=(struct ArrayNode*)node0;
+        handle=array_node[0-array_node->li].data.handle0;
+        idx=array_node->data.idx; li=array_node->data.layer;
+    }
+    if(node0->type<JSON_ARRAY) {return (struct JSONNode *)(handle-> list_layer[li].node+idx);}
+    else                       {return (struct JSONNode *)(handle->array_layer[li].node+idx);}
+}
 
-    struct JsonNode *node = handle->layer[li].node+idx;
-    int i;for(i=0;i<num;i++)
+struct JSONNode *JSONArrayRead(struct JSONNode *node0,char *key);
+struct JSONNode *JSONListRead( struct JSONNode *node0,char *key)
+{
+    mException((node0->type!=JSON_LIST)&&(node0->type!=JSON_KEY_LIST),EXIT,"invalid key");
+    struct JSONNode *node = JSONSubNode(node0);
+    int i;for(i=0;i<node0->num;i++)
     {
         int s=node->key[-1];
         if(memcmp(key,node->key,s)==0) {if((key[s]==0)||(key[s]=='[')||(key[s]=='.')) {key+=s;break;}}
         node++;
     }
-    if(i==num) return NULL;
+    if(i==node0->num) return NULL;
+    
     if(key[0]== 0 ) return node;
-    if(key[0]=='.') {mException(node->type!=JSON_LIST ,EXIT,"invalid key");return JSONListRead( node,key+1);}
-    if(key[0]=='[') {mException(node->type!=JSON_ARRAY,EXIT,"invalid key");return JSONArrayRead(node,key  );}
+    if(key[0]=='.') return JSONListRead( node,key+1);
+    if(key[0]=='[') return JSONArrayRead(node,key  );
     mException(1,EXIT,"invalid key");return NULL;
 }
 
-struct JsonNode *JSONArrayRead(struct JsonNode *node0,char *key)
+struct JSONNode *JSONArrayRead(struct JSONNode *node0,char *key)
 {
-    // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
-    struct HandleJSON *handle=node0[0-node0->li].data.handle0;
-    int idx=node0->data.idx;int num=node0->data.num; int li=node0->data.layer;
-    
+    mException((node0->type!=JSON_ARRAY)&&(node0->type!=JSON_KEY_ARRAY),EXIT,"invalid key");
     union JsonData data;char data_type;key=StringNumber(key+1,&data,&data_type)+1;int n=data.dataS32;
-    if(n>=num) return NULL;
-    struct JsonNode *node = handle->layer[li].node+idx+n;
+    if(n>=node0->num) return NULL;
+    struct JSONNode *node = JSONSubNode(node0);
     
     if(key[0]== 0 ) return node;
-    if(key[0]=='.') {mException(node->type!=JSON_LIST ,EXIT,"invalid key");return JSONListRead( node,key+1);}
-    if(key[0]=='[') {mException(node->type!=JSON_ARRAY,EXIT,"invalid key");return JSONArrayRead(node,key  );}
+    if(key[0]=='.') {return JSONListRead( node,key+1);}
+    if(key[0]=='[') {return JSONArrayRead(node,key  );}
     mException(1,EXIT,"invalid key");return NULL;
 }
 
-// struct JSONNode *m_JSONRead(struct JSONNode *node_0,char *key,struct JSONNode *data)
-// {
-//     struct JsonNode *node0=(struct JsonNode *)node_0;
-//     mException(INVALID_POINTER(node0)||INVALID_POINTER(key),EXIT,"invalid input");
-    
-//     struct JsonNode *node=NULL;
-//     if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");node=JSONArrayRead(node0,key);}
-//     else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");node= JSONListRead(node0,key);}
-//     if(node==NULL) return NULL;
-//     if(data!=NULL) *(struct JsonNode *)data=*node;
-//     return (struct JSONNode *)node;
-// }
-
-struct JSONNode *m_JSONRead(struct JSONNode *n0,intptr_t v)
+struct JSONNode *m_JSONRead(struct JSONNode *node0,intptr_t v)
 {
-    if(n0->type<JSON_LIST) return NULL;
-    struct JsonNode *node0=(struct JsonNode *)n0;
-    // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
-    struct HandleJSON *handle=node0[0-node0->li].data.handle0;
-    int idx   = node0->data.idx;
-    int number= node0->data.num;
-    int li    = node0->data.layer;
+    if(node0->type<JSON_LIST) return NULL;
+    if(v<node0->num)
+    {
+        if(node0->type<JSON_ARRAY) return (struct JSONNode *)(((struct ListNode  *)JSONSubNode(node0))+v);
+        else                       return (struct JSONNode *)(((struct ArrayNode *)JSONSubNode(node0))+v);
+    }
     
-    if(v<number) return (struct JSONNode *)(handle->layer[li].node+idx+v);
-
-    char *key = (char *)v;
-    struct JsonNode *node=NULL;
-    
-    if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");node=JSONArrayRead(node0,key);}
-    else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");node= JSONListRead(node0,key);}
-    if(node==NULL) return NULL;
-    // if(data!=NULL) *(struct JsonNode *)data=*node;
-    return (struct JSONNode *)node;
+    char *key=(char *)v;
+    if(key[0]=='[') {return JSONArrayRead(node0,key);}
+    else            {return  JSONListRead(node0,key);}
 }
 
-void mJSONArray(MArray *array,struct JSONNode *node)
+/*
+void mJSONArray(MArray *array,struct ListNode *node)
 {
-    struct JsonNode *node0=(struct JsonNode *)node;
+    struct ListNode *node0=(struct ListNode *)node;
     struct HandleJSON *handle=node0[0-node0->li].data.handle0;
     // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
     int idx=node0->data.idx;int num=node0->data.num; int li=node0->data.layer;
-    array->num=num;array->element_size=sizeof(struct JsonNode);array->data=handle->layer[li].node+idx;
-    *(struct JsonNode **)mReserve((MObject *)array,7)=node0;
+    array->num=num;array->element_size=sizeof(struct ListNode);array->data=handle->layer[li].node+idx;
+    *(struct ListNode **)mReserve((MObject *)array,7)=node0;
 }
 
-struct JsonNode *JSONArrayWrite(struct JsonNode *node0,char *key);
-struct JsonNode *JSONListWrite( struct JsonNode *node0,char *key)
+struct ListNode *JSONArrayWrite(struct ListNode *node0,char *key);
+struct ListNode *JSONListWrite( struct ListNode *node0,char *key)
 {
     struct HandleJSON *handle=node0[0-node0->li].data.handle0;
     // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
     int idx=node0->data.idx;int num=node0->data.num; int li=node0->data.layer;
     
-    struct JsonNode *node = handle->layer[li].node+idx;
+    struct ListNode *node = handle->layer[li].node+idx;
     int n;for(n=0;n<num;n++)
     {
         int s=node->key[-1];
@@ -427,7 +476,7 @@ struct JsonNode *JSONListWrite( struct JsonNode *node0,char *key)
     {
         if(handle->memory==NULL) handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);
         
-        struct JsonNode nd;
+        struct ListNode nd;
         char *p=key; for(;(p[0]!=0)&&(p[0]!='[')&&(p[0]!='.');p++);
         nd.key=mMemoryWrite(handle->memory,key-1,DFLT);
         nd.key[-1]=p-key;
@@ -443,21 +492,21 @@ struct JsonNode *JSONListWrite( struct JsonNode *node0,char *key)
     if(key[0]== 0 ) return node;
     if(key[0]=='.') 
     {
-        struct JsonNode *pnode= JSONListWrite( node,key+1);
+        struct ListNode *pnode= JSONListWrite( node,key+1);
         node->type=JSON_LIST;node->data.num=MAX(num,n+1);node->data.layer=li+1;node->data.idx=pnode-handle->layer[li].node;
         return pnode;
     }
     if(key[0]=='[') 
     {
         mException(node->type!=JSON_ARRAY,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONArrayWrite(node,key  );
+        struct ListNode *pnode= JSONArrayWrite(node,key  );
         node->type=JSON_ARRAY;node->data.num=MAX(num,n+1);node->data.layer=li+1;node->data.idx=pnode-handle->layer[li].node;
         return pnode;
     }
     mException(1,EXIT,"invalid key");return NULL;
 }
 
-struct JsonNode *JSONArrayWrite(struct JsonNode *node0,char *key)
+struct ListNode *JSONArrayWrite(struct ListNode *node0,char *key)
 {
     // struct HandleJSON *handle=node0[0-(((int)(node0->li1))<<16)-node0->li2].data.handle0;
     struct HandleJSON *handle=node0[0-node0->li].data.handle0;
@@ -470,33 +519,35 @@ struct JsonNode *JSONArrayWrite(struct JsonNode *node0,char *key)
         node0->data.num  =n;
         node0->data.layer=li;
     }
-    struct JsonNode *node = handle->layer[li].node+node0->data.idx+n;
+    struct ListNode *node = handle->layer[li].node+node0->data.idx+n;
     
     if(key[0]== 0 ) return node;
     if(key[0]=='.') 
     {
         mException(node->type!=JSON_LIST ,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONListWrite( node,key+1);
+        struct ListNode *pnode= JSONListWrite( node,key+1);
         node->type=JSON_LIST;node->data.num=MAX(num,n+1);node->data.layer=li+1;node->data.idx=pnode-handle->layer[li].node;
         return pnode;
     }
     else if(key[0]=='[') 
     {
         mException(node->type!=JSON_ARRAY,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONArrayWrite(node,key  );
+        struct ListNode *pnode= JSONArrayWrite(node,key  );
         node->type=JSON_ARRAY;node->data.num=MAX(num,n+1);node->data.layer=li+1;node->data.idx=pnode-handle->layer[li].node;
         return pnode;
     }
     else mException(1,EXIT,"invalid key");
     return NULL;
 }
+*/
+
 /*
-void JSONCopy(struct JsonNode *src_node,struct JsonNode *dst_node);
+void JSONCopy(struct ListNode *src_node,struct ListNode *dst_node);
 {
     struct HandleJSON *handle;
     handle=src_node[0-(((int)(src_node->li1))<<16)-src_node->li2].data.handle0;
     int src_idx=src_node->data.idx;int src_num=(src_node->data.flag)>>8; int src_li=(src_node->data.flag)&0x0ff;
-    struct JsonLayer *src_layer = handle->layer[src_li];
+    struct ListLayer *src_layer = handle->layer[src_li];
 
 
 
@@ -510,27 +561,28 @@ void JSONCopy(struct JsonNode *src_node,struct JsonNode *dst_node);
     // if(dst->cap-dst->num<num)
 //     {
 //         int n=dst->num+MAX(dst->num,num);
-//         struct JsonNode *buff=mMalloc(n*sizeof(struct JsonNode));
-//         memcpy(buff,layer->node,dst->num*sizeof(struct JsonNode));if(dst->num>1) mFree(layer->node);
+//         struct ListNode *buff=mMalloc(n*sizeof(struct ListNode));
+//         memcpy(buff,layer->node,dst->num*sizeof(struct ListNode));if(dst->num>1) mFree(layer->node);
 //         layer->node=buff;layer->cap=n;
 //     }
     
 }
 */
-struct JSONNode *m_JSONWrite(struct JSONNode *node_0,char *key,struct JSONNode *data)
+/*
+struct ListNode *m_JSONWrite(struct ListNode *node_0,char *key,struct ListNode *data)
 {
-    struct JsonNode *node0=(struct JsonNode *)node_0;
+    struct ListNode *node0=(struct ListNode *)node_0;
     mException(INVALID_POINTER(node0)||INVALID_POINTER(key),EXIT,"invalid input");
     
-    struct JsonNode *node=NULL;
+    struct ListNode *node=NULL;
     if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");node=JSONArrayRead(node0,key);}
     else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");node= JSONListRead(node0,key);}
     
     if(node==NULL) return NULL;
-    if(data!=NULL) *node=*(struct JsonNode *)data;
-    return (struct JSONNode *)node;
+    if(data!=NULL) *node=*(struct ListNode *)data;
+    return (struct ListNode *)node;
 }
-
+*/
 
 /*
 void m_JSONArray0(MArray *in,MArray *out,int n)
@@ -541,11 +593,11 @@ void m_JSONArray0(MArray *in,MArray *out,int n)
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
     *(struct HandleJSON **)mReserve((MObject *)out,6) = handle;
     
-    struct JsonNode *node = (struct JsonNode *)(in->dataS8+sizeof(struct JsonNode)*n);
+    struct ListNode *node = (struct ListNode *)(in->dataS8+sizeof(struct ListNode)*n);
     mException((node->type<JSON_LIST),EXIT,"invalid input");
-    *(struct JsonNode **)mReserve((MObject *)out,7) = node;
+    *(struct ListNode **)mReserve((MObject *)out,7) = node;
     int idx=node->data.idx;int num=(node->data.flag)>>8; int layer=(node->data.flag)&0x0ff;
-    out->num=num;out->element_size=sizeof(struct JsonNode);out->data=handle->layer[layer].node+idx;
+    out->num=num;out->element_size=sizeof(struct ListNode);out->data=handle->layer[layer].node+idx;
 }
 
 void m_JSONArray1(MArray *in,MArray *out,char *key)
@@ -554,25 +606,25 @@ void m_JSONArray1(MArray *in,MArray *out,char *key)
     if(key==NULL) {out->num=in->num;out->element_size=in->element_size;out->data=in->data;return;}
     
     struct HandleJSON *handle=*(struct HandleJSON **)mReserve((MObject *)in,6);
-    struct JsonNode *node0=*(struct JsonNode **)mReserve((MObject *)in,7);
+    struct ListNode *node0=*(struct ListNode **)mReserve((MObject *)in,7);
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
     *(struct HandleJSON **)mReserve((MObject *)out,6) = handle;
 
-    struct JsonNode *node =NULL;
+    struct ListNode *node =NULL;
     if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");node=JSONArrayRead(node0,handle,key);}
     else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");node= JSONListRead(node0,handle,key);}
     mException(node==NULL,EXIT,"invalid key");
-    *(struct JsonNode **)mReserve((MObject *)out,7) = node;
+    *(struct ListNode **)mReserve((MObject *)out,7) = node;
     int idx=node->data.idx;int num=(node->data.flag)>>8; int layer=(node->data.flag)&0x0ff;
-    out->num=num;out->element_size=sizeof(struct JsonNode);out->data=handle->layer[layer].node+idx;
+    out->num=num;out->element_size=sizeof(struct ListNode);out->data=handle->layer[layer].node+idx;
 }
 
-struct JsonNode *JSONArrayWrite(struct JsonNode *node0,struct HandleJSON *handle,char *key);
-struct JsonNode *JSONListWrite( struct JsonNode *node0,struct HandleJSON *handle,char *key)
+struct ListNode *JSONArrayWrite(struct ListNode *node0,struct HandleJSON *handle,char *key);
+struct ListNode *JSONListWrite( struct ListNode *node0,struct HandleJSON *handle,char *key)
 {
     int idx=node0->data.idx;int num=(node0->data.flag)>>8; int ll=(node0->data.flag)&0x0ff;
     
-    struct JsonNode *node = handle->layer[ll].node+idx;
+    struct ListNode *node = handle->layer[ll].node+idx;
     int n;for(n=0;n<num;n++)
     {
         int s=node->ksize;
@@ -583,7 +635,7 @@ struct JsonNode *JSONListWrite( struct JsonNode *node0,struct HandleJSON *handle
     {
         if(handle->memory==NULL) handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);
         
-        struct JsonNode nd;
+        struct ListNode nd;
         char *p=key; for(;(p[0]!=0)&&(p[0]!='[')&&(p[0]!='.');p++);
         nd.ksize=p-key;
         nd.key=mMemoryWrite(handle->memory,key,DFLT);
@@ -599,21 +651,21 @@ struct JsonNode *JSONListWrite( struct JsonNode *node0,struct HandleJSON *handle
     if(key[0]=='.') 
     {
         mException(node->type!=JSON_LIST ,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONListWrite( node,handle,key+1);
+        struct ListNode *pnode= JSONListWrite( node,handle,key+1);
         node->type=JSON_LIST;node->data.flag=(MAX(num,n+1)<<8)+ll+1;node->data.idx=pnode-handle->layer[ll].node;
         return pnode;
     }
     if(key[0]=='[') 
     {
         mException(node->type!=JSON_ARRAY,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONArrayWrite(node,handle,key  );
+        struct ListNode *pnode= JSONArrayWrite(node,handle,key  );
         node->type=JSON_ARRAY;node->data.flag=(MAX(num,n+1)<<8)+ll+1;node->data.idx=pnode-handle->layer[ll].node;
         return pnode;
     }
     mException(1,EXIT,"invalid key");return NULL;
 }
 
-struct JsonNode *JSONArrayWrite(struct JsonNode *node0,struct HandleJSON *handle,char *key)
+struct ListNode *JSONArrayWrite(struct ListNode *node0,struct HandleJSON *handle,char *key)
 {
     int idx=node0->data.idx;int num=(node0->data.flag)>>8; int ll=(node0->data.flag)&0x0ff;
 
@@ -623,20 +675,20 @@ struct JsonNode *JSONArrayWrite(struct JsonNode *node0,struct HandleJSON *handle
         node0->data.idx =LayerAppend(handle->layer+ll,idx,num,n,NULL);
         node0->data.flag=((n+1)<<8)+ll;
     }
-    struct JsonNode *node = handle->layer[ll].node+node0->data.idx+n;
+    struct ListNode *node = handle->layer[ll].node+node0->data.idx+n;
     
     if(key[0]== 0 ) return node;
     if(key[0]=='.') 
     {
         mException(node->type!=JSON_LIST ,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONListWrite( node,handle,key+1);
+        struct ListNode *pnode= JSONListWrite( node,handle,key+1);
         node->type=JSON_LIST;node->data.flag=(MAX(num,n+1)<<8)+ll+1;node->data.idx=pnode-handle->layer[ll].node;
         return pnode;
     }
     else if(key[0]=='[') 
     {
         mException(node->type!=JSON_ARRAY,EXIT,"invalid key");
-        struct JsonNode *pnode= JSONArrayWrite(node,handle,key  );
+        struct ListNode *pnode= JSONArrayWrite(node,handle,key  );
         node->type=JSON_ARRAY;node->data.flag=(MAX(num,n+1)<<8)+ll+1;node->data.idx=pnode-handle->layer[ll].node;
         return pnode;
     }
@@ -644,7 +696,7 @@ struct JsonNode *JSONArrayWrite(struct JsonNode *node0,struct HandleJSON *handle
     return NULL;
 }
 
-struct JsonNode *m_JSONWrite0(MArray *json,int n,struct JsonNode *data)
+struct ListNode *m_JSONWrite0(MArray *json,int n,struct ListNode *data)
 {
     // if(data->type<0) data->type=JSON_STRING;
     mException(INVALID_POINTER(json),EXIT,"invalid input");
@@ -652,17 +704,17 @@ struct JsonNode *m_JSONWrite0(MArray *json,int n,struct JsonNode *data)
     struct HandleJSON *handle=*(struct HandleJSON **)mReserve((MObject *)json,6);
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
     
-    struct JsonNode *node=NULL;
+    struct ListNode *node=NULL;
     if(n<0) n=json->num;
     if(n>=json->num)
     {
-        struct JsonNode *node0=*(struct JsonNode **)mReserve((MObject *)json,7);
+        struct ListNode *node0=*(struct ListNode **)mReserve((MObject *)json,7);
         mException((node0->type!=JSON_ARRAY),EXIT,"invalid json");
         int idx=node0->data.idx;int ll=(node0->data.flag)&0x0ff;
         node0->data.idx=LayerAppend(handle->layer+ll,idx,json->num,n);
         node0->data.flag =((n+1)<<8)+ll;
     }
-    else node=(struct JsonNode *)(json->dataS8+json->element_size*n);
+    else node=(struct ListNode *)(json->dataS8+json->element_size*n);
     
     node->type=type;
     if(type==JSON_BOOL  ) {node->data.dataBool=*(char   *)data;return &(node->data.dataBool);}
@@ -670,8 +722,8 @@ struct JsonNode *m_JSONWrite0(MArray *json,int n,struct JsonNode *data)
     if(type==JSON_DOUBLE) {node->data.dataD64 =*(double *)data;return &(node->data.dataD64);}
     if(type==JSON_STRING) {if(handle->memory==NULL){handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);} node->data.string =mMemoryWrite(handle->memory,data,DFLT);return node->data.string;}
     MArray *a=(MArray *)data;
-    struct JsonNode *pnode=*(struct JsonNode **)mReserve((MObject *)a,7);
-    mException((pnode->type==JSON_ARRAY)!=(a->element_size==sizeof(struct JsonNode)),EXIT,"invalid json");
+    struct ListNode *pnode=*(struct ListNode **)mReserve((MObject *)a,7);
+    mException((pnode->type==JSON_ARRAY)!=(a->element_size==sizeof(struct ListNode)),EXIT,"invalid json");
     node->data=pnode->data;
     return data;
 }
@@ -682,11 +734,11 @@ void *m_JSONWrite1(MArray *json,char *key,void *data,int type)
     mException(INVALID_POINTER(json)||INVALID_POINTER(key),EXIT,"invalid input");
     
     struct HandleJSON *handle=*(struct HandleJSON **)mReserve((MObject *)json,6);
-    struct JsonNode *node0=*(struct JsonNode **)mReserve((MObject *)json,7);
+    struct ListNode *node0=*(struct ListNode **)mReserve((MObject *)json,7);
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
-    // mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct JsonNode)),EXIT,"invalid json");
+    // mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct ListNode)),EXIT,"invalid json");
 
-    struct JsonNode *node=NULL;
+    struct ListNode *node=NULL;
     if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");node=JSONArrayWrite(node0,handle,key);}
     else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");node= JSONListWrite(node0,handle,key);}
     
@@ -696,8 +748,8 @@ void *m_JSONWrite1(MArray *json,char *key,void *data,int type)
     if(type==JSON_DOUBLE) {node->data.dataD64=*(double *)data;return &(node->data.dataD64);}
     if(type==JSON_STRING) {if(handle->memory==NULL){handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);} node->data.string =mMemoryWrite(handle->memory,data,DFLT);return node->data.string;}
     MArray *a=(MArray *)data;
-    struct JsonNode *pnode=*(struct JsonNode **)mReserve((MObject *)a,7);
-    mException((pnode->type==JSON_ARRAY)!=(a->element_size==sizeof(struct JsonNode)),EXIT,"invalid json");
+    struct ListNode *pnode=*(struct ListNode **)mReserve((MObject *)a,7);
+    mException((pnode->type==JSON_ARRAY)!=(a->element_size==sizeof(struct ListNode)),EXIT,"invalid json");
     node->data=pnode->data;
     return data;
 }
@@ -705,10 +757,10 @@ void *m_JSONWrite1(MArray *json,char *key,void *data,int type)
 void JSONArrayDelete(void *pnode,struct HandleJSON *handle,char *key);
 void JSONListDelete(void *pnode,struct HandleJSON *handle,char *key)
 {
-    struct JsonNode *node0 = pnode;
+    struct ListNode *node0 = pnode;
     int idx=node0->data.idx;int num=(node0->data.flag)>>8; int ll=(node0->data.flag)&0x0ff;
     
-    struct JsonNode *node = handle->layer[ll].node+idx;
+    struct ListNode *node = handle->layer[ll].node+idx;
     int n;for(n=0;n<num;n++)
     {
         int s=node->ksize;
@@ -725,12 +777,12 @@ void JSONListDelete(void *pnode,struct HandleJSON *handle,char *key)
 
 void JSONArrayDelete(void *pnode,struct HandleJSON *handle,char *key)
 {
-    struct JsonNode *node0 = pnode;
+    struct ListNode *node0 = pnode;
     int idx=node0->data.idx;int num=(node0->data.flag)>>8; int ll=(node0->data.flag)&0x0ff;
     
     union JsonData data;char data_type;key=StringNumber(key+1,&data,&data_type)+1;int n=data.dataS32;
     if(n>=num) return;
-    struct JsonNode *node = handle->layer[ll].node+idx+n;
+    struct ListNode *node = handle->layer[ll].node+idx+n;
     
     if(key[0]== 0 ) {LayerDelete(handle->layer+ll,idx,num,n);return;}
     if(key[0]=='.') {mException(node->type!=JSON_LIST ,EXIT,"invalid key");JSONListDelete( node,handle,key+1);return;}
@@ -743,9 +795,9 @@ void m_JSONDelete0(MArray *json,int n)
     mException(INVALID_POINTER(json)||(n<0)||(n>=json->num),EXIT,"invalid input");
     
     struct HandleJSON *handle=*(struct HandleJSON **)mReserve((MObject *)json,6);
-    struct JsonNode *node0=*(struct JsonNode **)mReserve((MObject *)json,7);
+    struct ListNode *node0=*(struct ListNode **)mReserve((MObject *)json,7);
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
-    // mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct JsonNode)),EXIT,"invalid json");
+    // mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct ListNode)),EXIT,"invalid json");
 
     int idx=node0->data.idx;int num=(node0->data.flag)>>8; int ll=(node0->data.flag)&0x0ff;
     LayerDelete(handle->layer+ll,idx,num,n);
@@ -756,9 +808,9 @@ void m_JSONDelete1(MArray *json,char *key)
     mException(INVALID_POINTER(json)||INVALID_POINTER(key),EXIT,"invalid input");
     
     struct HandleJSON *handle=*(struct HandleJSON **)mReserve((MObject *)json,6);
-    struct JsonNode *node0=*(struct JsonNode **)mReserve((MObject *)json,7);
+    struct ListNode *node0=*(struct ListNode **)mReserve((MObject *)json,7);
     mException(handle->json_flag!=HASH_JSON,EXIT,"invalid json");
-    mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct JsonNode)),EXIT,"invalid json");
+    mException((node0->type==JSON_ARRAY)!=(json->element_size==sizeof(struct ListNode)),EXIT,"invalid json");
 
     if(key[0]=='[') {mException(node0->type!=JSON_ARRAY,EXIT,"invalid key");JSONArrayDelete(node0,handle,key);}
     else            {mException(node0->type!=JSON_LIST ,EXIT,"invalid key");JSONListDelete(node0,handle,key);}
