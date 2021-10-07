@@ -244,6 +244,7 @@ void test1()
 
     n=Morn_test1();
     printf("get %d areaId\n\n",n);
+    return 0;
 }
 
 int cjson_test2()
@@ -452,6 +453,8 @@ void test2()
 
     n=Morn_test2();
     printf("get %d coordinates\n\n",n);
+
+    return 0;
 }
 
 void rapidjson_test3(const char *filename,int n)
@@ -545,6 +548,8 @@ void test3()
     rapidjson_test3(filename,100);
     yyjson_test3(filename,100);
     Morn_test3(filename,100);
+
+    return 0;
 }
 
 

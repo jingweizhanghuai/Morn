@@ -53,7 +53,7 @@ json字符串是由一个个节点（node）按照一定的规则组合在一起
 #define JSON_KEY_DOUBLE  7	//例如上例中的 "pi": 3.1415926,
 #define JSON_STRING      8	//例如上例中的 "Dongcheng","Xicheng","Haidian","Chaoyang"
 #define JSON_KEY_STRING  9	//例如上例中的 "hello": "world",
-#define JSON_LIST       10	
+#define JSON_LIST       10	//例如上例中的 {"value":0}
 #define JSON_KEY_LIST   11	//例如上例中的 "date":{"year":2021,"month":"June","day":5},
 #define JSON_ARRAY      12	//例如上例中的 [10,11,12,13]
 #define JSON_KEY_ARRAY  13	//例如上例中的 "a1": [0,1,2,3],
@@ -87,9 +87,10 @@ struct JSONNode
 
 ```c
 struct JSONNode *mJSONLoad(MFile *jsonfile);
+struct JSONNode *mJSONLoad(MString *jsondata);
 ```
 
-输入是一个json的文件，输出为经过解析后的json的顶层节点（node）。
+输入是一个json的文件或json字符串，输出为经过解析后的json的顶层节点（node）。
 
 一个简单的应用如下：
 
@@ -100,15 +101,7 @@ struct JSONNode *json=mJSONLoad(file);
 mFileRelease(file);
 ```
 
-#### 解析json字符串
-
-```c
-struct JSONNode *mJSONParse(MString *jsondata);
-```
-
-输入时一个符合json格式的字符串，输出为解析后的json顶层节点（node）。
-
-一个简单的应用如下：
+或：
 
 ```c
 MString *string = mStringCreate("{\"hello\":\"world\",\"t\":true,\"i\":123}");
@@ -117,7 +110,7 @@ struct JSONNode *json=mJSONLoad(string);
 mStringRelease(string);
 ```
 
-以上：`mJSONLoad`用于解析文件，`mJSONParse`用于解析字符串，对于文件的解析，可以直接使用`mJSONLoad`解析，也可以先把文件读入字符串中，再使用`mJSONParse`解析。
+以上：对于文件的解析，可以直接使用`mJSONLoad`解析，也可以先把文件读入字符串中，再解析。
 
 #### 读json节点
 
@@ -125,6 +118,9 @@ mStringRelease(string);
 struct JSONNode *mJSONRead(struct JSONNode *node);
 struct JSONNode *mJSONRead(struct JSONNode *node,int n);
 struct JSONNode *mJSONRead(struct JSONNode *node,const char *key);
+struct JSONNode *mJSONRead(struct JSONNode *node,struct JSONNode *dst);
+struct JSONNode *mJSONRead(struct JSONNode *node,int n,struct JSONNode *dst);
+struct JSONNode *mJSONRead(struct JSONNode *node,const char *key,struct JSONNode *dst);
 ```
 
 其中所输入的node，必须是list类型（`JSON_LIST`或`JSON_KEY_LIST`）array类型（`JSON_ARRAY `或`JSON_KEY_ARRAY`）（否则读取失败），读取失败返回值是NULL。
@@ -140,114 +136,431 @@ child = mJSONRead(mother,"child5");	//mother是list类型，读取mother所有�
 child = mJSONRead(mother,"a.b[3].c.d[6]");	//读取深层节点
 ```
 
+或：
 
-
-
-
-
+```c
+struct JSONNode child;
+mJSONRead(mother,&child);			//mother是list或array类型，读取mother的第1个子节点
+mJSONRead(mother,5,&child);			//mother是list或array类型，读取mother的第5个子节点
+mJSONRead(mother,"[5]",&child);		//mother是array类型，读取mother的第5个子节点
+mJSONRead(mother,"child5",&child);	//mother是list类型，读取mother所有子节点中,key值为“child5"的子节点
+mJSONRead(mother,"a.b[3].c.d[6]",&child);	//读取深层节点
+```
 
 
 
 ### 示例
 
-除了以上接口外，其他更多的对json树节点的操作可以使用MTree的相关函数，比如遍历树的各个节点`mTreeTraversal`，搜索某个节点`mTreeSearch`等。
+本例中的完整程序参见[test_JSON_file.c](https://github.com/jingweizhanghuai/Morn/blob/master/test/test_JSON_file.c)
 
-这里重点介绍使用`mTreeSearch`函数对JSON树进行操作。
-
-下例是实现“找出所有数学成绩高于90分的学生”。
+以本文开始的json文件为例，可使用以下程序读取此文件：
 
 ```c
+
+char *jsontype[15]={"UNKNOWN","KEY_UNKNOWN","BOOL","KEY_BOOL","INT","KEY_INT","DOUBLE","KEY_DOUBLE","STRING","KEY_STRING","LIST","KEY_LIST","ARRAY","KEY_ARRAY","UNKNOWN"};
+
 int main()
 {
-    MTree *json=mTreeCreate();
-    mJSONLoad("./test_JSON_file.json",json);
+    MFile *file = mFileCreate("./test_json.json");
 
-    int func(MTreeNode *ptr,void *para)
-    {return ((strcmp(mJSONName(ptr),"数学")==0)&&(atoi(mJSONValue(ptr))>=90));}
+    struct JSONNode *json=mJSONLoad(file);
+    printf("json->type=%s\n",jsontype[json->type]);
+    printf("json->num=%d\n",json->num);
+
+    struct JSONNode *node;
+    node=mJSONRead(json,"hello");
+    printf("node->type=%s\n",jsontype[node->type]);
+    printf("node->key=%s\n",node->key);
+    printf("node->string=%s\n",node->string);
     
-    MTreeNode *node = json->treenode; // 从树根开始搜索
-    while(1)
-    {
-        node = mTreeSearch(node,func,NULL,0);
-        if(node == NULL) break;
-        printf("姓名%s\n",mJSONValue(node->parent->parent->child[0]));
-    }
-
-    mTreeRelease(json);
-    return 0；
+    mFileRelease(file);
 }
 ```
 
-这个程序里从根节点开始寻找，找到json名为“数学”且json值大于90的节点时，就把对应的学生名打印出来。执行结果是：
+此例中读取了两个节点，即根节点json和"hello"节点node。此段程序的输出为：
 
 ```
-姓名李四
-姓名王二麻
+json->type=LIST
+json->num=13
+node->type=KEY_STRING
+node->key=hello
+node->string=world
 ```
 
 
 
-下例是实现：将学生信息读入结构体中。
+读取节点可根据需要写出以下形式：
 
 ```c
-int main()
+node=mJSONRead(json,"t");
+if(node!=NULL)
 {
-    MTree *json=mTreeCreate();
-    mJSONLoad("./test_JSON_file.json",json);
-    
-    struct Student
+    if(node->type==JSON_KEY_BOOL)
+        printf("t=%d\n",node->dataBool);
+}
+
+struct JSONNode f_node;
+node=mJSONRead(json,"f",&f_node);
+printf("f=%d\n",f_node.dataBool);
+
+int i=*(int *)mJSONRead(json,"i");
+printf("i=%d\n",i);
+
+double *pi=(double *)mJSONRead(json,"pi");
+printf("pi=%lf\n",*pi);
+```
+
+此段程序的输出为：
+
+```
+t=1
+f=0
+i=123
+pi=3.141592
+```
+
+
+
+这里需要注意的是，在Morn中，nul被解释为空字符串，因此
+
+```c
+node = mJSONRead(json,"n");
+printf("type=%s,nul=%p\n",jsontype[node->type],node->string);
+```
+
+输出为：
+
+```
+type=KEY_STRING,nul=0000000000000000
+```
+
+
+
+对于嵌套的多层节点，可以逐级读取，如：
+
+```c
+node=mJSONRead(json,"date");
+struct JSONNode *year=mJSONRead(node,"year");
+printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
+struct JSONNode *month=mJSONRead(node,"month");
+printf("date.month=%s,type=%s\n",month->dataS32,mJSONNodeType(month));
+struct JSONNode *day=mJSONRead(node,"day");
+printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
+```
+
+也可以越级读取，如：
+
+```c
+struct JSONNode *year=mJSONRead(json,"date.year");
+printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
+struct JSONNode *month=mJSONRead(json,"date.month");
+printf("date.month=%s,type=%s\n",month->dataS32,mJSONNodeType(month));
+struct JSONNode *day=mJSONRead(json,"date.day");
+printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
+```
+
+以上两段程序的输出皆是：
+
+```
+date.year=2021,type=KEY_INT
+date.month=June,type=KEY_STRING
+date.day=5,type=KEY_INT
+```
+
+
+
+对于数组的读取，可以使用以下多种灵活的形式：
+
+```c
+struct JSONNode *p;
+node=mJSONRead(json,"a1");
+p = mJSONRead(node);
+printf("a1[0]=%d\n",p->dataS32);
+p = mJSONRead(node,1);
+printf("a1[1]=%d\n",p->dataS32);
+p = mJSONRead(node,"[2]");
+printf("a1[2]=%d\n",p->dataS32);
+p = mJSONRead(json,"a1[3]");
+printf("a1[3]=%d\n",p->dataS32);
+```
+
+以上程序的输出为：
+
+```
+a1[0]=0
+a1[1]=1
+a1[2]=2
+a1[3]=3
+```
+
+
+
+对于二维或多维数组的读取，可以越级读取如：
+
+```c
+node = mJSONRead(json,"a2[1][2]");
+```
+
+也可以逐级读取：
+
+```c
+struct JSONNode *a2=mJSONRead(json,"a2");
+for(int j=0;j<a2->num;j++)
+{
+    struct JSONNode *p1=mJSONRead(a2,j);
+    for(int i=0;i<p1->num;i++)
     {
-        char *name;
-        char *sex;
-        char *course[3];
-        int score[3];
-    };
-    
-    int func1(MTreeNode *ptr,void *para) 
-    {return (strcmp(mJSONName(ptr),para)==0);}
-    
-    node = json->treenode;  // 从树根开始搜索
-    while(1)
-    {
-        struct Student student;
-        MTreeNode *student_node = mTreeSearch(node,func1,"学生",0);
-        if(student_node == NULL) break;
-        node = mTreeSearch(student_node,func1,"姓名",0);
-        student.name = mJSONValue(node);
-        node = mTreeSearch(student_node,func1,"性别",0);
-        student.sex  = mJSONValue(node);
-        node = mTreeSearch(student_node,func1,"成绩",0);
-        student.course[0] = mJSONName(node->child[0]);
-        student. score[0] = atoi(mJSONValue(node->child[0]));
-        student.course[1] = mJSONName(node->child[1]);
-        student. score[1] = atoi(mJSONValue(node->child[1]));
-        student.course[2] = mJSONName(node->child[2]);
-        student. score[2] = atoi(mJSONValue(node->child[2]));
-        printf("student name is %s,sex is %s,course0 is %s,score0 is %d,course1 is %s,score1 is %d,course2 is %s,score2 is %d\n",
-               student.name,student.sex,
-               student.course[0],student.score[0],
-               student.course[1],student.score[1],
-               student.course[2],student.score[2]);
+        struct JSONNode *p2=mJSONRead(p1,i);
+        printf("%02d,",p2->dataS32);
     }
-    mTreeRelease(json);
-    return 0；
+    printf("\n");
 }
 ```
 
-此例中：先从树根节点开始搜索”学生“节点，再从”学生“子树开始搜索“姓名”，“性别”，“成绩”节点，并将结果赋给结构体相应的项。得到的结果为：
+以上程序的输出为：
 
 ```
-student name is 张三,sex is 男,course0 is 语文,score0 is 90,course1 is 数学,score1 is 70,course2 is 文综,score2 is 85
-student name is 李四,sex is 女,course0 is 语文,score0 is 60,course1 is 数学,score1 is 100,course2 is 理综,score2 is 95
-student name is 赵五,sex is 女,course0 is 语文,score0 is 90,course1 is 数学,score1 is 60,course2 is 文综,score2 is 52
-student name is 王二麻,sex is 男,course0 is 语文,score0 is 50,course1 is 数学,score1 is 98,course2 is 理综,score2 is 97
+00,01,02,03,
+10,11,12,13,
+20,21,22,23,
 ```
 
 
 
-另外，如果你的json文件里有中文的话，**注意编码方式**。
+列表与数组的混合读取：
+
+```c
+node = mJSONRead(json,"province.Hebei[0]");
+printf("%s\n",node->string);
+node = mJSONRead(json,"province.Anhui[0]");
+printf("%s\n",node->string);
+node = mJSONRead(json,"province.Gansu"   );
+printf("%s\n",node->string);
+```
+
+以上程序的输出为：
+
+```
+Shijiazhuang
+Hefei
+Lanzhou
+```
 
 
 
+### 性能
+
+完整的测试程序参见：[test_JSON_file2.cpp](https://github.com/jingweizhanghuai/Morn/blob/master/test/test_JSON_file2.cpp)
+
+性能测试中对比了Morn与几种常用的json解析库：[cjson](https://github.com/DaveGamble/cJSON)、[jsoncpp](https://github.com/open-source-parsers/jsoncpp)、[nlohmann](https://github.com/nlohmann/json)、[rapidjson](https://github.com/Tencent/rapidjson)、[yyjson](https://github.com/ibireme/yyjson)
+
+#### 测试一：
+
+解析[citm_catalog.json](https://github.com/miloyip/nativejson-benchmark/blob/master/data/citm_catalog.json)，并读取文件中的areaId，测试解析和读取速度。测试程序如下（仅节选Morn的测试程序）：
+
+```c
+int Morn_test1()
+{
+    MObject *jsondata=mObjectCreate();
+    mFile(jsondata,"./citm_catalog.json");
+    
+    mTimerBegin("Morn Json");
+    struct JSONNode *json = mJSONLoad(jsondata);
+    int n=0;
+    struct JSONNode *performances_array = mJSONRead(json,"performances");
+    for(int i=0;i<performances_array->num;i++)
+    {
+        struct JSONNode *performances = mJSONRead(performances_array,i);
+        struct JSONNode *seatCategories_array = mJSONRead(performances,"seatCategories");
+        for(int j=0;j<seatCategories_array->num;j++)
+        {
+            struct JSONNode *seatCategories = mJSONRead(seatCategories_array,j);
+            struct JSONNode *areas_array = mJSONRead(seatCategories,"areas");
+            for(int k=0;k<areas_array->num;k++)
+            {
+                struct JSONNode *areas = mJSONRead(areas_array,k);
+                struct JSONNode *areaId=mJSONRead(areas,"areaId");
+                int id=areaId->dataS32;
+                n++;
+                // printf("id=%d\n",id);
+            }
+        }
+    }
+    mTimerEnd("Morn Json");
+
+    mObjectRelease(jsondata);
+    return n;
+}
+
+int main()
+{
+    int n=Morn_test1();
+    printf("get %d areaId\n\n",n);
+    return 0;
+}
+```
+
+其测试结果如下：
+
+[![5pkJSA.png](https://z3.ax1x.com/2021/10/07/5pkJSA.png)](https://imgtu.com/i/5pkJSA)
 
 
+
+#### 测试二
+
+解析[canada.json](https://github.com/miloyip/nativejson-benchmark/blob/master/data/canada.json)，并读取文件中的坐标值，测试解析和读取速度。测试程序如下（仅节选Morn的测试程序）：
+
+```c
+int Morn_test2()
+{
+    MObject *jsondata=mObjectCreate();
+    mFile(jsondata,"./canada.json");
+    
+    mTimerBegin("Morn json");
+    struct JSONNode *json=mJSONLoad(jsondata);
+    int n=0;
+    struct JSONNode *coordinates0=mJSONRead(json,"features[0].geometry.coordinates");
+    for (int j=0;j<coordinates0->num;j++)
+    {
+        struct JSONNode *coordinates1 = mJSONRead(coordinates0,j);
+        for (int i=0;i<coordinates1->num;i++)
+        {
+            struct JSONNode *coordinates2 = mJSONRead(coordinates1,i);
+            double x=mJSONRead(coordinates2,0)->dataD64;
+            double y=mJSONRead(coordinates2,1)->dataD64;
+            n++;
+            // printf("x=%f,y=%f\n",x,y);
+        }
+    }
+    mTimerEnd("Morn json");
+    
+    mObjectRelease(jsondata);
+    return n;
+}
+
+void test2()
+{
+    int n=Morn_test2();
+    printf("get %d coordinates\n\n",n);
+    return 0;
+}
+```
+
+其测试结果如下：
+
+[![5puZqA.png](https://z3.ax1x.com/2021/10/07/5puZqA.png)](https://imgtu.com/i/5puZqA)
+
+以上测试可见：rapidjson、yyjson、Morn的速度远快于其它（cjson在测试一速度尚可，但测试二速度最慢），而yyjson和Morn又显著的快于rapidjson。
+
+
+
+#### 测试三
+
+比较Morn与rapidjson和yyjson，在多种json文件中的解析速度。后两者都是以快速解析而著称。
+
+测试解析的文件包括：canada.json、citm_catalog.json、[twitter.json](https://github.com/chadaustin/sajson/blob/master/testdata/twitter.json)、[github_events.json](https://github.com/chadaustin/sajson/blob/master/testdata/github_events.json)、[apache_builds.json](https://github.com/chadaustin/sajson/blob/master/testdata/apache_builds.json)、[mesh.json](https://github.com/chadaustin/sajson/blob/master/testdata/mesh.json)、[mesh.pretty.json](https://github.com/chadaustin/sajson/blob/master/testdata/mesh.pretty.json)、[update-center.json](https://github.com/chadaustin/sajson/blob/master/testdata/update-center.json)
+
+测试程序如下：
+
+```c
+void rapidjson_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("rapidjson");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        rapidjson::Document doc;
+        doc.Parse(jsondata->string);
+    }
+    mTimerEnd("rapidjson");
+    mObjectRelease(jsondata);
+}
+
+void yyjson_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("yyjson");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        yyjson_doc_get_root(yyjson_read(jsondata->string,jsondata->size-1,0));
+    }
+    mTimerEnd("yyjson");
+    mObjectRelease(jsondata);
+}
+
+void Morn_test3(const char *filename,int n)
+{
+    MString *jsondata=mObjectCreate();
+    mTimerBegin("Morn json");
+    for(int i=0;i<n;i++)
+    {
+        mFile(jsondata,filename);
+        mJSONLoad(jsondata);
+    }
+    mTimerEnd("Morn json");
+    mObjectRelease(jsondata);
+}
+
+void test3()
+{
+    const char *filename;
+
+    filename = "./canada.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./citm_catalog.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/twitter.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/github_events.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/apache_builds.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/mesh.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/mesh.pretty.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    filename = "./testdata/update-center.json";
+    printf("\nfor %s:\n",filename);
+    rapidjson_test3(filename,100);
+    yyjson_test3(filename,100);
+    Morn_test3(filename,100);
+
+    return 0;
+}
+```
+
+测试结果如下：
+
+[![45IDJA.png](https://z3.ax1x.com/2021/09/29/45IDJA.png)](https://imgtu.com/i/45IDJA)
+
+可见：Morn和yyjson显著快于rapidjson，Morn与yyjson速度相当。

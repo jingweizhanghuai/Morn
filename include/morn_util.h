@@ -11,6 +11,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <math.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -892,7 +893,7 @@ struct JSONNode
 {
     union
     {
-        int8_t   dataBool;
+        bool   dataBool;
         int32_t  dataS32;
         double   dataD64;
         char    *string;
@@ -902,9 +903,12 @@ struct JSONNode
     char *key;
 };
 struct JSONNode *mJSONLoad(MFile *jsonfile);
-struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v);
-#define mJSONRead(...) ((VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0):m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__)))
-
+struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v,struct JSONNode *data);
+#define mJSONRead(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0,NULL):\
+    (VANumber(__VA_ARGS__)==2)?((VA1(__VA_ARGS__)+1==((intptr_t)VA1(__VA_ARGS__))+1)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_JSONRead(_VA0(__VA_ARGS__),0,(struct JSONNode *)VA1(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==3)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(struct JSONNode *)VA2(__VA_ARGS__)):NULL\
+)
 
 extern char *morn_json_type[15];
 #define mJSONNodeType(Node) morn_json_type[MAX(MIN((Node)->type,14),0)]

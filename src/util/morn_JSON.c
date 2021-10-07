@@ -425,7 +425,7 @@ struct JSONNode *JSONArrayRead(struct JSONNode *node0,char *key)
     mException((node0->type!=JSON_ARRAY)&&(node0->type!=JSON_KEY_ARRAY),EXIT,"invalid key");
     union JsonData data;char data_type;key=StringNumber(key+1,&data,&data_type)+1;int n=data.dataS32;
     if(n>=node0->num) return NULL;
-    struct JSONNode *node = JSONSubNode(node0);
+    struct JSONNode *node = (struct JSONNode *)(((struct ArrayNode *)JSONSubNode(node0))+n);
     
     if(key[0]== 0 ) return node;
     if(key[0]=='.') {return JSONListRead( node,key+1);}
@@ -433,18 +433,24 @@ struct JSONNode *JSONArrayRead(struct JSONNode *node0,char *key)
     mException(1,EXIT,"invalid key");return NULL;
 }
 
-struct JSONNode *m_JSONRead(struct JSONNode *node0,intptr_t v)
+struct JSONNode *m_JSONRead(struct JSONNode *node0,intptr_t v,struct JSONNode *data)
 {
     if(node0->type<JSON_LIST) return NULL;
+    if(v==node0->num) return NULL;
+    struct JSONNode *node;
     if(v<node0->num)
     {
-        if(node0->type<JSON_ARRAY) return (struct JSONNode *)(((struct ListNode  *)JSONSubNode(node0))+v);
-        else                       return (struct JSONNode *)(((struct ArrayNode *)JSONSubNode(node0))+v);
+        if(node0->type<JSON_ARRAY) node= (struct JSONNode *)(((struct ListNode  *)JSONSubNode(node0))+v);
+        else                       node= (struct JSONNode *)(((struct ArrayNode *)JSONSubNode(node0))+v);
     }
-    
-    char *key=(char *)v;
-    if(key[0]=='[') {return JSONArrayRead(node0,key);}
-    else            {return  JSONListRead(node0,key);}
+    else
+    {
+        char *key=(char *)v;
+        if(key[0]=='[') {node= JSONArrayRead(node0,key);}
+        else            {node=  JSONListRead(node0,key);}
+    }
+    if(data!=NULL) *data=*node;
+    return node;
 }
 
 /*
