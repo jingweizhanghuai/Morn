@@ -893,7 +893,7 @@ struct JSONNode
 {
     union
     {
-        bool   dataBool;
+        bool     dataBool;
         int32_t  dataS32;
         double   dataD64;
         char    *string;

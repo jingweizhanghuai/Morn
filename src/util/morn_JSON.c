@@ -10,7 +10,7 @@ char *morn_json_type[15]={"UNKNOWN","KEY_UNKNOWN","BOOL","KEY_BOOL","INT","KEY_I
 
 union JsonData
 {
-    char   dataBool;
+    bool   dataBool;
     int    dataS32;
     double dataD64;
     char   *string;

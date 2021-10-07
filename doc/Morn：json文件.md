@@ -1,6 +1,6 @@
 ## Morn：json文件
 
-Morn提供了对.json文件的加载、解析、读写、增删、保存等功能。
+Morn提供了对.json文件的解析功能。Morn的json解析具有**简单（仅有两个接口）和快速（远快于rapidjson）**的特性。
 
 一个典型的json文件如下（本文以此为例）：
 
@@ -66,7 +66,7 @@ struct JSONNode
 {
     union
     {
-        int8_t   dataBool;	 //type为JSON_KEY_BOOL或JSON_BOOL时有效
+        bool     dataBool;	 //type为JSON_KEY_BOOL或JSON_BOOL时有效
         int32_t  dataS32;	 //type为JSON_KEY_INT或JSON_INT时有效
         double   dataD64;	//type为JSON_KEY_DOUBLE或JSON_DOUBLE时有效
         char    *string;		  //type为JSON_KEY_STRING或JSON_STRING时有效
@@ -83,7 +83,7 @@ struct JSONNode
 
 ### 接口
 
-#### 加载json文件
+#### 加载和解析json
 
 ```c
 struct JSONNode *mJSONLoad(MFile *jsonfile);
@@ -111,6 +111,8 @@ mStringRelease(string);
 ```
 
 以上：对于文件的解析，可以直接使用`mJSONLoad`解析，也可以先把文件读入字符串中，再解析。
+
+
 
 #### 读json节点
 
@@ -563,4 +565,4 @@ void test3()
 
 [![45IDJA.png](https://z3.ax1x.com/2021/09/29/45IDJA.png)](https://imgtu.com/i/45IDJA)
 
-可见：Morn和yyjson显著快于rapidjson，Morn与yyjson速度相当。
+可见：Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当。

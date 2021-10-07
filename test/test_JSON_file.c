@@ -11,6 +11,9 @@ char *jsontype[15]={"UNKNOWN","KEY_UNKNOWN","BOOL","KEY_BOOL","INT","KEY_INT","D
 
 int main()
 {
+    printf("sizeof(bool)=%d\n",sizeof(bool));
+    bool a=1;printf("a=%d\n",a);
+    a=3;printf("a=%d\n",a);
     // MObject *obj = mObjectCreate();
     // mFile(obj,"./test_json.json");
     // struct JSONNode *json=mJSONParse(obj);
