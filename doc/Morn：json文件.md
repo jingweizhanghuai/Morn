@@ -66,10 +66,10 @@ struct JSONNode
 {
     union
     {
-        bool     dataBool;	 //type为JSON_KEY_BOOL或JSON_BOOL时有效
-        int32_t  dataS32;	 //type为JSON_KEY_INT或JSON_INT时有效
-        double   dataD64;	//type为JSON_KEY_DOUBLE或JSON_DOUBLE时有效
-        char    *string;		  //type为JSON_KEY_STRING或JSON_STRING时有效
+        bool     dataBool;   //type为JSON_KEY_BOOL或JSON_BOOL时有效
+        int32_t  dataS32;    //type为JSON_KEY_INT或JSON_INT时有效
+        double   dataD64;    //type为JSON_KEY_DOUBLE或JSON_DOUBLE时有效
+        char    *string;     //type为JSON_KEY_STRING或JSON_STRING时有效
         uint16_t num;		 //子节点数量，type为JSON_KEY_ARRAY、JSON_ARRAY、JSON_KEY_LIST或JSON_LIST时有效
     };
     char *key;
@@ -131,22 +131,22 @@ struct JSONNode *mJSONRead(struct JSONNode *node,const char *key,struct JSONNode
 
 ```c
 struct JSONNode *child;
-child = mJSONRead(mother);			//mother是list或array类型，读取mother的第1个子节点
-child = mJSONRead(mother,5);		//mother是list或array类型，读取mother的第5个子节点
-child = mJSONRead(mother,"[5]");	//mother是array类型，读取mother的第5个子节点
-child = mJSONRead(mother,"child5");	//mother是list类型，读取mother所有子节点中,key值为“child5"的子节点
-child = mJSONRead(mother,"a.b[3].c.d[6]");	//读取深层节点
+child = mJSONRead(mother);          //mother是list或array类型，读取mother的第1个子节点
+child = mJSONRead(mother,5);        //mother是list或array类型，读取mother的第5个子节点
+child = mJSONRead(mother,"[5]");    //mother是array类型，读取mother的第5个子节点
+child = mJSONRead(mother,"child5"); //mother是list类型，读取mother所有子节点中,key值为“child5"的子节点
+child = mJSONRead(mother,"a.b[3].c.d[6]");   //读取深层节点
 ```
 
 或：
 
 ```c
 struct JSONNode child;
-mJSONRead(mother,&child);			//mother是list或array类型，读取mother的第1个子节点
-mJSONRead(mother,5,&child);			//mother是list或array类型，读取mother的第5个子节点
-mJSONRead(mother,"[5]",&child);		//mother是array类型，读取mother的第5个子节点
-mJSONRead(mother,"child5",&child);	//mother是list类型，读取mother所有子节点中,key值为“child5"的子节点
-mJSONRead(mother,"a.b[3].c.d[6]",&child);	//读取深层节点
+mJSONRead(mother,&child);           //mother是list或array类型，读取mother的第1个子节点
+mJSONRead(mother,5,&child);         //mother是list或array类型，读取mother的第5个子节点
+mJSONRead(mother,"[5]",&child);     //mother是array类型，读取mother的第5个子节点
+mJSONRead(mother,"child5",&child);  //mother是list类型，读取mother所有子节点中,key值为“child5"的子节点
+mJSONRead(mother,"a.b[3].c.d[6]",&child);    //读取深层节点
 ```
 
 
