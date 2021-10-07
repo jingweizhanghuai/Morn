@@ -70,7 +70,7 @@ struct JSONNode
         int32_t  dataS32;    //type为JSON_KEY_INT或JSON_INT时有效
         double   dataD64;    //type为JSON_KEY_DOUBLE或JSON_DOUBLE时有效
         char    *string;     //type为JSON_KEY_STRING或JSON_STRING时有效
-        uint16_t num;		 //子节点数量，type为JSON_KEY_ARRAY、JSON_ARRAY、JSON_KEY_LIST或JSON_LIST时有效
+        uint16_t num;        //子节点数量，type为JSON_KEY_ARRAY、JSON_ARRAY、JSON_KEY_LIST或JSON_LIST时有效
     };
     char *key;
     char type;
