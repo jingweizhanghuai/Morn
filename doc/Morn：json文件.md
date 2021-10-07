@@ -1,6 +1,6 @@
 ## Morn：json文件
 
-Morn提供了对.json文件的解析功能。Morn的json解析具有**简单（仅有两个接口）和快速（远快于rapidjson）**的特性。
+Morn提供了对.json文件的解析功能。Morn的json解析具有**简单（仅有两个接口）和快速（远快于rapidjson）**的特点。
 
 一个典型的json文件如下（本文以此为例）：
 
@@ -462,6 +462,8 @@ void test2()
 
 测试解析的文件包括：canada.json、citm_catalog.json、[twitter.json](https://github.com/chadaustin/sajson/blob/master/testdata/twitter.json)、[github_events.json](https://github.com/chadaustin/sajson/blob/master/testdata/github_events.json)、[apache_builds.json](https://github.com/chadaustin/sajson/blob/master/testdata/apache_builds.json)、[mesh.json](https://github.com/chadaustin/sajson/blob/master/testdata/mesh.json)、[mesh.pretty.json](https://github.com/chadaustin/sajson/blob/master/testdata/mesh.pretty.json)、[update-center.json](https://github.com/chadaustin/sajson/blob/master/testdata/update-center.json)
 
+程序中对上述文件分别进行了100次解析，并计时。
+
 测试程序如下：
 
 ```c
@@ -565,4 +567,5 @@ void test3()
 
 [![45IDJA.png](https://z3.ax1x.com/2021/09/29/45IDJA.png)](https://imgtu.com/i/45IDJA)
 
-可见：Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当。
+可见：**Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当。**
+

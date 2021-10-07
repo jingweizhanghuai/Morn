@@ -547,8 +547,6 @@ void test3()
     Morn_test3(filename,100);
 }
 
-
-
 int main(int argc,char *argv[])
 {
     if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
