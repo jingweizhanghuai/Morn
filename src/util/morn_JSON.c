@@ -160,7 +160,7 @@ void endJSON(struct HandleJSON *handle)
     if(handle->memory!=NULL) mMemoryRelease(handle->memory);
 }
 
-static float morn_char_number[20][10]={
+static double morn_char_number[20][10]={
     {0.0,0.1000000000000000000,0.2000000000000000000,0.3000000000000000000,0.4000000000000000000,0.5000000000000000000,0.6000000000000000000,0.7000000000000000000,0.8000000000000000000,0.9000000000000000000},
     {0.0,0.0100000000000000000,0.0200000000000000000,0.0300000000000000000,0.0400000000000000000,0.0500000000000000000,0.0600000000000000000,0.0700000000000000000,0.0800000000000000000,0.0900000000000000000},
     {0.0,0.0010000000000000000,0.0020000000000000000,0.0030000000000000000,0.0040000000000000000,0.0050000000000000000,0.0060000000000000000,0.0070000000000000000,0.0080000000000000000,0.0090000000000000000},
@@ -186,19 +186,19 @@ static float morn_char_number[20][10]={
 char *StringNumber(char *p,union JsonData *data,char *type)
 {
     *type=JSON_INT;
-    int flag=0;int v=0;float d=0;
+    int flag=0;int v=0;double d=0;
          if(*p=='-') {flag=1;p++;}
     else if(*p=='+')         p++;
     for(;(*p>='0')&&(*p<='9');p++) v=v*10+(*p-'0');
     if(*p=='.')
     {
-        d=(float)v;p++;
+        d=(double)v;p++;
         int i;for(i=0;(p[i]>='0')&&(p[i]<='9');i++) d=d+morn_char_number[MIN(i,19)][p[i]-'0'];
         *type=JSON_DOUBLE;p=p+i;
     }
     if((*p=='e')||(*p=='E'))
     {
-        if(*type==JSON_INT) {d=(float)v;*type=JSON_DOUBLE;}
+        if(*type==JSON_INT) {d=(double)v;*type=JSON_DOUBLE;}
         p++;
         int f=0;if(*p=='-') {f=1;p++;} else if(*p=='+') {p++;}
         int e=0;for(;(*p>='0')&&(*p<='9');p++) e=e*10+(*p-'0');

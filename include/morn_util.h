@@ -906,7 +906,7 @@ struct JSONNode *mJSONLoad(MFile *jsonfile);
 struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v,struct JSONNode *data);
 #define mJSONRead(...) (\
     (VANumber(__VA_ARGS__)==1)?m_JSONRead(_VA0(__VA_ARGS__),0,NULL):\
-    (VANumber(__VA_ARGS__)==2)?((VA1(__VA_ARGS__)+1==((intptr_t)VA1(__VA_ARGS__))+1)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_JSONRead(_VA0(__VA_ARGS__),0,(struct JSONNode *)VA1(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)(VA1(__VA_ARGS__)+1)==((intptr_t)VA1(__VA_ARGS__))+1)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_JSONRead(_VA0(__VA_ARGS__),0,(struct JSONNode *)((intptr_t)VA1(__VA_ARGS__)))):\
     (VANumber(__VA_ARGS__)==3)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(struct JSONNode *)VA2(__VA_ARGS__)):NULL\
 )
 

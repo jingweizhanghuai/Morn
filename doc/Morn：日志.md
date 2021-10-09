@@ -18,7 +18,7 @@ Morn的日志是一个极简的，几乎没有学习成本的日志。它可以�
 
 ### 接口
 
-Morn日志相关的接口极简单，只有`mLogSet`和`mLog`两个接口，其中前者用于配置日志参数，后者用于输出日志。
+Morn日志相关的接口极简单，只有`mLog`一个接口用于输出日志。
 
 #### 输出日志
 
@@ -28,7 +28,7 @@ void mLog(int Level,const char *format,...);
 
 这个接口简单到几乎可以不去解释。一个简单的例子：
 
-```
+```c
 int main()
 {
     mLog(MORN_INFO, "this is a Morn log, num=%d\n",1);
@@ -53,11 +53,11 @@ Morn里使用语法糖`mLogFormat`预设了**5种**日志格式。以下例说�
 ```c
 int main()
 {
-    mLog(MORN_INFO, mLogFormat(1,"this is a Morn log, format %d"),1);
-    mLog(MORN_INFO, mLogFormat(2,"this is a Morn log, format %d"),2);
-    mLog(MORN_INFO, mLogFormat(3,"this is a Morn log, format %d"),3);
-    mLog(MORN_INFO, mLogFormat(4,"this is a Morn log, format %d"),4);
-    mLog(MORN_INFO, mLogFormat(5,"this is a Morn log, format %d"),5);
+    mLog(MORN_INFO, mLogFormat1("this is a Morn log, format %d"),1);
+    mLog(MORN_INFO, mLogFormat2("this is a Morn log, format %d"),2);
+    mLog(MORN_INFO, mLogFormat3("this is a Morn log, format %d"),3);
+    mLog(MORN_INFO, mLogFormat4("this is a Morn log, format %d"),4);
+    mLog(MORN_INFO, mLogFormat5("this is a Morn log, format %d"),5);
     return 0;
 }
 ```
@@ -74,18 +74,7 @@ int main()
 
 Morn库所有自带的日志输出（例如定时信息、异常信息），皆采用格式1。
 
-值得一提的是`mLogFormat`只是一个语法糖，只有以上一种用法，以下两种用法是错误的：
 
-```c
-int a=5;
-mLog(MORN_INFO, mLogFormat(a,"this is a Morn log"));//错误用法
-
-char *message = "this is a Morn log";
-mLog(MORN_INFO, mLogFormat(5,message));				//错误用法
-mLog(MORN_INFO, mLogFormat(5,"%s"),message);		//正确用法
-```
-
-如果误用`mLogFormat`，将会导致编译语法错误。
 
 **自定义格式**
 
@@ -100,7 +89,7 @@ mLog(MORN_INFO, "[%s,line %d,function %s,author:%s]%s: this is a Morn log" ,__FI
 或
 
 ```c
-mLog(MORN_INFO, mLogFormat(1,"author:%s. this is a Morn log"),"JingWeiZhangHuai",1);
+mLog(MORN_INFO, mLogFormat1("author:%s. this is a Morn log"),"JingWeiZhangHuai",1);
 ```
 
 以上两种方法皆可，但过于繁琐，Morn所鼓励的方式是仿照`mLogFormat`的方式定义日志格式，即：

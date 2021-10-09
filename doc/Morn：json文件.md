@@ -394,11 +394,10 @@ int Morn_test1()
     return n;
 }
 
-int main()
+int test1()
 {
     int n=Morn_test1();
     printf("get %d areaId\n\n",n);
-    return 0;
 }
 ```
 
@@ -444,7 +443,6 @@ void test2()
 {
     int n=Morn_test2();
     printf("get %d coordinates\n\n",n);
-    return 0;
 }
 ```
 
@@ -558,8 +556,6 @@ void test3()
     rapidjson_test3(filename,100);
     yyjson_test3(filename,100);
     Morn_test3(filename,100);
-
-    return 0;
 }
 ```
 
