@@ -1,6 +1,6 @@
 // gcc -O2 -fopenmp test_message2.c -o test_message2.exe -lmorn -lzmq -lstdc++ -lws2_32 -lIphlpapi -lm
 #include <zmq.h>
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 #ifdef __linux__
 #include <sys/time.h>
@@ -9,11 +9,8 @@
 #define gettimeofday mingw_gettimeofday
 #endif
 
-void *mProcTopicWrite(const char *msgname,void *data,int write_size);
-void *mProcTopicRead(const char *msgname,void *data,int *read_size);
-
-#define N (1024*1024/4)
-#define T 10000
+#define N (1024*128/4)
+#define T 1000
 
 struct ZMQData
 {
@@ -29,7 +26,8 @@ void zeromq_send()
 
     struct ZMQData *buffer = malloc(sizeof(struct ZMQData));
     strcpy(buffer->topic,"zmqtest");
-    
+    mSleep(5);
+
     struct timeval tv;
     for (int i=0;i<T;i++)
     {
@@ -55,16 +53,18 @@ void zeromq_recive()
     strcpy(buffer->topic,"zmqtest");
     zmq_setsockopt(responder,ZMQ_SUBSCRIBE,buffer->topic,strlen(buffer->topic));
 
-    double t_sum=0;
+    double t_sum=0;double t_max=0;
     struct timeval tv;
     int i;for(i=1;;i++) 
     {
         int n=zmq_recv(responder,buffer,sizeof(struct ZMQData),0);
         gettimeofday(&tv,NULL);
-        t_sum += ((tv.tv_sec-buffer->data[1])*1000000+(tv.tv_usec-buffer->data[2]));
+        // printf("buffer->data[0]=%d\n",buffer->data[0]);
+        double t = ((tv.tv_sec-buffer->data[1])*1000000+(tv.tv_usec-buffer->data[2]));
+        t_sum += t; t_max=MAX(t,t_max);
         if(buffer->data[0]==T-1) break;
     }
-    printf("recive %d topic data, average delay %fus\n",i,t_sum/i);
+    printf("recive %d topic data, average delay %fus.\n",i,t_sum/i);
 }
 
 void morn_send()
@@ -73,12 +73,12 @@ void morn_send()
     int *msg=malloc(N*sizeof(int));
     for(int i=0;i<T;i++)
     {
-        for(int i=3;i<N;i++) msg[i]=rand();
+        for(int j=3;j<N;j++) msg[j]=rand();
         msg[0]= i;
         gettimeofday(&tv,NULL);msg[1]=tv.tv_sec;msg[2]=tv.tv_usec;
 
         mProcTopicWrite("topictest",msg,N*sizeof(int));
-        // mSleep(5);
+        mSleep(5);
     }
     free(msg);
 }
@@ -87,19 +87,24 @@ void morn_recive()
 {
     int pid=getpid();
     struct timeval tv;
-    double t_sum=0;
+    double t_sum=0;double t_max=0;
     int i;for(i=1;;i++)
     {
         int *msg=mProcTopicRead("topictest",NULL,NULL);
         gettimeofday(&tv,NULL);
-        t_sum += (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
+        double t = (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
+        t_sum += t; t_max = MAX(t,t_max);
         if(msg[0]==T-1) break;
     }
-    printf("recive %d topic data, average delay %fus\n",i,t_sum/i);
+    printf("recive %d topic data, average delay %fus.\n",i,t_sum/i);
 }
 
 int main(int argc,char **argv)
 {
+    int n=1024;
+    if(argc==3) n=atoi(argv[2]);
+    n=n/sizeof(int);
+
          if(strcmp(argv[1], "zmq_send"  )==0)   zeromq_send();
     else if(strcmp(argv[1],"morn_send"  )==0)     morn_send();
     else if(strcmp(argv[1], "zmq_recive")==0) zeromq_recive();

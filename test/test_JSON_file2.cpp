@@ -2,7 +2,7 @@
 Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this json except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn -lpthread
+//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn
 
 #include "morn_util.h"
 
@@ -454,11 +454,13 @@ void test2()
     printf("get %d coordinates\n\n",n);
 }
 
-void rapidjson_test3(const char *filename,int n)
+#define TEST_TIME 100
+
+void rapidjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
     mTimerBegin("rapidjson");
-    for(int i=0;i<n;i++)
+    for(int i=0;i<TEST_TIME;i++)
     {
         mFile(jsondata,filename);
         rapidjson::Document doc;
@@ -468,11 +470,11 @@ void rapidjson_test3(const char *filename,int n)
     mObjectRelease(jsondata);
 }
 
-void yyjson_test3(const char *filename,int n)
+void yyjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
     mTimerBegin("yyjson");
-    for(int i=0;i<n;i++)
+    for(int i=0;i<TEST_TIME;i++)
     {
         mFile(jsondata,filename);
         yyjson_doc_get_root(yyjson_read(jsondata->string,jsondata->size-1,0));
@@ -481,11 +483,11 @@ void yyjson_test3(const char *filename,int n)
     mObjectRelease(jsondata);
 }
 
-void Morn_test3(const char *filename,int n)
+void Morn_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
     mTimerBegin("Morn json");
-    for(int i=0;i<n;i++)
+    for(int i=0;i<TEST_TIME;i++)
     {
         mFile(jsondata,filename);
         mJSONLoad(jsondata);
@@ -500,51 +502,51 @@ void test3()
 
     filename = "./canada.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./citm_catalog.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/twitter.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/github_events.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/apache_builds.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/mesh.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/mesh.pretty.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/update-center.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 }
 
 int main(int argc,char *argv[])

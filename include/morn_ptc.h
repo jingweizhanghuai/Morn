@@ -165,7 +165,7 @@ typedef struct MThreadSignal
         {\
             mtx_init(&((Sgn).mutex),mtx_plain);\
             cnd_init(&((Sgn).condition));\
-            (Sgn).rwlock= 0;
+            (Sgn).rwlock= 0;\
             (Sgn).valid = HASH_Thread;\
         }\
         else while((Sgn).valid!=HASH_Thread);\
@@ -184,16 +184,16 @@ typedef struct MThreadSignal
     mThreadLockEnd(Sgn);\
 }while(0)
 #define mThreadWake(Sgn,Cond) do{\
-    if(Cond)
-    {
-        mThreadLockBegin(Sgn);
-        cond_signal(&((Sgn).condition));
-        mThreadLockEnd(Sgn);
-    }
+    if(Cond)\
+    {\
+        mThreadLockBegin(Sgn);\
+        cond_signal(&((Sgn).condition));\
+        mThreadLockEnd(Sgn);\
+    }\
 }while(0)
 #define mThreadBroadcast(Sgn) do{\
     mThreadLockBegin(Sgn);\
-    cond_broadcast(&((Sgn).condition)));\
+    cond_broadcast(&((Sgn).condition));\
     mThreadLockEnd(Sgn);\
 }while(0)
 #endif

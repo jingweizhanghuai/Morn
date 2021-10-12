@@ -11,7 +11,7 @@ void send_test()
         mRandString(data,16,64);
         printf("i=%d,data=%s\n",i,data);
         mProcMessageWrite("msgtest",data);
-        mSleep(1);
+        // mSleep(1);
     }
 }
 
