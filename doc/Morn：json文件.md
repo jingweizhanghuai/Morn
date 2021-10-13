@@ -465,13 +465,16 @@ void test2()
 测试程序如下：
 
 ```c
-void rapidjson_test3(const char *filename,int n)
+#define TEST_TIME 100
+
+void rapidjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("rapidjson");
-    for(int i=0;i<n;i++)
+    for(int i=0;i<TEST_TIME;i++)
     {
-        mFile(jsondata,filename);
         rapidjson::Document doc;
         doc.Parse(jsondata->string);
     }
@@ -479,28 +482,26 @@ void rapidjson_test3(const char *filename,int n)
     mObjectRelease(jsondata);
 }
 
-void yyjson_test3(const char *filename,int n)
+void yyjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("yyjson");
-    for(int i=0;i<n;i++)
-    {
-        mFile(jsondata,filename);
+    for(int i=0;i<TEST_TIME;i++)
         yyjson_doc_get_root(yyjson_read(jsondata->string,jsondata->size-1,0));
-    }
     mTimerEnd("yyjson");
     mObjectRelease(jsondata);
 }
 
-void Morn_test3(const char *filename,int n)
+void Morn_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("Morn json");
-    for(int i=0;i<n;i++)
-    {
-        mFile(jsondata,filename);
+    for(int i=0;i<TEST_TIME;i++)
         mJSONLoad(jsondata);
-    }
     mTimerEnd("Morn json");
     mObjectRelease(jsondata);
 }
@@ -511,51 +512,52 @@ void test3()
 
     filename = "./canada.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./citm_catalog.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
+    
 
     filename = "./testdata/twitter.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/github_events.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/apache_builds.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/mesh.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/mesh.pretty.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 
     filename = "./testdata/update-center.json";
     printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename,100);
-    yyjson_test3(filename,100);
-    Morn_test3(filename,100);
+    rapidjson_test3(filename);
+    yyjson_test3(filename);
+    Morn_test3(filename);
 }
 ```
 
@@ -563,5 +565,5 @@ void test3()
 
 [![5KK5Yq.png](https://z3.ax1x.com/2021/10/13/5KK5Yq.png)](https://imgtu.com/i/5KK5Yq)
 
-可见：**Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当，大部分时候Morn稍快。**
+可见：**Morn和yyjson显著快于rapidjson（2至5倍），Morn与yyjson速度相当，大部分时候Morn稍快。**
 

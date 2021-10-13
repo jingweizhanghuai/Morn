@@ -355,9 +355,6 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
         }
         memcpy(handle->file,jsonfile->string,jsonfile->size);
         string = handle->file;
-        // string = jsonfile->string;
-        // mObjectRedefine(jsonfile,NULL,jsonfile->size);
-        // if(string!=jsonfile->string) {memcpy(jsonfile->string,string,jsonfile->size);string = jsonfile->string;}
     }
     else
     {
@@ -381,11 +378,9 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
     {
         if(p[0]=='{') 
         {
-            // mTimerBegin();
             JSONListLoad( &p,handle,1);
             node0->type=JSON_LIST ;
             node0->data.num =handle->list_layer[1].num-1;
-            // mTimerEnd();
             return (struct JSONNode *)node0;
         }
         if(p[0]=='[') 
