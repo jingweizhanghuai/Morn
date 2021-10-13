@@ -118,20 +118,22 @@ double GetValue(char **ptr)
             
             if(p==str+1) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?value:NAN;}
             
-            if(stricmp(str,"abs"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  ABS(value):NAN;}
-            if(stricmp(str,"sqrt" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? sqrt(value):NAN;}
-            if(stricmp(str,"exp"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  exp(value):NAN;}
-            if(stricmp(str,"ln"   )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  log(value):NAN;}
-            if(stricmp(str,"log10")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?log10(value):NAN;}
-            if(stricmp(str,"sin"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  sin(value):NAN;}
-            if(stricmp(str,"cos"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  cos(value):NAN;}
-            if(stricmp(str,"tan"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  tan(value):NAN;}
-            if(stricmp(str,"asin" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? asin(value):NAN;}
-            if(stricmp(str,"acos" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? acos(value):NAN;}
-            if(stricmp(str,"atan" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? atan(value):NAN;}
-            if(stricmp(str,"ceil" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? ceil(value):NAN;}
-            if(stricmp(str,"floor")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?floor(value):NAN;}
-            if(stricmp(str,"round")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?round(value):NAN;}
+            if(stricmp(str,"abs"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   ABS(value):NAN;}
+            if(stricmp(str,"sqrt" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  sqrt(value):NAN;}
+            if(stricmp(str,"exp"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   exp(value):NAN;}
+            if(stricmp(str,"ln"   )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   log(value):NAN;}
+            if(stricmp(str,"log10")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? log10(value):NAN;}
+            if(stricmp(str,"sin"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   sin(value):NAN;}
+            if(stricmp(str,"cos"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   cos(value):NAN;}
+            if(stricmp(str,"tan"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?   tan(value):NAN;}
+            if(stricmp(str,"cot"  )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? 1/tan(value):NAN;}
+            if(stricmp(str,"asin" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  asin(value):NAN;}
+            if(stricmp(str,"acos" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  acos(value):NAN;}
+            if(stricmp(str,"atan" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  atan(value):NAN;}
+            if(stricmp(str,"acot" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?atan(1/value):NAN;}
+            if(stricmp(str,"ceil" )==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?  ceil(value):NAN;}
+            if(stricmp(str,"floor")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? floor(value):NAN;}
+            if(stricmp(str,"round")==0) {value=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')? round(value):NAN;}
             
             if(stricmp(str,"min")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=','){return NAN;}*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MIN(v1,v2):NAN;}
             if(stricmp(str,"max")==0) {v1=Caculate(ptr);p=*ptr;if(*p!=','){return NAN;}*ptr=p+1;v2=Caculate(ptr);p=*ptr;*ptr=p+1;return (*p==')')?MAX(v1,v2):NAN;}

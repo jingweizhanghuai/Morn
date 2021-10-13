@@ -119,6 +119,7 @@ void *m_ProcTopicWrite(const char *msgname,void *data,int write_size)
     mException(data==NULL,EXIT,"invalid input");
     
     if(write_size<0) write_size=strlen(data)+1;
+    mException(write_size>1024*1024,EXIT,"write size %d, which is too large",write_size);
     int size = ((write_size+7)>>3)<<3;
 
     int ID=0;int user_num=0;int writer_num=0;
@@ -179,7 +180,6 @@ void *m_ProcTopicWrite(const char *msgname,void *data,int write_size)
             m_Read(handle->file,3*sizeof(int),&writer_num,sizeof(int));
         }
         if(writer_num==0) ID=handle->ID;else ID=0;
-        // printf("writer_num=%d,ID=%d\n",writer_num,ID);
                      m_Write(handle->file,            0,         &ID ,sizeof(int));handle->info->ID        = ID;
         user_num++;  m_Write(handle->file,  sizeof(int),    &user_num,sizeof(int));handle->info->user_num  = user_num;
         writer_num++;m_Write(handle->file,2*sizeof(int),  &writer_num,sizeof(int));handle->info->writer_num= writer_num;

@@ -1,13 +1,8 @@
 // gcc -O2 -fopenmp test_message3.c -o test_message3.exe -lmorn -lm
 // gcc -O2 -fopenmp test_message3.c -o test_message3.exe -I C:\ProgramFiles\CPackage\zeromq\include\ -I ../include/ -L C:\ProgramFiles\CPackage\zeromq\lib_x64_mingw -L ../lib/x64_mingw/ -lzmq -lmorn -lstdc++ -lws2_32 -lIphlpapi
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <zmq.h>
+// #include <zmq.h>
 
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 void func(char *str)
 {
@@ -37,8 +32,8 @@ void morn_server()
 
 void morn_client(char *clientname)
 {
-    int wait_time=1005;
-    mPropertyWrite("ProcMessage","wait_time",&wait_time,sizeof(int));
+    // int wait_time=100;
+    // mPropertyWrite("ProcMessage","wait_time",&wait_time,sizeof(int));
 
     struct MessageData msg;
     strcpy(msg.clientname,clientname);

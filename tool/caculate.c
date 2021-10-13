@@ -24,7 +24,7 @@ int main(int argc,char *argv[])
         gets(str);
         if(str[0]==0) continue;
         if(stricmp(str,"exit")==0) break;
-        printf("result is %lf\n",mCaculate(str));
+        printf("result is %.16f\n",mCaculate(str));
     }
     return 0;
 }

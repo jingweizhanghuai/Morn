@@ -9,47 +9,48 @@
 #define gettimeofday mingw_gettimeofday
 #endif
 
-#define N (1024*128/4)
+// #define N (1024*128/4)
 #define T 1000
 
 struct ZMQData
 {
     char topic[8];
-    int data[N];
+    int data[0];
 };
 
-void zeromq_send()
+void zeromq_send(int n)
 {
     void *context = zmq_ctx_new();
     void *requester = zmq_socket(context, ZMQ_PUB);
     zmq_connect(requester, "tcp://localhost:5555");
 
-    struct ZMQData *buffer = malloc(sizeof(struct ZMQData));
+    struct ZMQData *buffer = malloc(sizeof(struct ZMQData)+n*sizeof(int));
     strcpy(buffer->topic,"zmqtest");
-    mSleep(5);
+    mSleep(10);
 
     struct timeval tv;
     for (int i=0;i<T;i++)
     {
-        for(int j=3;j<N;j++) buffer->data[j]=rand();
+        for(int j=3;j<n;j++) buffer->data[j]=rand();
         buffer->data[0]=i;
         gettimeofday(&tv,NULL);buffer->data[1]=tv.tv_sec;buffer->data[2]=tv.tv_usec;
         
-        zmq_send(requester,buffer,sizeof(struct ZMQData),0);
-        mSleep(5);
+        zmq_send(requester,buffer,sizeof(struct ZMQData)+n*sizeof(int),0);
+        mSleep(1);
     }
     zmq_close(requester);
     zmq_ctx_destroy(context);
+    free(buffer);
 }
 
-void zeromq_recive()
+void zeromq_recive(int n)
 {
     int pid=getpid();
     void *context = zmq_ctx_new();
     void *responder = zmq_socket(context, ZMQ_SUB);
     zmq_bind(responder, "tcp://*:5555");
 
-    struct ZMQData *buffer = malloc(sizeof(struct ZMQData));
+    struct ZMQData *buffer = malloc(sizeof(struct ZMQData)+n*sizeof(int));
     strcpy(buffer->topic,"zmqtest");
     zmq_setsockopt(responder,ZMQ_SUBSCRIBE,buffer->topic,strlen(buffer->topic));
 
@@ -57,33 +58,34 @@ void zeromq_recive()
     struct timeval tv;
     int i;for(i=1;;i++) 
     {
-        int n=zmq_recv(responder,buffer,sizeof(struct ZMQData),0);
+        int n=zmq_recv(responder,buffer,sizeof(struct ZMQData)+n*sizeof(int),0);
         gettimeofday(&tv,NULL);
         // printf("buffer->data[0]=%d\n",buffer->data[0]);
         double t = ((tv.tv_sec-buffer->data[1])*1000000+(tv.tv_usec-buffer->data[2]));
         t_sum += t; t_max=MAX(t,t_max);
         if(buffer->data[0]==T-1) break;
     }
-    printf("recive %d topic data, average delay %fus.\n",i,t_sum/i);
+    printf("recive %d %s data (size %d), average delay %fus.\n",i,buffer->topic,n*sizeof(int),t_sum/i);
+    free(buffer);
 }
 
-void morn_send()
+void morn_send(int n)
 {
     struct timeval tv;
-    int *msg=malloc(N*sizeof(int));
+    int *msg=malloc(n*sizeof(int));
     for(int i=0;i<T;i++)
     {
-        for(int j=3;j<N;j++) msg[j]=rand();
+        for(int j=3;j<n;j++) msg[j]=rand();
         msg[0]= i;
         gettimeofday(&tv,NULL);msg[1]=tv.tv_sec;msg[2]=tv.tv_usec;
 
-        mProcTopicWrite("topictest",msg,N*sizeof(int));
-        mSleep(5);
+        mProcTopicWrite("topictest",msg,n*sizeof(int));
+        mSleep(1);
     }
     free(msg);
 }
 
-void morn_recive()
+void morn_recive(int n)
 {
     int pid=getpid();
     struct timeval tv;
@@ -92,11 +94,12 @@ void morn_recive()
     {
         int *msg=mProcTopicRead("topictest",NULL,NULL);
         gettimeofday(&tv,NULL);
+        // printf("msg[0]=%d\n",msg[0]);
         double t = (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
         t_sum += t; t_max = MAX(t,t_max);
         if(msg[0]==T-1) break;
     }
-    printf("recive %d topic data, average delay %fus.\n",i,t_sum/i);
+    printf("recive %d topictest data (size %d), average delay %fus.\n",i,n*sizeof(int),t_sum/i);
 }
 
 int main(int argc,char **argv)
@@ -105,10 +108,10 @@ int main(int argc,char **argv)
     if(argc==3) n=atoi(argv[2]);
     n=n/sizeof(int);
 
-         if(strcmp(argv[1], "zmq_send"  )==0)   zeromq_send();
-    else if(strcmp(argv[1],"morn_send"  )==0)     morn_send();
-    else if(strcmp(argv[1], "zmq_recive")==0) zeromq_recive();
-    else if(strcmp(argv[1],"morn_recive")==0)   morn_recive();
+         if(strcmp(argv[1], "zmq_send"  )==0)   zeromq_send(n);
+    else if(strcmp(argv[1],"morn_send"  )==0)     morn_send(n);
+    else if(strcmp(argv[1], "zmq_recive")==0) zeromq_recive(n);
+    else if(strcmp(argv[1],"morn_recive")==0)   morn_recive(n);
     else mException(1,EXIT,"invalid input");
     return 0;
 }
