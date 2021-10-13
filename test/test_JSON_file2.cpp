@@ -459,10 +459,11 @@ void test2()
 void rapidjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("rapidjson");
     for(int i=0;i<TEST_TIME;i++)
     {
-        mFile(jsondata,filename);
         rapidjson::Document doc;
         doc.Parse(jsondata->string);
     }
@@ -473,12 +474,11 @@ void rapidjson_test3(const char *filename)
 void yyjson_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("yyjson");
     for(int i=0;i<TEST_TIME;i++)
-    {
-        mFile(jsondata,filename);
         yyjson_doc_get_root(yyjson_read(jsondata->string,jsondata->size-1,0));
-    }
     mTimerEnd("yyjson");
     mObjectRelease(jsondata);
 }
@@ -486,12 +486,11 @@ void yyjson_test3(const char *filename)
 void Morn_test3(const char *filename)
 {
     MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
     mTimerBegin("Morn json");
     for(int i=0;i<TEST_TIME;i++)
-    {
-        mFile(jsondata,filename);
         mJSONLoad(jsondata);
-    }
     mTimerEnd("Morn json");
     mObjectRelease(jsondata);
 }

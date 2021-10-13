@@ -346,9 +346,12 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
 
     if(((*p1=='{')&&(*p2=='}'))||((*p1=='[')&&(*p2==']')))
     {
-        string = jsonfile->string;
-        mObjectRedefine(jsonfile,NULL,jsonfile->size);
-        if(string!=jsonfile->string) {memcpy(jsonfile->string,string,jsonfile->size);string = jsonfile->string;}
+        handle->file=(char *)mMalloc(jsonfile->size);
+        memcpy(handle->file,jsonfile->string,jsonfile->size);
+        string = handle->file;
+        // string = jsonfile->string;
+        // mObjectRedefine(jsonfile,NULL,jsonfile->size);
+        // if(string!=jsonfile->string) {memcpy(jsonfile->string,string,jsonfile->size);string = jsonfile->string;}
     }
     else
     {
