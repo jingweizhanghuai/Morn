@@ -403,7 +403,7 @@ int test1()
 
 其测试结果如下：
 
-[![5pkJSA.png](https://z3.ax1x.com/2021/10/07/5pkJSA.png)](https://imgtu.com/i/5pkJSA)
+[![5KQ2Is.png](https://z3.ax1x.com/2021/10/13/5KQ2Is.png)](https://imgtu.com/i/5KQ2Is)
 
 
 
@@ -448,7 +448,7 @@ void test2()
 
 其测试结果如下：
 
-[![5puZqA.png](https://z3.ax1x.com/2021/10/07/5puZqA.png)](https://imgtu.com/i/5puZqA)
+[![5KQWin.png](https://z3.ax1x.com/2021/10/13/5KQWin.png)](https://imgtu.com/i/5KQWin)
 
 以上测试可见：rapidjson、yyjson、Morn的速度远快于其它（cjson在测试一速度尚可，但测试二速度最慢），而yyjson和Morn又显著的快于rapidjson。
 
@@ -561,7 +561,7 @@ void test3()
 
 测试结果如下：
 
-[![45IDJA.png](https://z3.ax1x.com/2021/09/29/45IDJA.png)](https://imgtu.com/i/45IDJA)
+[![5KK5Yq.png](https://z3.ax1x.com/2021/10/13/5KK5Yq.png)](https://imgtu.com/i/5KK5Yq)
 
-可见：**Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当。**
+可见：**Morn和yyjson显著快于rapidjson（2至4倍），Morn与yyjson速度相当，大部分时候Morn稍快。**
 
