@@ -331,12 +331,13 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
         handle->array_node0[0].data.handle0 = handle;
         for(int i=0;i<64;i++) 
         {
-            handle-> list_layer[i].node = handle-> list_node0;handle-> list_layer[i].num=1;handle-> list_layer[i].cap=1;
-            handle->array_layer[i].node = handle->array_node0;handle->array_layer[i].num=1;handle->array_layer[i].cap=1;
+            handle-> list_layer[i].node = handle-> list_node0;handle-> list_layer[i].cap=1;
+            handle->array_layer[i].node = handle->array_node0;handle->array_layer[i].cap=1;
         }
         
         hdl->valid=1;
     }
+    for(int i=0;i<64;i++) {handle-> list_layer[i].num=1;handle->array_layer[i].num=1;}
 
     char *string;
 
@@ -380,9 +381,11 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
     {
         if(p[0]=='{') 
         {
+            // mTimerBegin();
             JSONListLoad( &p,handle,1);
             node0->type=JSON_LIST ;
             node0->data.num =handle->list_layer[1].num-1;
+            // mTimerEnd();
             return (struct JSONNode *)node0;
         }
         if(p[0]=='[') 

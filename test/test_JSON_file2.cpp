@@ -510,6 +510,7 @@ void test3()
     rapidjson_test3(filename);
     yyjson_test3(filename);
     Morn_test3(filename);
+    
 
     filename = "./testdata/twitter.json";
     printf("\nfor %s:\n",filename);
@@ -551,7 +552,44 @@ void test3()
 int main(int argc,char *argv[])
 {
     if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
-    if(strcmp(argv[1],"test1")==0) {test1();return 0;}
-    if(strcmp(argv[1],"test2")==0) {test2();return 0;}
-    if(strcmp(argv[1],"test3")==0) {test3();return 0;}
+    if(strcmp(argv[1],"test1")==0) test1();
+    if(strcmp(argv[1],"test2")==0) test2();
+    if(strcmp(argv[1],"test3")==0) test3();
+    return 0;
 }
+
+
+// void rapidjson_object(const rapidjson::Value& node)
+// {
+//     int i;double d;char *p;
+//     for(auto iter = node.MemberBegin(); iter != node.MemberEnd(); iter++)
+//     {
+//         auto key = (iter->name).GetString();
+//         if((iter->name).IsObject()) rapidjson_object(iter->name);
+//         if((iter->name).IsNumber()) 
+//     }
+// }
+
+// int main()
+// {
+//     MString *jsondata=mObjectCreate();
+//     mFile(jsondata,"./test_json.json");
+
+//     rapidjson::Document doc;
+//     doc.Parse(jsondata->string);
+
+//     if(doc.IsObject(),"bettingBoard::initBettingBoard: 读取json失败，无法初始化下注区！");
+    
+//     for(auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter)
+//     {
+//         auto key = (iter->name).GetString();
+//         //auto& v = doc[key]
+//         for(auto i = 0; i < doc[key].Size(); ++i)
+//         {
+//             double d = doc[key][i].GetDouble();
+//         }
+//     }
+// }
+
+
+
