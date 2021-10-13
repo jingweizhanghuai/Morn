@@ -146,6 +146,7 @@ struct HandleJSON
     struct ArrayNode  array_node0[2];
     
     char *file;
+    int file_size;
     MMemory *memory;
 };
 #define HASH_JSON 0x1eb02389
@@ -338,7 +339,6 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
     }
 
     char *string;
-    if(handle->file!=NULL) mFree(handle->file);
 
     if(jsonfile->size<0) jsonfile->size=strlen(jsonfile->string);
     char *p1;for(p1=jsonfile->string;                 (*p1<=' ')||(*p1==0);p1++);
@@ -346,7 +346,12 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
 
     if(((*p1=='{')&&(*p2=='}'))||((*p1=='[')&&(*p2==']')))
     {
-        handle->file=(char *)mMalloc(jsonfile->size);
+        if(handle->file_size<jsonfile->size)
+        {
+            if(handle->file!=NULL) mFree(handle->file);
+            handle->file=(char *)mMalloc(jsonfile->size);
+            handle->file_size = jsonfile->size;
+        }
         memcpy(handle->file,jsonfile->string,jsonfile->size);
         string = handle->file;
         // string = jsonfile->string;
@@ -358,7 +363,12 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
         FILE *f=fopen(jsonfile->filename,"rb");
         mException(f==NULL,EXIT,"invalid file");
         int size = fsize(f);
-        handle->file=(char *)mMalloc(size);
+        if(handle->file_size<size)
+        {
+            if(handle->file!=NULL) mFree(handle->file);
+            handle->file=(char *)mMalloc(size);
+            handle->file_size = size;
+        }
         fread(handle->file,size,1,f);
         fclose(f);
         string=handle->file;
