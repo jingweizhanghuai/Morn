@@ -11,11 +11,15 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 void test_send()
 {
+    char addr[16];
+
     char data[64];
     for(int i=0;i<100;i++)
     {
         mRandString(data,32,64);
-        char *ip=mUDPWrite("localhost:1234",data,DFLT);
+        sprintf(addr,"localhost:%d",rand()%4+1000);
+        char *ip=mUDPWrite(addr,data,DFLT);
+        //char *ip=mUDPWrite("localhost:1234",data,DFLT);
         printf("send: to %s, size=%zd, data is %s\n",ip,strlen(data),data);
         mSleep(100);
     }
@@ -30,8 +34,9 @@ void test_recive()
     while(1)
     {
         int size=64;
-        char *ip=mUDPRead(":1234",data,&size);
-        if(ip==NULL) printf("recive error\n");
+        char *ip;
+        ip=mUDPRead(":1002",data,&size);
+        if(ip==NULL) printf("recive2 error\n");
         else if(strcmp(data,"exit")==0) break;
         else printf("recive: from %s, size=%d, data is %s\n",ip,size,data);
     }

@@ -118,13 +118,13 @@ char *m_UDPRead(MObject *obj,const char *address,void *data,int *size)
         mPropertyVariate(obj,"UDP_wait",&(handle->wait_time));
         handle->addr = addr;handle->port=port;
         mException(handle->port==0,EXIT,"invalid UDP port");
-        if(hdl->valid==0) {if(UDPSetup(handle)==MORN_FAIL) return 0;}
+        if(hdl->valid==0) {if(UDPSetup(handle)==MORN_FAIL) return NULL;}
 
         handle->recive_addr.sin_family = AF_INET;
         handle->recive_addr.sin_port = htons(handle->port);
         ADDR(handle->recive_addr.sin_addr) = handle->addr;
-        if(bind(handle->udp,(struct sockaddr *)&(handle->recive_addr),sizeof(struct sockaddr))<0) return 0;
-        
+        if(bind(handle->udp,(struct sockaddr *)&(handle->recive_addr),sizeof(struct sockaddr))<0) return NULL;
+
         hdl->valid=1;
     }
     ADDR(handle->recive_addr.sin_addr) = handle->addr;

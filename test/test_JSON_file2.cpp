@@ -454,7 +454,7 @@ void test2()
     printf("get %d coordinates\n\n",n);
 }
 
-#define TEST_TIME 100
+#define TEST_TIME 1000
 
 void rapidjson_test3(const char *filename)
 {

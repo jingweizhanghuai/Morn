@@ -50,23 +50,22 @@ void zeromq_recive(int n)
     void *responder = zmq_socket(context, ZMQ_SUB);
     zmq_bind(responder, "tcp://*:5555");
 
-    struct ZMQData *buffer = malloc(sizeof(struct ZMQData)+n*sizeof(int));
-    strcpy(buffer->topic,"zmqtest");
-    zmq_setsockopt(responder,ZMQ_SUBSCRIBE,buffer->topic,strlen(buffer->topic));
+    struct ZMQData *msg = malloc(sizeof(struct ZMQData)+n*sizeof(int));
+    strcpy(msg->topic,"zmqtest");
+    zmq_setsockopt(responder,ZMQ_SUBSCRIBE,msg->topic,strlen(msg->topic));
 
     double t_sum=0;double t_max=0;
     struct timeval tv;
     int i;for(i=1;;i++) 
     {
-        int n=zmq_recv(responder,buffer,sizeof(struct ZMQData)+n*sizeof(int),0);
+        int n=zmq_recv(responder,msg,sizeof(struct ZMQData)+n*sizeof(int),0);
         gettimeofday(&tv,NULL);
-        // printf("buffer->data[0]=%d\n",buffer->data[0]);
-        double t = ((tv.tv_sec-buffer->data[1])*1000000+(tv.tv_usec-buffer->data[2]));
-        t_sum += t; t_max=MAX(t,t_max);
-        if(buffer->data[0]==T-1) break;
+        double t = ((tv.tv_sec-msg->data[1])*1000000+(tv.tv_usec-msg->data[2]));
+        t_sum += t;
+        if(msg->data[0]==T-1) break;
     }
-    printf("recive %d %s data (size %d), average delay %fus.\n",i,buffer->topic,n*sizeof(int),t_sum/i);
-    free(buffer);
+    printf("recive %d %s data (size %d), average delay %fus.\n",i,msg->topic,n*sizeof(int),t_sum/i);
+    free(msg);
 }
 
 void morn_send(int n)
@@ -78,7 +77,6 @@ void morn_send(int n)
         for(int j=3;j<n;j++) msg[j]=rand();
         msg[0]= i;
         gettimeofday(&tv,NULL);msg[1]=tv.tv_sec;msg[2]=tv.tv_usec;
-
         mProcTopicWrite("topictest",msg,n*sizeof(int));
         mSleep(1);
     }
@@ -89,17 +87,19 @@ void morn_recive(int n)
 {
     int pid=getpid();
     struct timeval tv;
-    double t_sum=0;double t_max=0;
+    double t_sum=0;
+
+    int *msg=malloc(n*sizeof(int));
     int i;for(i=1;;i++)
     {
-        int *msg=mProcTopicRead("topictest",NULL,NULL);
+        mProcTopicRead("topictest",msg,NULL);
         gettimeofday(&tv,NULL);
-        // printf("msg[0]=%d\n",msg[0]);
         double t = (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
-        t_sum += t; t_max = MAX(t,t_max);
+        t_sum += t;
         if(msg[0]==T-1) break;
     }
     printf("recive %d topictest data (size %d), average delay %fus.\n",i,n*sizeof(int),t_sum/i);
+    free(msg);
 }
 
 int main(int argc,char **argv)

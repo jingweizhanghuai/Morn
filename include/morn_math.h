@@ -182,19 +182,20 @@ void mAscSortS64(S64 *data_in,int *index_in,S64 *data_out,int *index_out,int num
 void mAscSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
 void mAscSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
 #define m_AscSort(DataIn,IndexIn,DataOut,IndexOut,Num) do{\
-    int Type=mDataType(DataIn[0]);\
-         if(Type==MORN_TYPE_U8 ) mAscSortU8 ((U8  *)DataIn,IndexIn,(U8  *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S8 ) mAscSortS8 ((S8  *)DataIn,IndexIn,(S8  *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U16) mAscSortU16((U16 *)DataIn,IndexIn,(U16 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S16) mAscSortS16((S16 *)DataIn,IndexIn,(S16 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U32) mAscSortU32((U32 *)DataIn,IndexIn,(U32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S32) mAscSortS32((S32 *)DataIn,IndexIn,(S32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U64) mAscSortU64((U64 *)DataIn,IndexIn,(U64 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S64) mAscSortS64((S64 *)DataIn,IndexIn,(S64 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_F32) mAscSortF32((F32 *)DataIn,IndexIn,(F32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_D64) mAscSortD64((D64 *)DataIn,IndexIn,(D64 *)DataOut,IndexOut,Num);\
+    int Type=mDataType((DataIn)[0]);\
+         if(Type==MORN_TYPE_U8 ) mAscSortU8 ((U8  *)(DataIn),IndexIn,(U8  *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S8 ) mAscSortS8 ((S8  *)(DataIn),IndexIn,(S8  *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U16) mAscSortU16((U16 *)(DataIn),IndexIn,(U16 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S16) mAscSortS16((S16 *)(DataIn),IndexIn,(S16 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U32) mAscSortU32((U32 *)(DataIn),IndexIn,(U32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S32) mAscSortS32((S32 *)(DataIn),IndexIn,(S32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U64) mAscSortU64((U64 *)(DataIn),IndexIn,(U64 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S64) mAscSortS64((S64 *)(DataIn),IndexIn,(S64 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_F32) mAscSortF32((F32 *)(DataIn),IndexIn,(F32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_D64) mAscSortD64((D64 *)(DataIn),IndexIn,(D64 *)DataOut,IndexOut,Num);\
     else mException(1,EXIT,"invalid input dD64ata type");\
 }while(0)
+
 #define mAscSort(...) do{\
     int VAN=VANumber(__VA_ARGS__);\
     intptr_t VA1=(intptr_t)VA1(__VA_ARGS__),VA2=(intptr_t)VA2(__VA_ARGS__),VA3=(intptr_t)VA3(__VA_ARGS__),VA4=(intptr_t)VA4(__VA_ARGS__);\
@@ -216,17 +217,17 @@ void mDescSortS64(S64 *data_in,int *index_in,S64 *data_out,int *index_out,int nu
 void mDescSortF32(F32 *data_in,int *index_in,F32 *data_out,int *index_out,int num);
 void mDescSortD64(D64 *data_in,int *index_in,D64 *data_out,int *index_out,int num);
 #define m_DescSort(DataIn,IndexIn,DataOut,IndexOut,Num) do{\
-    int Type=mDataType(DataIn[0]);\
-         if(Type==MORN_TYPE_U8 ) mDescSortU8 ((U8  *)DataIn,IndexIn,(U8  *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S8 ) mDescSortS8 ((S8  *)DataIn,IndexIn,(S8  *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U16) mDescSortU16((U16 *)DataIn,IndexIn,(U16 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S16) mDescSortS16((S16 *)DataIn,IndexIn,(S16 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U32) mDescSortU32((U32 *)DataIn,IndexIn,(U32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S32) mDescSortS32((S32 *)DataIn,IndexIn,(S32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_U64) mDescSortU64((U64 *)DataIn,IndexIn,(U64 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_S64) mDescSortS64((S64 *)DataIn,IndexIn,(S64 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_F32) mDescSortF32((F32 *)DataIn,IndexIn,(F32 *)DataOut,IndexOut,Num);\
-    else if(Type==MORN_TYPE_D64) mDescSortD64((D64 *)DataIn,IndexIn,(D64 *)DataOut,IndexOut,Num);\
+    int Type=mDataType((DataIn)[0]);\
+         if(Type==MORN_TYPE_U8 ) mDescSortU8 ((U8  *)(DataIn),IndexIn,(U8  *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S8 ) mDescSortS8 ((S8  *)(DataIn),IndexIn,(S8  *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U16) mDescSortU16((U16 *)(DataIn),IndexIn,(U16 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S16) mDescSortS16((S16 *)(DataIn),IndexIn,(S16 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U32) mDescSortU32((U32 *)(DataIn),IndexIn,(U32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S32) mDescSortS32((S32 *)(DataIn),IndexIn,(S32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_U64) mDescSortU64((U64 *)(DataIn),IndexIn,(U64 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_S64) mDescSortS64((S64 *)(DataIn),IndexIn,(S64 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_F32) mDescSortF32((F32 *)(DataIn),IndexIn,(F32 *)DataOut,IndexOut,Num);\
+    else if(Type==MORN_TYPE_D64) mDescSortD64((D64 *)(DataIn),IndexIn,(D64 *)DataOut,IndexOut,Num);\
     else mException(1,EXIT,"invalid input data type");\
 }while(0)
 #define mDescSort(...) do{\
@@ -250,16 +251,16 @@ S64 mMinSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index
 F32 mMinSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
 D64 mMinSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
 #define m_MinSubset(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) (\
-(mDataType(DataIn[0])==MORN_TYPE_U8 )?mMinSubsetU8 ((U8  *)DataIn,IndexIn,NumIn,(U8  *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_S8 )?mMinSubsetS8 ((S8  *)DataIn,IndexIn,NumIn,(S8  *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_U16)?mMinSubsetU16((U16 *)DataIn,IndexIn,NumIn,(U16 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_S16)?mMinSubsetS16((S16 *)DataIn,IndexIn,NumIn,(S16 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_U32)?mMinSubsetU32((U32 *)DataIn,IndexIn,NumIn,(U32 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_S32)?mMinSubsetS32((S32 *)DataIn,IndexIn,NumIn,(S32 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_U64)?mMinSubsetU64((U64 *)DataIn,IndexIn,NumIn,(U64 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_S64)?mMinSubsetS64((S64 *)DataIn,IndexIn,NumIn,(S64 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_F32)?mMinSubsetF32((F32 *)DataIn,IndexIn,NumIn,(F32 *)DataOut,IndexOut,NumOut):(\
-      (morn_data_type==MORN_TYPE_D64)?mMinSubsetD64((D64 *)DataIn,IndexIn,NumIn,(D64 *)DataOut,IndexOut,NumOut):DFLT)))))))))\
+(mDataType((DataIn)[0])==MORN_TYPE_U8 )?mMinSubsetU8 ((U8  *)(DataIn),IndexIn,NumIn,(U8  *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_S8 )?mMinSubsetS8 ((S8  *)(DataIn),IndexIn,NumIn,(S8  *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_U16)?mMinSubsetU16((U16 *)(DataIn),IndexIn,NumIn,(U16 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_S16)?mMinSubsetS16((S16 *)(DataIn),IndexIn,NumIn,(S16 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_U32)?mMinSubsetU32((U32 *)(DataIn),IndexIn,NumIn,(U32 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_S32)?mMinSubsetS32((S32 *)(DataIn),IndexIn,NumIn,(S32 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_U64)?mMinSubsetU64((U64 *)(DataIn),IndexIn,NumIn,(U64 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_S64)?mMinSubsetS64((S64 *)(DataIn),IndexIn,NumIn,(S64 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_F32)?mMinSubsetF32((F32 *)(DataIn),IndexIn,NumIn,(F32 *)DataOut,IndexOut,NumOut):(\
+        (morn_data_type==MORN_TYPE_D64)?mMinSubsetD64((D64 *)(DataIn),IndexIn,NumIn,(D64 *)DataOut,IndexOut,NumOut):DFLT)))))))))\
 )
 #define mMinSubset(...) (\
     (VANumber(__VA_ARGS__)==3)?m_MinSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA2(__VA_ARGS__))):(\
@@ -280,16 +281,16 @@ S64 mMaxSubsetS64(S64 *data_in,int *index_in,int num_in,S64 *data_out,int *index
 F32 mMaxSubsetF32(F32 *data_in,int *index_in,int num_in,F32 *data_out,int *index_out,int num_out);
 D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index_out,int num_out);
 #define m_MaxSubset(DataIn,IndexIn,NumIn,DataOut,IndexOut,NumOut) (\
-(mDataType(DataIn[0])==MORN_TYPE_U8 )?mMaxSubsetU8 ((U8  *)DataIn,IndexIn,(int)NumIn,(U8  *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_S8 )?mMaxSubsetS8 ((S8  *)DataIn,IndexIn,(int)NumIn,(S8  *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_U16)?mMaxSubsetU16((U16 *)DataIn,IndexIn,(int)NumIn,(U16 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_S16)?mMaxSubsetS16((S16 *)DataIn,IndexIn,(int)NumIn,(S16 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_U32)?mMaxSubsetU32((U32 *)DataIn,IndexIn,(int)NumIn,(U32 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_S32)?mMaxSubsetS32((S32 *)DataIn,IndexIn,(int)NumIn,(S32 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_U64)?mMaxSubsetU64((U64 *)DataIn,IndexIn,(int)NumIn,(U64 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_S64)?mMaxSubsetS64((S64 *)DataIn,IndexIn,(int)NumIn,(S64 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_F32)?mMaxSubsetF32((F32 *)DataIn,IndexIn,(int)NumIn,(F32 *)DataOut,IndexOut,(int)NumOut):(\
-      (morn_data_type==MORN_TYPE_D64)?mMaxSubsetD64((D64 *)DataIn,IndexIn,(int)NumIn,(D64 *)DataOut,IndexOut,(int)NumOut):DFLT)))))))))\
+(mDataType((DataIn)[0])==MORN_TYPE_U8 )?mMaxSubsetU8 ((U8  *)(DataIn),IndexIn,(int)NumIn,(U8  *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_S8 )?mMaxSubsetS8 ((S8  *)(DataIn),IndexIn,(int)NumIn,(S8  *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_U16)?mMaxSubsetU16((U16 *)(DataIn),IndexIn,(int)NumIn,(U16 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_S16)?mMaxSubsetS16((S16 *)(DataIn),IndexIn,(int)NumIn,(S16 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_U32)?mMaxSubsetU32((U32 *)(DataIn),IndexIn,(int)NumIn,(U32 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_S32)?mMaxSubsetS32((S32 *)(DataIn),IndexIn,(int)NumIn,(S32 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_U64)?mMaxSubsetU64((U64 *)(DataIn),IndexIn,(int)NumIn,(U64 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_S64)?mMaxSubsetS64((S64 *)(DataIn),IndexIn,(int)NumIn,(S64 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_F32)?mMaxSubsetF32((F32 *)(DataIn),IndexIn,(int)NumIn,(F32 *)DataOut,IndexOut,(int)NumOut):(\
+        (morn_data_type==MORN_TYPE_D64)?mMaxSubsetD64((D64 *)(DataIn),IndexIn,(int)NumIn,(D64 *)DataOut,IndexOut,(int)NumOut):DFLT)))))))))\
 )
 #define mMaxSubset(...) (\
     (VANumber(__VA_ARGS__)==3)?m_MaxSubset(VA0(__VA_ARGS__),                                   NULL,(int)((intptr_t)VA1(__VA_ARGS__)),                          NULL,                                   NULL,(int)((intptr_t)VA2(__VA_ARGS__))):(\

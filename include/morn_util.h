@@ -115,15 +115,16 @@ typedef intptr_t PTR;
 #define MORN_TYPE_P16 10
 #define MORN_TYPE_P32 11
 #define MORN_TYPE_P64 12
+extern __thread int  morn_data_type;
 #if(__STDC_VERSION__>=201112)
-#define mDataType(Data) _Generic((Data),\
+#define mDataType(Data) (morn_data_type=_Generic((Data),\
        uint8_t :MORN_TYPE_U8 , int8_t:MORN_TYPE_S8 ,\
       uint16_t :MORN_TYPE_U16,int16_t:MORN_TYPE_S16,\
       uint32_t :MORN_TYPE_U32,int32_t:MORN_TYPE_S32,\
       uint64_t :MORN_TYPE_U64,int64_t:MORN_TYPE_S64,\
       float    :MORN_TYPE_F32,double :MORN_TYPE_D64,\
       char     :((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
-   signed long :((sizeof(  signed /long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
+   signed long :((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
  unsigned long :((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
       uint8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
        int8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
@@ -134,9 +135,8 @@ typedef intptr_t PTR;
      char     *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
   signed long *:((sizeof(  signed long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
 unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
-default:DFLT)
+default:DFLT))
 #else
-extern __thread int  morn_data_type;
 extern __thread char morn_data_buff[8];
 #define mDataType(Data) (\
     memcpy(morn_data_buff,&(Data),sizeof(Data)),\

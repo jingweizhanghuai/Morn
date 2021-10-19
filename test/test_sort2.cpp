@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 // build: g++ -O2 -fopenmp test_sort2.cpp -o test_sort2.exe -lgsl -lgslcblas -lmorn
@@ -7,31 +7,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <algorithm>
 #include <gsl/gsl_sort_double.h>
 #include "morn_math.h"
-
-// void fenzusort(double *p,int num)
-// {
-//     printf("num=%d\n",num);
-//     double *data[8];for(int i=0;i<8;i++) data[i]=(double *)malloc(num*sizeof(double));
-//     int n[8]={0,0,0,0,0,0,0,0};
-//     double min=p[0],max=p[0];for(int i=num/32;i<num;i+=num/32) {if(p[i]>max) {max=p[i];}else if(p[i]<min) {min=p[i];}}
-//     double step = (max-min)/6;
-//     for(int i=0;i<num;i++)
-//     {
-//         int idx=(int)((p[i]-min)/step)+1;if(idx<0) idx=0;if(idx>7)idx=7;
-//         data[idx][n[idx]++]=p[i];
-//     }
-
-//     for(int i=0;i<8;i++)
-//     {
-//         printf("n[%d]=%d\n",i,n[i]);
-//         memcpy(p,data[i],n[i]*sizeof(double));
-//         free(data[i]);
-//         mAscSort(p,n[i]);
-//         p+=n[i];
-//     }
-//     exit(0);
-// }
-
 
 int compare(const void *v1, const void *v2) {return ((*((double *)v1))>(*((double *)v2)))?1:-1;}
 void test1()
@@ -157,13 +132,13 @@ void test4()
     mFree(in); mFree(out1); mFree(out2);
 }
 
-int main() 
+int main(int argc,char *argv[]) 
 {
-    test1();
-    test2();
-    test3_1();
-    test3_2();
-    test4();
+    if(argc!=2) {printf("try as: \"test_sort2.exe test1\" or \"test_sort2.exe test2\"\n"); return 0;}
+    if(strcmp(argv[1],"test1")==0) test1();
+    if(strcmp(argv[1],"test2")==0) test2();
+    if(strcmp(argv[1],"test3")==0) {test3_1();test3_2();}
+    if(strcmp(argv[1],"test4")==0) test4();
     return 0;
 }
 
