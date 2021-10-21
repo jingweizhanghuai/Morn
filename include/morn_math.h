@@ -302,13 +302,12 @@ D64 mMaxSubsetD64(D64 *data_in,int *index_in,int num_in,D64 *data_out,int *index
 
 #define MAX_TENSOR_BATCH 32
 
-double mCaculate(char *str);
-void m_CaculateFunction(const char *name,void *func);
-// #define _CaculateFunction(Func) m_CaculateFunction(#Func,Func);
-#define mCaculateFunction(Func,...) do{\
+double mCalculate(char *str);
+void m_CalculateFunction(const char *name,void *func);
+#define mCalculateFunction(Func,...) do{\
     int VA=VANumber(__VA_ARGS__);\
-    if(VA==0) m_CaculateFunction(#Func,(void *)Func);\
-    else m_CaculateFunction((const char*)Func,(void *)VA0(__VA_ARGS__));\
+    if(VA==0) m_CalculateFunction(#Func,(void *)Func);\
+    else m_CalculateFunction((const char*)Func,(void *)VA0(__VA_ARGS__));\
 }while(0)
 
 unsigned int mHash(const char *in,int size);
