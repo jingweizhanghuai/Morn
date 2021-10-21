@@ -16,7 +16,7 @@ void test1()
     double *data3= (double *)mMalloc(10000000* sizeof(double));
     double *data4= (double *)mMalloc(10000000* sizeof(double));
     
-    for(int n=10000;n<=10000000;n*=10)
+    for(int n=1000;n<=10000000;n*=10)
     {
         printf("\n%d data sort for %d times:\n",n,10000000/n);
         for(int i=0;i<10000000;i++)
