@@ -16,8 +16,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 int main()
 {
     int *data=mMalloc(N*sizeof(int));
-    
     int *index=mMalloc(N*sizeof(int));
+    int threshold;
     
     printf(    "in :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
     mAscSort(data,N);
@@ -36,20 +36,24 @@ int main()
     printf( "\nout :");for(int i=0;i<N;i++) {printf("%d(%d),",data[i],index[i]);}
     
     printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
-    mMinSubset(data,N,M);
+    threshold=mMinSubset(data,N,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d,",data[i]);}
-    
+    printf("\nthreshold=%d\n",threshold);
+
     printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
-    mMinSubset(data,N,NULL,index,M);
+    threshold=mMinSubset(data,N,NULL,index,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d(%d),",data[i],index[i]);}
+    printf("\nthreshold=%d\n",threshold);
     
     printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
-    mMaxSubset(data,N,M);
+    threshold=mMaxSubset(data,N,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d,",data[i]);}
+    printf("\nthreshold=%d\n",threshold);
     
     printf("\n\nin :");for(int i=0;i<N;i++) {data[i] = mRand(-1000,1000);printf("%d,",data[i]);}
-    mMaxSubset(data,N,NULL,index,M);
+    threshold=mMaxSubset(data,N,NULL,index,M);
     printf( "\nout :");for(int i=0;i<M;i++) {printf("%d(%d),",data[i],index[i]);}
+    printf("\nthreshold=%d\n",threshold);
     
     mFree(data);
     mFree(index);
