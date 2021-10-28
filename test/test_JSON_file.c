@@ -37,10 +37,13 @@ int main()
     int i=*(int *)mJSONRead(json,"i");
     printf("i=%d\n",i);
     double *pi=(double *)mJSONRead(json,"pi");
-    printf("pi=%lf\n",*pi);
+    printf("pi=%.32f\n",*pi);
     
     node = mJSONRead(json,"n");
     printf("type=%s,nul=%p\n",jsontype[node->type],node->string);
+
+    node = mJSONRead(json,"utf");
+    printf("utf=%s\n",node->string);
     
     node=mJSONRead(json,"date");
     struct JSONNode *year=mJSONRead(node,"year");

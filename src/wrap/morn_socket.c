@@ -118,6 +118,7 @@ char *m_UDPRead(MObject *obj,const char *address,void *data,int *size)
         mPropertyVariate(obj,"UDP_wait",&(handle->wait_time));
         handle->addr = addr;handle->port=port;
         mException(handle->port==0,EXIT,"invalid UDP port");
+        printf("handle->port = %d\n",handle->port);
         if(hdl->valid==0) {if(UDPSetup(handle)==MORN_FAIL) return NULL;}
 
         handle->recive_addr.sin_family = AF_INET;

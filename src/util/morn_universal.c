@@ -336,7 +336,7 @@ void *mReserve(MObject *obj,int n)
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     return (handle->reserve+n);
 }
-
+ 
 MFile *mFileCreate(const char *filename,...)
 {
     MFile *file = mObjectCreate(NULL,256);
@@ -514,15 +514,15 @@ void mMornEnd(void)
     }
     morn_object_map = NULL;
     endMAF();
-}
+}     
 void mMornBegin()
 {
     morn_object=mObjectCreate();
     morn_object_map=mChainCreate();
-    atexit(morn_end);
+    atexit(mMornEnd);
 }
 #pragma section(".CRT$XCU",read)
-__declspec(allocate(".CRT$XCU")) void (* mornbegin)() = morn_begin;
+__declspec(allocate(".CRT$XCU")) void (* mornbegin)() = mMornBegin;
 
 #else
 __attribute__((constructor)) void mMornBegin()
@@ -556,7 +556,7 @@ __attribute__((destructor)) void mMornEnd()
     endMAF();
 }
 #endif
-
+ 
 MObject *mMornObject(const void *p,int size)
 {
     if(p==NULL) 

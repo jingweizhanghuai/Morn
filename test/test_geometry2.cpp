@@ -52,7 +52,7 @@ int main1()
 
 int main2()
 {
-    CGALPoint points[5] = { CGALPoint(0,0), CGALPoint(10,0), CGALPoint(0,10), CGALPoint(6,5), CGALPoint(4,1) };
+    CGALPoint points[5] = {CGALPoint(0,0), CGALPoint(10,0), CGALPoint(0,10), CGALPoint(6,5), CGALPoint(4,1) };
     CGALPoint result[5];
     CGALPoint *ptr = CGAL::convex_hull_2( points, points+5, result );
     std::cout <<    ptr - result << " points on the convex hull:" << std::endl;

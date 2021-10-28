@@ -25,7 +25,7 @@ void mThreadPool(void (*func)(void *),void *para,int *flag,float priority);
 
 其中：
 
-func是待处理的函数指针，para是函数参数。这里，func的参数是void*，如果需要传入多个参数，需要将参数封装成一个结构体，并将结构体指针传入。
+`func`是待处理的函数指针，`para`是函数参数。这里，`func`的参数是`void*`，如果需要传入多个参数，需要将参数封装成一个结构体，并将结构体指针传入。
 
 flag是指向标志位的指针，函数在线程池中运行结束后，此标志位将被置为1，否则（尚未执行或正在执行中）标志位将被置为0，通过此标志位，可以获知函数的运行状态。如果不需获取运行状态，可传入NULL。
 
@@ -59,7 +59,7 @@ mPropertyWrite("ThreadPool","thread_num",&n_thread,sizeof(int));
 
 ②根据业务场景的改变，调整线程池中线程数量。
 
-如果在使用线程池之前没有设置线程数量，则使用默认的线程数量（等于cpu核心数）。
+如果在使用线程池之前没有设置线程数量，则使用默认的线程数量（等于CPU核心数）。
 
 
 
@@ -93,6 +93,8 @@ mPropertyWrite("ThreadPool","exit“);
 默认情况下，线程池将在进程结束前关闭。
 
 如果需要提前关闭线程池，则需要设置exit。
+
+注意：设置此exit属性将阻塞主线程，即只有线程池中的所有线程都退出后，此函数才会跳出，然后继续执行后续程序。
 
 
 
@@ -182,14 +184,11 @@ int main()
         mThreadPool(func,&data[i][0]);
         mSleep(mRand(0,20));
     }
-
+    mPropertyRead("ThreadPool","thread_num",&thread_num);
     mPropertyWrite("ThreadPool","exit");
     
-    mPropertyRead("ThreadPool","thread_num",&thread_num);
     printf("thread_num=%d\n",thread_num);
-    
     printf("finish\n");
-    // mSleep(500);
 }
 ```
 
@@ -214,11 +213,11 @@ Thread 3 input : LulSuJopDZlPod9hsxUiab2MQKqohzh4YA3SouzQm1
 Thread 1 output: qxdrhVq9nyb6JUfeIMJivKgDIvSXE4lpjba8Qfefweg0ulv8AbdQjfrvCaJ
 Thread 2 input : NtVVJ4ORIfurmsPYewRA6TBuNp3LnpchhmCGNAM3Dezre7YaZKyk
 Thread 2 output: nTvvj4oriFURMSpyEWra6tbUnP3lNPCHHMcgnam3dEZRE7yAzkYK
-thread_num=4
 Thread 1 input : MsuP6AcH0duATFk5WI4NtOXLNJlwdTYKsDvdRskscemvgmA21MYMLqAr
 Thread 4 output: FNIlhtwo4sVlXTUyB3ICo13jxTnRWRzg4jTKeqMdyTTOS4m3ZkOKMUi8HK6RS
 Thread 3 output: lULsUjOPdzLpOD9HSXuIAB2mqkQOHZH4ya3sOUZqM1
 Thread 1 output: mSUp6aCh0DUatfK5wi4nToxlnjLWDtykSdVDrSKSCEMVGMa21mymlQaR
+thread_num=4
 finish
 ```
 

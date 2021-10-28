@@ -115,8 +115,25 @@ typedef intptr_t PTR;
 #define MORN_TYPE_P16 10
 #define MORN_TYPE_P32 11
 #define MORN_TYPE_P64 12
+
 extern __thread int  morn_data_type;
 #if(__STDC_VERSION__>=201112)
+#define MORN_TYPE_P8    13
+#define MORN_TYPE_PU8   14
+#define MORN_TYPE_PS8   15
+#define MORN_TYPE_PCHAR 16
+
+#define MORN_TYPE_PU16  17
+#define MORN_TYPE_PS16  18
+
+#define MORN_TYPE_PU32  19
+#define MORN_TYPE_PS32  20
+#define MORN_TYPE_PF32  21
+
+#define MORN_TYPE_PU64  22
+#define MORN_TYPE_PS64  23
+#define MORN_TYPE_PD64  24
+
 #define mDataType(Data) (morn_data_type=_Generic((Data),\
        uint8_t :MORN_TYPE_U8 , int8_t:MORN_TYPE_S8 ,\
       uint16_t :MORN_TYPE_U16,int16_t:MORN_TYPE_S16,\
@@ -126,17 +143,32 @@ extern __thread int  morn_data_type;
       char     :((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
    signed long :((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
  unsigned long :((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-      uint8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-       int8_t *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-     uint16_t *:MORN_TYPE_P16,int16_t *:MORN_TYPE_P16,\
-     uint32_t *:MORN_TYPE_P32,int32_t *:MORN_TYPE_P32,\
-     uint64_t *:MORN_TYPE_P64,int64_t *:MORN_TYPE_P64,\
-     float    *:MORN_TYPE_P32,double  *:MORN_TYPE_P64,\
-     char     *:((sizeof(void *)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
-  signed long *:((sizeof(  signed long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
-unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_P32:MORN_TYPE_P64),\
+      uint8_t *:MORN_TYPE_PU8,  int8_t *:MORN_TYPE_PS8, \
+     uint16_t *:MORN_TYPE_PU16,int16_t *:MORN_TYPE_PS16,\
+     uint32_t *:MORN_TYPE_PU32,int32_t *:MORN_TYPE_PS32,\
+     uint64_t *:MORN_TYPE_PU64,int64_t *:MORN_TYPE_PS64,\
+     float    *:MORN_TYPE_PF32,double  *:MORN_TYPE_PD64,\
+     char     *:MORN_TYPE_PCHAR,\
+  signed long *:((sizeof(  signed long)==4)?MORN_TYPE_PS32:MORN_TYPE_PS64),\
+unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_PU32:MORN_TYPE_PU64),\
 default:DFLT))
 #else
+#define MORN_TYPE_P8    ((sizeof(void *)==8)?MORN_TYPE_S64:MORN_TYPE_S32)
+#define MORN_TYPE_PU8   ((sizeof(void *)==8)?MORN_TYPE_S64:MORN_TYPE_S32)
+#define MORN_TYPE_PS8   ((sizeof(void *)==8)?MORN_TYPE_S64:MORN_TYPE_S32)
+#define MORN_TYPE_PCHAR ((sizeof(void *)==8)?MORN_TYPE_S64:MORN_TYPE_S32)
+
+#define MORN_TYPE_PU16  MORN_TYPE_P16
+#define MORN_TYPE_PS16  MORN_TYPE_P16
+
+#define MORN_TYPE_PU32  MORN_TYPE_P32
+#define MORN_TYPE_PS32  MORN_TYPE_P32
+#define MORN_TYPE_PF32  MORN_TYPE_P32
+
+#define MORN_TYPE_PU64  MORN_TYPE_P64
+#define MORN_TYPE_PS64  MORN_TYPE_P64
+#define MORN_TYPE_PD64  MORN_TYPE_P64
+
 extern __thread char morn_data_buff[8];
 #define mDataType(Data) (\
     memcpy(morn_data_buff,&(Data),sizeof(Data)),\
@@ -584,11 +616,12 @@ typedef struct MObject
     };
 }MObject;
 
+#define VAP0(...)  ARG((intptr_t)_VA_ARG0( __VA_ARGS__,DFLT)+0)
 MObject *m_ObjectCreate(void *p,int size);
 #define mObjectCreate(...) (\
     (VANumber(__VA_ARGS__)==0)?m_ObjectCreate(NULL,DFLT):(\
-    (VANumber(__VA_ARGS__)==1)?((((intptr_t)VA0(__VA_ARGS__)<=16384)&&((intptr_t)(VA0(__VA_ARGS__))>0))?m_ObjectCreate(NULL,(intptr_t)(VA0(__VA_ARGS__))):m_ObjectCreate((void *)((intptr_t)VA0(__VA_ARGS__)),DFLT)):(\
-    (VANumber(__VA_ARGS__)==2)?m_ObjectCreate((void *)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==1)?(((VAP0(__VA_ARGS__)<=16384)&&((VAP0(__VA_ARGS__))>0))?m_ObjectCreate(NULL,(intptr_t)(VAP0(__VA_ARGS__))):m_ObjectCreate((void *)((intptr_t)VAP0(__VA_ARGS__)),DFLT)):(\
+    (VANumber(__VA_ARGS__)==2)?m_ObjectCreate((void *)(VAP0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__)):\
     NULL))\
 )
 

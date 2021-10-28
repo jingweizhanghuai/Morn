@@ -42,16 +42,8 @@ int main()
     }
 
     mPropertyRead("ThreadPool","thread_num",&thread_num);
-    printf("thread_num=%d\n",thread_num);
-    
-    // thread_num =2;
-    // mPropertyWrite("ThreadPool","thread_num",&thread_num,sizeof(int));
-
-    // mPropertyRead("ThreadPool","thread_num",&thread_num);
-    // printf("thread_num=%d\n",thread_num);
     
     mPropertyWrite("ThreadPool","exit");
-    
+    printf("thread_num=%d\n",thread_num);
     printf("finish\n");
-    // mSleep(500);
 }
