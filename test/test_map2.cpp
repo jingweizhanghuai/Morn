@@ -2,14 +2,17 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// build_mingw: g++ -O2 -DNDEBUG test_map2.cpp -lmorn -o test_map2.exe
-// build_msvc: cl.exe -O2 -nologo -I ..\include\ test_map2.cpp ..\lib\x64_msvc\libmorn.lib
+// build_mingw: g++ -O2 -DNDEBUG test_map2.cpp -o test_map2.exe -lmorn -labsl_hash -labsl_city -labsl_low_level_hash -labsl_raw_hash_set
+
 #include "morn_util.h"
 
 #include <map>
 #include <unordered_map>
 #include <string>
 #include <iostream>
+
+#include "absl/container/btree_map.h"
+#include "absl/container/flat_hash_map.h"
 
 struct TestData
 {
@@ -26,8 +29,6 @@ void data_gerenate(struct TestData *data,int number)
     }
 }
 
-
-
 void test1()
 {
     struct TestData *data = (struct TestData *)malloc(10000*sizeof(struct TestData));
@@ -35,6 +36,8 @@ void test1()
     
     std::map<std::string,int> stl_map;
     std::unordered_map<std::string,int> stl_unorderedmap;
+    absl::btree_map<std::string,int> absl_map;
+    absl::flat_hash_map<std::string,int> absl_hash_map;
     MMap *morn_map = mMapCreate();
 
     printf("\n10000 times test with 100 node for key is string and value is integer:\n");
@@ -55,6 +58,24 @@ void test1()
         for(int i=0;i<100;i++) stl_unorderedmap.erase(data[i].data_s);
     }
     mTimerEnd("STL unordered_map");
+
+    mTimerBegin("Abseil map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<100;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<100;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<100;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
     
     mTimerBegin("Morn map");
     for(int n=0;n<10000;n++)
@@ -84,6 +105,24 @@ void test1()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<1000;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<1000;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<1000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<1000;n++)
     {
@@ -112,6 +151,24 @@ void test1()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<10000;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<10000;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<10000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<100;n++)
     {
@@ -131,6 +188,8 @@ void test2()
     
     std::map<int,std::string> stl_map;
     std::unordered_map<int,std::string> stl_unorderedmap;
+    absl::btree_map<int,std::string> absl_map;
+    absl::flat_hash_map<int,std::string> absl_hash_map;
     MMap *morn_map = mMapCreate();
 
     printf("\n10000 times test with 100 node for key is integer and value is string:\n");
@@ -151,6 +210,24 @@ void test2()
         for(int i=0;i<100;i++) stl_unorderedmap.erase(data[i].data_i);
     }
     mTimerEnd("STL unordered_map");
+
+    mTimerBegin("Abseil map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<100;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<10000;n++)
@@ -180,6 +257,24 @@ void test2()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<1000;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<1000;n++)
     {
@@ -208,6 +303,24 @@ void test2()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<10000;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<100;n++)
     {
@@ -227,6 +340,8 @@ void test3()
     
     std::map<int,std::string> stl_map;
     std::unordered_map<int,std::string> stl_unorderedmap;
+    absl::btree_map<int,std::string> absl_map;
+    absl::flat_hash_map<int,std::string> absl_hash_map;
     MMap *morn_map = mMapCreate();
 
     printf("\n10000 times test with 100 node for key is orderly integer and value is string:\n");
@@ -247,6 +362,24 @@ void test3()
         for(int i=0;i<100;i++) stl_unorderedmap.erase(i);
     }
     mTimerEnd("STL unordered_map");
+
+    mTimerBegin("Abseil map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_map[i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_map.find(i)->second;
+        for(int i=0;i<100;i++) absl_map.erase(i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_hash_map[i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_hash_map.find(i)->second;
+        for(int i=0;i<100;i++) absl_hash_map.erase(i);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<10000;n++)
@@ -276,6 +409,24 @@ void test3()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_map[i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_map.find(i)->second;
+        for(int i=0;i<1000;i++) absl_map.erase(i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_hash_map[i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_hash_map.find(i)->second;
+        for(int i=0;i<1000;i++) absl_hash_map.erase(i);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<1000;n++)
     {
@@ -304,6 +455,24 @@ void test3()
     }
     mTimerEnd("STL unordered_map");
 
+    mTimerBegin("Abseil map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_map[i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_map.find(i)->second;
+        for(int i=0;i<10000;i++) absl_map.erase(i);
+    }
+    mTimerEnd("Abseil map");
+
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_hash_map[i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_hash_map.find(i)->second;
+        for(int i=0;i<10000;i++) absl_hash_map.erase(i);
+    }
+    mTimerEnd("Abseil hash_map");
+
     mTimerBegin("Morn map");
     for(int n=0;n<100;n++)
     {
@@ -324,6 +493,8 @@ void test4(int number)
     
     std::map<std::string,int> stl_map;
     std::unordered_map<std::string,int> stl_unorderedmap;
+    absl::btree_map<std::string,int> absl_map;
+    absl::flat_hash_map<std::string,int> absl_hash_map;
     MMap *morn_map = mMapCreate();
     
     mTimerBegin("STL map write");
@@ -333,6 +504,14 @@ void test4(int number)
     mTimerBegin("STL unordered_map write");
     for(int i=0;i<number;i++) stl_unorderedmap[data[i].data_s]=data[i].data_i;
     mTimerEnd("STL unordered_map write");
+
+    mTimerBegin("Abseil map write");
+    for(int i=0;i<number;i++) absl_map[data[i].data_s]=data[i].data_i;
+    mTimerEnd("Abseil map write");
+
+    mTimerBegin("Abseil hash_map write");
+    for(int i=0;i<number;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+    mTimerEnd("Abseil hash_map write");
 
     mTimerBegin("Morn map write");
     for(int i=0;i<number;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
@@ -346,6 +525,14 @@ void test4(int number)
     for(int i=0;i<number;i++) int data_i = stl_unorderedmap.find(data[i].data_s)->second;
     mTimerEnd("STL unordered_map read");
 
+    mTimerBegin("Abseil map read");
+    for(int i=0;i<number;i++) int data_i = absl_map.find(data[i].data_s)->second;
+    mTimerEnd("Abseil map read");
+
+    mTimerBegin("Abseil hash_map read");
+    for(int i=0;i<number;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+    mTimerEnd("Abseil hash_map read");
+
     mTimerBegin("Morn map read");
     for(int i=0;i<number;i++) int *data_i = (int *)mMapRead(morn_map,data[i].data_s);
     mTimerEnd("Morn map read");
@@ -357,6 +544,14 @@ void test4(int number)
     mTimerBegin("STL unordered_map erase");
     for(int i=0;i<number;i++) stl_unorderedmap.erase(data[i].data_s);
     mTimerEnd("STL unordered_map erase");
+
+    mTimerBegin("Abseil map erase");
+    for(int i=0;i<number;i++) absl_map.erase(data[i].data_s);
+    mTimerEnd("Abseil map erase");
+
+    mTimerBegin("Abseil hash_map erase");
+    for(int i=0;i<number;i++) absl_hash_map.erase(data[i].data_s);
+    mTimerEnd("Abseil hash_map erase");
 
     mTimerBegin("Morn map delete");
     for(int i=0;i<number;i++) mMapNodeDelete(morn_map,data[i].data_s);
@@ -374,6 +569,8 @@ void test5(int number)
     
     std::map<int,std::string> stl_map;
     std::unordered_map<int,std::string> stl_unorderedmap;
+    absl::btree_map<int,std::string> absl_map;
+    absl::flat_hash_map<int,std::string> absl_hash_map;
     MMap *morn_map = mMapCreate();
     
     mTimerBegin("STL map write");
@@ -383,6 +580,14 @@ void test5(int number)
     mTimerBegin("STL unordered_map write");
     for(int i=0;i<number;i++) stl_unorderedmap[data[i].data_i]=data[i].data_s;
     mTimerEnd("STL unordered_map write");
+
+    mTimerBegin("Abseil map write");
+    for(int i=0;i<number;i++) absl_map[data[i].data_i]=data[i].data_s;
+    mTimerEnd("Abseil map write");
+
+    mTimerBegin("Abseil hash_map write");
+    for(int i=0;i<number;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+    mTimerEnd("Abseil hash_map write");
     
     mTimerBegin("Morn map write");
     for(int i=0;i<number;i++) mMapWrite(morn_map,&(data[i].data_i),sizeof(int),data[i].data_s,DFLT);
@@ -395,6 +600,14 @@ void test5(int number)
     mTimerBegin("STL unordered_map read");
     for(int i=0;i<number;i++) std::string data_s = stl_unorderedmap.find(data[i].data_i)->second;
     mTimerEnd("STL unordered_map read");
+
+    mTimerBegin("Abseil map read");
+    for(int i=0;i<number;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+    mTimerEnd("Abseil map read");
+
+    mTimerBegin("Abseil hash_map read");
+    for(int i=0;i<number;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+    mTimerEnd("Abseil hash_map read");
     
     mTimerBegin("Morn map read");
     for(int i=0;i<number;i++) char *data_s = (char *)mMapRead(morn_map,&(data[i].data_i),sizeof(int),NULL,NULL);
@@ -407,6 +620,14 @@ void test5(int number)
     mTimerBegin("STL unordered_map erase");
     for(int i=0;i<number;i++) stl_unorderedmap.erase(data[i].data_i);
     mTimerEnd("STL unordered_map erase");
+
+    mTimerBegin("Abseil map erase");
+    for(int i=0;i<number;i++) absl_map.erase(data[i].data_i);
+    mTimerEnd("Abseil map erase");
+
+    mTimerBegin("Abseil hash_map erase");
+    for(int i=0;i<number;i++) absl_hash_map.erase(data[i].data_i);
+    mTimerEnd("Abseil hash_map erase");
     
     mTimerBegin("Morn map delete");
     for(int i=0;i<number;i++) mMapNodeDelete(morn_map,&(data[i].data_i),sizeof(int));
@@ -414,50 +635,6 @@ void test5(int number)
 
     mMapRelease(morn_map);
     free(data);
-}
-
-void test6()
-{
-    struct TestData *data = (struct TestData *)malloc(1000000*sizeof(struct TestData));
-    data_gerenate(data,1000000);
-    
-    std::map<std::string,int> stl_map;
-    std::unordered_map<std::string,int> stl_unorderedmap;
-    MMap *morn_map = mMapCreate();
-    int i;
-
-    printf("\n100 node for key is string and value is integer:\n");
-    mTimerBegin("STL map");
-    for(i=0;i<100;i++) stl_map[data[i].data_s]=data[i].data_i;
-    for(;i<1000000;i++)
-    {
-        int data_i = stl_map.find(data[i-100].data_s)->second;
-        stl_map.erase(data[i-100].data_s);
-        stl_map[data[i].data_s]=data[i].data_i;
-    }
-    mTimerEnd("STL map");
-
-    mTimerBegin("STL unordered_map");
-    for(i=0;i<100;i++) stl_unorderedmap[data[i].data_s]=data[i].data_i;
-    for(;i<1000000;i++)
-    {
-        int data_i = stl_unorderedmap.find(data[i-100].data_s)->second;
-        stl_unorderedmap.erase(data[i-100].data_s);
-        stl_unorderedmap[data[i].data_s]=data[i].data_i;
-    }
-    mTimerEnd("STL unordered_map");
-
-    mTimerBegin("Morn map");
-    for(i=0;i<100;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
-    for(;i<1000000;i++)
-    {
-        int *data_i = (int *)mMapRead(morn_map,data[i-100].data_s);
-        mMapNodeDelete(morn_map,data[i-100].data_s);
-        mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
-    }
-    mTimerEnd("Morn map");
-    
-    mMapRelease(morn_map);
 }
 
 int main()
@@ -472,7 +649,8 @@ int main()
     test5(100000);
     test5(1000000);
 
-    test6();
     return 0;
 }
+
+
 

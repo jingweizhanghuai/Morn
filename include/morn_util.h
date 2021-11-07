@@ -574,6 +574,14 @@ typedef struct MBtreeNode
 #define MORN_LEFT  0
 #define MORN_RIGHT 1
 
+typedef struct MGraphNode
+{
+    void *data;
+    struct MGraphNode **node;
+    float *weight;
+    int node_num;
+}MGraphNode;
+
 
 // typedef struct MObject
 // {
@@ -611,6 +619,7 @@ typedef struct MObject
         MTreeNode  *treenode;
         MBtreeNode *btreenode;
         MChainNode *chainnode;
+        MGraphNode *graphnode;
         char *filename;
         char *string;
     };
@@ -671,6 +680,7 @@ MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 #define MChain MObject
 #define MTree  MObject
 #define MBtree MObject
+#define MGraph MObject
 MChain *mChainCreate();
 void mChainRelease(MChain *chain);
 void mChainClear(MChain *chain);
@@ -695,6 +705,14 @@ void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order);
 void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode);
 MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
 MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
+
+MGraph *mGraphCreate();
+void mGraphRelease(MGraph *graph);
+MGraphNode *m_GraphNode(MGraph *graph,void *data,int size);
+#define mGraphNode(Graph,...) ((VANumber(__VA_ARGS__)==2)?m_GraphNode(Graph,(void *)(_VA0(__VA_ARGS__,DFLT)),VA1(__VA_ARGS__,DFLT)):m_GraphNode(Graph,(void *)(_VA0(__VA_ARGS__,DFLT)),DFLT))
+void mGraphNodeLink(MGraphNode *node0,MGraphNode *node,int weight);
+float m_GraphPath(MGraphNode *node0,MGraphNode *node1,MList *list);
+#define mGraphPath(Node0,...) ((VANumber(__VA_ARGS__)==2)?m_GraphPath(Node0,(MGraphNode *)(_VA0(__VA_ARGS__,DFLT)),(MList *)VA1(__VA_ARGS__,DFLT)):m_GraphPath(Node0,(MGraphNode *)(_VA0(__VA_ARGS__,DFLT)),NULL))
 
 void  m_PropertyVariate(MObject *obj,const char *key,void *var);
 void  m_PropertyFunction(MObject *obj,const char *key,void *function,void *para);

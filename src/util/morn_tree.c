@@ -8,6 +8,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct HandleTreeCreate
 {
     MMemory *memory;
+    
     int node_num;
 };
 void endTreeCreate(struct HandleTreeCreate *handle)
@@ -53,17 +54,17 @@ MTreeNode *mTreeNode(MTree *tree,void *data,int size)
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     
     MTreeNode *node = (MTreeNode *)mMemoryWrite(handle->memory,NULL,sizeof(MTreeNode)+2*sizeof(int)+size);
-    memset(node,0,sizeof(MTreeNode)+2*sizeof(int));
+    memset(node,0,sizeof(MTreeNode));
     int *info = (int *)(node+1);info[0]=0;info[1]=HASH_TreeNode;
     node->data = (info+2);
     if(data!=NULL) memcpy(node->data,data,size);
     else           memset(node->data,   0,size);
 
     handle->node_num++;
-    if(handle->node_num%1024==0)
-    {
-        _TreeMemoryCollect(tree);
-    }
+    // if(handle->node_num%1024==0)
+    // {
+    //     _TreeMemoryCollect(tree);
+    // }
     
     return node;
 }
@@ -78,7 +79,7 @@ void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order)
     {
         tree->child_num = order+1;
     
-        int *info = (int *)(child+1);
+        int *info = (int *)(tree+1);
         mException(info[1]!=HASH_TreeNode,1,"invalid input child node");
         if(tree->child_num>info[0])
         {

@@ -2,11 +2,11 @@
 Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-#include "morn_util.h"
+#include "morn_math.h"
 
 #define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
-char *morn_json_type[15]={"UNKNOWN","KEY_UNKNOWN","BOOL","KEY_BOOL","INT","KEY_INT","DOUBLE","KEY_DOUBLE","STRING","KEY_STRING","LIST","KEY_LIST","ARRAY","KEY_ARRAY","UNKNOWN"};
+// char *morn_json_type[15]={"UNKNOWN","KEY_UNKNOWN","BOOL","KEY_BOOL","INT","KEY_INT","DOUBLE","KEY_DOUBLE","STRING","KEY_STRING","LIST","KEY_LIST","ARRAY","KEY_ARRAY","UNKNOWN"};
 
 union JsonData
 {
@@ -241,7 +241,7 @@ void json_utf(char **pin,char **pout)
             out[1] =((a&0x0FC0)>>6)+0x80;
             out[2] = (a&0x003F)    +0x80;
             
-            // printf("out=%x,%x,%x,%x\n",out[0],out[1],out[2]);
+            // printf("out=%x,%x,%x\n",out[0],out[1],out[2]);
             // out[3]=0;printf("%s\n",out);
             out+=3;
         }
@@ -300,7 +300,8 @@ void JSONListLoad(char **file,struct HandleJSON *handle,int l)
     {
         p++;
         if(p[0]<=' ') continue;
-        else if(p[0]=='"')
+        // printf("%c",p[0]);
+        if(p[0]=='"')
         {
             p=p+1;
             if(flag==0) {node->key=p;{for(;p[0]!='"';p++);}p[0]=0;node->key[-1]=p-node->key;}
@@ -329,10 +330,20 @@ void JSONListLoad(char **file,struct HandleJSON *handle,int l)
             node->type=JSON_KEY_ARRAY;
             node->li = layer->num-1;
         }
-        else if(p[0]=='t') {node->type=JSON_KEY_BOOL  ;node->data.dataBool = 1;p+=3;}
-        else if(p[0]=='f') {node->type=JSON_KEY_BOOL  ;node->data.dataBool = 0;p+=4;}
-        else if(p[0]=='n') {node->type=JSON_KEY_STRING;node->data.string =NULL;p+=3;}
-        else               {p=StringNumber(p,&(node->data),&(node->type))-1;node->type++;}
+        else if(p[0]=='t') {node->type=JSON_KEY_BOOL  ;node->data.dataBool= 1    ;p+=3;}
+        else if(p[0]=='f') {node->type=JSON_KEY_BOOL  ;node->data.dataBool= 0    ;p+=4;}
+        else if(p[0]=='n') {node->type=JSON_KEY_STRING;node->data.string  =NULL  ;p+=3;}
+        else if(p[0]=='N') {node->type=JSON_KEY_DOUBLE;node->data.dataD64 =mNan();p+=2;}
+        else if(p[0]=='I') {node->type=JSON_KEY_DOUBLE;node->data.dataD64 =mSup();p+=(p[3]=='i')?7:2;}
+        else if((p[0]=='-')&&(p[1]=='I'))
+                           {node->type=JSON_KEY_DOUBLE;node->data.dataD64 =mInf();p+=(p[4]=='i')?8:3;}
+        else if(p[0]=='/')
+        {
+                 if(p[1]=='/') for(p=p+2;(p[0]!='\n')&&(p[0]!='\r');p++);
+            else if(p[1]=='*') for(p=p+2;(p[-1]!='*')||(p[0]!='/' );p++);
+            else mException(1,EXIT,"invalid json string");
+        }
+        else {p=StringNumber(p,&(node->data),&(node->type))-1;node->type++;}
     }
 }
 
@@ -369,10 +380,20 @@ void JSONArrayLoad(char **file,struct HandleJSON *handle,int l)
             node->li=layer->num-1;
         }
         else if(p[0]=='"') {node->type=JSON_STRING; p=p+1;node->data.string=p;p=JSONString(p);}
-        else if(p[0]=='t') {node->type=JSON_BOOL  ;node->data.dataBool = 1;p+=3;}
-        else if(p[0]=='f') {node->type=JSON_BOOL  ;node->data.dataBool = 0;p+=4;}
-        else if(p[0]=='n') {node->type=JSON_STRING;node->data.string=NULL;p+=3;}
-        else                p=StringNumber(p,&(node->data),&(node->type))-1;
+        else if(p[0]=='t') {node->type=JSON_BOOL  ;node->data.dataBool= 1    ;p+=3;}
+        else if(p[0]=='f') {node->type=JSON_BOOL  ;node->data.dataBool= 0    ;p+=4;}
+        else if(p[0]=='n') {node->type=JSON_STRING;node->data.string  =NULL  ;p+=3;}
+        else if(p[0]=='N') {node->type=JSON_DOUBLE;node->data.dataD64 =mNan();p+=2;}
+        else if(p[0]=='I') {node->type=JSON_DOUBLE;node->data.dataD64 =mSup();p+=(p[3]=='i')?7:2;}
+        else if((p[0]=='-')&&(p[1]=='I'))
+                           {node->type=JSON_DOUBLE;node->data.dataD64 =mInf();p+=(p[4]=='i')?8:3;}
+        else if(p[0]=='/')
+        {
+                 if(p[1]=='/') for(p=p+2;(p[0]!='\n')&&(p[0]!='\r');p++);
+            else if(p[1]=='*') for(p=p+2;(p[-1]!='*')||(p[0]!='/' );p++);
+            else mException(1,EXIT,"invalid json string");
+        }
+        else p=StringNumber(p,&(node->data),&(node->type))-1;
     }
 }
 

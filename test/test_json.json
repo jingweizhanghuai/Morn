@@ -5,17 +5,30 @@
     "n": null,
     "i": 123,
     "pi": 3.1415926535897932384626433832795,
-    "utf":"my name is \"\u6cfe\u6e2d\u6f33\u6dee\". ",
+    
+    "minimum": -Inf,
+    "maximum": Infinity,
+    "not_a_number": NaN,
+    
+    "esc": "\n\"Morn\"\n\twelcome!",
+    "unicode": "my name is \"\u6cfe\u6e2d\u6f33\u6dee\". ",
+
+    "comment1": "Simple Morn", // this is an annotation
+    "comment2":/* this is an annotation */ "Fast Morn",
+    
     "a1": [0,1,2,3],
     "a2": [[0,1,2,3],[10,11,12,13],[20,21,22,23]],
     "a3": [[[  0,  1,  2],[ 10, 11, 12]],[[100,101,102],[110,111,112]],[[200,201,202],[210,211,212]]],
+    
     "a4": [{"value":0},{"value":1}],
+    
     "date":
     {
         "year" :2021,
         "month":"June",
         "day":5
     },
+    
     "city":[{"Beijing":["Dongcheng","Xicheng","Haidian","Chaoyang"]},"Shanghai","Tianjin"],
     "province":
     {
