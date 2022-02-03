@@ -24,7 +24,7 @@ float morn_network_error_thresh = 0.01;
 struct TensorRegister morn_tensor_register[256];
 int morn_tensor_register_num = 0;
 
-void mTensorRegister(const char *type,void *(*para)(MList *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *))
+void mTensorRegister(const char *type,void *(*para)(MSheet *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *))
 {
     int n = morn_tensor_register_num;
     for(int i=0;i<n;i++)
@@ -78,7 +78,7 @@ int GetLayerIndex(MList *net,char *name)
     return DFLT;
 }
 
-void NetworkPara(MList *ini)
+void NetworkPara(MSheet *ini)
 {
     char *value;
     
@@ -129,7 +129,7 @@ void endNetworkGenerate(void *info)
 }
 #define HASH_NetworkGenerate 0x589a0934
 
-MList *mNetworkGenerate(MList *ini)
+MList *mNetworkGenerate(MSheet *ini)
 {
     MHandle *hdl=mHandle(ini,NetworkGenerate);
     struct HandleNetworkGenerate *handle = (struct HandleNetworkGenerate *)(hdl->handle);
@@ -144,10 +144,10 @@ MList *mNetworkGenerate(MList *ini)
     MLayer layer_buff; MLayer *layer = &layer_buff;
     
     mListClear(handle->net);
-    for(int j=0;j<ini->num;j++)
+    for(int j=0;j<ini->row;j++)
     {
-        if(strcmp((char *)(ini->data[j]),"para")==0) continue;
-        strcpy(layer->name,(char *)(ini->data[j]));
+        if(strcmp((char *)(ini->info[j]),"para")==0) continue;
+        strcpy(layer->name,(char *)(ini->info[j]));
     
         layer->state = DFLT;
         
@@ -171,7 +171,7 @@ MList *mNetworkGenerate(MList *ini)
     return (handle->net);
 }
 
-MLayer *mNetworkLayer(MList *ini,char *name)
+MLayer *mNetworkLayer(MSheet *ini,char *name)
 {
     if(name==NULL) return NULL;
     MList *net = mNetworkGenerate(ini);
@@ -211,7 +211,8 @@ int morn_network_flag = MORN_PREDICT;
 void mDeeplearningTrain(MFile *file)
 {
     morn_network_flag = MORN_TRAIN;
-    MList *ini = mINILoad(file);
+    MSheet *ini = mSheetCreate();
+    mINILoad(ini,file->filename);
     
     MList *net = mNetworkGenerate(ini);
     
@@ -223,9 +224,11 @@ void mDeeplearningTrain(MFile *file)
         mLog(MORN_INFO,"%05d:error is %f\n",morn_network_time,morn_network_error);
         if(morn_network_error <= morn_network_error_thresh) break;
     }
+
+    mSheetRelease(ini);
 }
 
-void mNetworkTrain(MList *ini,char *name[],MTensor *tns[])
+void mNetworkTrain(MSheet *ini,char *name[],MTensor *tns[])
 {
     morn_network_flag = MORN_TRAIN;
     MList *net = mNetworkGenerate(ini);
@@ -237,7 +240,7 @@ void mNetworkTrain(MList *ini,char *name[],MTensor *tns[])
     morn_network_time+=1;
 }
  
-void mNetworkPredict(MList *ini,char *name[],MTensor *tns[])
+void mNetworkPredict(MSheet *ini,char *name[],MTensor *tns[])
 {
     morn_network_flag = MORN_PREDICT;
     MList *net = mNetworkGenerate(ini);

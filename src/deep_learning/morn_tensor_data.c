@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "morn_tensor.h"
 
 /*
@@ -128,7 +123,7 @@ void endTrainData(void *info)
     }
 }
 #define HASH_TrainData 0xeef2f995
-void mTrainData(MList *ini)
+void mTrainData(MSheet *ini)
 {
     MHandle *hdl=mHandle(ini,TrainData);
     struct HandleTrainData *handle = (struct HandleTrainData *)(hdl->handle);
@@ -352,7 +347,7 @@ void endNetworkTensor(void *info)
     if(handle->idx != NULL) mFree(handle->idx);
 }
 #define HASH_NetworkTensor 0xed589636
-void mNetworkTensor(MList *ini,char *name[],MTensor *tns[])
+void mNetworkTensor(MSheet *ini,char *name[],MTensor *tns[])
 {
     MHandle *hdl=mHandle(ini,NetworkTensor);
     struct HandleNetworkTensor *handle = (struct HandleNetworkTensor *)(hdl->handle);

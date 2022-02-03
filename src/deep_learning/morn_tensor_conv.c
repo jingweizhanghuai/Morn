@@ -181,7 +181,7 @@ struct TensorConvPara
     float decay;
     float momentum;
 };
-void *mTensorConvPara(MList *ini,char *name)
+void *mTensorConvPara(MSheet *ini,char *name)
 {
     struct TensorConvPara *para = (struct TensorConvPara *)mMalloc(sizeof(struct TensorConvPara));
    
@@ -537,7 +537,7 @@ struct TensorGroupConvPara
     int knl_channel;
     int c_stride;
 };
-void *mTensorGroupConvPara(MList *ini,char *name)
+void *mTensorGroupConvPara(MSheet *ini,char *name)
 {
     struct TensorGroupConvPara *para = (struct TensorGroupConvPara *)mMalloc(sizeof(struct TensorConvPara));
    

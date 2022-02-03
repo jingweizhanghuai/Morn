@@ -19,7 +19,7 @@ struct TensorPoolPara
     int x0;
     int y0;
 };
-void *mTensorPoolPara(MList *ini,char *name)
+void *mTensorPoolPara(MSheet *ini,char *name)
 {
     struct TensorPoolPara *para = (struct TensorPoolPara *)mMalloc(sizeof(struct TensorPoolPara));
    

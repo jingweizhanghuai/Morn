@@ -66,22 +66,22 @@ typedef struct MLayer
     int state;
 }MLayer;
 #define mLayerType(layer) (morn_tensor_register[layer->type_index].type)
-MLayer *mNetworkLayer(MList *ini,char *name);
+MLayer *mNetworkLayer(MSheet *ini,char *name);
 // MTensor *mNetworkInput(MList *net,int index);
 // MTensor *mNetworkOutput(MList *net,int index);
 
-MList *mNetworkGenerate(MList *ini);
+MList *mNetworkGenerate(MSheet *ini);
 
 struct TensorRegister
 {
     char type[32];
-    void *(*para)(MList *,char *);
+    void *(*para)(MSheet *,char *);
     void  (*forward)(MLayer *);
     void  (*backward)(MLayer *);
 };
 extern struct TensorRegister morn_tensor_register[256];
 extern int morn_tensor_register_num;
-void mTensorRegister(const char *type,void *(*para)(MList *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *));
+void mTensorRegister(const char *type,void *(*para)(MSheet *,char *),void (*forward)(MLayer *),void (*backward)(MLayer *));
 int mTensorRegisterIndex(const char *type);
 void mTensorRegisterAll();
 
@@ -127,58 +127,58 @@ void mTrainDataGenerate(void *in ,void  (*in_func)(void *,MTensor **,void *),voi
                         void *out,void (*out_func)(void *,MTensor **,void *),void *out_para,int out_num,
                         char *filename);
 
-void mTrainData(MList *ini);
-// void mPredictData(MList *ini,char *name[],MTensor *tns[]);
-void mNetworkTensor(MList *ini,char *name[],MTensor *tns[]);
+void mTrainData(MSheet *ini);
+// void mPredictData(MSheet *ini,char *name[],MTensor *tns[]);
+void mNetworkTensor(MSheet *ini,char *name[],MTensor *tns[]);
 
 void mDeeplearningTrain(MFile *file);
-void mNetworkTrain(MList *ini,char *name[],MTensor *tns[]);
-void mNetworkPredict(MList *ini,char *name[],MTensor *tns[]);
+void mNetworkTrain(MSheet *ini,char *name[],MTensor *tns[]);
+void mNetworkPredict(MSheet *ini,char *name[],MTensor *tns[]);
 
-void *mTensorInputPara(MList *ini,char *name);
+void *mTensorInputPara(MSheet *ini,char *name);
 void mTensorInputForward(MLayer *layer);
 void mTensorInputBackward(MLayer *layer);
 
-void *mTensorOutputPara(MList *ini,char *name);
+void *mTensorOutputPara(MSheet *ini,char *name);
 void mTensorOutputForward(MLayer *layer);
 void mTensorOutputBackward(MLayer *layer);
 
-void *mTensorConnectPara(MList *ini,char *name);
+void *mTensorConnectPara(MSheet *ini,char *name);
 void mTensorConnectForward(MLayer *layer);
 void mTensorConnectBackward(MLayer *layer);
 
-void *mTensorConvPara(MList *ini,char *name);
+void *mTensorConvPara(MSheet *ini,char *name);
 void mTensorConvForward(MLayer *layer);
 void mTensorConvBackward(MLayer *layer);
 
-void *mTensorPoolPara(MList *ini,char *name);
+void *mTensorPoolPara(MSheet *ini,char *name);
 void mTensorMaxPoolForward(MLayer *layer);
 void mTensorMaxPoolBackward(MLayer *layer);
 
 void mTensorAvgPoolForward(MLayer *layer);
 void mTensorAvgPoolBackward(MLayer *layer);
 
-void *mTensorActivationPara(MList *ini,char *name);
+void *mTensorActivationPara(MSheet *ini,char *name);
 void mTensorActivationForward(MLayer *layer);
 void mTensorActivationBackward(MLayer *layer);
 
-void *mTensorBatchNormPara(MList *ini,char *name);
+void *mTensorBatchNormPara(MSheet *ini,char *name);
 void mTensorBatchNormForward(MLayer *layer);
 void mTensorBatchNormBackward(MLayer *layer);
 
-void *mTensorMergePara(MList *ini,char *name);
+void *mTensorMergePara(MSheet *ini,char *name);
 void mTensorMergeForward(MLayer *layer);
 void mTensorMergeBackward(MLayer *layer);
 
-void *mTensorResizePara(MList *ini,char *name);
+void *mTensorResizePara(MSheet *ini,char *name);
 void mTensorResizeForward(MLayer *layer);
 void mTensorResizeBackward(MLayer *layer);
 
-void *mTensorReshapePara(MList *ini,char *name);
+void *mTensorReshapePara(MSheet *ini,char *name);
 void mTensorReshapeForward(MLayer *layer);
 void mTensorReshapeBackward(MLayer *layer);
 
-void *mTensorMulPara(MList *ini,char *name);
+void *mTensorMulPara(MSheet *ini,char *name);
 void mTensorMulForward(MLayer *layer);
 void mTensorMulBackward(MLayer *layer);
 

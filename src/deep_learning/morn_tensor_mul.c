@@ -17,7 +17,7 @@ struct TensorMulPara
     int res_valid2;
 };
 
-void *mTensorMulPara(MList *ini,char *name)
+void *mTensorMulPara(MSheet *ini,char *name)
 {
     struct TensorMulPara *para = (struct TensorMulPara *)mMalloc(sizeof(struct TensorMulPara));
    

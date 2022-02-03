@@ -17,7 +17,7 @@ struct TensorInputPara
     int width;
     int channel;
 };
-void *mTensorInputPara(MList *ini,char *name)
+void *mTensorInputPara(MSheet *ini,char *name)
 {
     struct TensorInputPara *para = (struct TensorInputPara *)mMalloc(sizeof(struct TensorInputPara));
     
@@ -53,7 +53,7 @@ void mTensorInputBackward(MLayer *layer)
     }
 }
 
-void *mTensorOutputPara(MList *ini,char *name)
+void *mTensorOutputPara(MSheet *ini,char *name)
 {
     struct TensorOutputPara *para = (struct TensorOutputPara *)mMalloc(sizeof(struct TensorOutputPara));
     
