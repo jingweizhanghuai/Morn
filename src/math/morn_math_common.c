@@ -298,7 +298,7 @@ double mSigmoid(float x)
     return (1.0/(1.0+exp((double)(0.0f-x))));
 }
 
-unsigned int mHash(const char *in,int size)
+unsigned int m_Hash(const char *in,int size)
 {
     unsigned int out;
     int i;

@@ -16,7 +16,6 @@ extern "C"
 #define MORN_MAX_IMAGE_CN 4
 
 typedef struct MImage {
-    // Morn;
     int channel;
     int height;
     int width;
@@ -177,12 +176,24 @@ void m_ImageToGray(MImage *src,MImage *dst);
 #define mImageExchange(Src,Dst) mObjectExchange(Src,Dst,MImage)
 #define mImageReset(Img) mHandleReset(Img->handle)
 
+typedef struct MImageMask
+{
+    float y1,y2;
+    float step;
+    float x1[100];
+    float x2[100];
+}MImageMask;
+void m_Mask(MImageMask *mask,int num,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float x5,float y5,float x6,float y6,float x7,float y7);
+#define mMask(Mask,...) do{\
+    m_Mask(Mask,VANumber(__VA_ARGS__)/2,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__),VA5(__VA_ARGS__),VA6(__VA_ARGS__),VA7(__VA_ARGS__),VA8(__VA_ARGS__),VA9(__VA_ARGS__),VA10(__VA_ARGS__),VA11(__VA_ARGS__),VA12(__VA_ARGS__),VA13(__VA_ARGS__),VA14(__VA_ARGS__),VA15(__VA_ARGS__));\
+}while(0)
+void mPolygonMask(MImageMask *mask,MList *polygon);
+int mMaskData(MImageMask *mask,float x,float y);
+// #define mMaskData(Mask,X,Y) (((Y>(Mask)->y2)||(Y<(Mask)->y1))?0:(((X>(Mask)->x2[Y])||(X<(Mask)->x1[Y]))?0:1))
+
 typedef struct MImageRect
 {
-    int x1;
-    int y1;
-    int x2;
-    int y2;
+    int x1,x2,y1,y2;
 }MImageRect;
 #define mRect(Rect,X1,Y1,X2,Y2) do{(Rect)->x1=MIN(X1,X2);(Rect)->y1=MIN(Y1,Y2);(Rect)->x2=MAX(X1,X2);(Rect)->y2=MAX(Y1,Y2);}while(0)
 #define mRectHeight(Rect) ((Rect)->y2-(Rect)->y1)
@@ -441,7 +452,34 @@ int mLineRectCrossCheck(MImagePoint *ls,MImagePoint *le,MImageRect *rect);
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py);
 int mLineCross(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e,MImagePoint *point);
 
-float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e);
+float m_LineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e);
+#define _LineAngle(P1,P2,P3,P4) m_LineAngle((MImagePoint *)((intptr_t)(P1)),(MImagePoint *)((intptr_t)(P2)),(MImagePoint *)((intptr_t)(P3)),(MImagePoint *)((intptr_t)(P4)))
+#define mLineAngle(P1,...) (\
+    (VANumber(__VA_ARGS__)==1)?_LineAngle(P1,VA0(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==2)?_LineAngle(P1,VA0(__VA_ARGS__),VA0(__VA_ARGS__),VA1(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==3)?_LineAngle(P1,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__)):\
+DFLT)
+
+void m_PointRotate(MImagePoint *src,MImagePoint *dst,float a,float x0,float y0);
+#define mPointRotate(Src,...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==1) m_PointRotate(Src,Src,(float)VA0(__VA_ARGS__),0,0);\
+    else if(VAN==2) m_PointRotate(Src,(MImagePoint *)((intptr_t)VA0(__VA_ARGS__)),(float)VA1(__VA_ARGS__),0,0);\
+    else if(VAN==3) m_PointRotate(Src,Src,(float)VA0(__VA_ARGS__),(float)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__));\
+    else if(VAN==4) m_PointRotate(Src,(MImagePoint *)((intptr_t)VA0(__VA_ARGS__)),(float)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__),(float)VA4(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+
+void m_PolygonRotate(MList *src,MList *dst,float a,float x0,float y0);
+#define mPolygonRotate(Src,...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==1) m_PolygonRotate(Src,Src,(float)VA0(__VA_ARGS__),0,0);\
+    else if(VAN==2) m_PolygonRotate(Src,(MList *)((intptr_t)VA0(__VA_ARGS__)),(float)VA1(__VA_ARGS__),0,0);\
+    else if(VAN==3) m_PolygonRotate(Src,Src,(float)VA0(__VA_ARGS__),(float)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__));\
+    else if(VAN==4) m_PolygonRotate(Src,(MList *)((intptr_t)VA0(__VA_ARGS__)),(float)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__),(float)VA3(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+
 void _PolygonSetup(MList *polygon,int num,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float x5,float y5,float x6,float y6,float x7,float y7);
 #define mPolygon(Polygon,...) do{\
     _PolygonSetup(Polygon,VANumber(__VA_ARGS__)/2,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__),VA5(__VA_ARGS__),VA6(__VA_ARGS__),VA7(__VA_ARGS__),VA8(__VA_ARGS__),VA9(__VA_ARGS__),VA10(__VA_ARGS__),VA11(__VA_ARGS__),VA12(__VA_ARGS__),VA13(__VA_ARGS__),VA14(__VA_ARGS__),VA15(__VA_ARGS__));\

@@ -9,23 +9,25 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 int main()
 {
     int i,j;
-    MList *ini = mListCreate();
+    MSheet *ini = mSheetCreate();
     mINILoad(ini,"./test_INI_file.ini");
 
-    for(i=0;i<ini->num;i++)
+    for(i=0;i<ini->row;i++)
     {
         int grade;int class;
-        mINIRead(ini,ini->data[i],"年级","%d",&grade);
-        mINIRead(ini,ini->data[i],"班级","%d",&class);
-        char *label = mINIRead(ini,ini->data[i],"类别");
+        mINIRead(ini,ini->info[i],"年级","%d",&grade);
+        mINIRead(ini,ini->info[i],"班级","%d",&class);
+        char *label = mINIRead(ini,ini->info[i],"类别");
         float sum=0.0f;
         for(j=1;;j++)
         {
             char name[16];sprintf(name,"成绩%d",j);float score;
-            if(mINIRead(ini,ini->data[i],name,"%[^(](%f)",name,&score)==NULL) break;
+            if(mINIRead(ini,ini->info[i],name,"%[^(](%f)",name,&score)==NULL) break;
             sum+=score;
         }
-        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",(char *)(ini->data[i]),grade,class,label,sum/(j-1));
+        // printf("(char *)(ini->info[i]) = %s\n",(char *)(ini->info[i]));
+        
+        printf("学生：%s %d年级%d班 %s 平均成绩:%f\n",(char *)(ini->info[i]),grade,class,label,sum/(j-1));
     }
 
     mINIWrite(ini,"张三","成绩1","%s(%d)","数学",0);
@@ -37,11 +39,10 @@ int main()
     mINIWrite(ini,"泾渭漳淮","成绩1","%s(%d)","数学",100);
     mINIWrite(ini,"泾渭漳淮","成绩2","%s(%d)","计算机",100);
     
-
     mINIDelete(ini,"李四","成绩5");
     mINIDelete(ini,"王二麻");
     
     mINISave(ini,"./test_INI_file_out.ini");
     
-    mListRelease(ini);
+    mSheetRelease(ini);
 }

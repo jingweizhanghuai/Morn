@@ -86,12 +86,13 @@ int mLineRectCrossCheck(MImagePoint *ls,MImagePoint *le,MImageRect *rect)
     return 0;
 }
 
-float mLineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e)
+float m_LineAngle(MImagePoint *l1s,MImagePoint *l1e,MImagePoint *l2s,MImagePoint *l2e)
 {
     MImagePoint pt;pt.x=0;pt.y=0;
-    if(l1s==NULL){l1s=&pt;}if(l1e==NULL){l1e=&pt;}if(l2s==NULL){l2s=&pt;}if(l2e==NULL){l2e=&pt;}
-    float a1;
-    if(l1s==l1e) {a1=0;} 
+    if(l1s==NULL){l1s=&pt;}if(l1e==NULL){l1e=&pt;}
+    if(l2s==NULL){l2s=&pt;}if(l2e==NULL){l2e=&pt;}
+    
+    float a1;if(l1s==l1e) {a1=0;} 
     else if(l1s->x==l1e->x) a1=(l1s->y>l1e->y)?(0-MORN_PI/2):MORN_PI/2;
     else {a1=atan((l1s->y-l1e->y)/(l1s->x-l1e->x));if(l1s->x>l1e->x) {if(l1s->y>l1e->y) {a1-=MORN_PI;} else {a1+=MORN_PI;}}}
 
@@ -700,6 +701,7 @@ void _EdgeBoundary(MList *edge,MChain *chain,MChainNode *node,float thresh)
     MImagePoint **p=(MImagePoint **)(edge->data);
     int b=*(int *)(node->data);int e=*(int *)(node->next->data);
     MImagePoint *pb= p[b];MImagePoint *pe= p[(e==edge->num)?0:e];
+    // printf("b is %d,e=%d\n",b,e);
     
     float max=0;int idx;
     for(int i=b+1;i<e;i++)
@@ -724,9 +726,9 @@ void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
     mException(edge==NULL,EXIT,"invalid input");
     if(thresh<=0) thresh = 1;
     
-    mListClear(polygon);
     int num = edge->num;if(num==0) return;
-
+    // mListClear(polygon);
+    
     MImagePoint **p=(MImagePoint **)(edge->data);
     // printf("num=%d,p[0] is %f,%f\n",num,p[0]->x,p[0]->y);
     
@@ -765,6 +767,8 @@ void mEdgeBoundary(MList *edge,MList *polygon,int thresh)
         node2 = node1->next->next;
     }
     node1 = chain->chainnode;
+
+    mListClear(polygon);
     while(1)
     {
         int i = *(int *)(node1->data);

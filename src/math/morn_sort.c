@@ -2,33 +2,33 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "morn_math.h"
 
-/*
-#define InsertSortData(Type,Data,Num) {\
-	Type Buff;int I,J;\
-	if(Data[0]>Data[1]) {Buff=Data[0];Data[0]=Data[1];Data[1]=Buff;}\
-	for(I=2;I<Num;I++)\
-	{\
-		Buff=Data[I];\
-		\
-		for(J=1;J<I;J+=2) if(Buff<Data[J]) {if(Buff<Data[J-1]) J--; break;}\
-		if(J<I) {memmove(Data+J+1,Data+J,(I-J)*sizeof(Type));Data[J]=Buff;}\
-		\
-		I=I+1;if(I==Num) return;\
-		Buff=Data[I];\
-		if(Buff<Data[0]) {memmove(Data+1,Data,I*sizeof(Type));Data[0]=Buff; continue;}\
-		\
-		for(J=2;J<I;J+=2) if(Buff<Data[J]) {if(Buff<Data[J-1]) J--; break;}\
-		if(J<I) {memmove(Data+J+1,Data+J,(I-J)*sizeof(Type));Data[J]=Buff;}\
-	}\
+// struct Bucket
+// {
+//     int num;
+//     int cap;
+//     union
+//     {
+//         U16 *dataU16;
+//         U32 *dataU32;
+//     };
+// };
+void AscSortDataU8(U8 *data,int num)
+{
+    int bucket_num[256];memset(bucket_num,0,256*sizeof(int));
+    for(int i=0;i<num;i++) bucket_num[data[i]]++;
+    int n=0;
+    for(int i=0;i<256;i++)
+    {
+        if(bucket_num[i]>0)
+        {
+            memset(data+n,i,bucket_num[i]);
+            n=n+bucket_num[i];
+        }
+    }
 }
-*/
+
 
 #define AscSortData(Type,Data,Num) {\
 	Type Buff;\
@@ -53,7 +53,7 @@ AscSortData_next:\
     if(    I  >1) AscSortData##Type(Data    ,    I  );\
     if(Num-I-1>1) AscSortData##Type(Data+I+1,Num-I-1);\
 }
-void AscSortDataU8 (U8  *data,int num) {AscSortData(U8 ,data,num);}
+// void AscSortDataU8 (U8  *data,int num) {AscSortData(U8 ,data,num);}
 void AscSortDataS8 (S8  *data,int num) {AscSortData(S8 ,data,num);}
 void AscSortDataU16(U16 *data,int num) {AscSortData(U16,data,num);}
 void AscSortDataS16(S16 *data,int num) {AscSortData(S16,data,num);}

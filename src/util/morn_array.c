@@ -5,11 +5,24 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "morn_ptc.h"
 
 struct _MArray{
-    // Morn;
     int num;
     short element_size;
     unsigned short capacity;
-    char *dataS8;
+    union
+    {
+        void *data;
+        unsigned char *dataU8;
+        char *dataS8;
+        unsigned short *dataU16;
+        short *dataS16;
+        unsigned int *dataU32;
+        int *dataS32;
+        int64_t *dataS64;
+        uint64_t *dataU64;
+        float *dataF32;
+        double *dataD64;
+        void **dataptr;
+    };
 };
 
 struct HandleArrayCreate
@@ -59,7 +72,7 @@ void endArrayCreate(struct HandleArrayCreate *handle)
 #define HASH_ArrayCreate 0xb3feafa4
 MArray *ArrayCreate(int num,int element_size,void *data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList **)+sizeof(MArray));
+    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MArray));
     struct _MArray *array = (struct _MArray *)(phandle+1);
     memset(array,0,sizeof(struct _MArray));
     
@@ -83,12 +96,13 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     }
     else if(element_size>0)
     {
-        num = MAX(num,32);
+        num = mBinaryCeil(MAX(num,256));
+        array->capacity = num-1;//////////
         handle->memory = mMemoryBlockCreate(num*element_size,MORN_HOST);
         handle->num = num;
         handle->element_size = element_size;
         array->dataS8 = handle->memory->data;
-        array->capacity = (num-array->num)&0x0FFFF;
+        // array->capacity = (num-array->num)&0x0FFFF;
     }
     mPropertyFunction(array,"device",ArrayDevice,handle);
     
@@ -153,6 +167,32 @@ void mArrayElementDelete(MArray *arr,int n)
     array->capacity++;
 }
 
+void *_ArrayPushBack32(struct _MArray *array,uint32_t data)
+{
+    if((array->num&array->capacity)==0)
+    {
+        struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
+        if(handle->num==array->num)
+        {
+            int device = handle->memory->device;
+            handle->num = MAX(256,handle->num*2);
+            array->capacity=(handle->num-1)&0x0ffff;
+            MMemoryBlock *memory = mMemoryBlockCreate(handle->num*array->element_size,device);
+            if(array->num>0)
+            {
+                memcpy(memory->data,array->dataS8,array->num*array->element_size);
+                mMemoryBlockRelease(handle->memory);
+            }
+            handle->memory=memory;
+            array->dataS8 = memory->data;
+        }
+    }
+    uint32_t *p=array->dataU32+array->num;
+    *p = data;
+    array->num++;
+    return p;
+}
+
 void mArrayAppend(MArray *arr,int n)
 {
     struct _MArray *array = (struct _MArray *)arr;
@@ -215,81 +255,6 @@ void *m_ArrayWrite(MArray *arr,intptr_t n,void *data)
     else memcpy(p,data,es);
     return (void *)p;
 }
-
-/*
-void ArrayExpand(MArray *array,int n)
-{
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);\
-    if(n+1024>handle->num)
-    {
-        handle->num = MAX(1024,handle->num*2);
-        handle->memory = MemoryBlockRedefine(handle->memory,handle->num*array->element_size);
-        // printf("handle->memory=%p\n",handle->memory);
-        array->dataS8 = handle->memory->data;
-    }
-}
-
-// void m_ArrayPushBack(MArray *array,void *data)
-// {
-//     int n=array->num;
-//     int element_size = array->element_size;
-//     if((n&0x3FF)==0) ArrayExpand(array,n);
-//     array->num=n+1;
-//     char *p=array->dataS8+n*element_size;
-//     memcpy(p,data,element_size);
-// }
-
-#define _ArrayWrite(Sz,Array,Order,Data) {\
-    int Array_num=Array->num;\
-    struct HandleArrayCreate *Handle = (struct HandleArrayCreate *)(((MHandle *)(Array->handle->data[0]))->handle);\
-    int N=Order;if(N<0) {N=Array_num;}\
-    Array->num=MAX(N+1,Array->num);\
-    \
-    if(N>=Handle->num)\
-    {\
-        Handle->num = MAX(1024,N*2);\
-        MMemoryBlock *Memory = mMemoryBlockCreate(Handle->num*(Sz/8),MORN_HOST);\
-        if(Array_num)\
-        {\
-            memcpy(Memory->data,Array->dataS8,(Sz/8)*Array_num);\
-            mMemoryBlockRelease(Handle->memory);\
-        }\
-        Handle->memory=Memory;\
-        \
-        Array->dataS8 = Memory->data;\
-    }\
-    Array->dataS##Sz[N] = *((S##Sz *)(Data));\
-}
-void _ArrayWrite_1(MArray *Array,int Order,void *Data) {_ArrayWrite( 8,Array,Order,Data);}
-void _ArrayWrite_2(MArray *Array,int Order,void *Data) {_ArrayWrite(16,Array,Order,Data);}
-void _ArrayWrite_4(MArray *Array,int Order,void *Data) {_ArrayWrite(32,Array,Order,Data);}
-void _ArrayWrite_8(MArray *Array,int Order,void *Data) {_ArrayWrite(64,Array,Order,Data);}
-
-void m_ArrayWrite(MArray *array,int n,void *data)
-{
-    int array_num=array->num;
-    int element_size = array->element_size;
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(((MHandle *)(array->handle->data[0]))->handle);
-    if(n<0) {n=array_num;}
-    array->num=MAX(n+1,array->num);
-    
-    if(n>=handle->num)
-    {
-        handle->num = MAX(256,n*1.5);
-        MMemoryBlock *memory = mMemoryBlockCreate(handle->num*element_size,MORN_HOST);
-        if(array_num)
-        {
-            memcpy(memory->data,array->dataS8,element_size*array_num);
-            mMemoryBlockRelease(handle->memory);
-        }
-        handle->memory=memory;
-        
-        array->dataS8 = memory->data;
-    }
-    char *p=array->dataS8+n*element_size;
-    if(data) memcpy(p,data,element_size);
-}
-*/
 
 void *m_ArrayRead(MArray *array,int n,void *data)
 {
@@ -391,5 +356,11 @@ int mStreamWrite(MArray *buff,void *data,int num)
     // pthread_mutex_unlock(&(handle->stream_mutex));
     return ((size-num)/buff->element_size);
 }
+
+// void mArrayBitWrite(MArray *array,int n,int data)
+// {
+    // uint8_t *p=array->dataU8+n/array->element_size;
+    // p[n/array
+    
 
 

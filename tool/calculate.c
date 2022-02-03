@@ -9,7 +9,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define stricmp _stricmp
 #else
 #define stricmp strcasecmp
-char * gets(char * str);
 #endif
 
 int main(int argc,char *argv[])
@@ -21,10 +20,10 @@ int main(int argc,char *argv[])
     while(1)
     {
         printf(">");
-        gets(str);
-        if(str[0]==0) continue;
-        if(stricmp(str,"exit")==0) break;
-        printf("result is %.16f\n",mCalculate(str));
+        fgets(str,2048,stdin);
+        if(str[0]=='\n') continue;
+        if(stricmp(str,"exit\n")==0) break;
+        printf("%.16f\n",mCalculate(str));
     }
     return 0;
 }

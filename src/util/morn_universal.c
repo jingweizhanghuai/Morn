@@ -94,13 +94,14 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2)
 //     mException(1,EXIT,"no enough space for %s\n",name);
 // }
 
+
+
 struct HandleObjectCreate
 {
     MObject *object;
     MChain *property;
     int64_t reserve[8];
     int writeable;
-
     
     uint64_t buff1;
     void *buff2;
@@ -211,22 +212,25 @@ void *mObjectMemory(MObject *object)
     return &(handle->buff1);
 }
 
+struct _HandleObjectCreate
+{
+    MObject *object;
+    MChain *property;
+    int64_t reserve[8];
+    int writeable;
+};
 void HandleExchange(void *obj1,void *obj2)
 {
-    // void buff[256];
-    // memcpy(buff,obj1,size);
-    // memcpy(obj1,obj2,size);
-    // memcpy(obj2,buff,size);
-    
     MList *hlist1 = ((MList **)obj1)[-1];
     MList *hlist2 = ((MList **)obj2)[-1];
+    
     MHandle *hdl1= (MHandle *)(hlist1->data[0]);
     MHandle *hdl2= (MHandle *)(hlist2->data[0]);
     hlist1->data[0]=hdl2;hlist2->data[0]=hdl1;
 
-    struct HandleObjectCreate *handle1=hdl1->handle;
-    struct HandleObjectCreate *handle2=hdl2->handle;
-    struct HandleObjectCreate handle_buff=*handle1;*handle1=*handle2;*handle2=handle_buff;
+    struct _HandleObjectCreate *handle1=hdl1->handle;
+    struct _HandleObjectCreate *handle2=hdl2->handle;
+    struct _HandleObjectCreate handle_buff=*handle1;*handle1=*handle2;*handle2=handle_buff;
 }
 
 struct Property
@@ -319,7 +323,7 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
     struct Property *q= mornMapRead(handle->property,key,DFLT,NULL,&vsize);
     if(q==NULL) return NULL;
     void *p=(q->var!=NULL)?q->var:q->value;
-
+    
     vsize = vsize-sizeof(struct Property);
     int size=vsize;
     if(value_size!=NULL) {{if(*value_size>0) size=MIN(*value_size,size);}*value_size = vsize;}

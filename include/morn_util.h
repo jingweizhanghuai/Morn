@@ -289,10 +289,10 @@ extern __thread int morn_layer_order;//=-1;
 
 #ifdef _MSC_VER
 // #include <windows.h>
-#define mSleep(T) Sleep(T)
+#define mSleep(T) Sleep((T))
 #else
 #include <unistd.h>
-#define mSleep(T) usleep(T*1000)
+#define mSleep(T) usleep((T)*1000)
 // #define mSleep(T) _sleep(T)
 #endif
 
@@ -301,18 +301,19 @@ void _mTimerBegin(const char *name);
 float _mTimerEnd(const char *name,const char *file,int line,const char *function);
 #define mTimerBegin(...) _mTimerBegin((const char *)VA0(__VA_ARGS__))
 #define mTimerEnd(...) _mTimerEnd((const char *)VA0(__VA_ARGS__),__FILE__,__LINE__,__FUNCTION__)
-#define MORN_CHRONO_CYCLE(n) n
-#define MORN_CHRONO_ONCE     0
-void mChronoFunction(void *function,void *para,int delay,int mode);
-void mChrono();
 
+int m_ChronoTask(int delay,int n);
+#define mChronoTask(...) ((VANumber(__VA_ARGS__)==2)?m_ChronoTask(VA0(__VA_ARGS__),VA1(__VA_ARGS__)):m_ChronoTask(VA0(__VA_ARGS__),DFLT))
+int mChrono();
+void mChronoDelete(int ID);
 
 extern __thread char morn_shu[256];
 const char *mShu(double data);
 
 #define INVALID_POINTER(p) (((p)==NULL)||(((intptr_t)(p))==DFLT))
 
-unsigned int mHash(const char *in,int size);
+unsigned int m_Hash(const char *in,int size);
+#define mHash(...) ((VANumber(__VA_ARGS__)==2)?m_Hash(VA0(__VA_ARGS__),VA1(__VA_ARGS__)):m_Hash(VA0(__VA_ARGS__),DFLT))
 
 // #define Morn struct{struct MList *handle;int device;}
 #define Morn struct MList *handle
@@ -391,19 +392,17 @@ int mCompare(const void *mem1,int size1,const void *mem2,int size2);
 
 typedef struct MSheet
 {
-    // Morn;
     int row;
+    void **info;
     int *col;
     void ***data;
-    
-    // RESERVE;
 }MSheet;
-MSheet *SheetCreate(int row,int *col,void ***data);
+MSheet *SheetCreate(int row,int *col,void **info,void ***data);
 #define mSheetCreate(...) (\
-    (VANumber(__VA_ARGS__)==0)?SheetCreate(DFLT,NULL,NULL):\
-    (VANumber(__VA_ARGS__)==1)?SheetCreate(VA0(__VA_ARGS__),NULL,NULL):\
-    (VANumber(__VA_ARGS__)==2)?SheetCreate(VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),NULL):\
-    (VANumber(__VA_ARGS__)==3)?SheetCreate(VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(void ***)VA2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==0)?SheetCreate(DFLT,NULL,NULL,NULL):\
+    (VANumber(__VA_ARGS__)==1)?SheetCreate(VA0(__VA_ARGS__),NULL,NULL,NULL):\
+    (VANumber(__VA_ARGS__)==2)?SheetCreate(VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==4)?SheetCreate(VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(void **)VA2(__VA_ARGS__),(void ***)VA3(__VA_ARGS__)):\
     NULL\
 )
 void mSheetRelease(MSheet *sheet);
@@ -414,6 +413,9 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size);
 MList *mSheetRowList(MSheet *sheet,int row);
 void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size);
 void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size);
+void *mSheetInfoWrite(MSheet *sheet,int row,void *info,int size);
+void *mSheetInfoRead(MSheet *sheet,int row,void *info,int size);
+
 void m_SheetDelete(MSheet *sheet,int row,int col);
 #define mSheetDelete(Sheet,...) do{\
     if(VANumber(__VA_ARGS__)==2) m_SheetDelete(Sheet,(int)VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__));\
@@ -477,6 +479,15 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
 void mTableCopy(MTable *src,MTable *dst);
 void mTableWipe(MTable *tab);
 
+#define MORN_BIT  -2
+#define MORN_BIT1 -2
+#define MORN_BIT2 -3
+#define MORN_BIT3 -4
+#define MORN_BIT4 -4
+#define MORN_BIT5  1
+#define MORN_BIT6  1
+#define MORN_BIT7  1
+#define MORN_BIT8  1
 typedef struct MArray{
     // Morn;
     int num;
@@ -513,6 +524,7 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
     else if(VAN==3) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input with argument number");\
 }while(0)
+void mArrayAppend(MArray *arr,int n);
 #define mArrayClear(Array) do{Array->num=0;}while(0)
 void mArrayElementDelete(MArray *array,int n);
 // void ArrayExpand(MArray *array,int n);
@@ -559,9 +571,9 @@ typedef struct MChainNode
 typedef struct MTreeNode
 {
     void *data;
-    int child_num;
     struct MTreeNode **child;
     struct MTreeNode *parent;
+    int child_num;
 }MTreeNode;
 
 typedef struct MBtreeNode
@@ -578,7 +590,7 @@ typedef struct MGraphNode
 {
     void *data;
     struct MGraphNode **node;
-    float *weight;
+    float *length;
     int node_num;
 }MGraphNode;
 
@@ -665,6 +677,13 @@ typedef struct MHandle
     void *handle;
 }MHandle;
 
+struct HandleList
+{
+    MList *handle;
+    int latest_flag;
+    int latest_n;
+};
+
 MList *mHandleCreate(void);
 void mHandleRelease(void *p);
 void mHandleReset(void *p);
@@ -709,10 +728,21 @@ MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *par
 MGraph *mGraphCreate();
 void mGraphRelease(MGraph *graph);
 MGraphNode *m_GraphNode(MGraph *graph,void *data,int size);
-#define mGraphNode(Graph,...) ((VANumber(__VA_ARGS__)==2)?m_GraphNode(Graph,(void *)(_VA0(__VA_ARGS__,DFLT)),VA1(__VA_ARGS__,DFLT)):m_GraphNode(Graph,(void *)(_VA0(__VA_ARGS__,DFLT)),DFLT))
-void mGraphNodeLink(MGraphNode *node0,MGraphNode *node,int weight);
-float m_GraphPath(MGraphNode *node0,MGraphNode *node1,MList *list);
-#define mGraphPath(Node0,...) ((VANumber(__VA_ARGS__)==2)?m_GraphPath(Node0,(MGraphNode *)(_VA0(__VA_ARGS__,DFLT)),(MList *)VA1(__VA_ARGS__,DFLT)):m_GraphPath(Node0,(MGraphNode *)(_VA0(__VA_ARGS__,DFLT)),NULL))
+#define mGraphNode(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_GraphNode(VA0(__VA_ARGS__,DFLT),(void *)(VA1(__VA_ARGS__,DFLT)),VA2(__VA_ARGS__,DFLT)):\
+    (VANumber(__VA_ARGS__)==2)?m_GraphNode(VA0(__VA_ARGS__,DFLT),(void *)(VA1(__VA_ARGS__,DFLT)),DFLT):\
+    (VANumber(__VA_ARGS__)==1)?m_GraphNode(VA0(__VA_ARGS__,DFLT),NULL,DFLT):\
+    NULL)
+void mGraphNodeLink(MGraphNode *node0,MGraphNode *node,float length);
+float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
+#define _GraphPath(P0,P1,P2,P3,P4) m_GraphPath((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
+#define mGraphPath(...) (\
+    (VANumber(__VA_ARGS__)==2)?_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==3)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphPath(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL,NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL)):\
+    (VANumber(__VA_ARGS__)==4)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphPath(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==5)?_GraphPath(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
+DFLT)
+
 
 void  m_PropertyVariate(MObject *obj,const char *key,void *var);
 void  m_PropertyFunction(MObject *obj,const char *key,void *function,void *para);
@@ -900,21 +930,21 @@ void mFileDecrypt(MFile *file,uint64_t key);
 
 // extern __thread char *morn_string_result;
 
-void mINIFile(MFile *file);
-MList *mINI();
-MList *m_INILoad(MFile *file);
-#define mINILoad(...) ((VANumber(__VA_ARGS__)==1)?m_INILoad(_VA0(__VA_ARGS__)):m_INILoad(NULL))
-char *m_INIRead(MList *ini,const char *section,const char *key,const char *format,...);
-#define mINIRead(P,...) ((sizeof(P[0])==sizeof(MList))?m_INIRead((MList *)P,__VA_ARGS__,NULL):m_INIRead(mINI(),(const char *)P,__VA_ARGS__,NULL))
-char *m_INIWrite(MList *ini,const char *section,const char *key,const char *format,...);
-#define mINIWrite(P,...) ((sizeof(P[0])==sizeof(MList))?m_INIWrite((MList *)P,__VA_ARGS__,NULL):m_INIWrite(mINI(),(const char *)P,__VA_ARGS__,NULL))
-void m_INIDelete(MList *ini,const char *section,const char *key);
+void mINIFile(const char *filename);
+MSheet *mINI();
+void mINILoad(MSheet *list,const char *ininame,...);
+char *m_INIRead(MSheet *ini,const char *section,const char *key,const char *format,...);
+#define _INIRead(P,P1,P2,P3,...) m_INIRead((MSheet *)(P),(const char *)(P1),(const char *)(P2),(const char *)(P3),__VA_ARGS__)
+#define mINIRead(P,...) ((sizeof(P[0])==sizeof(MSheet))?_INIRead(P,__VA_ARGS__,NULL,NULL):_INIRead(mINI(),P,__VA_ARGS__,NULL))
+char *m_INIWrite(MSheet *ini,const char *section,const char *key,const char *format,...);
+#define mINIWrite(P,...) ((sizeof(P[0])==sizeof(MSheet))?m_INIWrite((MSheet *)P,__VA_ARGS__,NULL):m_INIWrite(mINI(),(const char *)P,__VA_ARGS__,NULL))
+void m_INIDelete(MSheet *ini,const char *section,const char *key);
 #define mINIDelete(P,...) do{\
     int VAN = VANumber(__VA_ARGS__);\
-    if(sizeof(P[0])==sizeof(MList))\
+    if(sizeof(P[0])==sizeof(MSheet))\
     {\
-        if(VAN==2) m_INIDelete((MList *)(P),(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
-        else       m_INIDelete((MList *)(P),(const char *)_VA0(__VA_ARGS__),NULL);\
+        if(VAN==2) m_INIDelete((MSheet *)(P),(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
+        else       m_INIDelete((MSheet *)(P),(const char *)_VA0(__VA_ARGS__),NULL);\
     }\
     else\
     {\
@@ -922,8 +952,9 @@ void m_INIDelete(MList *ini,const char *section,const char *key);
         else       m_INIDelete(mINI(),(const char *)P,NULL);\
     }\
 }while(0)
-void mINISave(MList *ini,char *filename);
-MList *mINIKey(MFile *file,const char *section);
+void mINISave(MSheet *ini,char *filename);
+char *mINIKey(void *data);
+char *mINIValue(void *data);
 
 #define JSON_UNKNOWN     0
 #define JSON_KEY_UNKNOWN 1
@@ -960,21 +991,27 @@ struct JSONNode *m_JSONRead(struct JSONNode *node,intptr_t v,struct JSONNode *da
     (VANumber(__VA_ARGS__)==2)?(((intptr_t)(VA1(__VA_ARGS__)+1)==((intptr_t)VA1(__VA_ARGS__))+1)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_JSONRead(_VA0(__VA_ARGS__),0,(struct JSONNode *)((intptr_t)VA1(__VA_ARGS__)))):\
     (VANumber(__VA_ARGS__)==3)?m_JSONRead(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(struct JSONNode *)VA2(__VA_ARGS__)):NULL\
 )
+extern bool morn_json_write_bool;
+extern int32_t morn_json_write_int;
+extern double morn_json_write_double;
+extern char *morn_json_write_string;
+struct JSONNode *m_JSONWrite(struct JSONNode *node0,intptr_t v,struct JSONNode *data);
+#define mJSONWrite(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_JSONWrite(_VA0(__VA_ARGS__),DFLT,NULL):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)(VA1(__VA_ARGS__)+1)==((intptr_t)VA1(__VA_ARGS__))+1)?m_JSONWrite(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_JSONWrite(_VA0(__VA_ARGS__),0,(struct JSONNode *)((intptr_t)VA1(__VA_ARGS__)))):\
+    (VANumber(__VA_ARGS__)==3)?m_JSONWrite(_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(struct JSONNode *)VA2(__VA_ARGS__)):NULL\
+)
 
-extern char *morn_json_type[15];
-#define mJSONNodeType(Node) morn_json_type[MAX(MIN((Node)->type,14),0)]
-
-void mJSONArray(MArray *array,struct JSONNode *node);
-
-
-void m_JSONDelete0(MArray *json,int n);
-void m_JSONDelete1(MArray *json,char *key);
-#define mJSONDelete(Json,V) do{if((intptr_t)(V)<Json->num) m_JSONDelete0(Json,(intptr_t)(V));else m_JSONDelete1(Json,(char *)((intptr_t)(V)));}while(0)
+// void mJSONArray(MArray *array,struct JSONNode *node);
+// void m_JSONDelete0(MArray *json,int n);
+// void m_JSONDelete1(MArray *json,char *key);
+// #define mJSONDelete(Json,V) do{if((intptr_t)(V)<Json->num) m_JSONDelete0(Json,(intptr_t)(V));else m_JSONDelete1(Json,(char *)((intptr_t)(V)));}while(0)
 
 
 int mMORNSize (MFile *file,int ID);
 int mMORNRead (MFile *file,int ID,void **data,int num,int size);
 int mMORNWrite(MFile *file,int ID,void **data,int num,int size);
+// #define mMornRead(File,ID,data,num,size)
     
 #define MORN_TREE_PREORDER_TRAVERSAL DFLT
 #define MORN_TREE_POSTORDER_TRAVERSAL   1
@@ -993,6 +1030,32 @@ char *m_UDPRead(MObject *obj,const char *address,void *data,int *size);
 #define mUDPRead(...) (\
     (VANumber(__VA_ARGS__)==3)?m_UDPRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
     (VANumber(__VA_ARGS__)==4)?m_UDPRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
+    NULL\
+)
+
+char *m_TCPClientWrite(MObject *obj,const char *server_address,void *data,int size);
+char *m_TCPClientRead(MObject *obj,const char *server_address,void *data,int *size);
+#define mTCPClientWrite(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_TCPClientWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==4)?m_TCPClientWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
+    NULL\
+)
+#define mTCPClientRead(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_TCPClientRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==4)?m_TCPClientRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
+    NULL\
+)
+
+char *m_TCPServerRead(MObject *obj,const char *address,void *data,int *size);
+char *m_TCPServerWrite(MObject *obj,const char *address,void *data,int size);
+#define mTCPServerWrite(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_TCPServerWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==4)?m_TCPServerWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
+    NULL\
+)
+#define mTCPServerRead(...) (\
+    (VANumber(__VA_ARGS__)==3)?m_TCPServerRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==4)?m_TCPServerRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
     NULL\
 )
 

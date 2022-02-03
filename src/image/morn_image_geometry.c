@@ -78,6 +78,32 @@ void ImagePolygonBorder(MArray *border,int height,int width,MList *polygon)
     }
 }
 
+void m_PolygonRotate(MList *src,MList *dst,float a,float x0,float y0)
+{
+    a=0-a*MORN_PI/180;//顺时针
+    float cs=cos(a);float sn=sin(a);
+    float dx=x0-x0*cs-y0*sn;float dy=y0+x0*sn-y0*cs;
+    printf("x0=%f,y0=%f,dx=%f,dy=%f\n",x0,y0,dx,dy);
+    for(int i=0;i<src->num;i++)
+    {
+        MImagePoint *p=src->data[i];
+        MImagePoint *q=dst->data[i];
+        float x=p->x;float y=p->y;
+        q->x=dx+x*cs+y*sn;
+        q->y=dy-x*sn+y*cs;
+    }
+}
+
+void m_PointRotate(MImagePoint *src,MImagePoint *dst,float a,float x0,float y0)
+{
+    a=0-a*MORN_PI/180;//顺时针
+    float cs=cos(a);float sn=sin(a);
+    float x=src->x;float y=src->y;
+    dst->x=x0+(x-x0)*cs+(y-y0)*sn;
+    dst->y=y0-(x-x0)*sn+(y-y0)*cs;
+}
+
+
 // void _ImagePolygonBorder(MArray *border,int height,int width,int num,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float x5,float y5,float x6,float y6,float x7,float y7)
 // {
 //     mException(INVALID_POINTER(border),EXIT,"invalid input");

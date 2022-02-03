@@ -562,22 +562,17 @@ void mornMemoryDevice(int *dev,MMemory *memory)
     
     if(device==MORN_HOST)
     {
-        // memory->device = MORN_HOST;
-        if(handle->devflag==MORN_HOST) return;
         for(int i=0;i<memory->num;i++) mMemoryBlockRead((MMemoryBlock *)(memory->data[i]));
         handle->devflag = MORN_HOST;
     }
     else if(device==handle->device)
     {
-        // memory->device = handle->device;
-        if(handle->devflag==MORN_DEVICE) return;
         for(int i=0;i<memory->num;i++) mMemoryBlockWrite((MMemoryBlock *)(memory->data[i]));
         handle->devflag = MORN_DEVICE;
     }
     else
     {
         for(int i=0;i<memory->num;i++) mMemoryBlockCopy((MMemoryBlock *)(memory->data[i]),device);
-        // memory->device = device;
         handle->device = device;
         handle->devflag= MORN_DEVICE;
     }

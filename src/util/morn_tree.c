@@ -5,15 +5,31 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_util.h"
 
+typedef struct TreeNode
+{
+    void *data;
+    struct MTreeNode **child;
+    struct MTreeNode *parent;
+    int child_num;
+
+    int16_t node_cap;
+    int16_t ID;
+    MGraph *graph;
+}TreeNode;
+
 struct HandleTreeCreate
 {
-    MMemory *memory;
-    
+    struct TreeNode *node;
     int node_num;
+    int node_cap;
+    MMemory *memory;
 };
 void endTreeCreate(struct HandleTreeCreate *handle)
 {
+    for(int i=0;i<handle->node_num;i++)
+        mFree(handle->node[i].child);
     if(handle->memory != NULL) mMemoryRelease(handle->memory);
+    if(handle->node   != NULL) mFree(handle->node);
 }
 #define HASH_TreeCreate 0x14c697eb
 MTree *mTreeCreate()

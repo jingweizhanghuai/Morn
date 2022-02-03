@@ -97,14 +97,14 @@ void VectorRedefine(MVector *vec,int size,float *data)
     }
 }
 
-void PrintMat(MMatrix *mat)
+void _PrintMat(char *name,MMatrix *mat)
 {
-    printf("row=%d,col=%d:\n",mat->row,mat->col);
+    printf("%s:row=%d,col=%d:\n",name,mat->row,mat->col);
     int i,j;
     for(j=0;j<mat->row;j++)
     {
         for(i=0;i<mat->col;i++)
-            printf("%f\t",mat->data[j][i]);
+            printf("\t%f",mat->data[j][i]);
         printf("\n");
     }
 }
@@ -193,6 +193,7 @@ MMemoryBlock *mMatrixMemory(MMatrix *mat)
     MMemoryBlock *mem = handle->memory->data[0];
     if(mem->size!=size)
         mMemoryIndex(handle->memory,mat->row,mat->col*sizeof(float),(void ***)(&(handle->index)),1);
+    // printf("handle->memory->data[0]
     
     if(mem->data!=data) memcpy(mem->data,data,size);
     
@@ -253,7 +254,7 @@ void MatrixRedefine(MMatrix *mat,int row,int col,float **data)
     handle->col = col;
 }
 
-void mUnitMatrix(MMatrix *mat,int size)
+void m_UnitMatrix(MMatrix *mat,int size)
 {
     mException(mat==NULL,EXIT,"invalid input matrix");
     if(size<0)
@@ -261,7 +262,7 @@ void mUnitMatrix(MMatrix *mat,int size)
         size = mat->row;
         mException(size!=mat->col,EXIT,"invalid input");
     }
-    else mMatrixRedefine(mat,size,size,mat->data,DFLT);
+    else mMatrixRedefine(mat,size,size,mat->data);
        
     int i;
     #pragma omp parallel for
@@ -272,42 +273,48 @@ void mUnitMatrix(MMatrix *mat,int size)
     }
 }
 
-void mMatrixTranspose(MMatrix *mat,MMatrix *dst)
+void m_MatrixTranspose(MMatrix *mat,MMatrix *dst)
 {
-    mException(mat==NULL,EXIT,"invalid input matrix");
-    
-    int i,j;
-    int dst_col,dst_row;
-    MMatrix *p;
-    
-    dst_col = mat->row;
-    dst_row = mat->col;
-    
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
     
-    p = dst;
+    int i,j;
+    
+    int dst_col = mat->row;
+    int dst_row = mat->col;
+    
+    MMatrix *p = dst;
     if((INVALID_POINTER(dst))||(dst==mat)) dst = mMatrixCreate(dst_row,dst_col,NULL);
     else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
-    
-    for(i=0;i<dst_row-8;i=i+8)
+
+    float **s=mat->data;
+    float **d=dst->data;
+
+    int r=dst_row&0x03;
+    int c=dst_col&0x03;
+    for(j=0;j<r;j++)
     {
-        for(j=0;j<dst_col;j++)
+        for(i=0;i<c;i++) d[j][i]=s[i][j];
+        for(i=c;i<dst_col;i+=4)
         {
-            dst->data[i][j] = mat->data[j][i]; 
-            dst->data[i+1][j] = mat->data[j][i+1]; 
-            dst->data[i+2][j] = mat->data[j][i+2]; 
-            dst->data[i+3][j] = mat->data[j][i+3]; 
-            dst->data[i+4][j] = mat->data[j][i+4]; 
-            dst->data[i+5][j] = mat->data[j][i+5]; 
-            dst->data[i+6][j] = mat->data[j][i+6]; 
-            dst->data[i+7][j] = mat->data[j][i+7];
+            d[j][i]=s[i][j];d[j][i+1]=s[i+1][j];d[j][i+2]=s[i+2][j];d[j][i+3]=s[i+3][j];
         }
     }
-    // #pragma omp parallel for
-    for(;i<dst_row;i++)
-        for(j=0;j<dst_col;j++)
-            dst->data[i][j] = mat->data[j][i];
-        
+    #pragma omp parallel for
+    for(j=r;j<dst_row;j+=4)
+    {
+        for(i=0;i<c;i++)
+        {
+            d[j][i]=s[i][j];d[j+1][i]=s[i][j+1];d[j+2][i]=s[i][j+2];d[j+3][i]=s[i][j+3];
+        }
+        for(i=c;i<dst_col;i+=4)
+        {
+            d[j  ][i]=s[i][j  ];d[j  ][i+1]=s[i+1][j  ];d[j  ][i+2]=s[i+2][j  ];d[j  ][i+3]=s[i+3][j  ];
+            d[j+1][i]=s[i][j+1];d[j+1][i+1]=s[i+1][j+1];d[j+1][i+2]=s[i+2][j+1];d[j+1][i+3]=s[i+3][j+1];
+            d[j+2][i]=s[i][j+2];d[j+2][i+1]=s[i+1][j+2];d[j+2][i+2]=s[i+2][j+2];d[j+2][i+3]=s[i+3][j+2];
+            d[j+3][i]=s[i][j+3];d[j+3][i+1]=s[i+1][j+3];d[j+3][i+2]=s[i+2][j+3];d[j+3][i+3]=s[i+3][j+3];
+        }
+    }
+
     if(p!=dst)
     {
         mObjectExchange(mat,dst,MMatrix);
@@ -604,7 +611,7 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     int dst_row = mat1->row;
 
     MMatrix *p = dst;
-    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col,NULL);
+    if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col);
     else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
 
     int flag = num&0x03; if(flag==0) flag = 4;
@@ -618,27 +625,20 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     for(j=0;j<dst_row;j++)
     {
         pdst = dst->data[j];
-        data1 = mat1->data[j][0];
-        psrc1 = mat2->data[0];
-        for(k=0;k<dst_col;k++)
-            pdst[k] = data1*psrc1[k];
+        data1 = mat1->data[j][0]; psrc1 = mat2->data[0];
+        for(k=0;k<dst_col;k++) pdst[k] = data1*psrc1[k];
         for(i=1;i<flag;i++)
         {
-            data1 = mat1->data[j][i];
-            psrc1 = mat2->data[i];
-            for(k=0;k<dst_col;k++)
-                pdst[k] += data1*psrc1[k];
+            data1 = mat1->data[j][i]; psrc1 = mat2->data[i];
+            for(k=0;k<dst_col;k++) pdst[k]+= data1*psrc1[k];
         }
+        
         for(i=flag;i<num;i=i+4)
         {
-            data1 = mat1->data[j][i];
-            psrc1 = mat2->data[i];
-            data2 = mat1->data[j][i+1];
-            psrc2 = mat2->data[i+1];
-            data3 = mat1->data[j][i+2];
-            psrc3 = mat2->data[i+2];
-            data4 = mat1->data[j][i+3];
-            psrc4 = mat2->data[i+3];
+            data1 = mat1->data[j][i  ]; psrc1 = mat2->data[i  ];
+            data2 = mat1->data[j][i+1]; psrc2 = mat2->data[i+1];
+            data3 = mat1->data[j][i+2]; psrc3 = mat2->data[i+2];
+            data4 = mat1->data[j][i+3]; psrc4 = mat2->data[i+3];
             for(k=0;k<dst_col;k++)
                 pdst[k] += data1*psrc1[k]+data2*psrc2[k]+data3*psrc3[k]+data4*psrc4[k];
         }
@@ -646,16 +646,8 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 
     if(p != dst)
     {
-        if(p == mat2)
-        {
-            mObjectExchange(mat2,dst,MMatrix);
-            mMatrixRelease(dst);
-        }
-        else
-        {
-            mObjectExchange(mat1,dst,MMatrix);
-            mMatrixRelease(dst);
-        }
+        if(p == mat2) {mObjectExchange(mat2,dst,MMatrix); mMatrixRelease(dst);}
+        else          {mObjectExchange(mat1,dst,MMatrix); mMatrixRelease(dst);}
     }
 }
 

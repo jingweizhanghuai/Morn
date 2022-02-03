@@ -75,6 +75,7 @@ struct HandleMORNFile *MORNInit(MFile *file)
             {
                 fread(&(chunk.ID  ),1,4,handle->f);
                 fread(&(chunk.size),1,4,handle->f);
+                
                 locate = locate + 4+4;chunk.locate = locate;
                 mListWrite(handle->list,DFLT,&chunk,sizeof(struct Chunk));
                 

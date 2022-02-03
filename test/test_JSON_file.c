@@ -61,18 +61,18 @@ int main()
     
     node=mJSONRead(json,"date");
     struct JSONNode *year=mJSONRead(node,"year");
-    printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
+    printf("date.year=%d,type=%s\n",year->dataS32,jsontype[year->type]);
     struct JSONNode *month=mJSONRead(node,"month");
-    printf("date.month=%d,type=%s\n",month->dataS32,mJSONNodeType(month));
+    printf("date.month=%d,type=%s\n",month->dataS32,jsontype[month->type]);
     struct JSONNode *day=mJSONRead(node,"day");
-    printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
+    printf("date.day=%d,type=%s\n",day->dataS32,jsontype[day->type]);
 
     year=mJSONRead(json,"date.year");
-    printf("date.year=%d,type=%s\n",year->dataS32,mJSONNodeType(year));
+    printf("date.year=%d,type=%s\n",year->dataS32,jsontype[year->type]);
     month=mJSONRead(json,"date.month");
-    printf("date.month=%d,type=%s\n",month->dataS32,mJSONNodeType(month));
+    printf("date.month=%d,type=%s\n",month->dataS32,jsontype[month->type]);
     day=mJSONRead(json,"date.day");
-    printf("date.day=%d,type=%s\n",day->dataS32,mJSONNodeType(day));
+    printf("date.day=%d,type=%s\n",day->dataS32,jsontype[day->type]);
     
     node = mJSONRead(json,"a1[0]");
     printf("a1[0]=%d\n",node->dataS32);
@@ -112,6 +112,17 @@ int main()
     node = mJSONRead(json,"province.Hebei[0]");printf("%s\n",node->string);
     node = mJSONRead(json,"province.Anhui[0]");printf("%s\n",node->string);
     node = mJSONRead(json,"province.Gansu"   );printf("%s\n",node->string);
+
+    printf("json->num=%d\n",json->num);
+    struct JSONNode test;test.type=JSON_KEY_STRING;test.string="aaa";
+    node = mJSONWrite(json,"test",&test);
+    printf("nnnnnnode=%p\n",node);
+    printf("json->num=%d\n",json->num);
+
+    node = mJSONRead(json,"test");
+    printf("nnnnnnode=%p\n",node);
+    printf("%s\n",node->string);
+
     
     mFileRelease(file);
 }

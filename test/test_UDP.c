@@ -11,19 +11,23 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 void test_send()
 {
-    char addr[16];
+    char addr[32];
 
     char data[64];
     for(int i=0;i<100;i++)
     {
         mRandString(data,32,64);
-        sprintf(addr,"localhost:%d",rand()%4+1000);
+        // printf("data=%s\n",data);
+        // sprintf(addr,"localhost:%d",rand()%4+1000);
+        sprintf(addr,"192.168.5.255:%d",rand()%4+1000);
         char *ip=mUDPWrite(addr,data,DFLT);
         //char *ip=mUDPWrite("localhost:1234",data,DFLT);
         printf("send: to %s, size=%zd, data is %s\n",ip,strlen(data),data);
         mSleep(100);
     }
 }
+
+
 
 void test_recive()
 {

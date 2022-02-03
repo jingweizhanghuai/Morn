@@ -99,7 +99,6 @@ void mVectorRelease(MVector *vec);
 #define mVectorReset(Vec) mHandleReset(Vec->handle)
 
 typedef struct MMatrix{
-    // Morn;
     int row;
     int col;
     float **data;
@@ -108,6 +107,8 @@ typedef struct MMatrix{
 #define INVALID_MAT(Mat) ((((Mat) ==NULL)||((intptr_t)(Mat) == -1))?1:(((Mat)->data == NULL)||((intptr_t)((Mat)->data) <= 0)\
                                                                 ||((Mat)->col <= 0)\
                                                                 ||((Mat)->row <= 0)))
+void _PrintMat(char *name,MMatrix *mat);
+#define PrintMat(Mat) _PrintMat(#Mat,Mat)
 
 MMatrix *MatrixCreate(int row,int col,float **data);
 #define mMatrixCreate(...) (\
@@ -127,22 +128,22 @@ void MatrixRedefine(MMatrix *mat,int row,int col,float ** data);
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 
+void m_UnitMatrix(MMatrix *mat,int size);
+#define mUnitMatrix(...) do{\
+    if(VANumber(__VA_ARGS__)==1) m_UnitMatrix(VA0(__VA_ARGS__),DFLT);\
+    else                         m_UnitMatrix(VA0(__VA_ARGS__),VA1(__VA_ARGS__));\
+}while(0)
+
 #define mMatrixExchange(Mat1,Mat2) mObjectExchange(Mat1,Mat2,MMatrix)
 #define mMatrixReset(Mat) mHandleReset(Mat->handle)
 void mMATWrite(MFile *file,MMatrix *mat,char *matname);
 void mMATRead(MFile *file,char *matname,MMatrix *mat);
 
 #define mMatrixData(Mat,Data) do{\
-    int Num = Mat->col*Mat->row;\
-    float *Buff;if(Mat->dev==MORN_HOST_CPU) Buff=&(Mat->data[0][0]);else Buff=mMalloc(Num*sizeof(float));\
-    for(int i=0;i<Num;i++) Buff[i]=(float)(Data[i]);\
-    if(Mat->dev!=MORN_HOST_CPU)\
-    {\
-        MemCopy(&(Mat->data[0][0]),Mat->dev,Buff,MORN_HOST_CPU,Num);\
-        mFree(Buff);\
-    }\
+    for(int J=0;J<Mat->row;J++) memcpy(Mat->data[J],Data+J*Mat->col,Mat->col*sizeof(float));\
+    int Dev=MORN_HOST; mPropertyRead( Mat,"device",&Dev);\
+    if(Dev!=MORN_HOST) mPropertyWrite(Mat,"device",&Dev);\
 }while(0)
-
 
 void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst);
 float mVectorMul(MVector *vec1,MVector *vec2);
@@ -150,7 +151,12 @@ void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst);
 void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst);
 void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
 
-void mMatrixTranspose(MMatrix *mat,MMatrix *dst);
+void m_MatrixTranspose(MMatrix *mat,MMatrix *dst);
+#define mMatrixTranspose(...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_MatrixTranspose(VA0(__VA_ARGS__),(MMatrix *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_MatrixTranspose(VA0(__VA_ARGS__),VA0(__VA_ARGS__));\
+}while(0)
+
 float mMatrixDetValue(MMatrix *mat);
 int mMatrixInverse(MMatrix *mat,MMatrix *inv);
 
@@ -310,7 +316,7 @@ void m_CalculateFunction(const char *name,void *func);
     else m_CalculateFunction((const char*)Func,(void *)VA0(__VA_ARGS__));\
 }while(0)
 
-unsigned int mHash(const char *in,int size);
+// unsigned int mHash(const char *in,int size);
 
 typedef struct MLInt
 {

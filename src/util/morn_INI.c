@@ -5,55 +5,56 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "morn_util.h"
 #define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
 
-struct KeyValue
+static MSheet *morn_INI_sheet=NULL;
+const char  *morn_INI_file=NULL;
+struct HandleINIFile
 {
-    char *name;
-    char *value;
+    MSheet *sheet;
 };
-
-struct Section
+void endINIFile(struct HandleINIFile *handle)
 {
-    char *name;
-    struct KeyValue **kv;
-    int num;
-};
-
-MList *morn_INI_list=NULL;
-MFile *morn_INI_file=NULL;
-void mINIFile(MFile *file) {morn_INI_file=file;}
-MList *mINI() 
+    if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
+}
+#define HASH_INIFile 0xae889989
+void mINIFile(const char *filename) 
 {
-    mException((morn_INI_file==NULL)||(morn_INI_list==NULL),EXIT,"invalid input");
-    return morn_INI_list;
+    MHandle *hdl = mHandle("INI",INIFile);
+    struct HandleINIFile *handle= (struct HandleINIFile *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        if(handle->sheet==NULL) handle->sheet = mSheetCreate();
+        hdl->valid = 1;
+    }
+    morn_INI_file=filename;
+    morn_INI_sheet = handle->sheet;
+    if(morn_INI_sheet!=NULL) mSheetClear(morn_INI_sheet);
+    mINILoad(morn_INI_sheet,filename);
+}
+MSheet *mINI() 
+{
+    mException((morn_INI_file==NULL)||(morn_INI_sheet==NULL),EXIT,"invalid input");
+    return morn_INI_sheet;
 }
 
 struct HandleINI
 {
     char *data;
-    MList *list;
-    MSheet *sheet;
 };
 #define HASH_INI 0x877ae557
 void endINI(struct HandleINI *handle)
 {
     if(handle->data !=NULL) mFree(handle->data);
-    if(handle->list !=NULL) mListRelease(handle->list);
-    if(handle->sheet!=NULL) mSheetRelease(handle->sheet);
 }
-MList *m_INILoad(MFile *file)
+void mINILoad(MSheet *sheet,const char *ininame,...)
 {
-    MHandle *hdl;
-    if(file!=NULL) hdl = mHandle(file,INI);
-    else
-    {
-        file=morn_INI_file;mException(file==NULL,EXIT,"invalid input");
-        hdl = mHandle(mMornObject("Morn",DFLT),INI);
-    }
-    
+    char filename[256];
+    va_list val;va_start(val,ininame);vsprintf(filename,ininame,val);va_end(val);
+
+    MHandle *hdl = mHandle(sheet,INI);
     struct HandleINI *handle = (struct HandleINI *)(hdl->handle);
     endINI(handle);
     
-    FILE *f = fopen(file->filename,"rb");
+    FILE *f = fopen(filename,"rb");
     mException((f == NULL),EXIT,"file cannot open");
     int filesize=fsize(f);
     handle->data = mMalloc(filesize+2);
@@ -62,102 +63,68 @@ MList *m_INILoad(MFile *file)
     handle->data[filesize]='\n';
     handle->data[filesize+1]= 0;
     
-    handle->list  = mListCreate(); MList  *list  = handle->list;
-    handle->sheet = mSheetCreate();MSheet *sheet = handle->sheet;
-    
     hdl->valid = 1;
 
     int i;
-    struct Section section;
-    struct KeyValue kv;
+    int row=-1,col=0;
     
-    int flag = 0;
+    
+    int flag=0;
     char *p;
     for(p=handle->data;p[0]!='[';p++);
     for(;p<handle->data+filesize+1;p++)
     {
-             if((p[0]== ' ')||(p[0]=='\t')) continue;
-        else if((p[0]=='\n')||(p[0]=='\r'))
-        {
-            mException(flag==3,EXIT,"invalid ini");
-            p[0] = 0;
-        }
-        else if((p[0]== ';')||(p[0]== '#'))
-        {
-            mException(flag==3,EXIT,"invalid ini");
-            p[0] = 0;
-            for(p=p+1;(p[0]!='\n')&&(p[0]!='\r');p++);
-        }
-        else if(p[0]=='=')
-        {
-            mException((flag!=1),EXIT,"invalid ini");flag = 2;
-            for(i=-1;(p[i]==' ')||(p[i]=='\t')||(p[i]=='\n')||(p[i]=='\r');i--);
-            p[i+1]=0;
-        }
-        else if(p[0]=='[') 
-        {
-            mException((flag!=0),EXIT,"invalid ini");flag = 3;
-        }
-        else if(p[0]==']')
-        {
-            mException((flag!=4),EXIT,"invalid ini");flag = 0;
-            for(i=-1;(p[i]==' ')||(p[i]=='\t');i--);
-            p[i+1]=0;
-        }
+             if((p[0]== ' ')||(p[0]=='\t')) p[0]=0;
+        else if((p[0]=='\n')||(p[0]=='\r')){mException(flag==3,EXIT,"invalid ini");p[0] = 0;}
+        else if((p[0]== ';')||(p[0]== '#')){mException(flag==3,EXIT,"invalid ini");p[0] = 0;for(p=p+1;(p[0]!='\n')&&(p[0]!='\r');p++)p[0]=0;}
+        else if( p[0]=='=' )               {mException(flag!=1,EXIT,"invalid ini");p[0]=0;flag=2;}
+        else if( p[0]=='[' )               {mException(flag!=0,EXIT,"invalid ini");       flag=3;}
+        else if( p[0]==']' )               {mException(flag!=4,EXIT,"invalid ini");p[0]=0;flag=0;}
         else if(flag==3)
         {
-            section.name = p;mListWrite(list,DFLT,&section,sizeof(struct Section));
-            mSheetRowAppend(sheet,DFLT);
+            row+=1;col=-1;
+            mSheetRowAppend(sheet,row+1);sheet->info[row]=p;
             flag=4;
         }
         else if(flag==0)
         {
-            kv.name = p;flag = 1;
+            col+=1;mSheetColAppend(sheet,row,col+1);sheet->data[row][col]=p;
+            flag = 1;
         }
         else if(flag==2)
         {
             int j=0;
             for(i=0;(p[i]!='#')&&(p[i]!=';')&&(p[i]!='\n')&&(p[i]!='\r');i++)
                 if((p[i]!=' ')&&(p[i]!='\t'))p[j++]=p[i];
-            if(j<i) p[j]=0;
-            kv.value=p;mSheetWrite(sheet,sheet->row-1,DFLT,&kv,sizeof(struct KeyValue));
+            p[j]=0;
             flag=0;
-            p=p+i-1;
+            p=p+i;
         }
     }
-    
-    for(i=0;i<list->num;i++)
-    {
-        struct Section *p=(struct Section *)(list->data[i]);
-        p->kv=(struct KeyValue **)(sheet->data[i]);
-        p->num = sheet->col[i];
-    }
-    if(file==morn_INI_file) morn_INI_list=list;
-    return list;
 }
 
-char *m_INIRead(MList *ini,const char *section,const char *key,const char *format,...)
+char *m_INIRead(MSheet *ini,const char *section,const char *key,const char *format,...)
 {
     if(ini==NULL) return NULL;
     mException(INVALID_POINTER(section)||INVALID_POINTER(key),EXIT,"invalid input");
     
-    for(int i=0;i<ini->num;i++)
+    for(int i=0;i<ini->row;i++)
     {
-        struct Section *s = (struct Section *)(ini->data[i]);
-        if(strcmp(section,s->name)==0)
+        if(strcmp(section,(char *)(ini->info[i]))==0)
         {
-            for(int j=0;j<s->num;j++)
+            for(int j=0;j<ini->col[i];j++)
             {
-                if(strcmp(key,s->kv[j]->name)==0)
+                if(strcmp(key,ini->data[i][j])==0)
                 {
+                    char *value = (char *)(ini->data[i][j])+strlen(ini->data[i][j]);for(;*value==0;value++);
                     if(!INVALID_POINTER(format))
                     {
                         va_list inipara;
                         va_start(inipara,format);
-                        vsscanf(s->kv[j]->value,format,inipara);
+                        vsscanf(value,format,inipara);
                         va_end(inipara);
                     }
-                    return s->kv[j]->value;
+                    return value;
                 }
             }
             return NULL;
@@ -166,7 +133,7 @@ char *m_INIRead(MList *ini,const char *section,const char *key,const char *forma
     return NULL;
 }
 
-char *m_INIWrite(MList *ini,const char *section,const char *key,const char *format,...)
+char *m_INIWrite(MSheet *ini,const char *section,const char *key,const char *format,...)
 {
     mException(INVALID_POINTER(ini),EXIT,"invalid input");
     mException(INVALID_POINTER(section)||INVALID_POINTER(key)||INVALID_POINTER(format),EXIT,"invalid input");
@@ -179,85 +146,61 @@ char *m_INIWrite(MList *ini,const char *section,const char *key,const char *form
     int key_size=strlen(key)+1;
     int data_size=strlen(data)+1;
 
-    MHandle *hdl=mHandle(ini,INI);
-    struct HandleINI *handle = (struct HandleINI *)(hdl->handle);
-    if(hdl->valid==0)
-    {
-        mException(ini->num!=0,EXIT,"invalid operate");
-        if(handle->sheet==NULL) handle->sheet = mSheetCreate();
-        hdl->valid = 1;
-    }
-
     int i=0,j=0;
-    struct Section *s=NULL;
-    for(i=0;i<ini->num;i++)
+    for(i=0;i<ini->row;i++)
     {
-        s = (struct Section *)(ini->data[i]);
-        if(strcmp(section,s->name)==0)
+        if(strcmp(section,ini->info[i])==0)
         {
-            for(j=0;j<s->num;j++)
+            for(j=0;j<ini->col[i];j++)
             {
-                if(strcmp(key,s->kv[j]->name)==0) break;
+                if(strcmp(key,ini->data[i][j])==0) break;
             }
             break;
         }
     }
-    if(i==ini->num)
+    if(i==ini->row)
     {
-        s = mListWrite(ini,DFLT,NULL,sizeof(struct Section));
-        strcpy(s->name,section);
+        mSheetInfoWrite(ini,i,(void *)section,DFLT);
         j=0;
     }
     
-    MSheet *sheet = handle->sheet;
-    struct KeyValue *p=mSheetWrite(sheet,i,j,NULL,sizeof(struct KeyValue)+key_size+data_size);
-    p->name =(char *)(p+1);   memcpy(p->name , key, key_size);
-    p->value=p->name+key_size;memcpy(p->value,data,data_size);
-    s->kv=(struct KeyValue **)sheet->data[i];
-    s->num=sheet->col[i];
-    return p->value;
+    char *p=mSheetWrite(ini,i,j,NULL,key_size+data_size);
+    memcpy(p,key,key_size);memcpy(p+key_size,data,data_size);
+    return p+key_size;
 }
 
-void m_INIDelete(MList *ini,const char *section,const char *key)
+char *mINIValue(void *data) 
+{
+    char *key = (char *)data;
+    char *value = key+strlen(key);for(;*value==0;value++);
+    return value;
+}
+
+void m_INIDelete(MSheet *ini,const char *section,const char *key)
 {
     mException(INVALID_POINTER(ini),EXIT,"invalid input");
     mException(INVALID_POINTER(section),EXIT,"invalid input");
 
-    MHandle *hdl=mHandle(ini,INI);
-    struct HandleINI *handle = (struct HandleINI *)(hdl->handle);
-    mException(hdl->valid==0,EXIT,"invalid input");
-
     int i,j;
-    struct Section *s;
     if(INVALID_POINTER(key))
     {
-        for(i=0;i<ini->num;i++)
-        {
-            s = (struct Section *)(ini->data[i]);
-            if(strcmp(section,s->name)==0) break;
-        }
-        if(i==ini->num) return;
-        mListElementDelete(ini,i);
-        mSheetDelete(handle->sheet,i);
+        for(i=0;i<ini->row;i++) {if(strcmp(section,ini->info[i])==0) {mSheetDelete(ini,i);break;}}
+        return;
     }
-    else
+    
+    for(i=0;i<ini->row;i++)
     {
-        for(i=0;i<ini->num;i++)
+        if(strcmp(section,ini->info[i])==0)
         {
-            s = (struct Section *)(ini->data[i]);
-            if(strcmp(section,s->name)==0)
+            for(j=0;j<ini->col[i];j++)
             {
-                for(j=0;j<s->num;j++)
+                if(strcmp(key,ini->data[i][j])==0)
                 {
-                    if(strcmp(key,s->kv[j]->name)==0)
-                    {
-                        mSheetDelete(handle->sheet,i,j);
-                        s->num=s->num-1;
-                        break;
-                    }
+                    mSheetDelete(ini,i,j);
+                    break;
                 }
-                return;
             }
+            return;
         }
     }
 }
@@ -276,26 +219,23 @@ void INIFileWrite(FILE *f,char *buff,int *size,char *format,...)
     *size-=n;
 }
 
-void mINISave(MList *ini,char *filename)
+void mINISave(MSheet *ini,char *filename)
 {
     FILE *f=fopen(filename,"w");
     char *buff = mMalloc(8192);buff=buff+8192;
     int size = 8192;
     
-    for(int i=0;i<ini->num;i++)
+    for(int i=0;i<ini->row;i++)
     {
-        struct Section *s=ini->data[i];
-        INIFileWrite(f,buff,&size,"[%s]\n",s->name);
-        for(int j=0;j<s->num;j++)
-            INIFileWrite(f,buff,&size,"%s=%s\n",s->kv[j]->name,s->kv[j]->value);
+        INIFileWrite(f,buff,&size,"[%s]\n",ini->info[i]);
+        for(int j=0;j<ini->col[i];j++)
+        {
+            char *key = ini->data[i][j];
+            INIFileWrite(f,buff,&size,"%s=%s\n",key,mINIValue(key));
+        }
     }
     fwrite(buff-8192,1,8192-size,f);
     fclose(f);
     mFree(buff-8192);
 }
-
-
-
-
-
 

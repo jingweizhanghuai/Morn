@@ -13,14 +13,12 @@ struct HandleSheetCreate
     int writeable;
     
     int row;
+    void **info;
     int *col;
     void ***data;
     int *num;
-    // MInfo *row_info;
     
     MMemory *memory;
-
-    // MList *list;
 };
 void endSheetCreate(struct HandleSheetCreate *handle)
 {
@@ -35,17 +33,16 @@ void endSheetCreate(struct HandleSheetCreate *handle)
         }
         mFree(handle->data);
     }
-    
+    if(handle->info!= NULL) mFree(handle->info);
     if(handle->col != NULL) mFree(handle->col);
     if(handle->num != NULL) mFree(handle->num);
-    // if(handle->row_info != NULL) mFree(handle->row_info);
     if(handle->memory !=NULL) mMemoryRelease(handle->memory);
 
     memset(handle->sheet,0,sizeof(MSheet));
     mFree(((MList **)(handle->sheet))-1);
 }
 #define HASH_SheetCreate 0x3cb067ca
-MSheet *SheetCreate(int row,int *col,void ***data)
+MSheet *SheetCreate(int row,int *col,void **info,void ***data)
 {
     MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MSheet));
     MSheet *sheet = (MSheet *)(phandle+1);
@@ -65,15 +62,16 @@ MSheet *SheetCreate(int row,int *col,void ***data)
         mException((!INVALID_POINTER(col))||(!INVALID_POINTER(data)),EXIT,"invalid input");
         sheet->col = NULL;
         sheet->data = NULL;
-        // sheet->row_info = NULL;
         return sheet;
     }
     
-    handle->data    = (void ***)mMalloc(row*sizeof(void **));
-    handle->num     = (int *   )mMalloc(row*sizeof(int));
-    handle->col     = (int *   )mMalloc(row*sizeof(int));
-    // handle->row_info= (MInfo * )mMalloc(row*sizeof(MInfo));
-    // memset(handle->row_info,0,row*sizeof(MInfo));
+    handle->data= (void ***)mMalloc(row*sizeof(void **));
+    handle->num = (int *   )mMalloc(row*sizeof(int));
+    handle->col = (int *   )mMalloc(row*sizeof(int));
+    handle->info= (void ** )mMalloc(row*sizeof(void *));
+
+    if(!INVALID_POINTER(info)) memcpy(handle->info,info,row*sizeof(void *));
+    
     if(!INVALID_POINTER(col))
     {
         for(int j=0;j<row;j++)
@@ -105,7 +103,6 @@ MSheet *SheetCreate(int row,int *col,void ***data)
 
     sheet->col = handle->col;
     sheet->data= handle->data;
-    // sheet->row_info = handle->row_info;
     mPropertyFunction(sheet,"device",mornMemoryDevice,NULL);
     
     return sheet;
@@ -124,31 +121,32 @@ void mSheetRowAppend(MSheet *sheet,int n)
     struct HandleSheetCreate *handle= (struct HandleSheetCreate *)(ObjHandle(sheet,0)->handle);
     if(n>handle->row)
     {
-        int row = sheet->row + MAX(n-sheet->row,8);
-        void ***handle_data   =(void ***)mMalloc(row*sizeof(void **));
-        int    *handle_num    =   (int *)mMalloc(row*sizeof(int));
-        int    *handle_col    =   (int *)mMalloc(row*sizeof(int));
-        // MInfo *handle_row_info= (MInfo *)mMalloc(row*sizeof(MInfo));
+        int row0= sheet->row;
+        int row = row0 + MAX(n-sheet->row,8);
+        void ***handle_data =(void ***)mMalloc(row*sizeof(void **));
+        int    *handle_num  =   (int *)mMalloc(row*sizeof(int    ));
+        int    *handle_col  =   (int *)mMalloc(row*sizeof(int    ));
+        void  **handle_info = (void **)mMalloc(row*sizeof(void * ));
         if(handle->row >0)
         {
-            memcpy(handle_data    ,handle->data    ,handle->row*sizeof(void **));
-            memcpy(handle_num     ,handle->num     ,handle->row*sizeof(int));
-            memcpy(handle_col     ,handle->col     ,handle->row*sizeof(int));
-            // memcpy(handle_row_info,handle->row_info,handle->row*sizeof(MInfo));
+            memcpy(handle_data,handle->data,row0*sizeof(void **));
+            memcpy(handle_num ,handle->num ,row0*sizeof(int    ));
+            memcpy(handle_col ,handle->col ,row0*sizeof(int    ));
+            memcpy(handle_info,handle->info,row0*sizeof(void * ));
         }
-        memset(handle_data    +handle->row,0,(row-handle->row)*sizeof(void **));
-        memset(handle_num     +handle->row,0,(row-handle->row)*sizeof(int));
-        memset(handle_col     +handle->row,0,(row-handle->row)*sizeof(int));
-        // memset(handle_row_info+handle->row,0,(row-handle->row)*sizeof(MInfo));
+        memset(handle_data+row0,0,(row-row0)*sizeof(void **));
+        memset(handle_num +row0,0,(row-row0)*sizeof(int    ));
+        memset(handle_col +row0,0,(row-row0)*sizeof(int    ));
+        memset(handle_info+row0,0,(row-row0)*sizeof(void * ));
         
-        if(handle->data    !=NULL) {mFree(handle->data);    } handle->data    =handle_data;
-        if(handle->num     !=NULL) {mFree(handle->num);     } handle->num     =handle_num;
-        if(handle->col     !=NULL) {mFree(handle->col);     } handle->col     =handle_col;
-        // if(handle->row_info!=NULL) {mFree(handle->row_info);} handle->row_info=handle_row_info;
+        if(handle->data!=NULL) {mFree(handle->data);} handle->data=handle_data;
+        if(handle->num !=NULL) {mFree(handle->num );} handle->num =handle_num ;
+        if(handle->col !=NULL) {mFree(handle->col );} handle->col =handle_col ;
+        if(handle->info!=NULL) {mFree(handle->info);} handle->info=handle_info;
         
-        sheet->data    = handle->data;
-        sheet->col     = handle->col;
-        // sheet->row_info= handle->row_info;
+        sheet->data= handle->data;
+        sheet->col = handle->col;
+        sheet->info= handle->info;
         
         handle->row = row;
     }
@@ -166,15 +164,15 @@ void mSheetColAppend(MSheet *sheet,int row,int n)
     {
         int col = sheet->col[row] + MAX(n-sheet->col[row],8);
         
-        void **sheet_data = (void **)mMalloc(col*sizeof(void *));
+        void **handle_data = (void **)mMalloc(col*sizeof(void *));
         if(sheet->col[row] >0)
-            memcpy(sheet_data,sheet->data[row],sheet->col[row]*sizeof(void *));
-        memset(sheet_data + sheet->col[row],0,(col - sheet->col[row])*sizeof(void *));
+            memcpy(handle_data,sheet->data[row],sheet->col[row]*sizeof(void *));
+        memset(handle_data + sheet->col[row],0,(col-sheet->col[row])*sizeof(void *));
         
-        if(sheet->data[row]!=NULL) mFree(sheet->data[row]);
-   
-        handle->data[row] = sheet_data;
+        if(handle->data[row]!=NULL) mFree(handle->data[row]);
+        handle->data[row] = handle_data;
         handle->num[row] = col;
+        
         sheet->data[row] = handle->data[row];
     }
     
@@ -191,6 +189,8 @@ void mSheetPlace(MSheet *sheet,void *data,int row,int col,int size)
 
     void **idx = (void **)mMalloc(row*col*sizeof(void *));
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(ObjHandle(sheet,0)->handle);
+
+    memset(sheet->info,0,row*sizeof(void *));
 
     if(handle->memory == NULL) handle->memory = mMemoryCreate(1,row*col*size,MORN_HOST);
     else mMemoryAppend(handle->memory,row*col*size);
@@ -217,7 +217,7 @@ void mSheetOperate(MSheet *sheet,void (*func)(void *,void *),void *para)
 
 void mSheetClear(MSheet *sheet)
 {
-    for(int r=0;r<sheet->row;r++) sheet->col[r]=0;
+    for(int r=0;r<sheet->row;r++) {sheet->col[r]=0;sheet->info[r]=NULL;}
     sheet->row=0;
     struct HandleSheetCreate *handle0 = (struct HandleSheetCreate *)(ObjHandle(sheet,0)->handle);
     if(handle0->memory!=NULL) mMemoryClear(handle0->memory);
@@ -307,7 +307,36 @@ void *mSheetWrite(MSheet *sheet,int row,int col,void *data,int size)
     }
     return (sheet->data[row][col]);
 }
+
+void *mSheetInfoWrite(MSheet *sheet,int row,void *info,int size)
+{
+    mException(INVALID_POINTER(sheet),EXIT,"invalid input source sheet");
+    mException((size<=0)&&(INVALID_POINTER(info)),EXIT,"invalid input sheet element size");
+    if(size<=0) size = strlen((char *)info)+1;
     
+    mException((row>sheet->row),EXIT,"invalid write location");
+    if(row<0) row = sheet->row;
+    if(row == sheet->row) mSheetRowAppend(sheet,DFLT);
+    
+    struct HandleSheetCreate *handle0 = (struct HandleSheetCreate *)(ObjHandle(sheet,0)->handle);
+    if(handle0->memory == NULL)handle0->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
+    sheet->info[row] = mMemoryWrite(handle0->memory,info,size);
+
+    if(row!=sheet->row-1)
+    {
+        MHandle *hdl=mHandle(sheet,SheetWrite);
+        struct HandleSheetWrite *handle = (struct HandleSheetWrite *)(hdl->handle);
+        handle->write_size += size;
+        
+        if(handle->write_size>16384)
+        {
+            mSheetOperate(sheet,MemoryCollect,handle0->memory);
+            MemoryDefrag(handle0->memory);
+        }
+    }
+    return (sheet->info[row]);
+}
+
 struct HandleSheetRead
 {
     int row_order;
@@ -375,6 +404,31 @@ void *mSheetRead(MSheet *sheet,int row,int col,void *data,int size)
     return sheet->data[row][col];
 }
 
+struct HandleSheetInfoRead
+{
+    int row_order;
+};
+void endSheetInfoRead(void *info) {}
+#define HASH_SheetInfoRead 0x7c7bb85a
+void *mSheetInfoRead(MSheet *sheet,int row,void *info,int size)
+{
+    mException(INVALID_POINTER(sheet),EXIT,"invalid input");
+    MHandle *hdl=mHandle(sheet,SheetInfoRead);
+    struct HandleSheetInfoRead *handle = (struct HandleSheetInfoRead *)(hdl->handle);
+
+    if(row<0) row = handle->row_order;
+    if(row>=sheet->row) return NULL;
+
+    if(info!=NULL)
+    {
+        if(size>0) memcpy(        info,        sheet->info[row],size);
+        else       strcpy((char *)info,(char *)sheet->info[row]);
+    }
+    
+    return sheet->info[row];
+}
+
+
 void m_SheetDelete(MSheet *sheet,int row,int col)
 {
     mException(INVALID_POINTER(sheet),EXIT,"invalid input");
@@ -382,6 +436,8 @@ void m_SheetDelete(MSheet *sheet,int row,int col)
     if(col<0)
     {
         memmove(sheet->data+row,sheet->data+row+1,(sheet->row-row-1)*sizeof(void **));
+        memmove(sheet->info+row,sheet->info+row+1,(sheet->row-row-1)*sizeof(void  *));
+        memmove(sheet->col +row,sheet->col +row+1,(sheet->row-row-1)*sizeof(int    ));
         sheet->row-=1;
     }
     else
@@ -568,7 +624,7 @@ void *mHashSheetWrite(MSheet *sheet,void *key,int key_size,void *data,int size)
         mSheetRowAppend(sheet,1024);
         hdl->valid = 1;
     }
-    
+
     int i;
     unsigned int hash = mHash((const char *)key,key_size);
     int row = hash&(sheet->row-1);
