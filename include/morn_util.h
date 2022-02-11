@@ -497,6 +497,7 @@ typedef struct MArray{
         void *data;
         unsigned char *dataU8;
         char *dataS8;
+        char *text;
         unsigned short *dataU16;
         short *dataS16;
         unsigned int *dataU32;
@@ -509,11 +510,13 @@ typedef struct MArray{
     };
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
-#define _ArrayCreate(Num,EelementSize,...) (ArrayCreate(Num+0,EelementSize,(void **)ARG(_VA0(__VA_ARGS__,DFLT))))
+#define _ArrayCreate(Num,EelementSize,...) (ArrayCreate(Num+0,EelementSize,(void *)ARG(_VA0(__VA_ARGS__,DFLT))))
 #define mArrayCreate(...) (\
     (VANumber(__VA_ARGS__)==0)?ArrayCreate(DFLT,0,NULL):\
-    (VANumber(__VA_ARGS__)==1)?ArrayCreate(0,VA0(__VA_ARGS__),NULL):\
-    _ArrayCreate(__VA_ARGS__,DFLT,DFLT)\
+    (VANumber(__VA_ARGS__)==1)?(((intptr_t)VA0(__VA_ARGS__)<65536)?ArrayCreate(0,(intptr_t)VA0(__VA_ARGS__),NULL):ArrayCreate(strlen((const char *)((intptr_t)VA0(__VA_ARGS__))),1,(void *)((intptr_t)VA0(__VA_ARGS__)))):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)VA1(__VA_ARGS__)<65536)?ArrayCreate((intptr_t)VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):ArrayCreate((intptr_t)VA0(__VA_ARGS__),1,(void *)((intptr_t)VA1(__VA_ARGS__)))):\
+    (VANumber(__VA_ARGS__)==3)?ArrayCreate((intptr_t)VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__))):\
+    NULL\
 )
 void mArrayRelease(MArray *array);
 void ArrayRedefine(MArray *array,int num,int element_size,void *data);
@@ -540,6 +543,12 @@ void *m_ArrayRead(MArray *array,int n,void *data);
 
 int mStreamRead(MArray *buff,void *data,int num);
 int mStreamWrite(MArray *buff,void *data,int num);
+
+#define MText MArray
+#define mTextCreate mArrayCreate
+#define mTextRelease mArrayRelease
+void mFileText(MArray *text,const char *file_name,...);
+int mTextFind(MArray *text,MArray *str,int pos);
 
 int m_Rand(int floor,int ceiling);
 #define mRand(...) ((VANumber(__VA_ARGS__)==2)?m_Rand((int)VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__)):m_Rand(DFLT,DFLT))
@@ -679,19 +688,22 @@ typedef struct MHandle
 
 struct HandleList
 {
-    MList *handle;
+    MList list;
     int latest_flag;
     int latest_n;
 };
 
-MList *mHandleCreate(void);
-void mHandleRelease(void *p);
+void *ObjectAlloc(int size);
+void ObjectFree(void *obj);
+// MList *mHandleCreate(void);
+// void mHandleRelease(void *p);
 void mHandleReset(void *p);
 MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 // inline MObject *m_Object(const void *p,int s) {return (MObject *)((s==sizeof(char))?mMornObject(p,DFLT):p);}
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
 #define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
-#define ObjHandle(Obj,N) ((MHandle *)(((MList **)Obj)[-1]->data[N]))
+#define ObjHandle(Obj,N) ((MHandle *)(((struct HandleList *)Obj)[-1].list.data[N]))
+// MHandle *ObjHandle(void *obj,int n);
 #define mReset(Obj) mHandleReset(Obj)
 
 #define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
@@ -927,6 +939,31 @@ void mEncrypt(const char *in_name,const char *out_name,uint64_t key);
 void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
+
+// typedef struct MText
+// {
+//     int size;
+//     char *data;
+// }MText;
+// MText *m_TextCreate(int size,const char *data);
+// #define mTextCreate(...) (\
+//     (VANumber(__VA_ARGS__)==0)?m_TextCreate(DFLT,NULL):(\
+//     (VANumber(__VA_ARGS__)==1)?m_TextCreate(DFLT,(char *)((intptr_t)VAP0(__VA_ARGS__))):(\
+//     (VANumber(__VA_ARGS__)==2)?m_TextCreate((intptr_t)VAP0(__VA_ARGS__),(void *)(VA1(__VA_ARGS__))):\
+//     NULL))\
+// )
+// void mTextRelease(MText *text);
+// void m_TextRedefine(MText *text,int size,char *data);
+// #define mTextRedefine(Text,...) do{\
+//     int VAN = VANumber(__VA_ARGS__);\
+//          if(VAN==1) TextRedefine(Text,VA0(__VA_ARGS__),DFLT,NULL);\
+//     else if(VAN==2) TextRedefine(Text,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL);\
+//     else if(VAN==3) TextRedefine(Text,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
+//     else mException(1,EXIT,"invalid input with argument number");\
+// }while(0)
+
+// void mFileText(MText *text,const char *file_name,...);
+// int mTextFind(MText *text,MText *str,int pos);
 
 // extern __thread char *morn_string_result;
 

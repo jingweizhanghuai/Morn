@@ -500,7 +500,7 @@ struct JSONNode *JSONListRead( struct JSONNode *node0,char *key)
     struct JSONNode *node = JSONSubNode(node0);
     int i;for(i=0;i<node0->num;i++)
     {
-        printf("node->key=%s\n",node->key);
+        // printf("node->key=%s\n",node->key);
         int s=node->key[-1];
         if(memcmp(key,node->key,s)==0) {if((key[s]==0)||(key[s]=='[')||(key[s]=='.')) {key+=s;break;}}
         node++;

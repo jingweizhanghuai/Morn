@@ -23,22 +23,18 @@ void endTableCreate(struct HandleTableCreate *handle)
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->index != NULL) mFree(handle->index);
     if(handle->memory!= NULL) mMemoryBlockRelease(handle->memory);
-
     memset(handle->tab,0,sizeof(MTable));
-    mFree(((MList **)(handle->tab))-1);
+    // mFree(((MList **)(handle->tab))-1);
 }
 #define HASH_TableCreate 0x56f55a7f
 MTable *TableCreate(int row,int col,int element_size,void **data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MTable));
-    MTable *tab = (MTable *)(phandle+1);
-    memset(tab,0,sizeof(MTable));
-    
+    MTable *tab = ObjectAlloc(sizeof(MTable));
+
     if(col <0) {col = 0;} tab->col = col;
     if(row <0) {row = 0;} tab->row = row;
     if(element_size<0) {element_size=0;} tab->element_size=element_size;
 
-    *phandle = mHandleCreate();
     MHandle *hdl=mHandle(tab,TableCreate);
     struct HandleTableCreate *handle = (struct HandleTableCreate *)(hdl->handle);
     handle->tab = tab;
@@ -83,7 +79,7 @@ MTable *TableCreate(int row,int col,int element_size,void **data)
 
 void mTableRelease(MTable *tab)
 {
-    mHandleRelease(tab);
+    ObjectFree(tab);
 }
 
 void TableRedefine(MTable *tab,int row,int col,int element_size,void **data)

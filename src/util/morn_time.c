@@ -330,7 +330,6 @@ void endTimer(struct HandleTimer *handle)
 void _mTimerBegin(const char *name)
 {
     #ifdef _MSC_VER
-    // int offset = sizeof(int);
     int offset = sizeof(LARGE_INTEGER);
     #else
     int offset = sizeof(struct timeval);
@@ -362,9 +361,8 @@ void _mTimerBegin(const char *name)
         mListWrite(morn_timer_list,DFLT,NULL,offset+l+1);
         memcpy(((char *)(morn_timer_list->data[n]))+offset,name,l+1);
     }
-    // printf("n=%d\n",n);
+    
     #ifdef _MSC_VER
-    // *(int *)(morn_timer_list->data[n])=clock();
     QueryPerformanceCounter((LARGE_INTEGER *)(morn_timer_list->data[n]));
     #else
     struct timeval *tv=(struct timeval *)(morn_timer_list->data[n]);
@@ -375,8 +373,6 @@ void _mTimerBegin(const char *name)
 float _mTimerEnd(const char *name,const char *file,int line,const char *function)
 {
     #ifdef _MSC_VER
-    // int cv1 = clock();
-    // int offset = sizeof(int);
     LARGE_INTEGER cv1; QueryPerformanceCounter(&cv1);
     int offset = sizeof(LARGE_INTEGER);
     #else
@@ -391,19 +387,16 @@ float _mTimerEnd(const char *name,const char *file,int line,const char *function
             if(strcmp(name,((char *)(morn_timer_list->data[i]))+offset)==0) 
                 {n=i;break;}
     }
-    // printf("n=%d\n",n);
+
     mException(n<0,EXIT,"invalid timer name %s",name);
     #ifdef _MSC_VER
     LARGE_INTEGER cv0 = *(LARGE_INTEGER *)(morn_timer_list->data[n]);
     LARGE_INTEGER freq; QueryPerformanceFrequency(&freq);
     float Use = (cv1.QuadPart - cv0.QuadPart) *1000.0f/freq.QuadPart;
-    // int cv0 = *(int *)(morn_timer_list->data[n]);
-    // float Use = ((float)(cv1-cv0))*1000.0f/((float)CLOCKS_PER_SEC);
     #else
     struct timeval *tv0=(struct timeval *)(morn_timer_list->data[n]);
     float Use = (tv1.tv_sec - tv0->tv_sec)*1000.0f + (tv1.tv_usec - tv0->tv_usec)/1000.0f;
     #endif
-    // mLog(MORN_INFO,"[%s,line %d,function %s]Timer: time use %fms\n",__FILE__,__LINE__,__FUNCTION__,Use);
     printf("[%s,line %d,function %s]Timer: %s time use %fms\n",file,line,function,name,Use);
     return Use;
 }

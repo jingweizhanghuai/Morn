@@ -22,11 +22,11 @@ extern "C"
 #define MORN_NOT_NORMALIZED   0
 
 typedef struct MWave {
-    Morn;
+    // Morn;
     int channel;
     int size;
     float *data[MORN_MAX_WAVE_CN];
-    void *reserve;
+    // void *reserve;
 }MWave;
 
 #define INVALID_WAVE(Wave) ((((Wave) ==NULL)||((intptr_t)(Wave) == DFLT))?1:(((Wave)->data == NULL)||((intptr_t)((Wave)->data) == DFLT)\
@@ -36,7 +36,7 @@ typedef struct MWave {
 MWave *mWaveCreate(int channel,int size,float **data);
 void mWaveRelease(MWave *wave);
 void mWaveRedefine(MWave *src,int channel,int size,float **data);
-#define mWaveReset(Wave) mHandleReset(Wave->handle)
+#define mWaveReset(Wave) mHandleReset(Wave)
 #define mWaveDataSet(Wave,Data,Num,Type) {\
     int I;\
     float K;\

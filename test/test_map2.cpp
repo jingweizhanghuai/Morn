@@ -59,23 +59,23 @@ void test1()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<10000;n++)
-    // {
-    //     for(int i=0;i<100;i++) absl_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<100;i++) int data_i = absl_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<100;i++) absl_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<100;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<100;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<10000;n++)
-    // {
-    //     for(int i=0;i<100;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<100;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<100;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
     
     mTimerBegin("Morn map");
     for(int n=0;n<10000;n++)
@@ -105,23 +105,23 @@ void test1()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<1000;n++)
-    // {
-    //     for(int i=0;i<1000;i++) absl_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<1000;i++) int data_i = absl_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<1000;i++) absl_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<1000;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<1000;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<1000;n++)
-    // {
-    //     for(int i=0;i<1000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<1000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<1000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<1000;n++)
@@ -151,23 +151,23 @@ void test1()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<100;n++)
-    // {
-    //     for(int i=0;i<10000;i++) absl_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<10000;i++) int data_i = absl_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<10000;i++) absl_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<10000;i++) int data_i = absl_map.find(data[i].data_s)->second;
+        for(int i=0;i<10000;i++) absl_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<100;n++)
-    // {
-    //     for(int i=0;i<10000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
-    //     for(int i=0;i<10000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
-    //     for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_s);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_hash_map[data[i].data_s]=data[i].data_i;
+        for(int i=0;i<10000;i++) int data_i = absl_hash_map.find(data[i].data_s)->second;
+        for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_s);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<100;n++)
@@ -211,23 +211,23 @@ void test2()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<10000;n++)
-    // {
-    //     for(int i=0;i<100;i++) absl_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<100;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<100;i++) absl_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<100;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<10000;n++)
-    // {
-    //     for(int i=0;i<100;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<100;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<100;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<100;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<10000;n++)
@@ -257,23 +257,23 @@ void test2()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<1000;n++)
-    // {
-    //     for(int i=0;i<1000;i++) absl_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<1000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<1000;i++) absl_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<1000;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<1000;n++)
-    // {
-    //     for(int i=0;i<1000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<1000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<1000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<1000;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<1000;n++)
@@ -303,23 +303,23 @@ void test2()
     }
     mTimerEnd("STL unordered_map");
 
-    // mTimerBegin("Abseil map");
-    // for(int n=0;n<100;n++)
-    // {
-    //     for(int i=0;i<10000;i++) absl_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<10000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<10000;i++) absl_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil map");
+    mTimerBegin("Abseil map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_map.find(data[i].data_i)->second;
+        for(int i=0;i<10000;i++) absl_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil map");
 
-    // mTimerBegin("Abseil hash_map");
-    // for(int n=0;n<100;n++)
-    // {
-    //     for(int i=0;i<10000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
-    //     for(int i=0;i<10000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
-    //     for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_i);
-    // }
-    // mTimerEnd("Abseil hash_map");
+    mTimerBegin("Abseil hash_map");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) absl_hash_map[data[i].data_i]=data[i].data_s;
+        for(int i=0;i<10000;i++) std::string data_s = absl_hash_map.find(data[i].data_i)->second;
+        for(int i=0;i<10000;i++) absl_hash_map.erase(data[i].data_i);
+    }
+    mTimerEnd("Abseil hash_map");
 
     mTimerBegin("Morn map");
     for(int n=0;n<100;n++)

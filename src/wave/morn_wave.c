@@ -20,27 +20,21 @@ void endWaveCreate(struct HandleWaveCreate *handle)
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory != NULL) mMemoryRelease(handle->memory);
     memset(handle->wave,0,sizeof(MWave));
-    mFree(((MList **)(handle->wave))-1);
+    // mFree(((MList **)(handle->wave))-1);
 }
 #define HASH_WaveCreate 0xa08b9c64
 MWave *mWaveCreate(int cn,int size,float **data)
 {
-    if(size <0) size = 0;
-    if(cn <0)   cn = 0;
-    mException((cn>MORN_MAX_WAVE_CN),EXIT,"invalid input");
-
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MWave));
-    MWave *wave = (MWave *)(phandle+1);
-    memset(wave,0,sizeof(MWave));
-    
-    wave->size = size;
-    wave->channel = cn;
-
-    *phandle = mHandleCreate();
+    MWave *wave = (MWave *)ObjectAlloc(sizeof(MWave));
     MHandle *hdl = mHandle(wave,WaveCreate);
     struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(hdl->handle);
     handle->wave = wave;
     
+    if(size <0) size = 0;
+    if(cn <0)   cn = 0;
+    mException((cn>MORN_MAX_WAVE_CN),EXIT,"invalid input");
+    wave->size = size;
+    wave->channel = cn;
     if((size == 0)||(cn==0))
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
@@ -67,10 +61,7 @@ MWave *mWaveCreate(int cn,int size,float **data)
 
 void mWaveRelease(MWave *wave)
 {
-    mException(INVALID_POINTER(wave),EXIT,"invalid input");
-    
-    if(!INVALID_POINTER(wave->handle))
-        mHandleRelease(wave->handle);
+    ObjectFree(wave);
 }
 
 void mWaveRedefine(MWave *src,int cn,int size,float **data)
@@ -79,7 +70,7 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     
     if(size <= 0) size = src->size;
     if(cn   <= 0) cn   = src->channel;
-    if((cn!=src->channel)||(size!=src->size)) mHandleReset(src->handle);
+    if((cn!=src->channel)||(size!=src->size)) mHandleReset(src);
     
     int same_size = ((size <= src->size)&&(cn <= src->channel));
     int reuse = (data==src->data);
@@ -89,7 +80,7 @@ void mWaveRedefine(MWave *src,int cn,int size,float **data)
     src->channel = cn;
     
     if(same_size&&reuse) return;
-    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(((MHandle *)(src->handle->data[0]))->handle);
+    struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(ObjHandle(src,0)->handle);
     if(same_size&&(data==NULL)&&(handle->size >0)) return;
     mException(reuse&&flag&&(handle->size==0),EXIT,"invalid redefine");
     

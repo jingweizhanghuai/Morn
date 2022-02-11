@@ -31,14 +31,15 @@ void endTensorCreate(struct HandleTensorCreate *handle)
     if(handle->backup_data  !=NULL) mFree(handle->backup_data);
     if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
     memset(handle->tns,0,sizeof(MTensor));
-    mFree(((MList **)(handle->tns))-1);
+    // mFree(((MList **)(handle->tns))-1);
 }
 
 MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int device)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MTensor));
-    MTensor *tns = (MTensor *)(phandle+1);
-    memset(tns,0,sizeof(MTensor));
+    MTensor *tns = (MTensor *)ObjectAlloc(sizeof(MTensor));
+    MHandle *hdl=mHandle(tns,TensorCreate);
+    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(hdl->handle);
+    handle->tns = tns;
     
     if(batch  <0) {batch  = 0;        } tns->batch  = batch;
     if(channel<0) {channel= 0;        } tns->channel= channel;
@@ -46,11 +47,6 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     if(width  <0) {width  = 0;        } tns->width  = width;
     if(device <0) {device = MORN_HOST;} tns->device = MORN_HOST;
 
-    *phandle = mHandleCreate();
-    MHandle *hdl=mHandle(tns,TensorCreate);
-    struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(hdl->handle);
-    handle->tns = tns;
-    
     int size = channel*height*width;
     if((batch==0)||(size == 0))
     {
@@ -86,7 +82,7 @@ MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,in
     
 void mTensorRelease(MTensor *tns)
 {
-    mHandleRelease(tns);
+    ObjectFree(tns);
 }
 
 MMemoryBlock *mTensorMemory(MTensor *tns,int batch)

@@ -21,23 +21,18 @@ void endVectorCreate(struct HandleVectorCreate *handle)
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory != NULL) mMemoryRelease(handle->memory);
     memset(handle->vec,0,sizeof(MVector));
-    mFree(((MList **)(handle->vec))-1);
+    // mFree(((MList **)(handle->vec))-1);
 }
 #define HASH_VectorCreate 0xfc0b887c
 MVector *VectorCreate(int size,float *data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MVector));
-    MVector *vec = (MVector *)(phandle+1);
-    memset(vec,0,sizeof(MVector));
-    
-    if(size<0) size = 0;
-    vec->size = size;
-
-    *phandle = mHandleCreate();
+    MVector *vec = (MVector *)ObjectAlloc(sizeof(MVector));
     MHandle *hdl=mHandle(vec,VectorCreate);
     struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(hdl->handle);
     handle->vec = vec;
     
+    if(size<0) size = 0;
+    vec->size = size;
     if(size==0)
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
@@ -58,7 +53,7 @@ MVector *VectorCreate(int size,float *data)
  
 void mVectorRelease(MVector *vec)
 {
-    mHandleRelease(vec);
+    ObjectFree(vec);
 }
 
 void VectorRedefine(MVector *vec,int size,float *data)
@@ -129,23 +124,18 @@ void endMatrixCreate(struct HandleMatrixCreate *handle)
     if(handle->memory  != NULL) mMemoryRelease(handle->memory);
 
     memset(handle->mat,0,sizeof(MMatrix));
-    mFree(((MList **)(handle->mat))-1);
+    // mFree(((MList **)(handle->mat))-1);
 }
 #define HASH_MatrixCreate 0xe48fad76
 MMatrix *MatrixCreate(int row,int col,float **data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MMatrix));
-    MMatrix *mat = (MMatrix *)(phandle+1);
-    memset(mat,0,sizeof(MMatrix));
-    
-    if(col <0) {col = 0;} mat->col = col;
-    if(row <0) {row = 0;} mat->row = row;
-    
-    *phandle = mHandleCreate();
+    MMatrix *mat = (MMatrix *)ObjectAlloc(sizeof(MMatrix));
     MHandle *hdl=mHandle(mat,MatrixCreate);
     struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)(hdl->handle);
     handle->mat = mat;
     
+    if(col <0) {col = 0;} mat->col = col;
+    if(row <0) {row = 0;} mat->row = row;
     if(row == 0)
     {
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
@@ -202,7 +192,7 @@ MMemoryBlock *mMatrixMemory(MMatrix *mat)
 
 void mMatrixRelease(MMatrix *mat)
 {
-    mHandleRelease(mat);
+    ObjectFree(mat);
 }
 
 void MatrixRedefine(MMatrix *mat,int row,int col,float **data)

@@ -39,16 +39,12 @@ void endSheetCreate(struct HandleSheetCreate *handle)
     if(handle->memory !=NULL) mMemoryRelease(handle->memory);
 
     memset(handle->sheet,0,sizeof(MSheet));
-    mFree(((MList **)(handle->sheet))-1);
+    // mFree(((MList **)(handle->sheet))-1);
 }
 #define HASH_SheetCreate 0x3cb067ca
 MSheet *SheetCreate(int row,int *col,void **info,void ***data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MSheet));
-    MSheet *sheet = (MSheet *)(phandle+1);
-    memset(sheet,0,sizeof(MSheet));
-
-    *phandle = mHandleCreate();
+    MSheet *sheet = (MSheet *)ObjectAlloc(sizeof(MSheet));
     MHandle *hdl=mHandle(sheet,SheetCreate);
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(hdl->handle);
     handle->sheet = sheet;
@@ -110,7 +106,7 @@ MSheet *SheetCreate(int row,int *col,void **info,void ***data)
 
 void mSheetRelease(MSheet *sheet)
 {
-    mHandleRelease(sheet);
+    ObjectFree(sheet);
 }
 
 void mSheetRowAppend(MSheet *sheet,int n)

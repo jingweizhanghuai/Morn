@@ -113,13 +113,12 @@ void endObjectCreate(struct HandleObjectCreate *handle)
     mException((handle->object == NULL),EXIT,"invalid object");
     if(handle->buff2!=NULL) mFree(handle->buff2);
     if(handle->property!=NULL) mChainRelease(handle->property);
-    mFree(((MList **)(handle->object))-1);
+    memset(handle->object,0,sizeof(MObject));
+    // ObjectFree(handle->object);
 }
 MObject *m_ObjectCreate(void *p,int size)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MObject));
-    MObject *object = (MObject *)(phandle+1);
-    *phandle = mHandleCreate();
+    MObject *object = (MObject *)ObjectAlloc(sizeof(MObject));
     MHandle *hdl=mHandle(object,ObjectCreate);
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(hdl->handle);
     handle->object = object;
@@ -202,7 +201,7 @@ void mObjectRedefine(MObject *object,const void *obj)
  
 void mObjectRelease(MObject *object)
 {
-    mHandleRelease(object);
+    ObjectFree(object);
 }
 
 void *mObjectMemory(MObject *object)
@@ -263,7 +262,6 @@ void m_PropertyFunction(MObject *obj,const char *key,void *function,void *para)
 
     int vsize=sizeof(struct Property);
     struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
-
     if(p!=NULL)
     {
         int value_size=vsize-sizeof(struct Property);
@@ -330,10 +328,6 @@ void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
     if(value!=NULL) memcpy(value,p,size);
     return p;
 }
-
-
-
-
 
 void *mReserve(MObject *obj,int n)
 {
@@ -429,37 +423,80 @@ void mFile(MObject *object,const char *file_name,...)
     fclose(f);
 }
 
-MList *mHandleCreate(void)
-{
-    MList *handle = (MList *)mMalloc(sizeof(MList));
-    handle->num = 0;
-    handle->data = NULL;
+// MList *mHandleCreate(void)
+// {
+//     MList *handle = (MList *)mMalloc(sizeof(MList));
+//     handle->num = 0;
+//     handle->data = NULL;
     
-    return handle;
+//     return handle;
+// }
+
+// void mHandleRelease(void *obj)
+// {
+//     if(INVALID_POINTER(obj)) return;
+//     MList *hlist = ((MList **)obj)[-1];
+//     for(int i=hlist->num-1;i>=0;i--)
+//     {
+//         MHandle *hdl = (MHandle *)(hlist->data[i]);
+//         (hdl->destruct)(hdl->handle);
+//         mFree(hdl);
+//     }
+    
+//     mFree(hlist->data);
+//     mFree(hlist);
+// }
+
+// void mHandleReset(void *obj) 
+// {
+//     if(INVALID_POINTER(obj)) return;
+//     MList *hlist = ((MList **)obj)[-1];
+//     for(int i=1;i<hlist->num;i++)
+//     {
+//         MHandle *hdl = (MHandle *)(hlist->data[i]);
+//         hdl->valid = 0;
+//     }
+// }
+
+// struct HandleList
+// {
+//     MList list;
+//     int latest_flag;
+//     int latest_n;
+// };
+
+void *ObjectAlloc(int size)
+{
+    struct HandleList *hl = mMalloc(sizeof(struct HandleList)+size);
+    hl->list.num = 0;
+    hl->list.data = NULL;
+    hl->latest_flag = DFLT;
+    hl->latest_n = -1;
+    memset(hl+1,0,size);
+    return (void *)(hl+1);
 }
 
-void mHandleRelease(void *obj)
+void ObjectFree(void *obj)
 {
     if(INVALID_POINTER(obj)) return;
-    MList *hlist = ((MList **)obj)[-1];
-    for(int i=hlist->num-1;i>=0;i--)
+    struct HandleList *hl = ((struct HandleList *)obj)-1;
+    for(int i=hl->list.num-1;i>=0;i--)
     {
-        MHandle *hdl = (MHandle *)(hlist->data[i]);
+        MHandle *hdl = (MHandle *)(hl->list.data[i]);
         (hdl->destruct)(hdl->handle);
         mFree(hdl);
     }
-    
-    mFree(hlist->data);
-    mFree(hlist);
+    mFree(hl->list.data);
+    mFree(hl);
 }
 
 void mHandleReset(void *obj) 
 {
     if(INVALID_POINTER(obj)) return;
-    MList *hlist = ((MList **)obj)[-1];
-    for(int i=1;i<hlist->num;i++)
+    struct HandleList *hl = ((struct HandleList *)obj)-1;
+    for(int i=1;i<hl->list.num;i++)
     {
-        MHandle *hdl = (MHandle *)(hlist->data[i]);
+        MHandle *hdl = (MHandle *)(hl->list.data[i]);
         hdl->valid = 0;
     }
 }
@@ -467,13 +504,20 @@ void mHandleReset(void *obj)
 MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
 {
     mException((obj==NULL)||(size<=0)||(end==NULL),EXIT,"invalid input");
-    MList *hlist = ((MList **)obj)[-1];
+    struct HandleList *hl = ((struct HandleList *)obj)-1;
+    if(hl->latest_flag==hash) return (MHandle *)(hl->list.data[hl->latest_n]);
+
+    hl->latest_flag=hash;
+    MList *hlist = (MList *)hl;
     int num = hlist->num;
     for(int i=0;i<num;i++)
     {
         MHandle *handle_data = (MHandle *)(hlist->data[i]);
-        if(handle_data->flag == hash) 
+        if(handle_data->flag == hash)
+        {
+            hl->latest_n=i;
             return handle_data;
+        }
     }
 
     MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle)+size);
@@ -493,6 +537,7 @@ MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
     }
     hlist->data[num] = Handle_context;
     hlist->num = num+1;
+    hl->latest_n=num;
     return (MHandle *)(hlist->data[num]);
 }
 

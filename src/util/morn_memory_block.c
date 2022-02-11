@@ -415,11 +415,7 @@ void endMemory(struct HandleMemory *handle)
 #define HASH_Memory 0x25793220
 MMemory *mMemoryCreate(int num,int size,int device)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MMemory));
-    MMemory *memory = (MMemory *)(phandle+1);
-    memset(memory,0,sizeof(MMemory));
-
-    *phandle = mHandleCreate();
+    MMemory *memory = ObjectAlloc(sizeof(MMemory));
     MHandle *hdl=mHandle(memory,Memory);hdl->valid = 1;
     if(num<0) {mException(size>0,EXIT,"invalid input"); return memory;}
     
@@ -449,16 +445,12 @@ void mMemoryRelease(MMemory *memory)
 {
     mException(INVALID_POINTER(memory),EXIT,"invalid input");
     struct HandleMemory *handle = (struct HandleMemory *)(ObjHandle(memory,0)->handle);
-    
     for(int i=0;i<handle->mem_num;i++)
     {
         if(memory->data[i]!=NULL) mMemoryBlockRelease((MMemoryBlock *)(memory->data[i]));
     }
-    
-    mHandleRelease(memory);
-    
     if(memory->data!=NULL) free(memory->data);
-    mFree(((MList **)memory)-1);
+    ObjectFree(memory);
 }
 
 void mMemoryRedefine(MMemory *memory,int num,int size,int device)

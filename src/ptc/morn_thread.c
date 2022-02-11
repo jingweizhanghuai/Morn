@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 #include "morn_ptc.h"
 
-void mNULL(void *p) {p;}
+void mNULL(void *p) {NULL;}
 
 static __thread int morn_thread_ID = -1;
 static int morn_thread_count = 0;

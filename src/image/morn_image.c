@@ -36,7 +36,7 @@ void endImageCreate(struct HandleImageCreate *handle)
     if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
 
     memset(handle->img,0,sizeof(MImage));
-    mFree(((MList **)(handle->img))-1);
+    // mFree(((MList **)(handle->img))-1);
 }
 #define HASH_ImageCreate 0xccb34f86
 MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
@@ -44,12 +44,9 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     if(cn <0) {cn = 0;} if(height <0) {height = 0;} if(width <0) {width = 0;}
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input");
 
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MImage));
-    MImage *img = (MImage *)(phandle+1);
-    memset(img,0,sizeof(MImage));
+    MImage *img = (MImage *)ObjectAlloc(sizeof(MImage));
     img->height = height;img->width = width;img->channel = cn;
-
-    *phandle = mHandleCreate();
+    
     MHandle *hdl=mHandle(img,ImageCreate);
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
@@ -193,7 +190,7 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
 
 void mImageRelease(MImage *img)
 {
-    mHandleRelease(img);
+    ObjectFree(img);
 }
 
 unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)

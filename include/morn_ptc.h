@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #ifndef _MORN_PTC_H_
 #define _MORN_PTC_H_
 
-#include "morn_util.h"
+#include "morn_math.h"
 #if defined __GNUC__
 #include <pthread.h>
 #elif defined _MSC_VER

@@ -25,19 +25,17 @@ void endListCreate(struct HandleListCreate *handle)
     if(handle->data != NULL) mFree(handle->data);
 
     memset(handle->list,0,sizeof(MList));
-    mFree(((MList **)(handle->list))-1);
+    // mFree(((MList **)(handle->list))-1);
 }
 #define HASH_ListCreate 0xfa6c59f
 MList *ListCreate(int num,void **data)
 {
-    MList **phandle = (MList **)mMalloc(sizeof(MList *)+sizeof(MList));
-    MList *list = (MList *)(phandle+1);
-    memset(list,0,sizeof(MList));
-
-    *phandle=mHandleCreate();
+    
+    MList *list = ObjectAlloc(sizeof(MList));
     MHandle *hdl=mHandle(list,ListCreate);
     struct HandleListCreate *handle = (struct HandleListCreate *)(hdl->handle);
     handle->list = list;
+
     
     if(num<0) num = 0;
     handle->num = num;
@@ -53,14 +51,13 @@ MList *ListCreate(int num,void **data)
         mException((!INVALID_POINTER(data)),EXIT,"invalid input");
 
     mPropertyFunction(list,"device",mornMemoryDevice,NULL);
-    
     list->data = handle->data;
     return list;
 }
 
 void mListRelease(MList *list)
 {
-    mHandleRelease(list);
+    ObjectFree(list);
 }
 
 void m_ListAppend(MList *list,void **data,int n)
