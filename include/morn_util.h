@@ -12,6 +12,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdbool.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -280,9 +281,9 @@ extern __thread int morn_layer_order;//=-1;
     MORN_EXCEPTION_END:\
     morn_layer_order = morn_layer_order-1;\
 }
-#ifdef _MSC_VER
-#define exit(Flag) do{system("pause");exit(Flag);}while(0)
-#endif
+// #ifdef _MSC_VER
+// #define exit(Flag) do{system("pause");exit(Flag);}while(0)
+// #endif
 #define mError(Flag) (Flag)
 #define mWarning(Flag) (0-(Flag))
 #define mException(Error,ID,...) do{int Err=Error;if(Err!=0) m_Exception(Err,ID,__FILE__,__LINE__,__FUNCTION__,__VA_ARGS__);}while(0)
@@ -430,6 +431,8 @@ MSheet *mListClassify(MList *list,void *function,void *para);
 // #define mElementSize(Type) ElementSize(#Type,sizeof(Type))
 
 // typedef struct MString
+int mAtoi(char *str);
+double mAtof(char *p);
 
 typedef struct MTable{
     // Morn;
@@ -475,7 +478,6 @@ void TableRedefine(MTable *tab,int row,int col,int element_size,void **data);
 }while(0)
 
 // #define mTableExchange(Tab1,Tab2) mObjectExchange(Tab1,Tab2,MTable)
-#define mTableReset(Tab) mHandleReset(Tab->handle)
 void mTableCopy(MTable *src,MTable *dst);
 void mTableWipe(MTable *tab);
 
@@ -695,16 +697,12 @@ struct HandleList
 
 void *ObjectAlloc(int size);
 void ObjectFree(void *obj);
-// MList *mHandleCreate(void);
-// void mHandleRelease(void *p);
 void mHandleReset(void *p);
+#define mReset(Obj) mHandleReset(Obj)
 MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
-// inline MObject *m_Object(const void *p,int s) {return (MObject *)((s==sizeof(char))?mMornObject(p,DFLT):p);}
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
 #define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
 #define ObjHandle(Obj,N) ((MHandle *)(((struct HandleList *)Obj)[-1].list.data[N]))
-// MHandle *ObjHandle(void *obj,int n);
-#define mReset(Obj) mHandleReset(Obj)
 
 #define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
 
@@ -940,33 +938,6 @@ void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
 
-// typedef struct MText
-// {
-//     int size;
-//     char *data;
-// }MText;
-// MText *m_TextCreate(int size,const char *data);
-// #define mTextCreate(...) (\
-//     (VANumber(__VA_ARGS__)==0)?m_TextCreate(DFLT,NULL):(\
-//     (VANumber(__VA_ARGS__)==1)?m_TextCreate(DFLT,(char *)((intptr_t)VAP0(__VA_ARGS__))):(\
-//     (VANumber(__VA_ARGS__)==2)?m_TextCreate((intptr_t)VAP0(__VA_ARGS__),(void *)(VA1(__VA_ARGS__))):\
-//     NULL))\
-// )
-// void mTextRelease(MText *text);
-// void m_TextRedefine(MText *text,int size,char *data);
-// #define mTextRedefine(Text,...) do{\
-//     int VAN = VANumber(__VA_ARGS__);\
-//          if(VAN==1) TextRedefine(Text,VA0(__VA_ARGS__),DFLT,NULL);\
-//     else if(VAN==2) TextRedefine(Text,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL);\
-//     else if(VAN==3) TextRedefine(Text,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
-//     else mException(1,EXIT,"invalid input with argument number");\
-// }while(0)
-
-// void mFileText(MText *text,const char *file_name,...);
-// int mTextFind(MText *text,MText *str,int pos);
-
-// extern __thread char *morn_string_result;
-
 void mINIFile(const char *filename);
 MSheet *mINI();
 void mINILoad(MSheet *list,const char *ininame,...);
@@ -1055,20 +1026,8 @@ int mMORNWrite(MFile *file,int ID,void **data,int num,int size);
 #define MORN_TREE_INORDER_TRAVERSAL     2
 
 // uint64_t mIPAddress(const char *addr);
-// char *mUDPWrite(const char *address,void *data,int size);
-// char *mUDPRead(const char *address,void *data,int *size);
-char *m_UDPWrite(MObject *obj,const char *address,void *data,int size);
-char *m_UDPRead(MObject *obj,const char *address,void *data,int *size);
-#define mUDPWrite(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_UDPWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
-    (VANumber(__VA_ARGS__)==4)?m_UDPWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
-    NULL\
-)
-#define mUDPRead(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_UDPRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
-    (VANumber(__VA_ARGS__)==4)?m_UDPRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
-    NULL\
-)
+char *mUDPWrite(const char *address,void *data,int  size);
+char *mUDPRead( const char *address,void *data,int *size);
 
 char *m_TCPClientWrite(MObject *obj,const char *server_address,void *data,int size);
 char *m_TCPClientRead(MObject *obj,const char *server_address,void *data,int *size);

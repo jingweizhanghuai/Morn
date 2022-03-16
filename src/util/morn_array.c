@@ -65,7 +65,7 @@ void endArrayCreate(struct HandleArrayCreate *handle)
     mException((handle->array == NULL),EXIT,"invalid array");
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory!= NULL) mMemoryBlockRelease(handle->memory);
-
+    
     memset(handle->array,0,sizeof(struct _MArray));
     // ObjectFree(handle->array);
 }
@@ -94,7 +94,6 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     else if(element_size>0)
     {
         num = mBinaryCeil(MAX(num,256));
-        // array->capacity = num-1;//////////
         handle->memory = mMemoryBlockCreate(num*element_size,MORN_HOST);
         handle->num = num;
         handle->element_size = element_size;
@@ -122,7 +121,7 @@ void ArrayRedefine(MArray *arr,int num,int element_size,void *data)
     array->num = num;
     array->element_size = element_size;
     if((element_size ==0)||(num==0)) return;
-    printf("element_size=%d,num=%d\n",element_size,num);
+    // printf("element_size=%d,num=%d\n",element_size,num);
     
     if((num!= handle->num)||(element_size!=handle->element_size)) mHandleReset(array);
     handle->num = handle->num*handle->element_size/element_size;
@@ -232,7 +231,6 @@ void *m_ArrayPushBack(MArray *arr,void *data)
         }
         array->capacity=(handle->num-array->num)&0x0FFFF;
     }
-    // printf("cccccccc\n");
     S8 *p=(S8 *)(array->dataS8+array->num*es);
          if(es==4) *((S32 *)p) = *((S32 *)data);
     else if(es==8) *((S64 *)p) = *((S64 *)data);

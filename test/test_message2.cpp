@@ -1,5 +1,6 @@
-// gcc -O2 -fopenmp test_message2.c -o test_message2.exe -lmorn -lzmq -lstdc++ -lws2_32 -lIphlpapi -lm
+// g++ -O2 -fopenmp test_message2.cpp -o test_message2.exe -lmorn -lzmq -lcppipc -lws2_32 -lIphlpapi -lm
 #include <zmq.h>
+#include "libipc/ipc.h"
 #include "morn_ptc.h"
 
 #ifdef __linux__
@@ -24,7 +25,7 @@ void zeromq_send(int n)
     void *requester = zmq_socket(context, ZMQ_PUB);
     zmq_connect(requester, "tcp://localhost:5555");
 
-    struct ZMQData *buffer = malloc(sizeof(struct ZMQData)+n*sizeof(int));
+    struct ZMQData *buffer = (struct ZMQData *)malloc(sizeof(struct ZMQData)+n*sizeof(int));
     strcpy(buffer->topic,"zmqtest");
     mSleep(10);
 
@@ -50,7 +51,7 @@ void zeromq_receive(int n)
     void *responder = zmq_socket(context, ZMQ_SUB);
     zmq_bind(responder, "tcp://*:5555");
 
-    struct ZMQData *msg = malloc(sizeof(struct ZMQData)+n*sizeof(int));
+    struct ZMQData *msg = (struct ZMQData *)malloc(sizeof(struct ZMQData)+n*sizeof(int));
     strcpy(msg->topic,"zmqtest");
     zmq_setsockopt(responder,ZMQ_SUBSCRIBE,msg->topic,strlen(msg->topic));
 
@@ -68,12 +69,12 @@ void zeromq_receive(int n)
     free(msg);
 }
 
-void cppipc_send() 
+void cppipc_send(int n) 
 {
     struct timeval tv;
-    int *msg=malloc(n*sizeof(int));
+    int *msg=(int *)malloc(n*sizeof(int));
     
-    ipc::channel ipc {"ipc", ipc::sender};
+    ipc::channel ipc {"cppipctest", ipc::sender};
     for(int i=0;i<T;i++)
     {
         for(int j=3;j<n;j++) msg[j]=rand();
@@ -84,36 +85,32 @@ void cppipc_send()
     }
 }
 
-void cppipc_recv()
+void cppipc_receive(int n)
 {
     struct timeval tv;
     double t_sum=0;
     
-    ipc::channel ipc {"ipc", ipc::receiver};
-    int i=0;
-    while(1)
+    ipc::channel ipc {"cppipctest", ipc::receiver};
+    int i=0;while(1)
     {
         ipc::buff_t recv = ipc.recv(0);
         if(!recv.empty())
         {
-            printf("i=%d,data=%s\n",i++,recv.data());
+            // printf("i=%d,data=%s\n",i++,recv.data());
+            gettimeofday(&tv,NULL);
+            int *msg = (int*)recv.data();
+            double t = (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
+            t_sum += t;i++;
+            if(msg[0]==T-1) break;
         }
     }
+    printf("receive %d topictest data (size %d), average delay %fus.\n",i,n*sizeof(int),t_sum/i);
 }
-
-// int main(int argc, char ** argv) 
-// {
-//          if(strcmp(argv[1],"send"  )==0) do_send();
-//     else if(strcmp(argv[1],"recive")==0) do_recv();
-//     return 0;
-// }
-
-
 
 void morn_send(int n)
 {
     struct timeval tv;
-    int *msg=malloc(n*sizeof(int));
+    int *msg=(int *)malloc(n*sizeof(int));
     for(int i=0;i<T;i++)
     {
         for(int j=3;j<n;j++) msg[j]=rand();
@@ -131,13 +128,13 @@ void morn_receive(int n)
     struct timeval tv;
     double t_sum=0;
 
-    int *msg=malloc(n*sizeof(int));
-    while(1)
+    int *msg=(int *)malloc(n*sizeof(int));
+    int i=0;while(1)
     {
         mProcTopicRead("topictest",msg,NULL);
         gettimeofday(&tv,NULL);
         double t = (double)((tv.tv_sec-msg[1])*1000000+(tv.tv_usec-msg[2]));
-        t_sum += t;
+        t_sum += t;i++;
         if(msg[0]==T-1) break;
     }
     printf("receive %d topictest data (size %d), average delay %fus.\n",i,n*sizeof(int),t_sum/i);
@@ -150,10 +147,12 @@ int main(int argc,char **argv)
     if(argc==3) n=atoi(argv[2]);
     n=n/sizeof(int);
 
-         if(strcmp(argv[1], "zmq_send"   )==0)    zeromq_send(n);
-    else if(strcmp(argv[1],"morn_send"   )==0)      morn_send(n);
-    else if(strcmp(argv[1], "zmq_receive")==0) zeromq_receive(n);
-    else if(strcmp(argv[1],"morn_receive")==0)   morn_receive(n);
+         if(strcmp(argv[1],   "zmq_send"   )==0)    zeromq_send(n);
+    else if(strcmp(argv[1],"cppipc_send"   )==0)    cppipc_send(n);
+    else if(strcmp(argv[1],  "morn_send"   )==0)      morn_send(n);
+    else if(strcmp(argv[1],   "zmq_receive")==0) zeromq_receive(n);
+    else if(strcmp(argv[1],"cppipc_receive")==0) cppipc_receive(n);
+    else if(strcmp(argv[1],  "morn_receive")==0)   morn_receive(n);
     else mException(1,EXIT,"invalid input");
     return 0;
 }

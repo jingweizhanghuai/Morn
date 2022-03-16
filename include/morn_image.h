@@ -224,7 +224,8 @@ typedef struct MImageCurve
     float para[16];
 }MImageCurve;
 void mCurve(MImageCurve *curve,float i1,float i2,int type,float (*func)(float,float *),float *para);
-float mCurvePoint(MImageCurve *curve,float x);
+// float mCurvePoint(MImageCurve *curve,float x);
+#define mCurvePoint(Curve,X) ((Curve->curve)(X,Curve->para))
 
 void mBMPSave(MImage *img,const char *filename);
 void mBMPLoad(MImage *img,const char *filename);

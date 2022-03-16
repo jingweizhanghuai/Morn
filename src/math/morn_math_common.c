@@ -262,8 +262,15 @@ int LowestCommonMultiple(int n,...)
 
 int mBinaryCeil(int data)
 {
-    if (data<0) return (0-mBinaryFloor(0-data));
-    int v[16]={1,2,2,4,4,8,8,8,8,16,16,16,16,16,16,16};
+    int floor = mBinaryFloor(data);
+    if(floor==data) return data;
+    return (data>0)?(floor*2):(floor/2);
+}
+
+int mBinaryFloor(int data)
+{
+    if (data<0) return (0-mBinaryCeil(0-data));
+    int v[16]={0,1,2,2,4,4,4,4,8,8,8,8,8,8,8,8};
     if(data<16) return v[data];
     if(data<256) return (v[data>>4]<<4);
     if(data<4096) return (v[data>>8]<<8);
@@ -274,16 +281,10 @@ int mBinaryCeil(int data)
     return (v[data>>28]<<28);
 }
 
-int mBinaryFloor(int data)
-{
-    int ceil = mBinaryCeil(data);
-    return (data>0)?(ceil/2):(ceil*2);
-}
-
 int mBinaryRound(int data)
 {
-    int ceil = mBinaryCeil(data);
-    int floor= (data>0)?(ceil/2):(ceil*2);
+    int floor = mBinaryFloor(data);
+    int ceil = (data>0)?(floor*2):(floor/2);
     return ((ceil-data)<=(data-floor))?ceil:floor;
 }
 

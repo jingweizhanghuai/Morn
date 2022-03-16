@@ -220,12 +220,12 @@ struct _HandleObjectCreate
 };
 void HandleExchange(void *obj1,void *obj2)
 {
-    MList *hlist1 = ((MList **)obj1)[-1];
-    MList *hlist2 = ((MList **)obj2)[-1];
+    struct HandleList *hl1 = ((struct HandleList *)obj1)-1;
+    struct HandleList *hl2 = ((struct HandleList *)obj2)-1;
     
-    MHandle *hdl1= (MHandle *)(hlist1->data[0]);
-    MHandle *hdl2= (MHandle *)(hlist2->data[0]);
-    hlist1->data[0]=hdl2;hlist2->data[0]=hdl1;
+    MHandle *hdl1= (MHandle *)(hl1->list.data[0]);
+    MHandle *hdl2= (MHandle *)(hl2->list.data[0]);
+    hl1->list.data[0]=hdl2;hl2->list.data[0]=hdl1;
 
     struct _HandleObjectCreate *handle1=hdl1->handle;
     struct _HandleObjectCreate *handle2=hdl2->handle;
@@ -634,14 +634,15 @@ void mornObjectRemove(void *no_use,char *name)
     mornMapNodeDelete(morn_object_map,name,DFLT);
 }
 
+__thread char morn_shu[256];
 void _CNum(double data,char *out,int *flag)
 {
     #if defined(__linux__)
     int s=3;
-    int dic[17]={0x00b69be9,0x0080b8e4,0x00a4b8e4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00be99e7,0x00838de5,0x0087b8e4,0x00bfbae4,0x009fb4e8,0x00b982e7};
+    int32_t dic[19]={0x00b69be9,0x0080b8e4,0x00a4b8e4,0x0089b8e4,0x009b9be5,0x0094bae4,0x00ad85e5,0x0083b8e4,0x00ab85e5,0x009db9e4,0x00818de5,0x00be99e7,0x00838de5,0x0087b8e4,0x00bfbae4,0x009fb4e8,0x00b982e7,0x00a4b8e4,0x008cbae4};
     #elif defined(_WIN64)||defined(_WIN32)
-    int s=2;
-    int dic[17]={0x0000e3c1,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca,0x0000d9b0,0x0000a7c7,0x0000f2cd,0x0000dad2,0x0000bab8,0x0000e3b5};
+    int32_t s=2;
+    int32_t dic[19]={0x0000e3c1,0x0000bbd2,0x0000feb6,0x0000fdc8,0x0000c4cb,0x0000e5ce,0x0000f9c1,0x0000dfc6,0x0000cbb0,0x0000c5be,0x0000aeca,0x0000d9b0,0x0000a7c7,0x0000f2cd,0x0000dad2,0x0000bab8,0x0000e3b5,0x0000feb6,0x0000bdc1};
     #else
     mException(1,EXIT,"invalid operate system");
     #endif
@@ -652,43 +653,37 @@ void _CNum(double data,char *out,int *flag)
     if(value<=10) {memcpy(out,dic+value,s);out+=s;goto cnum_next;}
     if((value<20)&&(*flag==0)) {memcpy(out,dic+10,s);memcpy(out+s,dic+(value-10),s);out+=s+s;goto cnum_next;}
 
-    if(value>100000000)
+    if(value>=100000000)
     {
-        _CNum((double)(value/100000000),out,flag);
-        out+=strlen(out);
+        int64_t v=value/100000000;
+        if(v==2)  {memcpy(out,dic+18,s);out+=s;}
+        else {_CNum((double)v,out,flag);out+=strlen(out);}
         memcpy(out,dic+14,s);
         out=out+s;
-        *flag = 1;
         value = value%100000000;
+        *flag=(value!=0);
     }
 
-    if(value>10000)
+    if(value>=10000)
     {
-        _CNum((double)(value/10000),out,flag);
-        out+=strlen(out);
+        int64_t v=value/10000;
+        if(v==2)  {memcpy(out,dic+18,s);out+=s;}
+        else {_CNum((double)v,out,flag);out+=strlen(out);}
         memcpy(out,dic+13,s);
         out=out+s;
-        *flag=1;
         value = value%10000;
+        *flag=(value!=0);
     }
     
-    #if defined(__linux__)
-    dic[2]=0x008cbae4;
-    #elif defined(_WIN64)||defined(_WIN32)
-    dic[2]=0x0000bdc1;
-    #endif
+    dic[2]=dic[18];
     
-    if(value>=1000) {memcpy(out,dic+(value/1000),s);memcpy(out+s,dic+12,s);out=out+s+s;*flag=1;value=value%1000;}
+    if(value>=1000) {memcpy(out,dic+(value/1000),s);memcpy(out+s,dic+12,s);out=out+s+s;value=value%1000;*flag=(value!=0);}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
 
-    if(value>=100) {memcpy(out,dic+(value/100),s);memcpy(out+s,dic+11,s);out=out+s+s;*flag=1;value=value%100;}
+    if(value>=100) {memcpy(out,dic+(value/100),s);memcpy(out+s,dic+11,s);out=out+s+s;value=value%100;*flag=(value!=0);}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
 
-    #if defined(__linux__)
-    dic[2]=0x00a4b8e4;
-    #elif defined(_WIN64)||defined(_WIN32)
-    dic[2]=0x0000feb6;
-    #endif
+    dic[2]=dic[17];
 
     if(value>=10) {memcpy(out,dic+(value/10),s);memcpy(out+s,dic+10,s);out=out+s+s;*flag=1;value=value%10;}
     else if(*flag)  {memcpy(out,dic,s);out=out+s;*flag=0;}
@@ -717,7 +712,6 @@ void _CNum(double data,char *out,int *flag)
     *out=0;
 }
 
-__thread char morn_shu[256];
 const char *mShu(double data)
 {
     int flag=0;
@@ -740,7 +734,13 @@ void m_Exception(int err,int ID,const char *file,int line,const char *function,c
     if(err >0)
     {
         morn_exception = ID;
-        if(morn_layer_order<0) exit(0);
+        if(morn_layer_order<0)
+        {
+            #ifdef _MSC_VER
+            system("pause");
+            #endif
+            exit(0);
+        }
         longjmp(*(morn_jump[morn_layer_order]),morn_exception);
     }
 }

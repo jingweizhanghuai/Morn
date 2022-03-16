@@ -23,7 +23,7 @@ struct HandleMornMap
 };
 void endMornMap(struct HandleMornMap *handle)
 {
-    if(handle->list!=NULL) mFree(handle->list); 
+    if(handle->list!=NULL) mFree(handle->list);
 }
 #define HASH_MornMap 0x197e7023
 

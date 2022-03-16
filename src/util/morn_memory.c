@@ -163,6 +163,7 @@ void *m_Malloc(int size)
     
     int idx=morn_alloc_free_size_idx[(size-17)/32];
     size = morn_alloc_free_size[idx];
+    // printf("ssssssssssssssssssssssize=%d\n",size);
     
     if(morn_alloc_free_info==NULL)
     {

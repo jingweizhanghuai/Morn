@@ -96,7 +96,6 @@ void mVectorRelease(MVector *vec);
 }while(0)
     
 #define mVectorExchange(Vec1,Vec2) mObjectExchange(Vec1,Vec2,MVector)
-#define mVectorReset(Vec) mHandleReset(Vec->handle)
 
 typedef struct MMatrix{
     int row;
@@ -110,7 +109,7 @@ typedef struct MMatrix{
 void _PrintMat(char *name,MMatrix *mat);
 #define PrintMat(Mat) _PrintMat(#Mat,Mat)
 
-MMatrix *MatrixCreate(int row,int col,float **data);
+MMatrix * MatrixCreate(int row,int col,float **data);
 #define mMatrixCreate(...) (\
     (VANumber(__VA_ARGS__)==0)?MatrixCreate(DFLT,DFLT,NULL):(\
     (VANumber(__VA_ARGS__)==2)?MatrixCreate(VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL):(\
@@ -120,7 +119,7 @@ MMatrix *MatrixCreate(int row,int col,float **data);
 
 void mMatrixRelease(MMatrix *mat);
 
-void MatrixRedefine(MMatrix *mat,int row,int col,float ** data);
+void MatrixRedefine(MMatrix *mat,int row,int col,float **data);
 #define mMatrixRedefine(Mat,...) do{\
     int N=VANumber(__VA_ARGS__);\
          if(N==2) MatrixRedefine(Mat,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(Mat)->data);\
@@ -135,12 +134,11 @@ void m_UnitMatrix(MMatrix *mat,int size);
 }while(0)
 
 #define mMatrixExchange(Mat1,Mat2) mObjectExchange(Mat1,Mat2,MMatrix)
-#define mMatrixReset(Mat) mHandleReset(Mat->handle)
 void mMATWrite(MFile *file,MMatrix *mat,char *matname);
 void mMATRead(MFile *file,char *matname,MMatrix *mat);
 
 #define mMatrixData(Mat,Data) do{\
-    for(int J=0;J<Mat->row;J++) memcpy(Mat->data[J],Data+J*Mat->col,Mat->col*sizeof(float));\
+    int N=0;for(int J=0;J<Mat->row;J++)for(int I=0;I<Mat->col;I++) Mat->data[J][I]=Data[N++];\
     int Dev=MORN_HOST; mPropertyRead( Mat,"device",&Dev);\
     if(Dev!=MORN_HOST) mPropertyWrite(Mat,"device",&Dev);\
 }while(0)
@@ -149,7 +147,11 @@ void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst);
 float mVectorMul(MVector *vec1,MVector *vec2);
 void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst);
 void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst);
-void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
+void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
+#define mMatrixMul(Mat,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_MatrixMul(Mat,VA0(__VA_ARGS__),(MMatrix *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_MatrixMul(Mat,VA0(__VA_ARGS__),Mat);\
+}while(0)
 
 void m_MatrixTranspose(MMatrix *mat,MMatrix *dst);
 #define mMatrixTranspose(...) do{\
@@ -160,8 +162,12 @@ void m_MatrixTranspose(MMatrix *mat,MMatrix *dst);
 float mMatrixDetValue(MMatrix *mat);
 int mMatrixInverse(MMatrix *mat,MMatrix *inv);
 
-void mMatrixMaxElement(MMatrix *src,float *element,int *x,int *y);
-void mMatrixEigenvalue(MMatrix *src,float eigenvalue[],float *eigenvector[],int *eigennum);
+float m_MatrixMaxElement(MMatrix *src,int *x,int *y);
+float m_MatrixMinElement(MMatrix *src,int *x,int *y);
+#define mMatrixMaxElement(...) ((VANumber(__VA_ARGS__)==1)?m_MatrixMaxElement(VA0(__VA_ARGS__),NULL,NULL):m_MatrixMaxElement(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__)))
+#define mMatrixMinElement(...) ((VANumber(__VA_ARGS__)==1)?m_MatrixMinElement(VA0(__VA_ARGS__),NULL,NULL):m_MatrixMinElement(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__)))
+
+void mMatrixEigenValue(MMatrix *src,MList *eigenvalue,MList *eigenvector);
 
 int mLinearEquation(MMatrix *mat,float *answer);
 

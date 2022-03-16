@@ -8,24 +8,23 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 void writer()
 {
-    char data[64];
-    for(int i=0;i<100;i++)
+    char data[1024];
+    for(int i=0;i<1000;i++)
     {
-        mRandString(data,32,64);
+        mRandString(data,512,1024);
         mProcTopicWrite("mytest",data);
-        printf("%2d: write %s\n",i,data);
-        mSleep(100);
+        printf("%3d:write %s\n",i,data);
+        mSleep(1);
     }
 }
 
 void reader()
 {
     // int wait_time=1000;mPropertyWrite("mytest","wait_time",&wait_time,sizeof(int));
-    for(int i=0;i<100;i++)
+    for(int i=0;i<1000;i++)
     {
         char *p = mProcTopicRead("mytest");
-        if(p!=NULL) printf("%2d: read %s\n",i,p);
-        // else printf("%2d: read error\n",i);
+        if(p!=NULL) printf("%3d: read %s\n",i,p);
     }
 }
 

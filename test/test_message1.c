@@ -5,14 +5,16 @@
 
 void send_test()
 {
-    char data[64];
-    for(int i=0;i<100;i++)
+    mTimerBegin();
+    char data[4096];
+    for(int i=0;i<1000;i++)
     {
-        mRandString(data,16,64);
+        mRandString(data,2048,4096);
         printf("i=%d,data=%s\n",i,data);
         mProcMessageWrite("msgtest",data);
         // mSleep(1);
     }
+    mTimerEnd();
 }
 
 void recive_test()
@@ -20,7 +22,7 @@ void recive_test()
     for(int i=0;;i++)
     {
         char *p=mProcMessageRead("msgtest");
-        if(strcmp(p,"exit")==0) return;
+        if(strcmp(p,"exit")==0) {printf("recive %d message\n");return;}
         printf("i=%d,data=%s\n",i,p);
     }
 }

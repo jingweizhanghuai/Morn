@@ -52,6 +52,7 @@ int mThreadID();
 #define mAtomicCompare(pA,B,C) atomic_compare_exchange_strong((atomic_int *)(pA),(int)(B),(int)(C))
 #endif
 
+
 #define HASH_Thread 0xbc4bf36f
 #if defined __GNUC__
 #define MThread pthread_t
@@ -102,6 +103,7 @@ typedef struct MThreadSignal
     pthread_cond_broadcast(&((Sgn).condition));\
     mThreadLockEnd(Sgn);\
 }while(0)
+
 
 #elif defined _MSC_VER
 #define MThread HANDLE

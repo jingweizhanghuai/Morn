@@ -255,7 +255,7 @@ void m_UnitMatrix(MMatrix *mat,int size)
     else mMatrixRedefine(mat,size,size,mat->data);
        
     int i;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(i=0;i<size;i++)
     {
         memset(mat->data[i],0,size*sizeof(float));
@@ -268,7 +268,6 @@ void m_MatrixTranspose(MMatrix *mat,MMatrix *dst)
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
     
     int i,j;
-    
     int dst_col = mat->row;
     int dst_row = mat->col;
     
@@ -289,7 +288,7 @@ void m_MatrixTranspose(MMatrix *mat,MMatrix *dst)
             d[j][i]=s[i][j];d[j][i+1]=s[i+1][j];d[j][i+2]=s[i+2][j];d[j][i+3]=s[i+3][j];
         }
     }
-    #pragma omp parallel for
+    
     for(j=r;j<dst_row;j+=4)
     {
         for(i=0;i<c;i++)
@@ -338,7 +337,7 @@ void mMatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
     else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
             dst->data[j][i] = mat1->data[j][i]+mat2->data[j][i];
@@ -351,7 +350,7 @@ void mMatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
     else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=0;j<dst->row;j++)
         for(int i=0;i<dst->col;i++)
             dst->data[j][i] = mat1->data[j][i]+mat2->data[j][i];
@@ -592,7 +591,7 @@ void mMatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 }
 */
 
-void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
+void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
     mException((INVALID_MAT(mat1))||(INVALID_MAT(mat2)),EXIT,"invalid input");
     mException((mat1->col != mat2->row),EXIT,"invalid operate");
@@ -604,14 +603,14 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col);
     else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
 
-    int flag = num&0x03; if(flag==0) flag = 4;
+    int flag = num&0x03; //if(flag==0) flag = 4;
     
     int i,j,k;
     float data1,data2,data3,data4;
     float *psrc1,*psrc2,*psrc3,*psrc4;
     float *pdst;
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(j=0;j<dst_row;j++)
     {
         pdst = dst->data[j];
@@ -644,261 +643,170 @@ void mMatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 float mMatrixDetValue(MMatrix *mat)
 {
     int i,j,k;
-    int num;
-    double *buff;
-    double w;
-    double value;
-    double **data;
-    
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
-    num = mat->row;
-    mException((mat->col != num),EXIT,"invalid operate");  
+    int num = mat->row;mException((mat->col != num),EXIT,"invalid operate");
     
-    if(num == 1)
-        return mat->data[0][0];
-    if(num == 2)
-    {
-        value = mat->data[0][0]*mat->data[1][1]-mat->data[1][0]*mat->data[0][1];
-        return value;
-    }   
-    if(num == 3)
-    {
-        value = mat->data[0][0]*(mat->data[1][1]*mat->data[2][2]-mat->data[1][2]*mat->data[2][1])
-              + mat->data[0][1]*(mat->data[1][2]*mat->data[2][0]-mat->data[1][0]*mat->data[2][2])
-              + mat->data[0][2]*(mat->data[1][0]*mat->data[2][1]-mat->data[1][1]*mat->data[2][0]);
-        return value;
-    }
+    if(num == 1) return mat->data[0][0];
+    if(num == 2) return (mat->data[0][0]* mat->data[1][1]-mat->data[1][0]*mat->data[0][1]);
+    if(num == 3) return (mat->data[0][0]*(mat->data[1][1]*mat->data[2][2]-mat->data[1][2]*mat->data[2][1])
+                       + mat->data[0][1]*(mat->data[1][2]*mat->data[2][0]-mat->data[1][0]*mat->data[2][2])
+                       + mat->data[0][2]*(mat->data[1][0]*mat->data[2][1]-mat->data[1][1]*mat->data[2][0]));
     
-    data = (double **)mMalloc((num+1)*sizeof(double *));
-    data[0] = (double *)mMalloc(num*num*sizeof(double));
+    double **data = (double **)mMalloc(num*sizeof(double*));
+    double *pdata = (double  *)mMalloc(num*(num+3)*sizeof(double));
     for(j=0;j<num;j++)
     {
-        for(i=0;i<num;i++)
-            data[j][i] = (double)(mat->data[j][i]);
-        data[j+1] = data[j]+num;
+        data[j]=pdata+(num+3)*j;
+        for(i=0;i<num;i++) data[j][i] = (double)(mat->data[j][i]);
     }
     
-    // data = mMatrixCreate(num,num,NULL);
-    // for(j=0;j<num;j++)
-        // memcpy(data->data[j],mat->data[j],num*sizeof(float));
-    
-    // PrintMat(data);
-
-    // #define DATA(y,x) (data[y][x])
-    
-    value = 1.0;
-    // 高斯消元
+    double value = 1.0;
     for(k=0;k<num;k++)
     {
         if(data[k][k]==0)
         {
             for(j=k+1;j<num;j++)
-                if(data[j][k]!=0)
-                {
-                    buff = data[k];
-                    data[k] = data[j];
-                    data[j] = buff;
-                    
-                    value = 0-value;
-                    break;
-                }
-                
-            // 如果无解则返回0
-            if(j==num)
-            {
-                mFree(data);
-                mFree(data[0]);
-                return 0.0f;
-            }
+                if(data[j][k]!=0) {double *buff = data[k]; data[k] = data[j]; data[j] = buff; value=0-value; break;}
+            if(j==num){mFree(pdata);mFree(data);return 0.0f;}
         }
-        
         value = value * data[k][k];
         
         for(j=k+1;j<num;j++)
-            // if(data[j][k]!=0)
+        {
+            double w = data[j][k]/data[k][k];
+            for(i=k+1;i<num;i+=4)
             {
-                w = data[j][k]/data[k][k];
-                for(i=k+1;i<num;i++)
-                    data[j][i] = data[j][i]-w*data[k][i];                
+                data[j][i  ] -= w*data[k][i  ];
+                data[j][i+1] -= w*data[k][i+1];
+                data[j][i+2] -= w*data[k][i+2];
+                data[j][i+3] -= w*data[k][i+3];
             }
-        
-        // printf("aaaaaaaaaa %d:%f\n",k,data[k][k]);
-        // PrintMat(data);
+        }
     }
 
-    mFree(data[0]);
-    mFree(data);
+    mFree(pdata);mFree(data);
     return (float)value;
 }
 
 int mMatrixInverse(MMatrix *mat,MMatrix *inv)
 {
     int i,j,k;
-    int num;
-    double *buff;
-    double w;
-    double **data;
-    
-    // MMatrix *data;
-    MMatrix *p;
-
     mException((INVALID_MAT(mat)),EXIT,"invalid input");
-    num = mat->row;
-    mException((mat->col != num),EXIT,"invalid operate");
+    int num = mat->row;mException((mat->col != num),EXIT,"invalid operate");
     
-    p = inv;
-    if((INVALID_POINTER(inv))||(inv == mat)) inv = mMatrixCreate(num,num,NULL);
-    else mMatrixRedefine(inv,num,num,inv->data,DFLT);
-    
-    data = (double **)mMalloc((num+1)*sizeof(double *));
-    data[0] = (double *)mMalloc((num+num)*num*sizeof(double));
+    double **data = (double **)mMalloc( num *sizeof(double *));
+    double *pdata = (double * )mMalloc((num+num+3)*num*sizeof(double));
     for(j=0;j<num;j++)
     {
-        for(i=0;i<num;i++)
-            data[j][i] = (double)(mat->data[j][i]);
-        memset(data[j]+num,0,num*sizeof(double));
-        data[j][num+j] = -1.0;
-        data[j+1] = data[j]+num+num;
+        data[j]=pdata+(num+num+3)*j;
+        for(i=0;i<num;i++) data[j][i] = (double)(mat->data[j][i]);
+        memset(data[j]+num,0,(num+3)*sizeof(double));data[j][num+j]=-1.0;
     }
     
-    // data = mMatrixCreate(num,num+num,NULL);
-    // for(j=0;j<num;j++)
-    // {
-        // memcpy(data->data[j],mat->data[j],num*sizeof(float));
-        // memset(data->data[j] + num,0,num*sizeof(float));
-        // data->data[j][num+j] = -1.0;
-    // }
-    
-    // PrintMat(data);
-    // #define DATA(y,x) (data->data[y][x])
-    // 高斯消元
     for(k=0;k<num;k++)
     {
         if(data[k][k]==0)
         {
-            for(j=k+1;j<num;j++)
-                if(data[j][k]!=0)
-                {
-                    buff = data[k];
-                    data[k] = data[j];
-                    data[j] = buff;
-                    break;
-                }
-                
-            // 如果无解则返回0
-            if(j==num)
-            {
-                mFree(data);
-                mFree(data[0]);
-                if(p!=inv)
-                    mMatrixRelease(inv);
-                return 0.0;
-            }
+            for(j=k+1;j<num;j++){if(data[j][k]!=0){double *buff = data[k]; data[k]=data[j]; data[j]=buff; break;}}
+            if(j==num) {mFree(data);mFree(pdata);return 0;}
         }
         
         for(j=k+1;j<num;j++)
-            if(data[j][k]!=0)
-            {
-                w = data[j][k]/data[k][k];
-                // data[j][k]=0;
-                for(i=k+1;i<num+num;i++)
-                    data[j][i] = data[j][i]-w*data[k][i];                
-            }
-        
-        // printf("aaaaaaaaaa %d\n",k);
-        // PrintMat(data);
-    }
-    
-    for(k=0;k<num;k++)
-    {
-        for(j=num-1;j>=0;j--)
         {
-            data[j][num+k] = 0-data[j][num+k];
-            for(i=num-1;i>j;i--)
-                data[j][num+k] = data[j][num+k] - data[j][i]*data[i][num+k];
-            
-            data[j][num+k] = data[j][num+k]/data[j][j];
-            inv->data[j][k] = (float)data[j][num+k];
+            if(data[j][k]==0) continue;
+            double w = data[j][k]/data[k][k];
+            for(i=k+1;i<num+num;i+=4)
+            {
+                data[j][i  ]-=w*data[k][i  ];
+                data[j][i+1]-=w*data[k][i+1];
+                data[j][i+2]-=w*data[k][i+2];
+                data[j][i+3]-=w*data[k][i+3];
+            }
         }
     }
-    mFree(data[0]);
-    mFree(data);
+
+    MMatrix *p = inv;
+    if((INVALID_POINTER(inv))||(inv == mat)) inv = mMatrixCreate(num,num+3,NULL);
+    else mMatrixRedefine(inv,num,num+3,inv->data);
     
-    if(p!=inv)
+    for(j=num-1;j>=0;j--)for(k=num;k<num+num;k+=4)
     {
-        mObjectExchange(inv,mat,MMatrix);
-        mMatrixRelease(inv);
+        data[j][k  ]=0-data[j][k  ];
+        data[j][k+1]=0-data[j][k+1];
+        data[j][k+2]=0-data[j][k+2];
+        data[j][k+3]=0-data[j][k+3];
+        for(i=j+1;i<num;i++)
+        {
+            data[j][k  ]-=data[j][i]*data[i][k  ];
+            data[j][k+1]-=data[j][i]*data[i][k+1];
+            data[j][k+2]-=data[j][i]*data[i][k+2];
+            data[j][k+3]-=data[j][i]*data[i][k+3];
+        }
+        data[j][k  ] /= data[j][j];inv->data[j][k  -num] = (float)data[j][k  ];
+        data[j][k+1] /= data[j][j];inv->data[j][k+1-num] = (float)data[j][k+1];
+        data[j][k+2] /= data[j][j];inv->data[j][k+2-num] = (float)data[j][k+2];
+        data[j][k+3] /= data[j][j];inv->data[j][k+3-num] = (float)data[j][k+3];
     }
     
+    mFree(pdata);mFree(data);
+    if(p!=inv){mObjectExchange(inv,mat,MMatrix);mMatrixRelease(inv);}
+    inv->col=num;
     return 1;
 }
-
 
 int mLinearEquation(MMatrix *mat,float *answer)
 {
     int i,j,k;
-    float *buff;
-    float w;
-    MMatrix *data;
-    
     mException((INVALID_MAT(mat))||(INVALID_POINTER(answer)),EXIT,"invalid input");
-    mException(((mat->col - mat->row)!=1),EXIT,"invalid operate");
-    int num = mat->row;
+    int num = mat->row;mException((mat->col - num!=1),EXIT,"invalid operate");
     
     if(num == 1)
     {
-        mException((mat->data[0][0]==0.0f),EXIT,"invalid input");
+        if(mat->data[0][0]==0.0f) return 0;
         *answer = (0.0f-mat->data[0][1])/mat->data[0][0];
         return 1;
     }
-    
-    data = mMatrixCreate(num,num+1,NULL);
+
+    double **data=(double **)mMalloc(num*sizeof(double *));
+    double *pdata= (double *)mMalloc(num*(num+4)*sizeof(double));
     for(j=0;j<num;j++)
-        memcpy(data->data[j],mat->data[j],(num+1)*sizeof(float));
-        
-    #define DATA(y,x) (data->data[y][x])
-        
-    // 高斯消元
+    {
+        data[j]=pdata+j*(num+4);
+        for(int i=0;i<num+1;i++) data[j][i]=(double)(mat->data[j][i]);
+    }
+    
     for(k=0;k<num;k++)
     {
-        if(DATA(k,k)==0)
+        if(data[k][k]==0)
         {
-            for(j=k+1;j<num;j++)
-                if(DATA(j,k)!=0)
-                {
-                    buff = data->data[k];
-                    data->data[k] = data->data[j];
-                    data->data[j] = buff;
-                    break;
-                }
-                
-            // 如果无解则返回0
-            if(j==num)
-            {
-                mMatrixRelease(data);
-                return 0;
-            }
+            for(j=k+1;j<num;j++) if(data[j][k]!=0) {double *buff = data[k];data[k]=data[j];data[j]=buff; break;}
+            if(j==num) {mFree(pdata);mFree(data);return 0;}
         }
         
         for(j=k+1;j<num;j++)
-            if(DATA(j,k)!=0)
+        {
+            if(data[j][k]==0) continue;
+            double w = data[j][k]/data[k][k];
+            for(i=k+1;i<num+1;i+=4)
             {
-                w = DATA(j,k)/DATA(k,k);
-                DATA(j,k)=0;
-                for(i=k+1;i<num+1;i++)
-                    DATA(j,i) = DATA(j,i)-w*DATA(k,i);                
+                data[j][i  ]-=w*data[k][i  ];
+                data[j][i+1]-=w*data[k][i+1];
+                data[j][i+2]-=w*data[k][i+2];
+                data[j][i+3]-=w*data[k][i+3];
             }
-    }
-        
-    // 答案求解
-    for(j=num-1;j>=0;j--)
-    {
-        answer[j] = 0-DATA(j,num);
-        for(i=num-1;i>j;i--)
-            answer[j] = answer[j] - DATA(j,i)*answer[i];
-        answer[j] = answer[j]/DATA(j,j);
+        }
     }
 
-    mMatrixRelease(data);
-    return 1;        
+    double *a=mMalloc((num+3)*sizeof(double));a[num]=0;a[num+1]=0;a[num+2]=0;
+    for(j=num-1;j>=0;j--)
+    {
+        a[j] = 0-data[j][num];
+        for(i=j+1;i<num;i+=4)
+            a[j]-= data[j][i]*a[i]+data[j][i+1]*a[i+1]+data[j][i+2]*a[i+2]+data[j][i+3]*a[i+3];
+        a[j] = a[j]/data[j][j];
+        answer[j]=a[j];
+    }
+
+    mFree(data);mFree(pdata);mFree(a);
+    return 1;
 }

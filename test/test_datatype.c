@@ -6,7 +6,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 // build_mingw: gcc test_datatype.c -o test_datatype.exe -lmorn
 #include "morn_util.h"
 
-int test1()
+// #define type_check(Data) (_Generic((Data),int:"int",float:"float",default:"unknown"))
+// int V;
+// #define type_check(Data) (V=Data,memcmp(&Data,&V,sizeof(int))?"int":"float")
+// int main()
+// {
+//     int   a;printf("a type is %s\n",type_check(a));
+//     float b;printf("b type is %s\n",type_check(b));
+//     return 0;
+// }
+
+int main1()
 {
     char *data_type[25]={"unsigned char","signed char","unsigned short","short","unsigned int","int",
                          "unsigned long long","signed long long","float","double",
@@ -72,16 +82,5 @@ int test1()
    unsigned long long *b25=NULL;printf("b25 type is %s\n",data_type[mDataType(b25)]);
              intptr_t *b26=NULL;printf("b26 type is %s\n",data_type[mDataType(b26)]);
     
-    return 0;
-}
-
-int main()
-{
-    int a=1;
-    float b=2;
-    double c=3;
-    char d=4;
-    short e=5;
-    mDebug(a,b,c,d,e);
     return 0;
 }

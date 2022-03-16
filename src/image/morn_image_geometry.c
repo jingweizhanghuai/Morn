@@ -338,10 +338,10 @@ void mCurve(MImageCurve *curve,float i1,float i2,int type,float (*func)(float,fl
     }
 }
 
-float mCurvePoint(MImageCurve *curve,float x)
-{
-    return (curve->curve)(x,curve->para);
-}
+// float mCurvePoint(MImageCurve *curve,float x)
+// {
+//     return (curve->curve)(x,curve->para);
+// }
         
 
 void mPoissonDiskPoint(MList *list,float r,float x1,float x2,float y1,float y2)

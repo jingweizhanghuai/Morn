@@ -73,4 +73,68 @@ void mCurveInterpolation(MList *point,MList *curve_list)
 }
 
 
+void PointInterpolation(MList *curve_list,MList *list,float k1,float k2)
+{
+    int n=3*list->num-2;
+    printf("n=%d\n",n);
+    MMatrix *matrix=mMatrixCreate(n,n+1);
+    float **mat=matrix->data;for(int j=0;j<n;j++) memset(mat[j],9,(n+1)*sizeof(float));
+    MImagePoint **pt=(MImagePoint **)(list->data);
+    float x11,x12,x13,y1,x21,x22,x23,y2;
+
+    int j;
+    x11=pt[0]->x;x12=x11*x11;x13=x12*x11;y1=pt[0]->y;pt++;
+    printf("x11=%f,y1=%f\n",x11,y1);
+    x21=pt[0]->x;x22=x21*x21;x23=x22*x21;y2=pt[0]->y;pt++;
+    printf("x21=%f,y2=%f\n",x21,y2);
+    mat[0][0]=3*x12;mat[0][1]=2*x11;mat[0][2]=  1;            mat[0][n]=0-k1;
+    mat[1][0]=  x13;mat[1][1]=  x12;mat[1][2]=x11;mat[1][3]=1;mat[1][n]=0-y1;
+    mat[2][0]=  x23;mat[2][1]=  x22;mat[2][2]=x21;mat[2][3]=1;mat[2][n]=0-y2;
+    mat[3][0]=3*x22;mat[3][1]=2*x21;mat[3][2]=  1;            mat[3][4]=0-2*x21;mat[3][5]=-1;
+    int m=4;
+    for(j=4;j<n-3;j++)
+    {
+        x11=x21;x12=x22;y1=y2;
+        x21=pt[0]->x;x22=x21*x21;y2=pt[0]->y;pt++;
+        printf("j=%d\n",j);
+        printf("x21=%f,y2=%f\n",x21,y2);
+            mat[j][m]=x12;mat[j][m+1]=x11;mat[j][m+2]=1;mat[j][n]=0-y1;
+        j++;mat[j][m]=x22;mat[j][m+1]=x21;mat[j][m+2]=1;mat[j][n]=0-y2;
+        j++;mat[j][m]=2*x21;mat[j][m+1]=1;mat[j][m+3]=0-2*x21;mat[j][m+4]=-1;
+        m=m+3;
+    }
+    x11=x21;x12=x22;y1=y2;
+    x21=pt[0]->x;x22=x21*x21;y2=pt[0]->y;pt++;
+    printf("j=%d\n",j);
+        printf("x21=%f,y2=%f\n",x21,y2);
+        mat[j][m]=x12;mat[j][m+1]=x11;mat[j][m+2]=1;mat[j][n]=0-y1;
+    j++;mat[j][m]=x22;mat[j][m+1]=x21;mat[j][m+2]=1;mat[j][n]=0-y2;
+    j++;mat[j][m]=2*x21;mat[j][m+1]=1;mat[j][n]=0-k2;
+
+    PrintMat(matrix);
+
+    float *a=mMalloc(n*sizeof(float));
+    mLinearEquation(matrix,a);
+    printf("y=%fx3+%fx2+%fx1+%f\n",a[0],a[1],a[2],a[3]);
+    printf("y=%fx2+%fx1+%f\n",a[4],a[5],a[6]);
+
+    mListClear(curve_list);
+    MImageCurve curve;
+    pt=(MImagePoint **)(list->data);
+    float para[4];para[3]=a[0];para[2]=a[1];para[1]=a[2];para[0]=a[3];
+    mCurve(&curve,pt[0]->x,pt[1]->x,DFLT,curve_interpolation,para);
+    mListWrite(curve_list,DFLT,&curve,sizeof(MImageCurve));
+    m=4;para[3]=0;
+    for(int i=1;i<list->num-1;i++)
+    {
+        para[2]=a[m];para[1]=a[m+1];para[0]=a[m+2];m+=3;
+        mCurve(&curve,pt[i]->x,pt[i+1]->x,DFLT,curve_interpolation,para);
+        mListWrite(curve_list,DFLT,&curve,sizeof(MImageCurve));
+    }
+
+    mFree(a);
+    mMatrixRelease(matrix);
+}
+
+
 
