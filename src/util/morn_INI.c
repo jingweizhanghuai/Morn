@@ -55,7 +55,7 @@ void mINILoad(MSheet *sheet,const char *ininame,...)
     endINI(handle);
     
     FILE *f = fopen(filename,"rb");
-    mException((f == NULL),EXIT,"file cannot open");
+    mException((f == NULL),EXIT,"file %s cannot open",filename);
     int filesize=fsize(f);
     handle->data = mMalloc(filesize+2);
     fread(handle->data,1,filesize,f);

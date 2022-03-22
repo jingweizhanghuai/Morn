@@ -252,6 +252,8 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *size);
     NULL\
 )
 
+void *mProcVariate(const char *name,int size);
+
 int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);
 void *mQueueRead(MList *queue,void *data,int *size);

@@ -505,6 +505,7 @@ void *m_ProcMessageWrite(const char *dstname,void *data,int write_size)
     return (info->ptr+locate);
 }
 
+
 void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
 {
     uint64_t t0=0;
@@ -585,4 +586,118 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
     
     return (info->ptr+locate);
 }
+
+struct HandleProcVariate
+{
+    char filename[256];
+    
+    int ID;
+    #if defined(_WIN64)||defined(_WIN32)
+    HANDLE file;
+    #else
+    int file;
+    #endif
+    
+    int filesize;
+    
+    uint8_t *buff;
+    MMap *map;
+};
+void endProcVariate(struct HandleProcVariate *handle)
+{
+    if(handle->map!=NULL) mMapRelease(handle->map);
+    
+    if(handle->buff==NULL) return;
+    m_Munmap(handle->buff,4096);
+    m_Close(handle->file);
+}
+#define HASH_ProcVariate 0x45828c6f
+void *mProcVariate(const char *name,int size)
+{
+     mException((name==NULL)||(size<=0)||(size>128),EXIT,"invalid input");
+
+    MHandle *hdl = mHandle("ProcVariate",ProcVariate);
+    struct HandleProcVariate *handle = (struct HandleProcVariate *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        mPropertyFunction("ProcVariate","exit",mornObjectRemove,"ProcVariate");
+        
+        if(morn_message_file[0]==0)
+        {
+            #if defined(_WIN64)||defined(_WIN32)
+            sprintf(morn_message_file,"%s/morn_message",getenv("TEMP"));
+            if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file);
+            #else
+            sprintf(morn_message_file,"/tmp/morn_message");
+            if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file,0777);
+            #endif
+        }
+        sprintf(handle->filename,"%s/.morn_variate.bin",morn_message_file);
+
+        int flag = access(handle->filename,F_OK);
+        handle->file = m_Open(handle->filename);
+        if(flag>=0)
+        {
+            mException(m_Fsize(handle->file)<4096,EXIT,"invalid map file %s",handle->filename);
+        }
+        else
+        {
+            int n=0;
+            m_Write(handle->file,4092,&n,sizeof(int));
+            m_Write(handle->file,0   ,&n,sizeof(int));
+            m_Write(handle->file,4   ,&n,sizeof(int));
+        }
+        m_Mmap(handle->file,handle->buff,4096);
+
+        if(handle->map==NULL) handle->map = mMapCreate();
+        hdl->valid = 1;
+    }
+
+    uint8_t *pvalue=NULL;
+    mMapRead(handle->map,name,DFLT,&pvalue,NULL);
+    // printf("name=%s,pvalue=%p\n",name,pvalue);
+    if(pvalue) return pvalue;
+
+    uint16_t keysize,valuesize;
+
+    m_Lock(handle->file);
+    int filesize = *((int *)(handle->buff));
+    uint8_t *p=handle->buff+8+handle->filesize;
+    
+    while(handle->filesize<filesize)
+    {
+        keysize  =*((uint16_t *)(p  ));
+        valuesize=*((uint16_t *)(p+2));
+        char *key=(char *)(p+4);
+        pvalue=p+4+keysize;
+        mMapWrite(handle->map,key,DFLT,&pvalue,sizeof(void *));
+
+        handle->filesize += 4+keysize+valuesize;
+        p=handle->buff+8+handle->filesize;
+
+        if(strcmp(name,key)==0) {m_Unlock(handle->file);return pvalue;}
+    }
+    
+    keysize = (strlen(name)+3)/4;
+    if(keysize%2==0) keysize+=1;
+    keysize=keysize*4;
+    mException(keysize>128,EXIT,"invalid input");
+
+    valuesize = (size+7)/8;
+    valuesize = valuesize*8;
+
+    *((uint16_t *)(p  ))=keysize;
+    *((uint16_t *)(p+2))=valuesize;
+    strcpy((char *)(p+4),name);
+    pvalue = p+4+keysize;
+
+    handle->filesize += 4+keysize+valuesize;
+    *((int *)(handle->buff)) =handle->filesize;
+
+    m_Unlock(handle->file);
+    
+    mMapWrite(handle->map,p+4,DFLT,&pvalue,sizeof(void *));
+    return pvalue;
+}
+
 

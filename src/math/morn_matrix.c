@@ -603,7 +603,7 @@ void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col);
     else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
 
-    int flag = num&0x03; //if(flag==0) flag = 4;
+    int flag = num&0x03; if(flag==0) flag = 4;
     
     int i,j,k;
     float data1,data2,data3,data4;

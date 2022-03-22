@@ -578,14 +578,14 @@ __attribute__((constructor)) void mMornBegin()
 {
     if(morn_object==NULL) morn_object=mObjectCreate();
     if(morn_object_map==NULL) morn_object_map=mChainCreate();
-    // printf("before main\n");
-} 
+    // printf("before mai222n\n");
+}
 
 __attribute__((destructor)) void mMornEnd()
 {
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
-    // printf("aaaaaaaaaaa\n");
+    // printf("aaaaaaaaaaa1111\n");
     
     if(morn_object_map!=NULL)
     {

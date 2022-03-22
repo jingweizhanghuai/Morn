@@ -2,12 +2,6 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-
 #include "morn_util.h"
 
 int mStringRegular(const char *str1,const char *str2)
@@ -258,7 +252,7 @@ char *m_StringArgument(int argc,char **argv,const char *flag,const char *format,
 }
 
 
-static int morn_atoi[9][10]={
+static int morn_atoi[8][10]={
     {0,100000000,200000000,300000000,400000000,500000000,600000000,700000000,800000000,900000000},
     {0, 10000000, 20000000, 30000000, 40000000, 50000000, 60000000, 70000000, 80000000, 90000000},
     {0,  1000000,  2000000,  3000000,  4000000,  5000000,  6000000,  7000000,  8000000,  9000000},
@@ -266,8 +260,7 @@ static int morn_atoi[9][10]={
     {0,    10000,    20000,    30000,    40000,    50000,    60000,    70000,    80000,    90000},
     {0,     1000,     2000,     3000,     4000,     5000,     6000,     7000,     8000,     9000},
     {0,      100,      200,      300,      400,      500,      600,      700,      800,      900},
-    {0,       10,       20,       30,       40,       50,       60,       70,       80,       90},
-    {0,        1,        2,        3,        4,        5,        6,        7,        8,        9}
+    {0,       10,       20,       30,       40,       50,       60,       70,       80,       90}
 };
 
 int mAtoi(char *str)
@@ -276,17 +269,31 @@ int mAtoi(char *str)
     int flag=0;unsigned char *s=(unsigned char *)str;
          if(*str=='-') {flag=1;s++;}
     else if(*str=='+')         s++;
-    int data=morn_atoi[0][s[0]-'0'];if((s[1]<'0')||(s[1]>'9')) {data=data/100000000;return (flag)?(0-data):data;}
-    data +=  morn_atoi[1][s[1]-'0'];if((s[2]<'0')||(s[2]>'9')) {data=data/10000000; return (flag)?(0-data):data;}
-    data +=  morn_atoi[2][s[2]-'0'];if((s[3]<'0')||(s[3]>'9')) {data=data/1000000;  return (flag)?(0-data):data;}
-    data +=  morn_atoi[3][s[3]-'0'];if((s[4]<'0')||(s[4]>'9')) {data=data/100000;   return (flag)?(0-data):data;}
-    data +=  morn_atoi[4][s[4]-'0'];if((s[5]<'0')||(s[5]>'9')) {data=data/10000;    return (flag)?(0-data):data;}
-    data +=  morn_atoi[5][s[5]-'0'];if((s[6]<'0')||(s[6]>'9')) {data=data/1000;     return (flag)?(0-data):data;}
-    data +=  morn_atoi[6][s[6]-'0'];if((s[7]<'0')||(s[7]>'9')) {data=data/100;      return (flag)?(0-data):data;}
-    data +=  morn_atoi[7][s[7]-'0'];if((s[8]<'0')||(s[8]>'9')) {data=data/10;       return (flag)?(0-data):data;}
-    data +=               s[8]-'0' ;if((s[9]<'0')||(s[9]>'9')) {                    return (flag)?(0-data):data;}
-    data=data*10+s[9]-'0';return (flag)?(0-data):data;
+    uint32_t i;int data;
+    i=s[0]-'0';if(i> 9) {                    return 0;                   } data =morn_atoi[0][i];
+    i=s[1]-'0';if(i> 9) {data=data/100000000;return (flag)?(0-data):data;} data+=morn_atoi[1][i];
+    i=s[2]-'0';if(i> 9) {data=data/10000000 ;return (flag)?(0-data):data;} data+=morn_atoi[2][i];
+    i=s[3]-'0';if(i> 9) {data=data/1000000  ;return (flag)?(0-data):data;} data+=morn_atoi[3][i];
+    i=s[4]-'0';if(i> 9) {data=data/100000   ;return (flag)?(0-data):data;} data+=morn_atoi[4][i];
+    i=s[5]-'0';if(i> 9) {data=data/10000    ;return (flag)?(0-data):data;} data+=morn_atoi[5][i];
+    i=s[6]-'0';if(i> 9) {data=data/1000     ;return (flag)?(0-data):data;} data+=morn_atoi[6][i];
+    i=s[7]-'0';if(i> 9) {data=data/100      ;return (flag)?(0-data):data;} data+=morn_atoi[7][i];
+    i=s[8]-'0';if(i> 9) {data=data/10       ;return (flag)?(0-data):data;} data+=             i ;
+    i=s[9]-'0';if(i<=9) {data=data*10+i;}    return (flag)?(0-data):data;
 }
+
+
+    // if((s[1]<'0')||(s[1]>'9')) {data=data/100000000;return (flag)?(0-data):data;}
+    // data +=  morn_atoi[1][s[1]-'0'];if((s[2]<'0')||(s[2]>'9')) {data=data/10000000; return (flag)?(0-data):data;}
+    // data +=  morn_atoi[2][s[2]-'0'];if((s[3]<'0')||(s[3]>'9')) {data=data/1000000;  return (flag)?(0-data):data;}
+    // data +=  morn_atoi[3][s[3]-'0'];if((s[4]<'0')||(s[4]>'9')) {data=data/100000;   return (flag)?(0-data):data;}
+    // data +=  morn_atoi[4][s[4]-'0'];if((s[5]<'0')||(s[5]>'9')) {data=data/10000;    return (flag)?(0-data):data;}
+    // data +=  morn_atoi[5][s[5]-'0'];if((s[6]<'0')||(s[6]>'9')) {data=data/1000;     return (flag)?(0-data):data;}
+    // data +=  morn_atoi[6][s[6]-'0'];if((s[7]<'0')||(s[7]>'9')) {data=data/100;      return (flag)?(0-data):data;}
+    // data +=  morn_atoi[7][s[7]-'0'];if((s[8]<'0')||(s[8]>'9')) {data=data/10;       return (flag)?(0-data):data;}
+    // data +=               s[8]-'0' ;if((s[9]<'0')||(s[9]>'9')) {                    return (flag)?(0-data):data;}
+//     data=data*10+s[9]-'0';return (flag)?(0-data):data;
+// }
 
 // int mAtoi(char *str)
 // {
@@ -318,7 +325,7 @@ static double morn_atof[17][10]={
     {0.0,0.0000000000000100,0.0000000000000200,0.0000000000000300,0.0000000000000400,0.0000000000000500,0.0000000000000600,0.0000000000000700,0.0000000000000800,0.0000000000000900},
     {0.0,0.0000000000000010,0.0000000000000020,0.0000000000000030,0.0000000000000040,0.0000000000000050,0.0000000000000060,0.0000000000000070,0.0000000000000080,0.0000000000000090},
     {0.0,0.0000000000000001,0.0000000000000002,0.0000000000000003,0.0000000000000004,0.0000000000000005,0.0000000000000006,0.0000000000000007,0.0000000000000008,0.0000000000000009},
-    {0.0,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000},
+    {0.0,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000,0.0000000000000000}
 };
 
 static double morn_atof_k[20]={1.0,0.1,0.01,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001,0.000000001,0.0000000001,0.00000000001,0.000000000001,0.0000000000001,0.00000000000001,0.000000000000001,0.0000000000000001,0.00000000000000001,0.000000000000000001,0.0000000000000000001};
