@@ -69,6 +69,11 @@ void test_atof()
 
 int main()
 {
+    char a=10;
+    char b=4;
+    uint32_t c=b-a;
+    printf("c=%d,c<0=%d\n",c,c<0);
+    
     test_atoi();
     test_atof();
     return 0;

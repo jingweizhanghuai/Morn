@@ -269,44 +269,17 @@ int mAtoi(char *str)
     int flag=0;unsigned char *s=(unsigned char *)str;
          if(*str=='-') {flag=1;s++;}
     else if(*str=='+')         s++;
-    uint32_t i;int data;
-    i=s[0]-'0';if(i> 9) {                    return 0;                   } data =morn_atoi[0][i];
-    i=s[1]-'0';if(i> 9) {data=data/100000000;return (flag)?(0-data):data;} data+=morn_atoi[1][i];
-    i=s[2]-'0';if(i> 9) {data=data/10000000 ;return (flag)?(0-data):data;} data+=morn_atoi[2][i];
-    i=s[3]-'0';if(i> 9) {data=data/1000000  ;return (flag)?(0-data):data;} data+=morn_atoi[3][i];
-    i=s[4]-'0';if(i> 9) {data=data/100000   ;return (flag)?(0-data):data;} data+=morn_atoi[4][i];
-    i=s[5]-'0';if(i> 9) {data=data/10000    ;return (flag)?(0-data):data;} data+=morn_atoi[5][i];
-    i=s[6]-'0';if(i> 9) {data=data/1000     ;return (flag)?(0-data):data;} data+=morn_atoi[6][i];
-    i=s[7]-'0';if(i> 9) {data=data/100      ;return (flag)?(0-data):data;} data+=morn_atoi[7][i];
-    i=s[8]-'0';if(i> 9) {data=data/10       ;return (flag)?(0-data):data;} data+=             i ;
-    i=s[9]-'0';if(i<=9) {data=data*10+i;}    return (flag)?(0-data):data;
+    int data=morn_atoi[0][s[0]-'0'];if((s[1]<'0')||(s[1]>'9')) {data=data/100000000;return (flag)?(0-data):data;}
+    data +=  morn_atoi[1][s[1]-'0'];if((s[2]<'0')||(s[2]>'9')) {data=data/10000000; return (flag)?(0-data):data;}
+    data +=  morn_atoi[2][s[2]-'0'];if((s[3]<'0')||(s[3]>'9')) {data=data/1000000;  return (flag)?(0-data):data;}
+    data +=  morn_atoi[3][s[3]-'0'];if((s[4]<'0')||(s[4]>'9')) {data=data/100000;   return (flag)?(0-data):data;}
+    data +=  morn_atoi[4][s[4]-'0'];if((s[5]<'0')||(s[5]>'9')) {data=data/10000;    return (flag)?(0-data):data;}
+    data +=  morn_atoi[5][s[5]-'0'];if((s[6]<'0')||(s[6]>'9')) {data=data/1000;     return (flag)?(0-data):data;}
+    data +=  morn_atoi[6][s[6]-'0'];if((s[7]<'0')||(s[7]>'9')) {data=data/100;      return (flag)?(0-data):data;}
+    data +=  morn_atoi[7][s[7]-'0'];if((s[8]<'0')||(s[8]>'9')) {data=data/10;       return (flag)?(0-data):data;}
+    data +=               s[8]-'0' ;if((s[9]<'0')||(s[9]>'9')) {                    return (flag)?(0-data):data;}
+    data=data*10+s[9]-'0';return (flag)?(0-data):data;
 }
-
-
-    // if((s[1]<'0')||(s[1]>'9')) {data=data/100000000;return (flag)?(0-data):data;}
-    // data +=  morn_atoi[1][s[1]-'0'];if((s[2]<'0')||(s[2]>'9')) {data=data/10000000; return (flag)?(0-data):data;}
-    // data +=  morn_atoi[2][s[2]-'0'];if((s[3]<'0')||(s[3]>'9')) {data=data/1000000;  return (flag)?(0-data):data;}
-    // data +=  morn_atoi[3][s[3]-'0'];if((s[4]<'0')||(s[4]>'9')) {data=data/100000;   return (flag)?(0-data):data;}
-    // data +=  morn_atoi[4][s[4]-'0'];if((s[5]<'0')||(s[5]>'9')) {data=data/10000;    return (flag)?(0-data):data;}
-    // data +=  morn_atoi[5][s[5]-'0'];if((s[6]<'0')||(s[6]>'9')) {data=data/1000;     return (flag)?(0-data):data;}
-    // data +=  morn_atoi[6][s[6]-'0'];if((s[7]<'0')||(s[7]>'9')) {data=data/100;      return (flag)?(0-data):data;}
-    // data +=  morn_atoi[7][s[7]-'0'];if((s[8]<'0')||(s[8]>'9')) {data=data/10;       return (flag)?(0-data):data;}
-    // data +=               s[8]-'0' ;if((s[9]<'0')||(s[9]>'9')) {                    return (flag)?(0-data):data;}
-//     data=data*10+s[9]-'0';return (flag)?(0-data):data;
-// }
-
-// int mAtoi(char *str)
-// {
-//     while(*str==' ') str++;
-//     int flag=0;
-//          if(*str=='-') {flag=1;str++;}
-//     else if(*str=='+')         str++;
-//     int n;for(n=0;(str[n]>='0')&&(str[n]<='9');n++);
-//     unsigned char *s=(unsigned char *)(str+n-9);
-//     int data=s[8]-'0';
-//     for(int i=7;i>8-n;i--) data += morn_atoi[i][s[i]-'0'];
-//     return (flag)?(0-data):data;
-// }
 
 static double morn_atof[17][10]={
     {0.0,0.1000000000000000,0.2000000000000000,0.3000000000000000,0.4000000000000000,0.5000000000000000,0.6000000000000000,0.7000000000000000,0.8000000000000000,0.9000000000000000},
