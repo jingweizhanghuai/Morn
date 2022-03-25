@@ -47,13 +47,15 @@ double GetValue(char **ptr);
 
 double Calculate(char **ptr)
 {
-    MList *list = mListCreate(0,NULL);
+    MArray *array = mArrayCreate(sizeof(struct CalculateInfo));
+    // std::vector<struct CalculateInfo> vec;
     
     char *p = *ptr;
     struct CalculateInfo info;
     info.type=(*p=='-')?(p++,'-'):'+';
     info.value = GetValue(&p);
-    mListWrite(list,DFLT,&info,sizeof(struct CalculateInfo));
+    mArrayWrite(array,&info);
+    // vec.push_back(info);
     
     while((*p!=0)&&(*p!=')')&&(*p!=','))
     {
@@ -61,42 +63,47 @@ double Calculate(char **ptr)
         info.type=*p; p++;
         *ptr=p;info.value=GetValue(ptr);if(mIsNan(info.value)) return NAN;
         p=*ptr;
-        mListWrite(list,DFLT,&info,sizeof(struct CalculateInfo));
+        mArrayWrite(array,&info);
+        // vec.push_back(info);
     }
+    struct CalculateInfo *adata = array->data;
+    // struct CalculateInfo *adata = vec.data();
+    int num = array->num;
+    // int num = vec.size();
     
-    for(int i=list->num-1;i>0;i--)
+    for(int i=num-1;i>0;i--)
     {
-        struct CalculateInfo *cal = (struct CalculateInfo *)(list->data[i  ]);
-        struct CalculateInfo *pre = (struct CalculateInfo *)(list->data[i-1]);
+        struct CalculateInfo *cal = adata+i;
+        struct CalculateInfo *pre = adata+i-1;
         if(cal->type=='^') {cal->type='=';cal->value=pow(pre->value,cal->value);pre->value=cal->value;}
     }
     
-    for(int i=1;i<list->num;i++)
+    for(int i=1;i<num;i++)
     {
-        struct CalculateInfo *cal = (struct CalculateInfo *)(list->data[i  ]);
-        struct CalculateInfo *pre = (struct CalculateInfo *)(list->data[i-1]);
+        struct CalculateInfo *cal = adata+i;
+        struct CalculateInfo *pre = adata+i-1;
              if(cal->type=='=') {cal->value= pre->value;}
         else if(cal->type=='*') {cal->type='=';cal->value=pre->value*cal->value;}
         else if(cal->type=='/') {cal->type='=';cal->value=pre->value/cal->value;}
         else if(cal->type=='%') {cal->type='=';cal->value=fmod(pre->value,cal->value);}
     }
     
-    for(int i=list->num-1;i>0;i--)
+    for(int i=num-1;i>0;i--)
     {
-        struct CalculateInfo *cal = (struct CalculateInfo *)(list->data[i  ]);
-        struct CalculateInfo *pre = (struct CalculateInfo *)(list->data[i-1]);
+        struct CalculateInfo *cal = adata+i;
+        struct CalculateInfo *pre = adata+i-1;
         if(cal->type=='=') {pre->value=cal->value;}
     }
     
     double rst=0;
-    for(int i=0;i<list->num;i++)
+    for(int i=0;i<num;i++)
     {
-        struct CalculateInfo *cal = (struct CalculateInfo *)(list->data[i]);
+        struct CalculateInfo *cal = adata+i;
              if(cal->type=='+') rst+=cal->value;
         else if(cal->type=='-') rst-=cal->value;
     }
     
-    mListRelease(list);
+    mArrayRelease(array);
     *ptr = p;
     
     return rst;

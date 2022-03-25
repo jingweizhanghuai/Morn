@@ -590,6 +590,51 @@ void mMatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     }
 }
 */
+struct HandleMatrixMul
+{
+    MMatrix *buff;
+};
+void endMatrixMul(struct HandleMatrixMul *handle)
+{
+    if(handle->buff!=NULL) mMatrixRelease(handle->buff);
+}
+#define HASH_MatrixMul 0x38b53ca
+void m_MatrixMul0(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
+{
+    int num = mat1->col;
+    int dst_col = mat2->col;
+    int dst_row = mat1->row;
+
+    int flag = num&0x03; if(flag==0) flag = 4;
+    
+    int i,j,k;
+    float data1,data2,data3,data4;
+    float *psrc1,*psrc2,*psrc3,*psrc4;
+    float *pdst;
+    // float data[4];
+
+    for(j=0;j<dst_row;j++)
+    {
+        pdst = dst->data[j];
+        data1 = mat1->data[j][0]; psrc1 = mat2->data[0];
+        for(k=0;k<dst_col;k++) pdst[k] = data1*psrc1[k];
+        for(i=1;i<flag;i++)
+        {
+            data1 = mat1->data[j][i]; psrc1 = mat2->data[i];
+            for(k=0;k<dst_col;k++) pdst[k]+= data1*psrc1[k];
+        }
+        
+        for(i=flag;i<num;i=i+4)
+        {
+            data1 = mat1->data[j][i  ]; psrc1 = mat2->data[i  ];
+            data2 = mat1->data[j][i+1]; psrc2 = mat2->data[i+1];
+            data3 = mat1->data[j][i+2]; psrc3 = mat2->data[i+2];
+            data4 = mat1->data[j][i+3]; psrc4 = mat2->data[i+3];
+            for(k=0;k<dst_col;k++)
+                pdst[k] += data1*psrc1[k]+data2*psrc2[k]+data3*psrc3[k]+data4*psrc4[k];
+        }
+    }
+}
 
 void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
@@ -603,6 +648,8 @@ void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     if((INVALID_POINTER(dst))||(dst==mat1)||(dst==mat2)) dst = mMatrixCreate(dst_row,dst_col);
     else mMatrixRedefine(dst,dst_row,dst_col,dst->data);
 
+    if(dst_row<64) {m_MatrixMul0(mat1,mat2,dst);goto MatrixMul_end;}
+
     int flag = num&0x03; if(flag==0) flag = 4;
     
     int i,j,k;
@@ -610,7 +657,7 @@ void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
     float *psrc1,*psrc2,*psrc3,*psrc4;
     float *pdst;
 
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(j=0;j<dst_row;j++)
     {
         pdst = dst->data[j];
@@ -633,6 +680,7 @@ void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
         }
     }
 
+    MatrixMul_end:
     if(p != dst)
     {
         if(p == mat2) {mObjectExchange(mat2,dst,MMatrix); mMatrixRelease(dst);}
