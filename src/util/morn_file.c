@@ -15,7 +15,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 struct Chunk
 {
     uint32_t ID;
-    int32_t  size;
+    int32_t size;
     int locate;
 };
 struct HandleMORNFile

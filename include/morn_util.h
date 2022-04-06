@@ -526,7 +526,7 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
     int VAN = VANumber(__VA_ARGS__);\
          if(VAN==1) ArrayRedefine(Array,VA0(__VA_ARGS__),DFLT,NULL);\
     else if(VAN==2) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL);\
-    else if(VAN==3) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
+    else if(VAN==3) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)));\
     else mException(1,EXIT,"invalid input with argument number");\
 }while(0)
 void mArrayAppend(MArray *arr,int n);
@@ -535,7 +535,11 @@ void mArrayElementDelete(MArray *array,int n);
 // void ArrayExpand(MArray *array,int n);
 void *m_ArrayPushBack(MArray *arr,void *data);
 void *m_ArrayWrite(MArray *arr,intptr_t n,void *data);
-#define mArrayWrite(Array,...) ((VANumber(__VA_ARGS__)==1)?m_ArrayPushBack(Array,(void *)_VA0(__VA_ARGS__)):m_ArrayWrite(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__)))
+#define mArrayWrite(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ArrayPushBack((MArray *)_VA0(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_ArrayPushBack((MArray *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==3)?m_ArrayWrite(   (MArray *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__)):NULL\
+)
 
 void *m_ArrayRead(MArray *array,int n,void *data);
 #define mArrayRead(Array,...) (\

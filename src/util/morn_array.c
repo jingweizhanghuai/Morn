@@ -232,7 +232,8 @@ void *m_ArrayPushBack(MArray *arr,void *data)
         array->capacity=(handle->num-array->num)&0x0FFFF;
     }
     S8 *p=(S8 *)(array->dataS8+array->num*es);
-         if(es==4) *((S32 *)p) = *((S32 *)data);
+    if(data==NULL) NULL;
+    else if(es==4) *((S32 *)p) = *((S32 *)data);
     else if(es==8) *((S64 *)p) = *((S64 *)data);
     else if(es==1) *(       p) = *((S8  *)data);
     else if(es==2) *((S16 *)p) = *((S16 *)data);
@@ -247,7 +248,8 @@ void *m_ArrayWrite(MArray *arr,intptr_t n,void *data)
     if(n<0) return m_ArrayPushBack(arr,data);
     int es=arr->element_size;
     S8 *p=(S8 *)(arr->dataS8+n*es);
-         if(es==4) *((S32 *)p) = *((S32 *)data);
+    if(data==NULL) NULL;
+    else if(es==4) *((S32 *)p) = *((S32 *)data);
     else if(es==8) *((S64 *)p) = *((S64 *)data);
     else if(es==1) *(       p) = *((S8  *)data);
     else if(es==2) *((S16 *)p) = *((S16 *)data);
