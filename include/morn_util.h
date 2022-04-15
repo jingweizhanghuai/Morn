@@ -864,8 +864,8 @@ void mMapRelease(MMap *map);
 void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size);
 void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int value_size);
 #define mMapWrite(Map,Key,...) (\
-    (VANumber(__VA_ARGS__)==1)?m_MapWrite(Map,(const void *)Key,DFLT,(const void *)((intptr_t)_VA0(__VA_ARGS__,DFLT)),DFLT):\
-    (VANumber(__VA_ARGS__)==3)?m_MapWrite(Map,(const void *)Key,(intptr_t)_VA0(__VA_ARGS__,DFLT),(const void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==1)?m_MapWrite(Map,(const void *)(Key),DFLT,(const void *)((intptr_t)_VA0(__VA_ARGS__,DFLT)),DFLT):\
+    (VANumber(__VA_ARGS__)==3)?m_MapWrite(Map,(const void *)(Key),(intptr_t)_VA0(__VA_ARGS__,DFLT),(const void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__)):\
     NULL\
 )
 void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int *value_size);

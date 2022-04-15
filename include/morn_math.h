@@ -46,15 +46,24 @@ int GreatestCommonDivisor(int n,...);
 int LowestCommonMultiple(int n,...);
 #define mLCM(...) LowestCommonMultiple(VANumber(__VA_ARGS__),__VA_ARGS__)
 
-static inline float mSup() {float a=0.0f;return  1.0f/a;}
-static inline float mInf() {float a=0.0f;return -1.0f/a;}
+// static inline float mSup() {float a=0.0f;return  1.0f/a;}
+// static inline float mInf() {float a=0.0f;return -1.0f/a;}
+// #define mIsSup(A) (isinf(A)&&(A>0))
+// #define mIsInf(A) (isinf(A)&&(A<0))
+
+extern char morn_float_sup[8];// = {0x7f,0x7f,0x7f,0x7f,0x7f,0x7f,0x7f,0x7f};
+#define mSup() (*((double *)morn_float_sup))
+extern char morn_float_inf[8];// = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+#define mInf() (*((double *)morn_float_inf))
+
 #ifdef NAN
 #define mNan() NAN
 #else
 #define mNan() nan(NULL)
 #endif
-#define mIsSup(A) (isinf(A)&&(A>0))
-#define mIsInf(A) (isinf(A)&&(A<0))
+
+#define mIsSup(A) (A>=mSup())
+#define mIsInf(A) (A<=mInf())
 #define mIsNan(A) isnan(A)
 #define mIsInteger(A) (ABS(A-((int)(A+0.5f)))<0.00001f)
 
@@ -64,7 +73,6 @@ int mCombination(MArray *array,int n);
 double mSigmoid(float x);
 
 typedef struct MVector{
-    // Morn;
     int size;
     float *data;
 }MVector;
@@ -354,6 +362,8 @@ void mLIntToString(MLInt *a,char *str);
 void mStringToLInt(char *str,MLInt *a);
 
 void mLinearRegression(float **x,float *y,int n,int m,float *A);
+
+void mPointInterpolation(MList *curve,MList *list,float k1,float k2);
 
 #define MORN_NO_TRANS 0
 #define MORN_TRANS    1

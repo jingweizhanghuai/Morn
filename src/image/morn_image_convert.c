@@ -3,10 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_image.h"
 
 short v_to_r[256] = {-180 ,-178 ,-177 ,-175 ,-174 ,-173 ,-171 ,-170 ,-168 ,-167 ,-166 ,-164 ,-163 ,-161 ,-160 ,-159 ,-157 ,-156 ,-154 ,-153 ,-152 ,-150 ,-149 ,-147 ,-146 ,-145 ,-143 ,-142 ,-140 ,-139 ,-137 ,-136 ,-135 ,-133 ,-132 ,-130 ,-129 ,-128 ,-126 ,-125 ,-123 ,-122 ,-121 ,-119 ,-118 ,-116 ,-115 ,-114 ,-112 ,-111 ,-109 ,-108 ,-107 ,-105 ,-104 ,-102 ,-101 ,-100 ,-98 ,-97 ,-95 ,-94 ,-93 ,-91 ,-90 ,-88 ,-87 ,-86 ,-84 ,-83 ,-81 ,-80 ,-79 ,-77 ,-76 ,-74 ,-73 ,-72 ,-70 ,-69 ,-67 ,-66 ,-65 ,-63 ,-62 ,-60 ,-59 ,-58 ,-56 ,-55 ,-53 ,-52 ,-51 ,-49 ,-48 ,-46 ,-45 ,-43 ,-42 ,-41 ,-39 ,-38 ,-36 ,-35 ,-34 ,-32 ,-31 ,-29 ,-28 ,-27 ,-25 ,-24 ,-22 ,-21 ,-20 ,-18 ,-17 ,-15 ,-14 ,-13 ,-11 ,-10 ,-8 ,-7 ,-6 ,-4 ,-3 ,-1 ,0 ,1 ,3 ,4 ,6 ,7 ,8 ,10 ,11 ,13 ,14 ,15 ,17 ,18 ,20 ,21 ,22 ,24 ,25 ,27 ,28 ,29 ,31 ,32 ,34 ,35 ,36 ,38 ,39 ,41 ,42 ,43 ,45 ,46 ,48 ,49 ,51 ,52 ,53 ,55 ,56 ,58 ,59 ,60 ,62 ,63 ,65 ,66 ,67 ,69 ,70 ,72 ,73 ,74 ,76 ,77 ,79 ,80 ,81 ,83 ,84 ,86 ,87 ,88 ,90 ,91 ,93 ,94 ,95 ,97 ,98 ,100 ,101 ,102 ,104 ,105 ,107 ,108 ,109 ,111 ,112 ,114 ,115 ,116 ,118 ,119 ,121 ,122 ,123 ,125 ,126 ,128 ,129 ,130 ,132 ,133 ,135 ,136 ,137 ,139 ,140 ,142 ,143 ,145 ,146 ,147 ,149 ,150 ,152 ,153 ,154 ,156 ,157 ,159 ,160 ,161 ,163 ,164 ,166 ,167 ,168 ,170 ,171 ,173 ,174 ,175 ,177 ,178};
@@ -31,28 +27,30 @@ void m_ImageYUVToRGB(MImage *src,MImage *dst)
     if(dst!=src) mImageRedefine(dst,MAX(3,dst->channel),src->height,src->width,dst->data);
 
     if(!INVALID_POINTER(src->border)) dst->border = src->border;
-    
+
     int j;
     #pragma omp parallel for
-    for(j=ImageY1(dst);j<ImageY2(dst);j++)
+    for(j=0;j<dst->height;j++)
     {
-        for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+        unsigned char *b=dst->data[0][j],*g=dst->data[1][j],*r=dst->data[2][j];
+        unsigned char *y=src->data[0][j],*u=src->data[1][j],*v=src->data[2][j];
+        int16_t rv[4],gv[4],bv[4];
+        for(int i=0;i<dst->width;i+=4)
         {
-            unsigned char y = src->data[0][j][i];
-            unsigned char u = src->data[1][j][i];
-            unsigned char v = src->data[2][j][i];
-            
-            short r = y + v_to_r[v];
-            short g = y - u_to_g[u] - v_to_g[v];
-            short b = y + u_to_b[u];
-            
-            if(r<0) dst->data[2][j][i]=0; else if(r>255) dst->data[2][j][i]=255; else dst->data[2][j][i] = r;
-            if(g<0) dst->data[1][j][i]=0; else if(g>255) dst->data[1][j][i]=255; else dst->data[1][j][i] = g;
-            if(b<0) dst->data[0][j][i]=0; else if(b>255) dst->data[0][j][i]=255; else dst->data[0][j][i] = b;
+            rv[0]=y[i  ]+v_to_r[v[i  ]];gv[0]=y[i  ]-u_to_g[u[i  ]]-v_to_g[v[i  ]];bv[0]=y[i  ]+u_to_b[u[i  ]];
+            rv[1]=y[i+1]+v_to_r[v[i+1]];gv[1]=y[i+1]-u_to_g[u[i+1]]-v_to_g[v[i+1]];bv[1]=y[i+1]+u_to_b[u[i+1]];
+            rv[2]=y[i+2]+v_to_r[v[i+2]];gv[2]=y[i+2]-u_to_g[u[i+2]]-v_to_g[v[i+2]];bv[2]=y[i+2]+u_to_b[u[i+2]];
+            rv[3]=y[i+3]+v_to_r[v[i+3]];gv[3]=y[i+3]-u_to_g[u[i+3]]-v_to_g[v[i+3]];bv[3]=y[i+3]+u_to_b[u[i+3]];
+
+            {if(rv[0]<0) r[i  ]=0;else if(rv[0]>255) r[i  ]=255;else r[i  ]=rv[0];}{if(gv[0]<0) g[i  ]=0;else if(gv[0]>255) g[i  ]=255;else g[i  ]=gv[0];}{if(bv[0]<0) b[i  ]=0;else if(bv[0]>255) b[i  ]=255;else b[i  ]=bv[0];}
+            {if(rv[1]<0) r[i+1]=0;else if(rv[1]>255) r[i+1]=255;else r[i+1]=rv[1];}{if(gv[1]<0) g[i+1]=0;else if(gv[1]>255) g[i+1]=255;else g[i+1]=gv[1];}{if(bv[1]<0) b[i+1]=0;else if(bv[1]>255) b[i+1]=255;else b[i+1]=bv[1];}
+            {if(rv[2]<0) r[i+2]=0;else if(rv[2]>255) r[i+2]=255;else r[i+2]=rv[2];}{if(gv[2]<0) g[i+2]=0;else if(gv[2]>255) g[i+2]=255;else g[i+2]=gv[2];}{if(bv[2]<0) b[i+2]=0;else if(bv[2]>255) b[i+2]=255;else b[i+2]=bv[2];}
+            {if(rv[3]<0) r[i+3]=0;else if(rv[3]>255) r[i+3]=255;else r[i+3]=rv[3];}{if(gv[3]<0) g[i+3]=0;else if(gv[3]>255) g[i+3]=255;else g[i+3]=gv[3];}{if(bv[3]<0) b[i+3]=0;else if(bv[3]>255) b[i+3]=255;else b[i+3]=bv[3];}
         }
     }
-    
-    *ImageType(dst)=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+
+    int image_type = (dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 void m_ImageYUV422ToRGB(MImage *src,MImage *dst)
@@ -86,7 +84,8 @@ void m_ImageYUV422ToRGB(MImage *src,MImage *dst)
         }
     }
     
-    *(ImageType(dst))=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+    int image_type=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 void m_ImageYUVToGray(MImage *src,MImage *dst)
@@ -103,7 +102,8 @@ void m_ImageYUVToGray(MImage *src,MImage *dst)
     for(j=ImageY1(dst);j<ImageY2(dst);j++)
         memcpy(dst->data[0][j]+ImageX1(dst,j),src->data[0][j],(ImageX2(src,j)-ImageX1(dst,j))*sizeof(unsigned char));
 
-    *(ImageType(dst))=MORN_IMAGE_GRAY;
+    int image_type=MORN_IMAGE_GRAY;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
     dst->channel = 1;
 }
 
@@ -115,23 +115,27 @@ void m_ImageRGBToYUV(MImage *src,MImage *dst)
     if(dst==NULL) dst = src;
     if(dst!=src) mImageRedefine(dst,3,src->height,src->width,dst->data);
 
-    if(!INVALID_POINTER(src->border))
-        dst->border = src->border;
-    
+    if(!INVALID_POINTER(src->border)) dst->border = src->border;
+
+    unsigned char *rv = r_to_v+256;
+    unsigned char *bu = b_to_u+256;
+
     int j;
-    for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+    #pragma omp parallel for
+    for(j=0;j<dst->height;j++)
     {
-        unsigned char b = src->data[0][j][i];
-        unsigned char g = src->data[1][j][i];
-        unsigned char r = src->data[2][j][i];
-        
-        unsigned char y = r_to_y[r] + g_to_y[g] + b_to_y[b];
-        dst->data[0][j][i] = y;
-        
-        dst->data[1][j][i] = b_to_u[256+b-y];
-        dst->data[2][j][i] = r_to_v[256+r-y];
+        unsigned char *b=src->data[0][j],*g=src->data[1][j],*r=src->data[2][j];
+        unsigned char *y=dst->data[0][j],*u=dst->data[1][j],*v=dst->data[2][j];
+        for(int i=0;i<dst->width;i+=4)
+        {
+            y[i  ]=r_to_y[r[i  ]]+g_to_y[g[i  ]]+b_to_y[b[i  ]]; u[i  ]=bu[b[i  ]-y[i  ]]; v[i  ]=rv[r[i  ]-y[i  ]];
+            y[i+1]=r_to_y[r[i+1]]+g_to_y[g[i+1]]+b_to_y[b[i+1]]; u[i+1]=bu[b[i+1]-y[i+1]]; v[i+1]=rv[r[i+1]-y[i+1]];
+            y[i+2]=r_to_y[r[i+2]]+g_to_y[g[i+2]]+b_to_y[b[i+2]]; u[i+2]=bu[b[i+2]-y[i+2]]; v[i+2]=rv[r[i+2]-y[i+2]];
+            y[i+3]=r_to_y[r[i+3]]+g_to_y[g[i+3]]+b_to_y[b[i+3]]; u[i+3]=bu[b[i+3]-y[i+3]]; v[i+3]=rv[r[i+3]-y[i+3]];
+        }
     }
-    *ImageType(dst)=MORN_IMAGE_YUV;
+    int image_type=MORN_IMAGE_YUV;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 void m_ImageRGBToGray(MImage *src,MImage *dst)
@@ -154,23 +158,25 @@ void m_ImageRGBToGray(MImage *src,MImage *dst)
         dst->data[0][j][i] = r_to_y[r] + g_to_y[g] + b_to_y[b];
     }
 
-    *ImageType(dst)=MORN_IMAGE_GRAY;
+    int image_type=MORN_IMAGE_GRAY;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
     dst->channel = 1;
 }
 
 void m_ImageToGray(MImage *src,MImage *dst)
 {
     mException(INVALID_IMAGE(src),EXIT,"invalid input");
-    int *image_type = ImageType(src);
+    // int *image_type = ImageType(src);
+    int image_type;mPropertyRead(src,"image_type",&image_type);
     
-    if(*image_type == MORN_IMAGE_GRAY)
+    if(image_type == MORN_IMAGE_GRAY)
         mImageCopy(src,dst);
-    else if((*image_type == MORN_IMAGE_RGB)||(*image_type == MORN_IMAGE_RGBA))
+    else if((image_type == MORN_IMAGE_RGB)||(image_type == MORN_IMAGE_RGBA))
         m_ImageRGBToGray(src,dst);
-    else if(*image_type == MORN_IMAGE_YUV)
+    else if(image_type == MORN_IMAGE_YUV)
         m_ImageYUVToGray(src,dst);
     else
-        mException(1,EXIT,"invalid image type %d",*image_type);
+        mException(1,EXIT,"invalid image type %d",image_type);
 }
 
 void m_ImageSaturation(MImage *src,MImage *dst)
@@ -195,7 +201,8 @@ void m_ImageSaturation(MImage *src,MImage *dst)
         dst->data[0][j][i] = (max==0)?0:(((max-min)*240)/max);
     }
 
-    *ImageType(dst)=MORN_IMAGE_GRAY;
+    int image_type=MORN_IMAGE_GRAY;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 void m_ImageRGBToHSV(MImage *src,MImage *dst)
@@ -238,7 +245,8 @@ void m_ImageRGBToHSV(MImage *src,MImage *dst)
         else if(max==g) dst->data[0][j][i]= 80+((b-r)*40)/value;
         else if(max==b) dst->data[0][j][i]=160+((r-g)*40)/value;
     }
-    *ImageType(dst)=MORN_IMAGE_HSV;
+    int image_type=MORN_IMAGE_HSV;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 void m_ImageHSVToRGB(MImage *src,MImage *dst)
@@ -264,7 +272,7 @@ void m_ImageHSVToRGB(MImage *src,MImage *dst)
         
         unsigned char r,g,b;
              if(h< 40) {r=max;b=min;g=min+( h     *value/40);}
-        else if(h< 80) {g=max;b=min;r=min+(( 80-h)*value/40);}
+        else if(h< 80) {g=max;b=min;r=min+((80 -h)*value/40);}
         else if(h<120) {g=max;r=min;b=min+((h- 80)*value/40);}
         else if(h<160) {b=max;r=min;g=min+((160-h)*value/40);}
         else if(h<200) {b=max;g=min;r=min+((h-160)*value/40);}
@@ -274,7 +282,8 @@ void m_ImageHSVToRGB(MImage *src,MImage *dst)
         dst->data[1][j][i] = g;
         dst->data[2][j][i] = r;
     }
-    *ImageType(dst)=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+    int image_type=(dst->channel==3)?MORN_IMAGE_RGB:MORN_IMAGE_RGBA;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
 
 
@@ -341,7 +350,6 @@ void mImageRGBToLAB(MImage *src,MImage *dst)
         dst->data[2][j][i]=bb;
     }
 
-    *ImageType(dst)=MORN_IMAGE_LAB;
+    int image_type=MORN_IMAGE_LAB;
+    mPropertyWrite(dst,"image_type",&image_type,sizeof(int));
 }
-
-    

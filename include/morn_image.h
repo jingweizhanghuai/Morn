@@ -99,16 +99,16 @@ void mImageDataInputU64(MImage *img,U64 *stream,int stream_type,void *func,void 
 void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
 #define m_ImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
     int data_type = mDataType(Stream[0]);\
-         if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (img,(U8  *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (img,(S8  *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_U16) mImageDataInputU16(img,(U16 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_S16) mImageDataInputS16(img,(S16 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_U32) mImageDataInputU32(img,(U32 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_S32) mImageDataInputS32(img,(S32 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_F32) mImageDataInputF32(img,(F32 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_S64) mImageDataInputS64(img,(S64 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_U64) mImageDataInputU64(img,(U64 *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_D64) mImageDataInputD64(img,(D64 *)Stream,Stream_type,Func,Para);\
+         if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (Img,(U8  *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (Img,(S8  *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U16) mImageDataInputU16(Img,(U16 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S16) mImageDataInputS16(Img,(S16 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U32) mImageDataInputU32(Img,(U32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S32) mImageDataInputS32(Img,(S32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_F32) mImageDataInputF32(Img,(F32 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S64) mImageDataInputS64(Img,(S64 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_U64) mImageDataInputU64(Img,(U64 *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_D64) mImageDataInputD64(Img,(D64 *)Stream,Stream_type,Func,Para);\
 }while(0)
 #define mImageDataInput(Img,Stream,...) do{\
     int VAN=VANumber(__VA_ARGS__);\

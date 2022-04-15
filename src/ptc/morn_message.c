@@ -678,7 +678,7 @@ void *mProcVariate(const char *name,int size)
         if(strcmp(name,key)==0) {m_Unlock(handle->file);return pvalue;}
     }
     
-    keysize = (strlen(name)+3)/4;
+    keysize = (strlen(name)+4)/4;
     if(keysize%2==0) keysize+=1;
     keysize=keysize*4;
     mException(keysize>128,EXIT,"invalid input");
@@ -688,7 +688,7 @@ void *mProcVariate(const char *name,int size)
 
     *((uint16_t *)(p  ))=keysize;
     *((uint16_t *)(p+2))=valuesize;
-    strcpy((char *)(p+4),name);
+    memcpy((char *)(p+4),name,keysize);
     pvalue = p+4+keysize;
 
     handle->filesize += 4+keysize+valuesize;

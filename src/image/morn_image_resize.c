@@ -2,12 +2,6 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_image.h"
 
 struct HandleBinaryImageResize
@@ -218,14 +212,26 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
     int *ly = handle->ly; unsigned char *wy = handle->wy;
    
     int j;
+    // if(src->channel==1)
+    // {
+    //     for(j=0;j<height;j++)
+    //     {
+    //         unsigned char *s1 = src->data[0][ly[j]];
+    //         unsigned char *s2 = src->data[0][ly[j]];
+    //         unsigned char wy1 = wy[j];unsigned char wy2 = 128-wy1;
+    //         unsigned char wx1[4],wx2[4];
+            
+            
+    //     }
+    // }
+    
     #pragma omp parallel for
-    // for(j=0;j<height;j++)for(int i=0;i<width;i++)
-    for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+    for(j=0;j<height;j++)for(int i=0;i<width;i++)
     {
         if((lx[i]<0)||(lx[i]>src->width-1)||(ly[j]<0)||(ly[j]>src->height-1))
         {
             for(int cn=0;cn<src->channel;cn++)
-                dst->data[cn][j][i] = 0.0f;
+                dst->data[cn][j][i] = 0;
         }
         else
         {
@@ -240,7 +246,6 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
             }
         }
     }
-    // memcpy(&(dst->info),&(src->info),sizeof(MInfo));
     
     if(p!=dst)
     {
