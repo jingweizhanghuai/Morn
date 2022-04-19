@@ -7,10 +7,6 @@ You should have received a copy of the GNU General Public License along with thi
 // gcc -O2 -fopenmp test_log.c -o test_log.exe -lmorn -lws2_32
 // cl.exe test_log.c ..\lib\x64_msvc\libmorn.lib ..\lib\x64_msvc\pthreadVC2.lib -I ..\include\ -I ..\lib\include\pthread\
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "morn_util.h"
 
 char *author = "JingWeiZhangHuai";
@@ -128,10 +124,19 @@ void test5()
 
 int main()
 {
-    test1();
+    // char buff[16];
+    // int n=sprintf(buff,"abcd");
+    // printf("n=%d\n",n);
+
+    // n=snprintf(buff,16,"aaaaaaaaaaaaaaaaa");
+    // printf("n=%d\n",n);
+
+    // printf("buff=%s\n",buff);
+    
+    // test1();
     test2();
-    test3();
-    test4();
-    test5();
+    // test3();
+    // test4();
+    // test5();
     return 0;
 }

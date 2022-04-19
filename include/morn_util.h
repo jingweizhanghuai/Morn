@@ -261,9 +261,9 @@ const char *mLogLevel();
 #define mLogFormat5(Message) "[%s thread%03d %s,line %d,function %s]%s: " Message "\n",mTimeNowString(),mThreadID(),__FILE__,__LINE__,__FUNCTION__,mLogLevel()
 extern __thread int morn_log_level;
 extern int morn_log_levelset;
-void _mLog(int Level,const char *format,...);
+void m_Log(int Level,const char *format,...);
 #define mLog(Level,...) do{\
-    morn_log_level=Level;if(Level>=morn_log_levelset) _mLog(Level,__VA_ARGS__);\
+    if(Level>=morn_log_levelset) {morn_log_level=Level;m_Log(Level,__VA_ARGS__);}\
 }while(0)
 
 extern __thread int morn_exception;

@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 char morn_float_sup[8] = {0x7f,0x7f,0x7f,0x7f,0x7f,0x7f,0x7f,0x7f};
 char morn_float_inf[8] = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
 
-float g_sin_caculate_LUT[901]= {
+float morn_sin_caculate_LUT[901]= {
 0.000000000000000f,0.001745328365898f,0.003490651415224f,0.005235963831420f,0.006981260297962f,0.008726535498374f,0.010471784116246f,0.012217000835247f,0.013962180339145f,0.015707317311821f, 
 0.017452406437284f,0.019197442399690f,0.020942419883357f,0.022687333572781f,0.024432178152653f,0.026176948307873f,0.027921638723569f,0.029666244085111f,0.031410759078128f,0.033155178388526f, 
 0.034899496702501f,0.036643708706556f,0.038387809087520f,0.040131792532560f,0.041875653729200f,0.043619387365336f,0.045362988129254f,0.047106450709643f,0.048849769795613f,0.050592940076713f, 
@@ -103,53 +103,51 @@ float g_sin_caculate_LUT[901]= {
 
 float mSin(float a)
 {
-    int x;
     if(a>0.0f)
     {
-        x = (int)(a*10.0f+0.5f);
+        int x = (int)(a*10.0f+0.5f);
+        float err=(a-(float)x/10.0f)*MORN_PI/180;
         x = x%3600;
-        if((x>=0)&&(x<900))
-            return g_sin_caculate_LUT[x];
-        else if(x<1800)
-            return g_sin_caculate_LUT[1800-x];
-        else if(x<2700)
-            return (0.0f-g_sin_caculate_LUT[x-1800]);
-        else
-            return (0.0f-g_sin_caculate_LUT[3600-x]);
+             if(x< 900) return      morn_sin_caculate_LUT[x     ]+morn_sin_caculate_LUT[900 -x]*err;
+        else if(x<1800) return      morn_sin_caculate_LUT[1800-x]-morn_sin_caculate_LUT[x- 900]*err;
+        else if(x<2700) return 0.0f-morn_sin_caculate_LUT[x-1800]-morn_sin_caculate_LUT[2700-x]*err;
+        else            return 0.0f-morn_sin_caculate_LUT[3600-x]+morn_sin_caculate_LUT[x-2700]*err;
     }
     else
     {
-        x = (int)((0.0f-a)*10.0f+0.5f);
+        int x = (int)((0.0f-a)*10.0f+0.5f);
+        float err=(a+(float)x/10.0f)*MORN_PI/180;
         x = x%3600;
-        if((x>=0)&&(x<900))
-            return (0.0f-g_sin_caculate_LUT[x]);
-        else if(x<1800)
-            return (0.0f-g_sin_caculate_LUT[1800-x]);
-        else if(x<2700)
-            return g_sin_caculate_LUT[x-1800];
-        else
-            return g_sin_caculate_LUT[3600-x];
+             if(x< 900) return 0.0f-morn_sin_caculate_LUT[x     ]+morn_sin_caculate_LUT[900 -x]*err;
+        else if(x<1800) return 0.0f-morn_sin_caculate_LUT[1800-x]-morn_sin_caculate_LUT[x- 900]*err;
+        else if(x<2700) return      morn_sin_caculate_LUT[x-1800]-morn_sin_caculate_LUT[2700-x]*err;
+        else            return      morn_sin_caculate_LUT[3600-x]+morn_sin_caculate_LUT[x-2700]*err;
     }
 }
 
 float mCos(float a)
 {
-    int x;
-    x = (int)(ABS(a)*10.0f+0.5f);
-    x = x%3600;
-    
-    if((x>=0)&&(x<900))
-        return g_sin_caculate_LUT[900-x];
-    else if(x<1800)
-        return (0.0f-g_sin_caculate_LUT[x-900]);
-    else if(x<2700)
-        return (0.0f-g_sin_caculate_LUT[2700-x]);
+    if(a>0.0f)
+    {
+        int x = (int)(a*10.0f+0.5f);
+        float err=(a-(float)x/10.0f)*MORN_PI/180;
+        x = x%3600;
+             if(x< 900) return      morn_sin_caculate_LUT[900 -x]-morn_sin_caculate_LUT[x     ]*err;
+        else if(x<1800) return 0.0f-morn_sin_caculate_LUT[x- 900]-morn_sin_caculate_LUT[1800-x]*err;
+        else if(x<2700) return 0.0f-morn_sin_caculate_LUT[2700-x]+morn_sin_caculate_LUT[x-1800]*err;
+        else            return      morn_sin_caculate_LUT[x-2700]+morn_sin_caculate_LUT[3600-x]*err;
+    }
     else
-        return g_sin_caculate_LUT[x-2700];
+    {
+        int x = (int)((0.0f-a)*10.0f+0.5f);
+        float err=(a+(float)x/10.0f)*MORN_PI/180;
+        x = x%3600;
+             if(x< 900) return      morn_sin_caculate_LUT[900 -x]+morn_sin_caculate_LUT[x     ]*err;
+        else if(x<1800) return 0.0f-morn_sin_caculate_LUT[x- 900]+morn_sin_caculate_LUT[1800-x]*err;
+        else if(x<2700) return 0.0f-morn_sin_caculate_LUT[2700-x]-morn_sin_caculate_LUT[x-1800]*err;
+        else            return      morn_sin_caculate_LUT[x-2700]-morn_sin_caculate_LUT[3600-x]*err;
+    }
 }
-
-// float mTan(float a) {return mSin(a)/mCos(a);}
-// float mCot(float a) {return mCos(a)/m
 
 void mMean(float *in,int num,float *sum,float *mean)
 {

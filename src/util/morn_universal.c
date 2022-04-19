@@ -29,7 +29,7 @@ int m_Rand(int floor,int ceiling)
         srand(morn_rand_seed);
     }
     #endif
-    
+
     if((floor==DFLT)&&( ceiling==DFLT)) {return rand();}
     if(floor==ceiling) return floor;
     int d = ceiling-floor;
