@@ -1,16 +1,9 @@
 // gcc -O2 test_math.c -o test_math.exe -lmorn
 #include "morn_math.h"
 
-int main0()
-{
-    for(float a=30.0;a<35.0;a+=0.01)
-        printf("%.10f\n",mSin(a));
-    return 0;
-}
-
 int main()
 {
-    #define N 1000000
+    #define N 10000000
     double *r=malloc(N*sizeof(double));
     float *a =mMalloc(N*sizeof(float));
     double *rst1=malloc(N*sizeof(double));
