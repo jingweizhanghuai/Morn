@@ -194,20 +194,25 @@ void mArrayAppend(MArray *arr,int n)
 {
     struct _MArray *array = (struct _MArray *)arr;
     mException((INVALID_POINTER(array)),EXIT,"invalid input");
-    if(n<=0) {n = array->num+256;array->num+=1;}
-    else {mException(n<array->num,EXIT,"invalid input");array->num = n;}
+    if(n<=0) n = array->num+1;
+    else mException(n<array->num,EXIT,"invalid input");
+    
     if(n-array->num>array->capacity)
     {
         struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
         if(n>handle->num)
         {
-            if(handle->memory!=NULL) handle->memory = MemoryBlockRedefine(handle->memory,n*array->element_size);
-            else                     handle->memory =mMemoryBlockCreate(n*array->element_size,MORN_HOST);
-            handle->num = n;
-            array->dataS8 = handle->memory->data;
-            array->capacity=(n-array->num)&0x0FFFF;
+            MMemoryBlock *memory = mMemoryBlockCreate((n+256)*array->element_size,MORN_HOST);
+            if(array->num>0) memcpy(memory->data,array->dataS8,array->num*array->element_size);
+            if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+            handle->memory =memory;
+            handle->num = n+256;
+            array->dataS8 = memory->data;
         }
+        array->capacity = (handle->num-n)&0x0FFFF;
     }
+    else array->capacity -= (n-array->num);
+    array->num = n;
 }
 
 void *m_ArrayPushBack(MArray *arr,void *data)
@@ -357,11 +362,5 @@ int mStreamWrite(MArray *buff,void *data,int num)
     // pthread_mutex_unlock(&(handle->stream_mutex));
     return ((size-num)/buff->element_size);
 }
-
-// void mArrayBitWrite(MArray *array,int n,int data)
-// {
-    // uint8_t *p=array->dataU8+n/array->element_size;
-    // p[n/array
-    
 
 

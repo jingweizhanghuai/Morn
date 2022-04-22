@@ -29,10 +29,16 @@ extern "C"
 
 #define mLinearInterp(x1,l1,x2,l2,l) (((x1)*((l2)-(l))+(x2)*((l)-(l1)))/((l2)-(l1)))
 
-float mSin(float a);
-float mCos(float a);
+double mSin(float a);
+double mCos(float a);
 #define mTan(a) (mSin(a)/mCos(a))
 #define mCot(a) (mCos(a)/mSin(a))
+double mLn(float a);
+#define mLoga(a,b) (mLn(b)/mLn(a))
+#define mLg(a) (mLn(a)/2.302585092994050)
+double mExp(double a);
+#define mPow(A,B) (mExp((B)*mLn(A)))
+
 void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
 void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *covariance);

@@ -48,28 +48,23 @@ double GetValue(char **ptr);
 double Calculate(char **ptr)
 {
     MArray *array = mArrayCreate(sizeof(struct CalculateInfo));
-    // std::vector<struct CalculateInfo> vec;
     
     char *p = *ptr;
     struct CalculateInfo info;
     info.type=(*p=='-')?(p++,'-'):'+';
     info.value = GetValue(&p);
     mArrayWrite(array,&info);
-    // vec.push_back(info);
     
-    while((*p!=0)&&(*p!=')')&&(*p!=','))
+    while((*p>=32)&&(*p!=')')&&(*p!=','))
     {
         if((*p!='+')&&(*p!='-')&&(*p!='*')&&(*p!='/')&&(*p!='%')&&(*p!='^')) return NAN;
         info.type=*p; p++;
         *ptr=p;info.value=GetValue(ptr);if(mIsNan(info.value)) return NAN;
         p=*ptr;
         mArrayWrite(array,&info);
-        // vec.push_back(info);
     }
     struct CalculateInfo *adata = array->data;
-    // struct CalculateInfo *adata = vec.data();
     int num = array->num;
-    // int num = vec.size();
     
     for(int i=num-1;i>0;i--)
     {
@@ -178,7 +173,7 @@ double mCalculate(char *str)
 {
     int l = strlen(str)+1; 
     char *buff = (char *)malloc(l*sizeof(char)); char *p=buff;
-    int i=0,j=0;for(;i<l;i++) if(str[i]!=' ') {buff[j]=str[i];j++;}
+    int i=0,j=0;for(;i<l;i++) if(str[i]>' ') {buff[j]=str[i];j++;}
     double rst = Calculate(&p);
     free(buff);
     return rst;
