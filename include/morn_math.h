@@ -29,15 +29,17 @@ extern "C"
 
 #define mLinearInterp(x1,l1,x2,l2,l) (((x1)*((l2)-(l))+(x2)*((l)-(l1)))/((l2)-(l1)))
 
-double mSin(float a);
-double mCos(float a);
-#define mTan(a) (mSin(a)/mCos(a))
-#define mCot(a) (mCos(a)/mSin(a))
-double mLn(float a);
-#define mLoga(a,b) (mLn(b)/mLn(a))
-#define mLg(a) (mLn(a)/2.302585092994050)
+double mSin(double a);
+double mCos(double a);
+double mTan(double a);
+double mCot(double a);
+double mLn(double a);
+double mLoga(double a,double b);
+double mLg(double a);
 double mExp(double a);
 #define mPow(A,B) (mExp((B)*mLn(A)))
+double mSqrt(double a);
+double mCurt(double a);
 
 void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
