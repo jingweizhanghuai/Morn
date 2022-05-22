@@ -45,7 +45,7 @@ struct HandleThreadPool
     int tid0;
     MThreadSignal sgn0;
 };
-
+struct HandleThreadPool *morn_thread_pool_handle=NULL;
 void endThreadPool(struct HandleThreadPool *handle)
 {
     if(handle->pool!=NULL)
@@ -63,14 +63,16 @@ void endThreadPool(struct HandleThreadPool *handle)
     }
     
     if(handle->buff!= NULL) mListRelease(handle->buff);
+    morn_thread_pool_handle=NULL;
 }
 
 #define HASH_ThreadPool 0x893d6fdf
 
 void ThreadFunc(struct ThreadPoolData *data)
 {
-    MHandle *hdl=mHandle("ThreadPool",ThreadPool);
-    struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
+    struct HandleThreadPool *handle = morn_thread_pool_handle;
+    // MHandle *hdl=mHandle("ThreadPool",ThreadPool);
+    // struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
     MList *buff = handle->buff;
     
     while(1)
@@ -145,10 +147,12 @@ void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
 
     int i;
     struct ThreadPoolData *data;
-    MHandle *hdl=mHandle("ThreadPool",ThreadPool);
-    struct HandleThreadPool *handle = (struct HandleThreadPool *)(hdl->handle);
-    if(hdl->valid == 0)
+    struct HandleThreadPool *handle = morn_thread_pool_handle;
+    if(handle==NULL)
     {
+        MHandle *hdl=mHandle("ThreadPool",ThreadPool);
+        handle = (struct HandleThreadPool *)(hdl->handle);
+    
         mPropertyVariate("ThreadPool","thread_num",&(handle->pool_num));
         if(handle->pool_num<=0)
         {
@@ -172,6 +176,7 @@ void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
         mPropertyVariate("ThreadPool","thread_max"   ,&(handle->thread_max   ));
 
         hdl->valid =1;
+        morn_thread_pool_handle=handle;
         
         for(i=0;i<handle->pool->num;i++)
         {

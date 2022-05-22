@@ -3,12 +3,8 @@
 
 // int main()
 // {
-//     double a=12.3456;
-//     int64_t *b=(int64_t *)&a;
-//     int c=(*b)>>52;
-//     *b = ((*b)&0x000fffffffffffff)|0x3ff0000000000000;
-
-//     printf("a=%f,c=%d\n",a,c);
+//     printf("mExp(12.3456)=%.16f\n",mExp(12.345678));
+//     printf("mLn(12.3456)=%.16f\n",mLn(12.345678));
 // }
 
 #define N 10000000
@@ -244,6 +240,17 @@ void test_sin_cos()
     mFree(a);
     mFree(rst1);
     mFree(rst2);
+}
+
+int test_arctan()
+{
+    double *a=mMalloc(N*sizeof(double));
+    double *rst1=mMalloc(N*sizeof(double));
+    double *rst2=mMalloc(N*sizeof(double));
+    double err_max;
+    
+    for(int i=0;i<N;i++)
+        a[i]=(double)mRand(1,100000000)/1234567.0;
 }
 
 int main()

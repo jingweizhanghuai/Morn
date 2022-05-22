@@ -173,7 +173,7 @@ double mSqrt(double a)
     if(a<0.0) return mNan();
     if(a>*(float *)morn_float_sup) return mPow(a,0.5);
     
-    double b = (double)a*0.5;
+    double b = a*0.5;
 
     float a0=(float)a;
     int *c  = (int *)&a0;
@@ -457,56 +457,59 @@ struct HandleCombination
 {
     int *idx;
     int num;
-    int array_num;
-    int order;
+    int list_num;
+    MList *out;
+    int *idx2;
 };
 void endCombination(struct HandleCombination *handle)
 {
-    if(handle->idx!=NULL) mFree(handle->idx);
+    if(handle->idx !=NULL) mFree(handle->idx);
+    if(handle->idx2!=NULL) mFree(handle->idx2);
+    if(handle->out !=NULL) mListRelease(handle->out);
 }
 #define HASH_Combination 0x110249ec
-// int mCombination(int *idx,int num,int total)
-int mCombination(MArray *array,int num)
+MList *mCombination(MList *list,int num)
 {
-    mException(INVALID_POINTER(array),EXIT,"invalid input");
-    int array_num = array->num;
-    MHandle *hdl = mHandle(array,Combination);
+    mException(INVALID_POINTER(list),EXIT,"invalid input");
+    int list_num = list->num;
+    MHandle *hdl = mHandle(list,Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
-    if(hdl->valid==0)
+    if((hdl->valid==0)||(handle->num!=num))
     {
-        mException((num<0)||(num>array_num),EXIT,"invalid input combination number");
+        mException((num<0)||(num>list_num),EXIT,"invalid input combination number");
         if((handle->idx!=NULL)&&(handle->num<num)) {mFree(handle->idx);handle->idx=NULL;}
         if(handle->idx==NULL) handle->idx = (int *)mMalloc(num*sizeof(int));
         for(int i=0;i<num;i++) handle->idx[i]=i;
-        handle->num = num;handle->array_num=array_num;
+        handle->num = num;handle->list_num=list_num;
         hdl->valid = 1;
 
-        memcpy(array->dataS32,handle->idx,num*sizeof(int));
-        handle->order = 0;
-        return handle->order;
+        if(handle->out!=NULL) mListRelease(handle->out);
+        handle->out = mListCreate(num,list->data);
+        
+        return handle->out;
     }
     mException((handle->num !=num)&&(num > 0),EXIT,"invalid input combination number");num=handle->num;
-    mException((handle->array_num!=array_num),EXIT,"invalid input combination number");
+    mException((handle->list_num!=list_num),EXIT,"invalid input combination number");
 
     int n;for(n=num-1;n>=0;n--)
     {
         handle->idx[n]++;
-        if(handle->idx[n]<=array_num-num+n) break;
+        if(handle->idx[n]<=list_num-num+n) break;
     }
     if(n<0) 
     {
         mFree(handle->idx);handle->idx =NULL;
         hdl->valid = 0;
-        return DFLT;
+        return NULL;
     }
     for(int i=n+1;i<num;i++) handle->idx[i]=handle->idx[i-1]+1;
+
+    for(int i=0;i<num;i++) handle->out->data[i]=list->data[handle->idx[i]];
     
-    memcpy(array->dataS32,handle->idx,num*sizeof(int));
-    handle->order++;
-    return handle->order;
+    return handle->out;
 }
 
-int m_Permutation(int *idx,int num)
+int _Permutation(int *idx,int num)
 {
     int buff;
     if(idx[num-2]<idx[num-1]) {buff=idx[num-2];idx[num-2]=idx[num-1];idx[num-1]=buff;return 1;}
@@ -521,15 +524,31 @@ int m_Permutation(int *idx,int num)
     return 1;
 }
 
-int mPermutation(MArray *array,int num)
+MList *m_Permutation(MList *list,int num)
 {
-    mException(INVALID_POINTER(array),EXIT,"invalid input");
-    MHandle *hdl = mHandle(array,Combination);
+    mException(INVALID_POINTER(list),EXIT,"invalid input");
+    if(num<0) num=list->num;
+    MHandle *hdl = mHandle(list,Combination);
     struct HandleCombination *handle = (struct HandleCombination *)(hdl->handle);
 
-    if(hdl->valid==0) {mCombination(array,num);return 0;}
+    if((hdl->valid==0)||(handle->num!=num))
+    {
+        mCombination(list,num);
+        if(handle->idx2!=NULL) mFree(handle->idx2);
+        handle->idx2=mMalloc(num*sizeof(int));
+        memcpy(handle->idx2,handle->idx,num*sizeof(int));
+        return handle->out;
+    }
     
-    if(m_Permutation(array->dataS32,num)>0) {handle->order++;return handle->order;}
-    if(mCombination(array,num)>0) return handle->order;
-    return -1;
+    if(_Permutation(handle->idx2,num)>0)
+    {
+        for(int i=0;i<num;i++) handle->out->data[i]=list->data[handle->idx2[i]];
+        return handle->out;
+    }
+    if(mCombination(list,num)>0)
+    {
+        memcpy(handle->idx2,handle->idx,num*sizeof(int));
+        return handle->out;
+    }
+    return NULL;
 }

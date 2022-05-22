@@ -86,6 +86,15 @@ void test1()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) mDictionaryWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+        for(int i=0;i<100;i++) int *data_i = (int *)mDictionaryRead(morn_map,data[i].data_s);
+        for(int i=0;i<100;i++) mDictionaryNodeDelete(morn_map,data[i].data_s);
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n1000 times test with 1000 node for key is string and value is integer:\n");
     mTimerBegin("STL map");
     for(int n=0;n<1000;n++)
@@ -132,6 +141,15 @@ void test1()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) mDictionaryWrite(data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+        for(int i=0;i<1000;i++) int *data_i = (int *)mDictionaryRead(data[i].data_s);
+        for(int i=0;i<1000;i++) mDictionaryNodeDelete(data[i].data_s);
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n100 times test with 10000 node for key is string and value is integer:\n");
     mTimerBegin("STL map");
     for(int n=0;n<100;n++)
@@ -177,6 +195,15 @@ void test1()
         for(int i=0;i<10000;i++) mMapNodeDelete(morn_map,data[i].data_s);
     }
     mTimerEnd("Morn map");
+
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) mDictionaryWrite(data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+        for(int i=0;i<10000;i++) int *data_i = (int *)mDictionaryRead(data[i].data_s);
+        for(int i=0;i<10000;i++) mDictionaryNodeDelete(data[i].data_s);
+    }
+    mTimerEnd("Morn dictionary");
     
     mMapRelease(morn_map);
 }
@@ -238,6 +265,15 @@ void test2()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) mDictionaryWrite(&(data[i].data_i),sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<100;i++) char *data_s = (char *)mDictionaryRead(&(data[i].data_i),sizeof(int),NULL,NULL);
+        for(int i=0;i<100;i++) mDictionaryNodeDelete(&(data[i].data_i),sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n1000 times test with 1000 node for key is integer and value is string:\n");
     mTimerBegin("STL map");
     for(int n=0;n<1000;n++)
@@ -284,6 +320,15 @@ void test2()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) mDictionaryWrite(&(data[i].data_i),sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<1000;i++) char *data_s = (char *)mDictionaryRead(&(data[i].data_i),sizeof(int),NULL,NULL);
+        for(int i=0;i<1000;i++) mDictionaryNodeDelete(&(data[i].data_i),sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n100 times test with 10000 node for key is integer and value is string:\n");
     mTimerBegin("STL map");
     for(int n=0;n<100;n++)
@@ -329,6 +374,15 @@ void test2()
         for(int i=0;i<10000;i++) mMapNodeDelete(morn_map,&(data[i].data_i),sizeof(int));
     }
     mTimerEnd("Morn map");
+
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) mDictionaryWrite(&(data[i].data_i),sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<10000;i++) char *data_s = (char *)mDictionaryRead(&(data[i].data_i),sizeof(int),NULL,NULL);
+        for(int i=0;i<10000;i++) mDictionaryNodeDelete(&(data[i].data_i),sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
     
     mMapRelease(morn_map);
 }
@@ -390,6 +444,15 @@ void test3()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<10000;n++)
+    {
+        for(int i=0;i<100;i++) mDictionaryWrite(&i,sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<100;i++) char *data_s = (char *)mDictionaryRead(&i,sizeof(int),NULL,NULL);
+        for(int i=0;i<100;i++) mDictionaryNodeDelete(&i,sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n1000 times test with 1000 node for key is orderly integer and value is string:\n");
     mTimerBegin("STL map");
     for(int n=0;n<1000;n++)
@@ -436,6 +499,15 @@ void test3()
     }
     mTimerEnd("Morn map");
 
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<1000;n++)
+    {
+        for(int i=0;i<1000;i++) mDictionaryWrite(&i,sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<1000;i++) char *data_s = (char *)mDictionaryRead(&i,sizeof(int),NULL,NULL);
+        for(int i=0;i<1000;i++) mDictionaryNodeDelete(&i,sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
+
     printf("\n100 times test with 10000 node for key is orderly integer and value is string:\n");
     mTimerBegin("STL map");
     for(int n=0;n<100;n++)
@@ -481,6 +553,15 @@ void test3()
         for(int i=0;i<10000;i++) mMapNodeDelete(morn_map,&i,sizeof(int));
     }
     mTimerEnd("Morn map");
+
+    mTimerBegin("Morn dictionary");
+    for(int n=0;n<100;n++)
+    {
+        for(int i=0;i<10000;i++) mDictionaryWrite(&i,sizeof(int),data[i].data_s,NULL);
+        for(int i=0;i<10000;i++) char *data_s = (char *)mDictionaryRead(&i,sizeof(int),NULL,NULL);
+        for(int i=0;i<10000;i++) mDictionaryNodeDelete(&i,sizeof(int));
+    }
+    mTimerEnd("Morn dictionary");
     
     mMapRelease(morn_map);
 }
@@ -496,7 +577,8 @@ void test4(int number)
     absl::btree_map<std::string,int> absl_map;
     absl::flat_hash_map<std::string,int> absl_hash_map;
     MMap *morn_map = mMapCreate();
-    
+
+    printf("write for %d times\n",number);
     mTimerBegin("STL map write");
     for(int i=0;i<number;i++) stl_map[data[i].data_s]=data[i].data_i;
     mTimerEnd("STL map write");
@@ -517,6 +599,11 @@ void test4(int number)
     for(int i=0;i<number;i++) mMapWrite(morn_map,data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
     mTimerEnd("Morn map write");
 
+    mTimerBegin("Morn dictionary write");
+    for(int i=0;i<number;i++) mDictionaryWrite(data[i].data_s,DFLT,&(data[i].data_i),sizeof(int));
+    mTimerEnd("Morn dictionary write");
+
+    printf("read for %d times\n",number);
     mTimerBegin("STL map read");
     for(int i=0;i<number;i++) int data_i = stl_map.find(data[i].data_s)->second;
     mTimerEnd("STL map read");
@@ -537,6 +624,11 @@ void test4(int number)
     for(int i=0;i<number;i++) int *data_i = (int *)mMapRead(morn_map,data[i].data_s);
     mTimerEnd("Morn map read");
 
+    mTimerBegin("Morn dictionary read");
+    for(int i=0;i<number;i++) int *data_i = (int *)mDictionaryRead(data[i].data_s);
+    mTimerEnd("Morn dictionary read");
+
+    printf("delete for %d times\n",number);
     mTimerBegin("STL map erase");
     for(int i=0;i<number;i++) stl_map.erase(data[i].data_s);
     mTimerEnd("STL map erase");
@@ -557,6 +649,10 @@ void test4(int number)
     for(int i=0;i<number;i++) mMapNodeDelete(morn_map,data[i].data_s);
     mTimerEnd("Morn map delete");
 
+    mTimerBegin("Morn dictionary delete");
+    for(int i=0;i<number;i++) mDictionaryNodeDelete(data[i].data_s);
+    mTimerEnd("Morn dictionary delete");
+
     mMapRelease(morn_map);
     free(data);
 }
@@ -572,7 +668,8 @@ void test5(int number)
     absl::btree_map<int,std::string> absl_map;
     absl::flat_hash_map<int,std::string> absl_hash_map;
     MMap *morn_map = mMapCreate();
-    
+
+    printf("write for %d times\n",number);
     mTimerBegin("STL map write");
     for(int i=0;i<number;i++) stl_map[data[i].data_i]=data[i].data_s;
     mTimerEnd("STL map write");
@@ -592,7 +689,12 @@ void test5(int number)
     mTimerBegin("Morn map write");
     for(int i=0;i<number;i++) mMapWrite(morn_map,&(data[i].data_i),sizeof(int),data[i].data_s,DFLT);
     mTimerEnd("Morn map write");
-    
+
+    mTimerBegin("Morn dictionary write");
+    for(int i=0;i<number;i++) mDictionaryWrite(&(data[i].data_i),sizeof(int),data[i].data_s,DFLT);
+    mTimerEnd("Morn dictionary write");
+
+    printf("read for %d times\n",number);
     mTimerBegin("STL map read");
     for(int i=0;i<number;i++) std::string data_s = stl_map.find(data[i].data_i)->second;
     mTimerEnd("STL map read");
@@ -613,6 +715,11 @@ void test5(int number)
     for(int i=0;i<number;i++) char *data_s = (char *)mMapRead(morn_map,&(data[i].data_i),sizeof(int),NULL,NULL);
     mTimerEnd("Morn map read");
 
+    mTimerBegin("Morn dictionary read");
+    for(int i=0;i<number;i++) char *data_s = (char *)mDictionaryRead(&(data[i].data_i),sizeof(int),NULL,NULL);
+    mTimerEnd("Morn dictionary read");
+
+    printf("delete for %d times\n",number);
     mTimerBegin("STL map erase");
     for(int i=0;i<number;i++) stl_map.erase(data[i].data_i);
     mTimerEnd("STL map erase");
@@ -633,21 +740,33 @@ void test5(int number)
     for(int i=0;i<number;i++) mMapNodeDelete(morn_map,&(data[i].data_i),sizeof(int));
     mTimerEnd("Morn map delete");
 
+    mTimerBegin("Morn dictionary delete");
+    for(int i=0;i<number;i++) mDictionaryNodeDelete(&(data[i].data_i),sizeof(int));
+    mTimerEnd("Morn dictionary delete");
+
     mMapRelease(morn_map);
     free(data);
 }
 
-int main()
+int main(int argc,char *argv[])
 {
-    test1();
-    test2();
-    test3();
+    if(argc<2) {printf("example: test_map2.exe test1\n");return 1;}
     
-    test4(100000);
-    test4(1000000);
-    
-    test5(100000);
-    test5(1000000);
+    if(strcmp(argv[1],"test1")==0) test1();
+    if(strcmp(argv[1],"test2")==0) test2();
+    if(strcmp(argv[1],"test3")==0) test3();
+
+    if(strcmp(argv[1],"test4")==0)
+    {
+        test4(100000);
+        test4(1000000);
+    }
+
+    if(strcmp(argv[1],"test5")==0)
+    {
+        test5(100000);
+        test5(1000000);
+    }
 
     return 0;
 }

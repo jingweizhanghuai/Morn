@@ -75,8 +75,13 @@ extern char morn_float_inf[8];// = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
 #define mIsNan(A) isnan(A)
 #define mIsInteger(A) (ABS(A-((int)(A+0.5f)))<0.00001f)
 
-int mPermutation(MArray *array,int n);
-int mCombination(MArray *array,int n);
+MList *m_Permutation(MList *list,int num);
+#define mPermutation(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_Permutation(VA0(__VA_ARGS__),DFLT):(\
+    (VANumber(__VA_ARGS__)==2)?m_Permutation(VA0(__VA_ARGS__),VA1(__VA_ARGS__)):(\
+    NULL))\
+)
+MList *mCombination(MList *list,int n);
 
 double mSigmoid(float x);
 

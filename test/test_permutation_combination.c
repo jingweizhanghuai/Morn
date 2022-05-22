@@ -4,58 +4,92 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 
 // 编译：gcc -O2 -fopenmp test_permutation_combination.c -o test_permutation_combination.exe -I ..\include\ -L ..\lib\x64_mingw\ -lmorn -lm -static
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "morn_image.h"
+
+void test_combination()
+{
+    printf("combination 3 element from 5\n");
+    MList *list=mListCreate();
+    for(int i=0;i<5;i++) mListWrite(list,DFLT,&i,sizeof(int));
+    while(1)
+    {
+        MList *out=mCombination(list,3);
+        if(out==NULL) break;
+        int **idx=(int **)(out->data);
+        printf("idx=%d,%d,%d\n",*(idx[0]),*(idx[1]),*(idx[2]));
+    }
+    mListRelease(list);
+}
+
+void test_permutation1()
+{
+    printf("permutation 3 elements from 5\n");
+    MList *list=mListCreate();
+    for(int i=0;i<5;i++) mListWrite(list,DFLT,&i,sizeof(int));
+    while(1)
+    {
+        MList *out=mPermutation(list,3);
+        if(out==NULL) break;
+        int **idx=(int **)(out->data);
+        printf("idx=%d,%d,%d\n",*(idx[0]),*(idx[1]),*(idx[2]));
+    }
+    mListRelease(list);
+}
+
+void test_permutation2()
+{
+    printf("permutation 5 elements\n");
+    MList *list=mListCreate();
+    for(int i=0;i<5;i++) mListWrite(list,DFLT,&i,sizeof(int));
+    while(1)
+    {
+        MList *out=mPermutation(list);
+        if(out==NULL) break;
+        int **idx=(int **)(out->data);
+        printf("idx=%d,%d,%d,%d,%d\n",*(idx[0]),*(idx[1]),*(idx[2]),*(idx[3]),*(idx[4]));
+    }
+    mListRelease(list);
+}
 
 void test1()
 {
-    int idx[10];
-    while(1)
+    int data[10] = {1,2,3,4,5,6,7,8,9,10};
+    MList *list = mListCreate();
+    mListPlace(list,data,10,sizeof(int));
+    MList *out;
+    while(out=mCombination(list,4))
     {
-        int i=mCombination(idx,3,5);if(i<0) break;
-        printf("i=%d:idx=%d,%d,%d\n",i,idx[0],idx[1],idx[2]);
+        int **p=(int **)(out->data);
+        if(*p[0]+*p[1]+*p[2]+*p[3]==20) printf("%2d+%2d+%2d+%2d==20\n",*p[0],*p[1],*p[2],*p[3]);
     }
-    while(1)
-    {
-        int i=mPermutation(idx,3,5);if(i<0) break;
-        printf("i=%d:idx=%d,%d,%d\n",i,idx[0],idx[1],idx[2]);
-    }
+    mListRelease(list);
 }
 
 void test2()
 {
-    int data[10] = {1,2,3,4,5,6,7,8,9,10};
-    int idx[4];
-    while(mCombination(idx,4,10)>=0)
+    MList *list = mListCreate();
+    for(int i=0;i<5;i++)
     {
-        int d0=data[idx[0]];int d1=data[idx[1]];int d2=data[idx[2]];int d3=data[idx[3]];
-        if(d0+d1+d2+d3==20) printf("%d+%d+%d+%d==20\n",d0,d1,d2,d3);
+        MImagePoint pt;pt.x=mRand(0,100);pt.y=mRand(0,100);
+        mListWrite(list,DFLT,&pt,sizeof(MImagePoint));
+    }
+    MList *polygon;
+    while(polygon=mPermutation(list,4))
+    {
+        MImagePoint **p=(MImagePoint **)(polygon->data);
+        if(mLineCross(p[0],p[2],p[1],p[3],NULL))
+            printf("Quadrangle:(%.0f,%.0f),(%.0f,%.0f),(%.0f,%.0f),(%.0f,%.0f)\n",p[0]->x,p[0]->y,p[1]->x,p[1]->y,p[2]->x,p[2]->y,p[3]->x,p[3]->y);
     }
 }
 
-void test3()
-{
-    MImagePoint p[4];
-    for(int i=0;i<4;i++) {p[i].x=mRand(0,100);p[i].y=mRand(0,100);}
-    printf("point:\n(%f,%f),(%f,%f),(%f,%f),(%f,%f)\n",p[0].x,p[0].y,p[1].x,p[1].y,p[2].x,p[2].y,p[3].x,p[3].y);
-    MImagePoint *p0,*p1,*p2,*p3;
-    p3=p+3;
-    int idx[3];
-    while(mPermutation(idx,3,3)>=0)
-    {
-        p0=p+idx[0];p1=p+idx[1];p2=p+idx[2];
-        
-        if((mLineCross(p0,p1,p2,p3,NULL)==0)&&(mLineCross(p0,p3,p1,p2,NULL)==0))
-            printf("Quadrangle:\n(%f,%f),(%f,%f),(%f,%f),(%f,%f)\n",p0->x,p0->y,p1->x,p1->y,p2->x,p2->y,p3->x,p3->y);
-    }
-}
+
 
 int main()
 {
-    test1();
-    // test2();
-    // test3();
+    // test_combination();
+    // test_permutation1();
+    // test_permutation2();
+    // test1();
+    test2();
     return 0;
 }

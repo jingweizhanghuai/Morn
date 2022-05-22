@@ -892,6 +892,7 @@ int mornMapNodeKeySize(MChainNode *node);
 int mornMapNodeValueSize(MChainNode *node);
 int mornMapNodeNumber(MChain *map);
 int mMapNodeNumber(MMap *map);
+
 void m_SignalFunction(MChain *map,void *sig,int sig_size,void *function,void *para,int para_size);
 #define mSignalFunction(...) do{\
     int VN = VANumber(__VA_ARGS__);\
@@ -910,6 +911,27 @@ void m_Signal(MChain *map,void *sig,int sig_size,void *data,int data_size);
     else if(VA==4) m_Signal(NULL,(void *)VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__),(intptr_t)VA3(__VA_ARGS__));\
     else if(VA==5) m_Signal((MChain *)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__),(void *)VA3(__VA_ARGS__),(intptr_t)VA4(__VA_ARGS__));\
     else mException(1,EXIT,"invalid signal");\
+}while(0)
+
+void *m_DictionaryWrite(const void *key,int key_size,const void *value,int value_size);
+#define mDictionaryWrite(Key,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_DictionaryWrite((const void *)(Key),DFLT,(const void *)((intptr_t)_VA0(__VA_ARGS__,DFLT)),DFLT):\
+    (VANumber(__VA_ARGS__)==3)?m_DictionaryWrite((const void *)(Key),(intptr_t)_VA0(__VA_ARGS__,DFLT),(const void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__)):\
+    NULL\
+)
+void *m_DictionaryRead(const void *key,int key_size,void *value,int *value_size);
+#define mDictionaryRead(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_DictionaryRead(((const void *)_VA0(__VA_ARGS__,DFLT)),DFLT,NULL,NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_DictionaryRead(((const void *)_VA0(__VA_ARGS__,DFLT)),DFLT,(void *)VA1(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==4)?m_DictionaryRead(((const void *)_VA0(__VA_ARGS__,DFLT)),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__),(int *)VA3(__VA_ARGS__)):\
+    NULL\
+)
+
+void m_DictionaryNodeDelete(const void *key,int key_size);
+#define mDictionaryNodeDelete(...) do{\
+         if(VANumber(__VA_ARGS__)==1) m_DictionaryNodeDelete((const void *)_VA0(__VA_ARGS__,DFLT),DFLT);\
+    else if(VANumber(__VA_ARGS__)==2) m_DictionaryNodeDelete((const void *)_VA0(__VA_ARGS__,DFLT),(intptr_t)VA1(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input parameter for mMapDelete");\
 }while(0)
 
 #define MFile MObject

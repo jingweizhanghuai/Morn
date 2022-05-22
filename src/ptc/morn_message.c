@@ -368,6 +368,8 @@ void endProcMessage(struct HandleProcMessage *handle)
     if(user_num==0) {mSleep(10);remove(handle->filename);}
 }
 #define HASH_ProcMessage 0xbc2aef80
+
+struct HandleProcMessage *morn_proc_message_handle = NULL;
 void *m_ProcMessageWrite(const char *dstname,void *data,int write_size)
 {
     mException((dstname==NULL)||(data==NULL),EXIT,"invalid input");
@@ -377,10 +379,12 @@ void *m_ProcMessageWrite(const char *dstname,void *data,int write_size)
 
     int ID=0;int user_num=0;int writer_num=0;
 
-    MHandle *hdl = mHandle("ProcMessage",ProcMessage);
-    struct HandleProcMessage *handle = (struct HandleProcMessage *)(hdl->handle);
-    if(hdl->valid == 0)
+    struct HandleProcMessage *handle=morn_proc_message_handle;
+    if(handle==NULL)
     {
+        MHandle *hdl = mHandle("ProcMessage",ProcMessage);
+        handle = (struct HandleProcMessage *)(hdl->handle);
+    
         handle->ID= getpid()*1000+mThreadID();
         handle->wait_time = DFLT;
         mPropertyVariate("ProcMessage","wait_time",&(handle->wait_time));
@@ -439,6 +443,7 @@ void *m_ProcMessageWrite(const char *dstname,void *data,int write_size)
  
         handle->order_read = MAX(handle->info->write_order,0);
         hdl->valid = 1;
+        morn_proc_message_handle=handle;
     }
     
     struct ProcMessageInfo *info=handle->info;
@@ -504,7 +509,6 @@ void *m_ProcMessageWrite(const char *dstname,void *data,int write_size)
     if(info->writer_num>1){ID=0;m_Write(handle->file,0,&ID,sizeof(int));info->ID=0;}
     return (info->ptr+locate);
 }
-
 
 void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
 {
