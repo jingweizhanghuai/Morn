@@ -6,11 +6,11 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "morn_image.h"
 
 // #define PointLineCheck(px,py,lx1,ly1,lx2,ly2) ((lx1 - lx2)*(py-ly2)-(ly1 - ly2)*(px-lx2))
-int mLinePointCheck(MList *line,MImagePoint *point)
+int mLinePointCheck(MImagePoint *point,MImagePoint *p1,MImagePoint *p2)//MList *line,)
 {
-    MImagePoint **line_point = (MImagePoint **)(line->data);
-    mException((line->num !=2),EXIT,"invalid line");
-    return (PointLineCheck(point->x,point->y,line_point[0]->x,line_point[0]->y,line_point[1]->x,line_point[1]->y)>0.0f);
+    // MImagePoint **line_point = (MImagePoint **)(line->data);
+    // mException((line->num !=2),EXIT,"invalid line");
+    return (PointLineCheck(point->x,point->y,p1->x,p1->y,p2->x,p2->y)>0.0f);
 }
 
 int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2)

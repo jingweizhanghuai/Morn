@@ -257,9 +257,11 @@ MList *mSheetRowList(MSheet *sheet,int row)
         hdl->valid = 1;
     }
     handle->order = row+1;
-
+    
+    if(handle->list[row]==NULL) handle->list[row]=mListCreate();
     mListClear(handle->list[row]);
     mListAppend(handle->list[row],sheet->data[row],sheet->col[row]);
+    
     return handle->list[row];
 }
 

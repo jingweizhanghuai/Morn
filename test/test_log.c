@@ -97,6 +97,15 @@ void test5()
     mLog(MORN_INFO, "this is a Morn log\n");
 }
 
+int main()
+{
+    mPropertyWrite("Log","log_file","./test_log.log");
+    for(int i=0;;i++)
+    {
+        mSleep(10);
+        mLog(MORN_INFO,mLogFormat5("this is %d Morn log\n"),i);
+    }
+}
 
 
 // void log_thread(int *test_num)
@@ -122,7 +131,7 @@ void test5()
 //     mTimerEnd();
 // }
 
-int main()
+int maiqn()
 {
     // char buff[16];
     // int n=sprintf(buff,"abcd");

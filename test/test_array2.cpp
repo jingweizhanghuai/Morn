@@ -3,25 +3,18 @@
 #include <vector>
 
 #define TEST_NUM 10000000
-extern "C" void *_ArrayPushBack32(MArray *array,uint32_t data);
 int main()
 {
     std::vector<int> vec;
     mTimerBegin("STL vector");
     for(int i=0;i<TEST_NUM;i++) 
-    {
         vec.push_back(i);
-        // if((i%100000)==0) printf("vec[0]=%p\n",&(vec[0]));
-    }
     mTimerEnd("STL vector");
 
     MArray *array=mArrayCreate(sizeof(int));
     mTimerBegin("Morn");
     for(int i=0;i<TEST_NUM;i++)
-    {
         mArrayWrite(array,&i);
-        // if((i%100000)==0) printf("array->dataS32=%p\n",array->dataS32);
-    }
     mTimerEnd("Morn");
     mArrayRelease(array);
     

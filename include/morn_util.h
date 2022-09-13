@@ -36,25 +36,25 @@ extern "C"
 void mMornBegin();
 void mMornEnd();
 
-#define ARG(X) X
+#define ARG(X) (X)
 #define _VA_ARG_NUM(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,N,M,...) ((N==M+1)?((N==1)?((#A0)[0]!=0):N):DFLT)
 #define VANumber(...) ARG(_VA_ARG_NUM(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,-1))
 #define _VA_ARG0(A0,...) A0
-#define _VA_ARG1(A0,A1,...) A1
-#define _VA_ARG2(A0,A1,A2,...) A2
-#define _VA_ARG3(A0,A1,A2,A3,...) A3
-#define _VA_ARG4(A0,A1,A2,A3,A4,...) A4
-#define _VA_ARG5(A0,A1,A2,A3,A4,A5,...) A5
-#define _VA_ARG6(A0,A1,A2,A3,A4,A5,A6,...) A6
-#define _VA_ARG7(A0,A1,A2,A3,A4,A5,A6,A7,...) A7
-#define _VA_ARG8(A0,A1,A2,A3,A4,A5,A6,A7,A8,...) A8
-#define _VA_ARG9(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,...) A9
-#define _VA_ARG10(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,...) A10
-#define _VA_ARG11(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,...) A11
-#define _VA_ARG12(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,...) A12
-#define _VA_ARG13(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,...) A13
-#define _VA_ARG14(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,...) A14
-#define _VA_ARG15(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,...) A15
+#define _VA_ARG1(A0,A1,...) (A1)
+#define _VA_ARG2(A0,A1,A2,...) (A2)
+#define _VA_ARG3(A0,A1,A2,A3,...) (A3)
+#define _VA_ARG4(A0,A1,A2,A3,A4,...) (A4)
+#define _VA_ARG5(A0,A1,A2,A3,A4,A5,...) (A5)
+#define _VA_ARG6(A0,A1,A2,A3,A4,A5,A6,...) (A6)
+#define _VA_ARG7(A0,A1,A2,A3,A4,A5,A6,A7,...) (A7)
+#define _VA_ARG8(A0,A1,A2,A3,A4,A5,A6,A7,A8,...) (A8)
+#define _VA_ARG9(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,...) (A9)
+#define _VA_ARG10(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,...) (A10)
+#define _VA_ARG11(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,...) (A11)
+#define _VA_ARG12(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,...) (A12)
+#define _VA_ARG13(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,...) (A13)
+#define _VA_ARG14(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,...) (A14)
+#define _VA_ARG15(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,...) (A15)
 #define _VA0(...) ARG(_VA_ARG0( __VA_ARGS__,DFLT))
 #define VA0(...)  ARG(_VA_ARG0( __VA_ARGS__,DFLT)+0)
 #define VA1(...)  ARG(_VA_ARG1( __VA_ARGS__,DFLT,DFLT))
@@ -339,7 +339,7 @@ void m_ListAppend(MList *list,void **data,int num);
 #define mListAppend(List,...) do{\
          if(VANumber(__VA_ARGS__)==0) m_ListAppend(List,NULL,DFLT);\
     else if(VANumber(__VA_ARGS__)==1) m_ListAppend(List,NULL,(intptr_t)VA0(__VA_ARGS__));\
-    else if(VANumber(__VA_ARGS__)==2) m_ListAppend(List,(void **)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA0(__VA_ARGS__));\
+    else if(VANumber(__VA_ARGS__)==2) m_ListAppend(List,(void **)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__));\
 }while(0)
 void mListPlace(MList *list,void *data,int num,int size);
 void mListClear(MList *list);
@@ -534,18 +534,21 @@ void mArrayAppend(MArray *arr,int n);
 void mArrayElementDelete(MArray *array,int n);
 // void ArrayExpand(MArray *array,int n);
 void *m_ArrayPushBack(MArray *arr,void *data);
-void *m_ArrayWrite(MArray *arr,intptr_t n,void *data);
+void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num);
 #define mArrayWrite(...) (\
     (VANumber(__VA_ARGS__)==1)?m_ArrayPushBack((MArray *)_VA0(__VA_ARGS__),NULL):\
     (VANumber(__VA_ARGS__)==2)?m_ArrayPushBack((MArray *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__)):\
-    (VANumber(__VA_ARGS__)==3)?m_ArrayWrite(   (MArray *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__)):NULL\
+    (VANumber(__VA_ARGS__)==3)?m_ArrayWrite(   (MArray *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__),1):\
+    (VANumber(__VA_ARGS__)==4)?m_ArrayWrite(   (MArray *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)VA2(__VA_ARGS__),VA3(__VA_ARGS__)):NULL\
 )
 
-void *m_ArrayRead(MArray *array,int n,void *data);
+void *m_ArrayRead(MArray *array,int n,void *data,int num);
 #define mArrayRead(Array,...) (\
-    (VANumber(__VA_ARGS__)==0)?m_ArrayRead(Array,DFLT,NULL):\
-    (VANumber(__VA_ARGS__)==1)?m_ArrayRead(Array,DFLT,(void *)VA0(__VA_ARGS__)):\
-    m_ArrayRead(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__)))\
+    (VANumber(__VA_ARGS__)==0)?m_ArrayRead(Array,DFLT,NULL,1):\
+    (VANumber(__VA_ARGS__)==1)?m_ArrayRead(Array,DFLT,(void *)VA0(__VA_ARGS__),1):\
+    (VANumber(__VA_ARGS__)==2)?m_ArrayRead(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),1):\
+    m_ArrayRead(Array,(intptr_t)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),VA2(__VA_ARGS__))\
+)
 
 int mStreamRead(MArray *buff,void *data,int num);
 int mStreamWrite(MArray *buff,void *data,int num);
@@ -553,6 +556,7 @@ int mStreamWrite(MArray *buff,void *data,int num);
 #define MText MArray
 #define mTextCreate mArrayCreate
 #define mTextRelease mArrayRelease
+#define mText(Arr,Data) mArrayRedefine(Arr,strlen(Data),1,Data)
 void mFileText(MArray *text,const char *file_name,...);
 int mTextFind(MArray *text,MArray *str,int pos);
 
@@ -729,15 +733,15 @@ MBtree *mBtreeCreate();
 void mBtreeRelease(MBtree *btree);
 MBtreeNode *mBtreeNode(MBtree *btree,void *data,int size);
 void mBtreeNodeSet(MBtreeNode *node,MBtreeNode *parent,int order);
-void mBtreeOperate(MBtree *tree,void (*func)(MBtreeNode *,void *),void *para,int mode);
+void mBtreeOperate(MBtree *tree,void *function,void *para,int mode);
 
 MTree *mTreeCreate();
 void mTreeRelease(MTree *tree);
 MTreeNode *mTreeNode(MTree *tree,void *data,int size);
 void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order);
-void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode);
-MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para);
-MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode);
+void mTreeTraversal(MTree *tree,void *function,void *para,int mode);
+MTreeNode *mTreeDecide(MTree *tree,void *function,void *para);
+MTreeNode *mTreeSearch(MTreeNode *node,void *function,void *para,int mode);
 
 MGraph *mGraphCreate();
 void mGraphRelease(MGraph *graph);
@@ -747,7 +751,7 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size);
     (VANumber(__VA_ARGS__)==2)?m_GraphNode(VA0(__VA_ARGS__,DFLT),(void *)(VA1(__VA_ARGS__,DFLT)),DFLT):\
     (VANumber(__VA_ARGS__)==1)?m_GraphNode(VA0(__VA_ARGS__,DFLT),NULL,DFLT):\
     NULL)
-void mGraphNodeLink(MGraphNode *node0,MGraphNode *node,float length);
+void mGraphNodeInsert(MGraphNode *node0,MGraphNode *node,float length);
 float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
 #define _GraphPath(P0,P1,P2,P3,P4) m_GraphPath((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
 #define mGraphPath(...) (\
@@ -884,7 +888,7 @@ void m_MapNodeDelete(MMap *map,const void *key,int key_size);
     else if(VANumber(__VA_ARGS__)==2) m_MapNodeDelete(Map,(const void *)_VA0(__VA_ARGS__,DFLT),(intptr_t)VA1(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input parameter for mMapDelete");\
 }while(0)
-void mornMapNodeOperate(MChain *map,void *function,void *para);
+int mornMapNodeOperate(MChain *map,void *function,void *para);
 void mMapNodeOperate(MMap *map,void *function,void *para);
 void *mornMapNodeKey(MChainNode *node);
 void *mornMapNodeValue(MChainNode *node);
@@ -967,27 +971,34 @@ void mFileDecrypt(MFile *file,uint64_t key);
 void mINIFile(const char *filename);
 MSheet *mINI();
 void mINILoad(MSheet *list,const char *ininame,...);
-char *m_INIRead(MSheet *ini,const char *section,const char *key,const char *format,...);
-#define _INIRead(P,P1,P2,P3,...) m_INIRead((MSheet *)(P),(const char *)(P1),(const char *)(P2),(const char *)(P3),__VA_ARGS__)
-#define mINIRead(P,...) ((sizeof(P[0])==sizeof(MSheet))?_INIRead(P,__VA_ARGS__,NULL,NULL):_INIRead(mINI(),P,__VA_ARGS__,NULL))
-char *m_INIWrite(MSheet *ini,const char *section,const char *key,const char *format,...);
-#define mINIWrite(P,...) ((sizeof(P[0])==sizeof(MSheet))?m_INIWrite((MSheet *)P,__VA_ARGS__,NULL):m_INIWrite(mINI(),(const char *)P,__VA_ARGS__,NULL))
-void m_INIDelete(MSheet *ini,const char *section,const char *key);
+char *m_INIRead(MSheet *ini,intptr_t section,intptr_t key,const char *format,...);
+#define _INIRead(P,P1,P2,P3,...) m_INIRead((MSheet *)(P),(intptr_t)(P1),(intptr_t)(P2),(const char *)(P3),__VA_ARGS__)
+#define mINIRead(P,...) ((sizeof(P[0])==sizeof(MSheet))?_INIRead(P,__VA_ARGS__,DFLT,DFLT):_INIRead(mINI(),P,__VA_ARGS__,NULL))
+char *m_INIWrite(MSheet *ini,intptr_t section,intptr_t key,const char *format,...);
+#define _INIWrite(P,P1,P2,P3,...) m_INIWrite((MSheet *)(P),(intptr_t)(P1),(intptr_t)(P2),(const char *)(P3),__VA_ARGS__)
+#define mINIWrite(P,...) ((sizeof(P[0])==sizeof(MSheet))?_INIWrite(P,__VA_ARGS__,DFLT,DFLT):_INIWrite(mINI(),P,__VA_ARGS__,NULL))
+void m_INIDelete(MSheet *ini,intptr_t section,intptr_t key);
 #define mINIDelete(P,...) do{\
     int VAN = VANumber(__VA_ARGS__);\
     if(sizeof(P[0])==sizeof(MSheet))\
     {\
-        if(VAN==2) m_INIDelete((MSheet *)(P),(const char *)_VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__));\
-        else       m_INIDelete((MSheet *)(P),(const char *)_VA0(__VA_ARGS__),NULL);\
+        if(VAN==2) m_INIDelete((MSheet *)(P),(intptr_t)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__));\
+        else       m_INIDelete((MSheet *)(P),(intptr_t)_VA0(__VA_ARGS__),DFLT);\
     }\
     else\
     {\
-        if(VAN==1) m_INIDelete(mINI(),(const char *)P,(const char *)_VA0(__VA_ARGS__));\
-        else       m_INIDelete(mINI(),(const char *)P,NULL);\
+        if(VAN==1) m_INIDelete(mINI(),(intptr_t)P,(intptr_t)_VA0(__VA_ARGS__));\
+        else       m_INIDelete(mINI(),(intptr_t)P,DFLT);\
     }\
 }while(0)
+MList *m_INISection(MSheet *ini,intptr_t section);
+#define mINISection(...) (\
+    (VANumber(__VA_ARGS__)==2)?m_INISection((MSheet *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==1)?m_INISection(mINI(),(intptr_t)_VA0(__VA_ARGS__)):\
+    NULL\
+)
+
 void mINISave(MSheet *ini,char *filename);
-char *mINIKey(void *data);
 char *mINIValue(void *data);
 
 #define JSON_UNKNOWN     0
@@ -1040,6 +1051,13 @@ struct JSONNode *m_JSONWrite(struct JSONNode *node0,intptr_t v,struct JSONNode *
 // void m_JSONDelete0(MArray *json,int n);
 // void m_JSONDelete1(MArray *json,char *key);
 // #define mJSONDelete(Json,V) do{if((intptr_t)(V)<Json->num) m_JSONDelete0(Json,(intptr_t)(V));else m_JSONDelete1(Json,(char *)((intptr_t)(V)));}while(0)
+
+void mCSVLoad(MFile *csv);
+char *m_CSVRead(MFile *csv,intptr_t row,intptr_t col,const char *format,...);
+#define _CSVRead(P,P1,P2,P3,...) m_CSVRead((MFile *)(P),(intptr_t)(P1),(intptr_t)(P2),(const char *)(P3),__VA_ARGS__)
+#define mCSVRead(P,...) _CSVRead(P,__VA_ARGS__,NULL,NULL)
+MList *m_CSVCol(MFile *csv,intptr_t col);
+#define mCSVCol(Csv,Col) m_CSVCol(Csv,(intptr_t)Col)
 
 
 int mMORNSize (MFile *file,int ID);

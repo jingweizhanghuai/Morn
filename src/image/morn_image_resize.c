@@ -212,19 +212,6 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
     int *ly = handle->ly; unsigned char *wy = handle->wy;
    
     int j;
-    // if(src->channel==1)
-    // {
-    //     for(j=0;j<height;j++)
-    //     {
-    //         unsigned char *s1 = src->data[0][ly[j]];
-    //         unsigned char *s2 = src->data[0][ly[j]];
-    //         unsigned char wy1 = wy[j];unsigned char wy2 = 128-wy1;
-    //         unsigned char wx1[4],wx2[4];
-            
-            
-    //     }
-    // }
-    
     #pragma omp parallel for
     for(j=0;j<height;j++)for(int i=0;i<width;i++)
     {

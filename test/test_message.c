@@ -13,18 +13,23 @@ void writer()
     {
         mRandString(data,512,1024);
         mProcTopicWrite("mytest",data);
-        printf("%3d:write %s\n",i,data);
+        printf("write: %s\n",data);
         mSleep(1);
     }
+    mProcTopicWrite("mytest","exit");
 }
 
 void reader()
 {
-    // int wait_time=1000;mPropertyWrite("mytest","wait_time",&wait_time,sizeof(int));
-    for(int i=0;i<1000;i++)
+    for(int i=0;;i++)
     {
         char *p = mProcTopicRead("mytest");
-        if(p!=NULL) printf("%3d: read %s\n",i,p);
+        if(p!=NULL)
+        {
+            if(strcmp(p,"exit")==0) break;
+            printf("read : %s\n",p);
+        }
+        mSleep(1);
     }
 }
 

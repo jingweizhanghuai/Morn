@@ -82,7 +82,7 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size)
     return (MGraphNode *)node;
 }
 
-void mGraphNodeLink(MGraphNode *node0,MGraphNode *node,float length)
+void mGraphNodeInsert(MGraphNode *node0,MGraphNode *node,float length)
 {
     struct GraphNode *graph = (struct GraphNode *)node0;
     mException(graph->graph!=((struct GraphNode *)node)->graph,EXIT,"invalid input graph node");

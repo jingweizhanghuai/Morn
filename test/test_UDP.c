@@ -29,20 +29,21 @@ void test_send()
 void test_receive()
 {
     char addr[32];
-    sprintf(addr,"%s:1002",IP);
+    sprintf(addr,"%s:7966",IP);
     
-    int wait_time=100;
-    mPropertyWrite("UDP:1002","UDP_wait",&wait_time,sizeof(int));
+    int wait_time=1000;
+    mPropertyWrite("UDP:7966","UDP_wait",&wait_time,sizeof(int));
     
-    char data[64];
+    char data[1024];
     while(1)
     {
-        int size=64;
+        int size=1024;
         char *ip;
+        printf("addr=%s\n",addr);
         ip=mUDPRead(addr,data,&size);
         if(ip==NULL) printf("receive error\n");
         else if(strcmp(data,"exit")==0) break;
-        else printf("receive: from %s, size=%d, data is %s\n",ip,size,data);
+        else printf("receive: from %s, size=%d, data is %s\n",ip,size,data+24);
     }
 }
 
@@ -56,7 +57,7 @@ int main(int argc,char *argv[])
     {
         char addr[32];
         if(IP[0]==0) IP="localhost";
-        sprintf(addr,"%s:1002",IP);
+        sprintf(addr,"%s:7966",IP);
         mUDPWrite(addr,argv[1],DFLT);
     }
     return 0;

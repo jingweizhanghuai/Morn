@@ -12,6 +12,22 @@ int main()
     MSheet *ini = mSheetCreate();
     mINILoad(ini,"./test_INI_file.ini");
 
+    // for(i=0;i<ini->row;i++)
+    // {
+    //     printf("section: %s\n",ini->info[i]);
+    //     for(int j=0;j<ini->col[i];j++)
+    //         printf("key: %s,value: %s\n",ini->data[i][j],mINIValue(ini->data[i][j]));
+    // }
+
+    printf("-------------------------------------------------\n");
+    for(int j=0;;j++)
+    {
+        char *value=mINIRead(ini,"李四",j);
+        if(value==NULL) break;
+        printf("key: %s,value: %s\n",ini->data[1][j],value);
+    }
+
+    printf("-------------------------------------------------\n");
     for(i=0;i<ini->row;i++)
     {
         int grade;int class;

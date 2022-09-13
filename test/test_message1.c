@@ -7,7 +7,7 @@ void send_test()
 {
     mTimerBegin();
     char data[4096];
-    for(int i=0;i<1000;i++)
+    for(int i=0;i<10;i++)
     {
         mRandString(data,2048,4096);
         printf("i=%d,data=%s\n",i,data);

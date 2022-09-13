@@ -248,32 +248,47 @@ void *m_ArrayPushBack(MArray *arr,void *data)
     return (void *)p;
 }
 
-void *m_ArrayWrite(MArray *arr,intptr_t n,void *data)
+void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num)
 {
-    if(n<0) return m_ArrayPushBack(arr,data);
-    int es=arr->element_size;
-    S8 *p=(S8 *)(arr->dataS8+n*es);
-    if(data==NULL) NULL;
-    else if(es==4) *((S32 *)p) = *((S32 *)data);
-    else if(es==8) *((S64 *)p) = *((S64 *)data);
-    else if(es==1) *(       p) = *((S8  *)data);
-    else if(es==2) *((S16 *)p) = *((S16 *)data);
-    else memcpy(p,data,es);
-    return (void *)p;
+    if(num<=1)
+    {
+        if(n<0) return m_ArrayPushBack(arr,data);
+        int es=arr->element_size;
+        S8 *p=(S8 *)(arr->dataS8+n*es);
+        if(data==NULL) NULL;
+        else if(es==4) *((S32 *)p) = *((S32 *)data);
+        else if(es==8) *((S64 *)p) = *((S64 *)data);
+        else if(es==1) *(       p) = *((S8  *)data);
+        else if(es==2) *((S16 *)p) = *((S16 *)data);
+        else memcpy(p,data,es);
+        return (void *)p;
+    }
+    else
+    {
+        if(n<0) n=arr->num;
+        mArrayAppend(arr,n+num);
+        int es=arr->element_size;
+        S8 *p=(S8 *)(arr->dataS8+n*es);
+        memcpy(p,data,num*es);
+        return (void *)p;
+    }
 }
 
-void *m_ArrayRead(MArray *array,int n,void *data)
+void *m_ArrayRead(MArray *array,int n,void *data,int num)
 {
     mException(INVALID_POINTER(array),EXIT,"invalid input");
     mException(n>=array->num,EXIT,"invalid input");
     
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
     if(n<=0) {n=handle->read_order;if(n>=array->num) n=0;}
-    handle->read_order=n+1;
     
     int element_size = array->element_size;
+    if(num<1) num=1;
+    if(n+num>array->num) return NULL;
+    handle->read_order=n+num;
+    
     char *p=array->dataS8+n*element_size;
-    if(data!=NULL) memcpy(data,p,element_size);
+    if(data!=NULL) memcpy(data,p,element_size*num);
     return p;
 }
 

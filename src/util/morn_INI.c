@@ -103,69 +103,74 @@ void mINILoad(MSheet *sheet,const char *ininame,...)
     }
 }
 
-char *m_INIRead(MSheet *ini,const char *section,const char *key,const char *format,...)
+int INIRow(MSheet *ini,intptr_t sec)
 {
-    if(ini==NULL) return NULL;
-    mException(INVALID_POINTER(section)||INVALID_POINTER(key),EXIT,"invalid input");
-    
+    mException(sec<0,EXIT,"invalid input");
+    if(sec <ini->row) return sec;
+    if(sec < 0x0ffff) return DFLT;
+    const char *section = (const char *)sec;
     for(int i=0;i<ini->row;i++)
     {
-        if(strcmp(section,(char *)(ini->info[i]))==0)
-        {
-            for(int j=0;j<ini->col[i];j++)
-            {
-                if(strcmp(key,ini->data[i][j])==0)
-                {
-                    char *value = (char *)(ini->data[i][j])+strlen(ini->data[i][j]);for(;*value==0;value++);
-                    if(!INVALID_POINTER(format))
-                    {
-                        va_list inipara;
-                        va_start(inipara,format);
-                        vsscanf(value,format,inipara);
-                        va_end(inipara);
-                    }
-                    return value;
-                }
-            }
-            return NULL;
-        }
+        if(strcmp(section,(char *)(ini->info[i]))==0) return i;
     }
-    return NULL;
+    return DFLT;
 }
 
-char *m_INIWrite(MSheet *ini,const char *section,const char *key,const char *format,...)
+int INICol(MSheet *ini,int row,intptr_t ky)
+{
+    mException(ky<0,EXIT,"invalid input");
+    if(row<0) return DFLT;
+    if(ky <ini->col[row]) return ky;
+    if(ky < 0x0ffff)      return DFLT;
+    const char *key = (const char *)ky;
+    for(int j=0;j<ini->col[row];j++)
+    {
+        if(strcmp(key,(char *)(ini->data[row][j]))==0) return j;
+    }
+    return DFLT;
+}
+
+char *m_INIRead(MSheet *ini,intptr_t section,intptr_t key,const char *format,...)
+{
+    if(ini==NULL) return NULL;
+    int row = INIRow(ini,section); if(row<0) return NULL;
+    int col = INICol(ini,row,key); if(col<0) return NULL;
+
+    char *value = (char *)(ini->data[row][col])+strlen(ini->data[row][col]);for(;*value==0;value++);
+    if(!INVALID_POINTER(format))
+    {
+        va_list inipara;
+        va_start(inipara,format);
+        vsscanf(value,format,inipara);
+        va_end(inipara);
+    }
+    return value;
+}
+
+char *m_INIWrite(MSheet *ini,intptr_t section,intptr_t key,const char *format,...)
 {
     mException(INVALID_POINTER(ini),EXIT,"invalid input");
-    mException(INVALID_POINTER(section)||INVALID_POINTER(key)||INVALID_POINTER(format),EXIT,"invalid input");
-
+    int row = INIRow(ini,section);mException((row<0)&&(section<ini->row ),EXIT,"invalid input");
+    int col = INICol(ini,row,key);mException((col<0)&&(key<ini->col[row]),EXIT,"invalid input");
+    
     char data[1024];
     va_list inipara;
     va_start(inipara,format);
     vsprintf(data,format,inipara);
     va_end(inipara);
-    int key_size=strlen(key)+1;
-    int data_size=strlen(data)+1;
 
-    int i=0,j=0;
-    for(i=0;i<ini->row;i++)
+    if((row>=0)&&(col>=0))
     {
-        if(strcmp(section,ini->info[i])==0)
-        {
-            for(j=0;j<ini->col[i];j++)
-            {
-                if(strcmp(key,ini->data[i][j])==0) break;
-            }
-            break;
-        }
+        section= (intptr_t)(ini->info[row]);
+        key    = (intptr_t)(ini->data[row][col]);
     }
-    if(i==ini->row)
-    {
-        mSheetInfoWrite(ini,i,(void *)section,DFLT);
-        j=0;
-    }
+    if(col<0) {col=(row<0)?0:ini->col[row];}
+    if(row<0) {row=ini->row;mSheetInfoWrite(ini,row,(void *)section,DFLT);}
     
-    char *p=mSheetWrite(ini,i,j,NULL,key_size+data_size);
-    memcpy(p,key,key_size);memcpy(p+key_size,data,data_size);
+    int key_size=strlen((char *)key)+1;
+    int data_size=strlen(data)+1;
+    char *p=mSheetWrite(ini,row,col,NULL,key_size+data_size);
+    memcpy(p,(char *)key,key_size);memcpy(p+key_size,data,data_size);
     return p+key_size;
 }
 
@@ -176,33 +181,23 @@ char *mINIValue(void *data)
     return value;
 }
 
-void m_INIDelete(MSheet *ini,const char *section,const char *key)
+void m_INIDelete(MSheet *ini,intptr_t section,intptr_t key)
 {
     mException(INVALID_POINTER(ini),EXIT,"invalid input");
-    mException(INVALID_POINTER(section),EXIT,"invalid input");
-
-    int i,j;
-    if(INVALID_POINTER(key))
-    {
-        for(i=0;i<ini->row;i++) {if(strcmp(section,ini->info[i])==0) {mSheetDelete(ini,i);break;}}
-        return;
-    }
+    int row = INIRow(ini,section);mException(row<0,EXIT,"invalid input");
     
-    for(i=0;i<ini->row;i++)
-    {
-        if(strcmp(section,ini->info[i])==0)
-        {
-            for(j=0;j<ini->col[i];j++)
-            {
-                if(strcmp(key,ini->data[i][j])==0)
-                {
-                    mSheetDelete(ini,i,j);
-                    break;
-                }
-            }
-            return;
-        }
-    }
+    if(key<0) {mSheetDelete(ini,row);return;}
+    int col = INICol(ini,row,key);mException(col<0,EXIT,"invalid input");
+    
+    mSheetDelete(ini,row,col);
+}
+
+MList *m_INISection(MSheet *ini,intptr_t section)
+{
+    int row = INIRow(ini,section);
+    if(row<0) return NULL;
+    MList *list = mSheetRowList(ini,row);
+    return list;
 }
 
 void INIFileWrite(FILE *f,char *buff,int *size,char *format,...)

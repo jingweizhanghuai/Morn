@@ -1,11 +1,9 @@
 // g++ -O2 -fopenmp test_matrix3.cpp -o test_matrix3.exe -lclapack -lopenblas -lf2c -lmorn
 #define EIGEN_DONT_VECTORIZE
-// #include "cblas.h"
 #include "Eigen/Dense"
-// #include "armadillo"
 #include "morn_math.h"
 
-#define T 1000
+#define T 10000
 
 void test_transpose(int K)
 {
@@ -158,16 +156,16 @@ void test_linear_equation(int K)
     }
 
     Eigen::VectorXf v_x;
-    mTimerBegin("Eigen QR");
-    for(int i=0;i<T;i++)
-        v_x = m_a.colPivHouseholderQr().solve(v_b);
-    mTimerEnd("Eigen QR");
+    // mTimerBegin("Eigen QR");
+    // for(int i=0;i<T;i++)
+    //     v_x = m_a.colPivHouseholderQr().solve(v_b);
+    // mTimerEnd("Eigen QR");
     // for(int i=0;i<K;i++) printf("%f,",v_x(i));printf("\n");
 
-    mTimerBegin("Eigen LU");
+    mTimerBegin("Eigen");
     for(int i=0;i<T;i++)
         v_x = m_a.lu().solve(v_b);
-    mTimerEnd("Eigen LU");
+    mTimerEnd("Eigen");
     // for(int i=0;i<K;i++) printf("%f,",v_x(i));printf("\n");
 
     float *b=(float *)malloc(K*sizeof(float));
@@ -230,43 +228,43 @@ void test_linear_equation(int K)
 
 int main()
 {
-    printf("\n");
+    printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_transpose(10);
     test_transpose(20);
     test_transpose(50);
     test_transpose(100);
-    test_transpose(200);
-    test_transpose(500);
+    // test_transpose(200);
+    // test_transpose(500);
 
-    printf("\n");
+    printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_mul(10);
     test_mul(20);
     test_mul(50);
     test_mul(100);
-    test_mul(200);
-    test_mul(500);
+    // test_mul(200);
+    // test_mul(500);
 
-    printf("\n");
+    printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_determinant(10);
     test_determinant(20);
     test_determinant(50);
     test_determinant(100);
 
-    printf("\n");
+    printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_inverse(10);
     test_inverse(20);
     test_inverse(50);
     test_inverse(100);
-    test_inverse(200);
-    test_inverse(500);
+    // test_inverse(200);
+    // test_inverse(500);
 
-    printf("\n");
+    printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_linear_equation(10);
     test_linear_equation(20);
     test_linear_equation(50);
     test_linear_equation(100);
-    test_linear_equation(200);
-    test_linear_equation(500);
+    // test_linear_equation(200);
+    // test_linear_equation(500);
 
     // printf("\n");
     // test_eigenvalue(10);

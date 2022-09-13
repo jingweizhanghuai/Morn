@@ -85,7 +85,7 @@ MTreeNode *mTreeNode(MTree *tree,void *data,int size)
     return node;
 }
 
-void mTreeNodeSet(MTreeNode *tree,MTreeNode *child,int order)
+void mTreeNodeInsert(MTreeNode *tree,MTreeNode *child,int order)
 {
     child->parent = tree;
     
@@ -144,38 +144,34 @@ void TreeTraversal(MTreeNode *tree,void (*func)(MTreeNode *,void *),void *para,i
     else
         mException(1,EXIT,"undefined operate");
 }
-void mTreeTraversal(MTree *tree,void (*func)(MTreeNode *,void *),void *para,int mode)
+void mTreeTraversal(MTree *tree,void *function,void *para,int mode)
 {
+    void (*func)(MTreeNode *,void *) =function;
     TreeTraversal(tree->treenode,func,para,mode);
 }
 
 MTreeNode *TreeDecide(MTreeNode *tree,int (*func)(MTreeNode *,void *),void *para)
 {
-    MTreeNode *node;
     if(tree->child_num>0)
     {
         int order = func(tree,para);
-        node = TreeDecide(tree->child[order],func,para);
+        return TreeDecide(tree->child[order],func,para);
     }
-    else
-        node = tree;
-    
-    return node;
+    else return tree;
 }
-MTreeNode *mTreeDecide(MTree *tree,int (*func)(MTreeNode *,void *),void *para)
+MTreeNode *mTreeDecide(MTree *tree,void *function,void *para)
 {
+    int (*func)(MTreeNode *,void *) = function;
     return TreeDecide(tree->treenode,func,para);
 }
 
 MTreeNode *TreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para)
 {
-    if(func(node,para)==1)
-        return node;
+    if(func(node,para)==1) return node;
     
-    MTreeNode *rst;
     for(int i=0;i<node->child_num;i++)
     {
-        rst = TreeSearch(node->child[i],func,para);
+        MTreeNode *rst = TreeSearch(node->child[i],func,para);
         if(rst != NULL) return rst;
     }
     return NULL;
@@ -183,12 +179,11 @@ MTreeNode *TreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para
 
 #define MORN_TREE_SEARCH_ALL DFLT
 #define MORN_TREE_SEARCH_NEXT 0
-MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *para,int mode)
+MTreeNode *mTreeSearch(MTreeNode *node,void *function,void *para,int mode)
 {
-    int i;
+    int (*func)(MTreeNode *,void *) = function;
     MTreeNode *rst;
-    
-    for(i=0;i<node->child_num;i++)
+    for(int i=0;i<node->child_num;i++)
     {
         rst = TreeSearch(node->child[i],func,para);
         if(rst != NULL) return rst;
@@ -200,7 +195,7 @@ MTreeNode *mTreeSearch(MTreeNode *node,int (*func)(MTreeNode *,void *),void *par
         int flag = (mode == MORN_TREE_SEARCH_NEXT)?0:1;
         if(flag==1)
             {if(func(parent,para)==1) return parent;}
-        for(i=0;i<parent->child_num;i++)
+        for(int i=0;i<parent->child_num;i++)
         {
             if(parent->child[i] == node) {flag = 1;continue;}
             if(flag == 0) continue;

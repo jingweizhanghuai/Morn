@@ -44,7 +44,7 @@ MBtreeNode *mBtreeNode(MBtree *btree,void *data,int size)
     return node;
 }
 
-void mBtreeNodeSet(MBtreeNode *node,MBtreeNode *parent,int order)
+void mBtreeNodeInsert(MBtreeNode *node,MBtreeNode *parent,int order)
 {
     if(node->parent != 0)
     {
@@ -95,13 +95,16 @@ void BtreeOperate(MBtreeNode *tree,void (*func)(MBtreeNode *,void *),void *para,
     else
         mException(1,EXIT,"undefined operate");
 }
-void mBtreeOperate(MBtree *tree,void (*func)(MBtreeNode *,void *),void *para,int mode)
+void mBtreeOperate(MBtree *tree,void *function,void *para,int mode)
 {
+    void (*func)(MBtreeNode *,void *) = function;
     BtreeOperate(tree->btreenode,func,para,mode);
 }
 
-MBtreeNode *mBTreeDecide(MBtree *btree,int (*func)(MBtreeNode *,void *),void *para)
+MBtreeNode *mBTreeDecide(MBtree *btree,void *function,void *para)
 {
+    int (*func)(MBtreeNode *,void *) = function;
+    
     MBtreeNode *node = NULL;
     MBtreeNode *p = btree->btreenode;
     while(p!=NULL)

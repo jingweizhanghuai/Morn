@@ -33,13 +33,34 @@ double mSin(double a);
 double mCos(double a);
 double mTan(double a);
 double mCot(double a);
+double mSec(double a);
+double mCsc(double a);
+
+double mSinh(double x);
+double mCosh(double a);
+double mTanh(double a);
+double mCoth(double a);
+double mSech(double a);
+double mCsch(double a);
+
 double mLn(double a);
 double mLoga(double a,double b);
 double mLg(double a);
 double mExp(double a);
-#define mPow(A,B) (mExp((B)*mLn(A)))
+double mPow(double a,double b);
+
 double mSqrt(double a);
 double mCurt(double a);
+
+double mSigmoid(double x);
+double mDsigmoid(double x);
+
+double m_Gaussian(double a,double mean,double variance);
+#define mGaussian(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_Gaussian((double)VA0(__VA_ARGS__),0.0,1.0):(\
+    (VANumber(__VA_ARGS__)==3)?m_Gaussian((double)VA0(__VA_ARGS__),(double)VA1(__VA_ARGS__),(double)VA2(__VA_ARGS__)):(\
+    DFLT))\
+)
 
 void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
@@ -83,7 +104,7 @@ MList *m_Permutation(MList *list,int num);
 )
 MList *mCombination(MList *list,int n);
 
-double mSigmoid(float x);
+
 
 typedef struct MVector{
     int size;

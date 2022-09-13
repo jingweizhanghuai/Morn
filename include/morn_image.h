@@ -447,7 +447,7 @@ void mPolygonSideTravel(MList *polygon,int stride,void (*func)(MImagePoint *,voi
 void mCurveTravel(MImageCurve *curve,int stride,void (*func)(MImagePoint *,void *),void *para);
 
 #define PointLineCheck(px,py,lx1,ly1,lx2,ly2) (((lx1)-(lx2))*((py)-(ly2))-((ly1)-(ly2))*((px)-(lx2)))
-int mLinePointCheck(MList *line,MImagePoint *point);
+int mLinePointCheck(MImagePoint *point,MImagePoint *p1,MImagePoint *p2);
 int LineCrossCheck(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2);
 int mLineRectCrossCheck(MImagePoint *ls,MImagePoint *le,MImageRect *rect);
 int LineCrossPoint(double l1x1,double l1y1,double l1x2,double l1y2,double l2x1,double l2y1,double l2x2,double l2y2,float *px,float *py);
@@ -496,7 +496,7 @@ float mQuadrangleArea(MImagePoint *p1,MImagePoint *p2,MImagePoint *p3,MImagePoin
 #define mPointDistance(P1,P2) PointDistance(((MImagePoint *)(P1))->x,((MImagePoint *)(P1))->y,((MImagePoint *)(P2))->x,((MImagePoint *)(P2))->y)
 double PointVerticalDistance(double px,double py,double lx1,double ly1,double lx2,double ly2,float *vx,float *vy);
 float mPointVerticalDistance(MImagePoint *point,MImagePoint *p1,MImagePoint *p2,MImagePoint *pedal);
-#define mPointInRect(Point,Rect) ((((MImagePoint *)(Point))->x>((MImageRect *)(Rect))->x1)&&(((MImagePoint *)(Point))->x<((MImageRect *)(Rect))->x2)&&(((MImagePoint *)(Point))->y>((MImageRect *)(Rect))->y1)&&(((MImagePoint *)(Point))->y<((MImageRect *)(Rect))->y2));
+#define mPointInRect(Point,Rect) ((((MImagePoint *)(Point))->x>((MImageRect *)(Rect))->x1)&&(((MImagePoint *)(Point))->x<((MImageRect *)(Rect))->x2)&&(((MImagePoint *)(Point))->y>((MImageRect *)(Rect))->y1)&&(((MImagePoint *)(Point))->y<((MImageRect *)(Rect))->y2))
 int PointInPolygon(double x,double y,MList *polygon);
 int mPointInPolygon(MImagePoint *point,MList *polygon);
 float mRectUnionsetArea(MImageRect *rect1,MImageRect *rect2);
