@@ -7,11 +7,11 @@ You should have received a copy of the GNU General Public License along with thi
 // gcc -O2 -fopenmp test_log.c -o test_log.exe -lmorn -lws2_32
 // cl.exe test_log.c ..\lib\x64_msvc\libmorn.lib ..\lib\x64_msvc\pthreadVC2.lib -I ..\include\ -I ..\lib\include\pthread\
 
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 char *author = "JingWeiZhangHuai";
-#define LOG_FORMAT1(message) "[%s,line %d]Info: in function %s:"message,__FILE__,__LINE__,__FUNCTION__
-#define LOG_FORMAT2(message) "[%s author %s]: "message,mTimeString(),author
+#define LOG_FORMAT1(message) "[%s,line %d]Info: in function %s:"message"\n",__FILE__,__LINE__,__FUNCTION__
+#define LOG_FORMAT2(message) "[%s author %s]: "message"\n",mTimeString(),author
 void test1()
 {
     mLog(MORN_INFO,"this is a Morn log, num=%d\n",1);
@@ -97,55 +97,24 @@ void test5()
     mLog(MORN_INFO, "this is a Morn log\n");
 }
 
-int main()
+void thread_log(void *para)
 {
+    for(int i=0;i<100;i++)
+        mLog(MORN_INFO,mLogFormat5("this is %d Morn log"),i);
+}
+void test6()
+{ 
     mPropertyWrite("Log","log_file","./test_log.log");
-    for(int i=0;;i++)
-    {
-        mSleep(10);
-        mLog(MORN_INFO,mLogFormat5("this is %d Morn log\n"),i);
-    }
+    mThread((thread_log,NULL),(thread_log,NULL),(thread_log,NULL),(thread_log,NULL));
 }
 
-
-// void log_thread(int *test_num)
-// {
-//     int data[100];for(int i=0;i<100;i++) data[i]=mRand(0,100);
-//     for(int i=0;i<*test_num;i++)
-//         mLog(MORN_INFO,mLogFormat(5,"data=%d"),data[i%100]);
-// }
-
-// void test6()
-// {
-//     mLogSet("./test_log.log");
-    
-//     int test_num = 800;
-    
-//     mTimerBegin();
-//     log_thread(&test_num);
-//     mTimerEnd();
-
-//     mLogSet("./test_log2.log");
-//     mTimerBegin();
-//     mThread((log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num),(log_thread,&test_num));
-//     mTimerEnd();
-// }
-
-int maiqn()
-{
-    // char buff[16];
-    // int n=sprintf(buff,"abcd");
-    // printf("n=%d\n",n);
-
-    // n=snprintf(buff,16,"aaaaaaaaaaaaaaaaa");
-    // printf("n=%d\n",n);
-
-    // printf("buff=%s\n",buff);
-    
-    // test1();
+int main()
+{    
+    test1();
     test2();
-    // test3();
-    // test4();
-    // test5();
+    test3();
+    test4();
+    test5();
+    test6();
     return 0;
 }

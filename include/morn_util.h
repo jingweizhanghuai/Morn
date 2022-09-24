@@ -690,7 +690,7 @@ void *mReserve(MObject *obj,int n);
 
 typedef struct MHandle
 {
-    volatile unsigned int flag;
+    volatile uint32_t flag;
     volatile int valid;
     void (*destruct)(void *);
     void *handle;
@@ -701,6 +701,8 @@ struct HandleList
     MList list;
     int latest_flag;
     int latest_n;
+    volatile int valid;
+//     MThreadSignal thread_sgn;
 };
 
 void *ObjectAlloc(int size);
@@ -710,7 +712,9 @@ void mHandleReset(void *p);
 MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
 #define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
+// MHandle *ObjHandle(void *Obj,int N);
 #define ObjHandle(Obj,N) ((MHandle *)(((struct HandleList *)Obj)[-1].list.data[N]))
+int mHandleValid(MHandle *hdl);
 
 #define mFunction(Obj,func,...) func(Obj,__VA_ARGS__)
 

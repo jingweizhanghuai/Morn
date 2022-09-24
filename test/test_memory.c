@@ -14,7 +14,8 @@ void test(void *para)
     memset(data,0,1024*sizeof(int *));
 
     mTimerBegin("libc");
-    for(int i=0;i<TEST_NUM;i++)
+    int count = 0;
+    while(1)
     {
         int idx = mRand(0,1024);
         if(data[idx]==NULL)
@@ -144,7 +145,7 @@ void test(void *para)
 #ifdef USE_MIMALLOC
 //build_x64_mingw: gcc -O2 -fopenmp test_memory.c -o test_memory_mimalloc.exe -DUSE_MIMALLOC -lmorn -lmimalloc -lPsapi -lBcrypt
 //build_x64_gnu:   gcc -O2 -fopenmp test_memory.c -o test_memory_mimalloc.exe -DUSE_MIMALLOC -I ../include/ -L ../lib/x64_gnu -lmorn -lmimalloc -lm
-#include "mimalloc.h"
+#include "mimalloc/mimalloc.h"
 void test(void *para)
 {
     int *data[1024];
@@ -180,21 +181,6 @@ int main()
     test(NULL);
 }
 
-// int mainw()
-// {
-//     int *a[50];
-//     for(int i=0;i<50;i++)
-//     {
-//         a[i]=mMalloc(100);
-//         printf("a[%d]=%p\n",i,a[i]);
-//     }
-//     for(int i=0;i<50;i++) mFree(a[i]);
-// }
 
-// int main()
-// {
-//     printf("aaaaaa\n");
-//     free(NULL);
-//     printf("aaaaaa\n");
-// }
+    
 

@@ -1,6 +1,6 @@
 // g++ -O2 -fopenmp test_matrix3.cpp -o test_matrix3.exe -lclapack -lopenblas -lf2c -lmorn
 #define EIGEN_DONT_VECTORIZE
-#include "Eigen/Dense"
+#include "eigen3/Eigen/Dense"
 #include "morn_math.h"
 
 #define T 10000
@@ -233,16 +233,16 @@ int main()
     test_transpose(20);
     test_transpose(50);
     test_transpose(100);
-    // test_transpose(200);
-    // test_transpose(500);
+    test_transpose(200);
+//     test_transpose(500);
 
     printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_mul(10);
     test_mul(20);
     test_mul(50);
     test_mul(100);
-    // test_mul(200);
-    // test_mul(500);
+    test_mul(200);
+//     test_mul(500);
 
     printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_determinant(10);
@@ -255,16 +255,16 @@ int main()
     test_inverse(20);
     test_inverse(50);
     test_inverse(100);
-    // test_inverse(200);
-    // test_inverse(500);
+    test_inverse(200);
+//     test_inverse(500);
 
     printf("\neigen use simd %s\n",Eigen::SimdInstructionSetsInUse());
     test_linear_equation(10);
     test_linear_equation(20);
     test_linear_equation(50);
     test_linear_equation(100);
-    // test_linear_equation(200);
-    // test_linear_equation(500);
+    test_linear_equation(200);
+//     test_linear_equation(500);
 
     // printf("\n");
     // test_eigenvalue(10);

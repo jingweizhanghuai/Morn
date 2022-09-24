@@ -5,6 +5,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "morn_math.h"
 #include "morn_ptc.h"
 
+#define fread(Data,Size,Num,Fl) mException(((int)fread(Data,Size,Num,Fl)!=Num),EXIT,"read file error")
+
 #ifdef __GNUC__
 #define stricmp strcasecmp
 #endif
@@ -43,7 +45,7 @@ float mNormalRand(float mean,float delta)
     float u = mRand(1,32768)/32768.0f;
     float v = mRand(0,32767)/32767.0f;
     
-    float out = sqrt(0.0-2.0*log(u))*cos(2*MORN_PI*v);
+    float out = mSqrt(0.0-2.0*mLn(u))*mCos(360.0*v);
     return (out*delta+mean);
 }
 
@@ -56,7 +58,7 @@ int m_RandString(char *str,int l1,int l2)
     str[size]=0;
     return size;
 }
-
+ 
 int mCompare(const void *mem1,int size1,const void *mem2,int size2)
 {
     if((size1<0)&&(size2<0)) return strcmp((char *)mem1,(char *)mem2);
@@ -281,7 +283,8 @@ void m_PropertyFunction(MObject *obj,const char *key,void *function,void *para)
 
 void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_size)
 {
-    if(value==NULL) value_size=-1;
+    int deft_value=1;
+    if(value==NULL) {value=&deft_value;value_size=sizeof(int);}
     else if(value_size<=0) value_size=strlen(value)+1;
     
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
@@ -291,7 +294,7 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
     struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
     if(p!=NULL)
     {
-        if(value_size<0) {if(p->func!=NULL) {p->func(p->value,p->para);} return p->value;}
+        if(value==&deft_value) {if(p->func!=NULL) {p->func(p->value,p->para);} return p->value;}
         if(vsize==value_size+sizeof(struct Property))
         {
             memcpy(p->value,value,value_size);
@@ -457,12 +460,6 @@ void mFile(MObject *object,const char *file_name,...)
 //     }
 // }
 
-// struct HandleList
-// {
-//     MList list;
-//     int latest_flag;
-//     int latest_n;
-// };
 
 void *ObjectAlloc(int size)
 {
@@ -471,6 +468,7 @@ void *ObjectAlloc(int size)
     hl->list.data = NULL;
     hl->latest_flag = DFLT;
     hl->latest_n = -1;
+    hl->valid = 0;
     memset(hl+1,0,size);
     return (void *)(hl+1);
 }
@@ -506,7 +504,13 @@ MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
     struct HandleList *hl = ((struct HandleList *)obj)-1;
     if(hl->latest_flag==hash) return (MHandle *)(hl->list.data[hl->latest_n]);
 
-    hl->latest_flag=hash;
+    while(1)
+    {
+        int v=mAtomicCompare(&hl->valid,0,1);
+        if(v==1) break;
+        while(1) {if(hl->valid==0) break;}
+    }
+    
     MList *hlist = (MList *)hl;
     int num = hlist->num;
     for(int i=0;i<num;i++)
@@ -515,10 +519,12 @@ MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
         if(handle_data->flag == hash)
         {
             hl->latest_n=i;
+            hl->latest_flag=hash;
+            hl->valid=0;
             return handle_data;
         }
     }
-
+    
     MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle)+size);
     Handle_context->flag    = hash;
     Handle_context->valid   = 0;
@@ -537,7 +543,17 @@ MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
     hlist->data[num] = Handle_context;
     hlist->num = num+1;
     hl->latest_n=num;
+    hl->latest_flag=hash;
+    hl->valid=0;
     return (MHandle *)(hlist->data[num]);
+}
+
+int mHandleValid(MHandle *hdl)
+{
+    if(hdl->valid==1) return 1;
+    int v=mAtomicCompare(&(hdl->valid),0,-1);
+    if(v==1) return 0;
+    while(1) {if(hdl->valid==1) return 1;}
 }
 
 void endMAF();

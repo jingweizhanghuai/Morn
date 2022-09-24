@@ -69,10 +69,12 @@ struct ProcTopicState
 };
 struct ProcTopicInfo
 {
-    volatile int ID;
-    volatile int user_num;
-    volatile int writer_num;
-    volatile int write_locate;
+    volatile int32_t ID;
+    volatile int32_t user_num;
+    volatile int32_t writer_num;
+    volatile int32_t write_locate;
+    volatile int32_t write_state;
+             int32_t reserve;
     volatile int64_t write_order;
     
     volatile struct ProcTopicState topic[128];
@@ -102,8 +104,8 @@ void endProcTopic(struct HandleProcTopic *handle)
     struct ProcTopicInfo *info = handle->info;
 
     m_Lock(handle->file);
-    int user_num;m_Read(handle->file,sizeof(int),&user_num,sizeof(int));
-    user_num--; m_Write(handle->file,sizeof(int),&user_num,sizeof(int));
+    int32_t user_num;m_Read(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
+    user_num--;     m_Write(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
     info->user_num =user_num;
     m_Unlock(handle->file);
 
@@ -121,13 +123,14 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
     if(write_size<0) write_size=strlen(data)+1;
     int size = ((write_size+7)>>3)<<3;
 
-    int ID=0;int user_num=0;int writer_num=0;
+    int ID=0;
 
     MHandle *hdl = mHandle(topicname,ProcTopic);
     struct HandleProcTopic *handle = (struct HandleProcTopic *)(hdl->handle);
-    if(hdl->valid == 0)
+    if(!mHandleValid(hdl))
     {
         handle->ID= getpid()*1000+mThreadID();
+        // printf("handle->ID=%d\n",handle->ID);
         mPropertyFunction(topicname,"exit",mornObjectRemove,topicname);
         mPropertyVariate(topicname,"topic_size",&(handle->topicsize));
         
@@ -135,7 +138,6 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
         {
             #if defined(_WIN64)||defined(_WIN32)
             sprintf(morn_message_file,"%s/morn_message",getenv("TEMP"));
-            printf("morn_message_file=%s\n",morn_message_file);
             if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file);
             #else
             sprintf(morn_message_file,"/tmp/morn_message");
@@ -148,7 +150,7 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
         handle->file = m_Open(handle->filename);
         if(flag>=0)
         {
-            m_Read(handle->file,sizeof(int),&ID,sizeof(int));
+            // m_Read(handle->file,sizeof(int),&ID,sizeof(int));
             handle->filesize = m_Fsize(handle->file)-sizeof(struct ProcTopicInfo);
         }
         if(flag<0)
@@ -171,16 +173,15 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
             }
         }
         
+        int32_t user_num=0;int32_t writer_num=0;
         m_Lock(handle->file);
         if(flag>=0)
         {
-            m_Read(handle->file,2*sizeof(int),  &user_num,sizeof(int));
-            m_Read(handle->file,3*sizeof(int),&writer_num,sizeof(int));
+            m_Read(handle->file,  sizeof(int32_t),  &user_num,sizeof(int32_t));
+            m_Read(handle->file,2*sizeof(int32_t),&writer_num,sizeof(int32_t));
         }
-        if(writer_num==0) ID=handle->ID;else ID=0;
-                     m_Write(handle->file,            0,         &ID ,sizeof(int));handle->info->ID        = ID;
-        user_num++;  m_Write(handle->file,  sizeof(int),    &user_num,sizeof(int));handle->info->user_num  = user_num;
-        writer_num++;m_Write(handle->file,2*sizeof(int),  &writer_num,sizeof(int));handle->info->writer_num= writer_num;
+        user_num++;  m_Write(handle->file,  sizeof(int32_t),&user_num  ,sizeof(int32_t));handle->info->user_num  = user_num;
+        writer_num++;m_Write(handle->file,2*sizeof(int32_t),&writer_num,sizeof(int32_t));handle->info->writer_num= writer_num;
         m_Unlock(handle->file);
  
         hdl->valid = 1;
@@ -195,17 +196,21 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
         mException(1,EXIT,"invalid topic size");
     }
     
-    if(info->writer_num>1) do
+    // printf("info->writer_num=%d\n",info->writer_num);
+    if(info->writer_num>1)
     {
-        m_Lock(handle->file);
-        m_Read(handle->file,0,&ID,sizeof(int));
-        if(ID==0)
+        while(1)
         {
-            ID=handle->ID;info->ID=ID;
-            m_Write(handle->file,0,&ID,sizeof(int));
+            m_Lock(handle->file);
+            if((info->write_state==0)||(info->ID==0)) 
+            {
+                info->write_state=1;info->ID=handle->ID;
+                m_Unlock(handle->file);break;
+            }
+            if(m_Exist(info->ID)==0){info->writer_num-=1;info->ID=0;}
+            m_Unlock(handle->file);
         }
-        m_Unlock(handle->file);
-    }while(ID!=handle->ID);
+    }
 
     int order = (info->write_order)%8;
     int locate= (info->write_locate);if(locate+size>handle->filesize)locate=0;
@@ -217,7 +222,7 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
     info->write_locate=locate+size;
     info->write_order+=1;
     
-    if(info->writer_num>1){ID=0;m_Write(handle->file,0,&ID,sizeof(int));info->ID=0;}
+    if(info->writer_num>1) info->write_state=0;
     return (info->ptr+locate);
 }
 
@@ -226,52 +231,63 @@ void *m_ProcTopicRead(const char *topicname,void *data,int *read_size)
     if(topicname==NULL) topicname="morn_topic";
     MHandle *hdl = mHandle(topicname,ProcTopic);
     struct HandleProcTopic *handle = (struct HandleProcTopic *)(hdl->handle);
-    if(hdl->valid == 0)
+    if(!mHandleValid(hdl))
     {
         mPropertyFunction(topicname,"exit",mornObjectRemove,topicname);
-        
-        if(morn_message_file[0]==0)
-        {
-            #if defined(_WIN64)||defined(_WIN32)
-            sprintf(morn_message_file,"%s/morn_message",getenv("TEMP"));
-            if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file);
-            #else
-            sprintf(morn_message_file,"/tmp/morn_message");
-            if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file,0777);
-            #endif
-        }
-        sprintf(handle->filename,"%s/.%s.bin",morn_message_file,topicname);
-        // printf("filename=%s\n",handle->filename);
+        handle->order_read=-1;
+        if(read_size!=NULL) *read_size = 0;
 
-        int flag,ID;
-        flag = access(handle->filename,F_OK); if(flag<0) {if(read_size!=NULL) *read_size = 0; return NULL;}
-        handle->file = m_Open(handle->filename);
-        int fsize;do{fsize = m_Fsize(handle->file);mSleep(10);}while(fsize<sizeof(struct ProcTopicInfo));
-        do{do{m_Read(handle->file,0,&ID,sizeof(int));mSleep(10);}while(ID==0);flag=m_Exist(ID);}while(!flag);
-        int filesize=m_Fsize(handle->file);
-        m_Mmap(handle->file,handle->info,filesize);
+        if(handle->filesize==0)
+        {
+            if(morn_message_file[0]==0)
+            {
+                #if defined(_WIN64)||defined(_WIN32)
+                sprintf(morn_message_file,"%s/morn_message",getenv("TEMP"));
+                if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file);
+                #else
+                sprintf(morn_message_file,"/tmp/morn_message");
+                if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file,0777);
+                #endif
+            }
+            sprintf(handle->filename,"%s/.%s.bin",morn_message_file,topicname);
+            // printf("filename=%s\n",handle->filename);
+
+            int flag = access(handle->filename,F_OK); if(flag<0) return NULL;
+            handle->file = m_Open(handle->filename);
+     
+            int filesize=m_Fsize(handle->file);
+            if(filesize<sizeof(struct ProcTopicInfo)) return NULL;
+
+            handle->filesize=filesize;
+        }
+        int ID;m_Read(handle->file,0,&ID,sizeof(int));
+        if(m_Exist(ID)==0) return NULL;
+
+        int64_t write_order;m_Read(handle->file,6*sizeof(int),&write_order,sizeof(int64_t));
+        if(write_order==0) return NULL;
+
+        m_Mmap(handle->file,handle->info,handle->filesize);
         
         m_Lock(handle->file);
-        int user_num;m_Read(handle->file,sizeof(int),&user_num,sizeof(int));
-        user_num++; m_Write(handle->file,sizeof(int),&user_num,sizeof(int));
+        int32_t user_num;m_Read(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
+        user_num++;     m_Write(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
         handle->info->user_num =user_num;
         m_Unlock(handle->file);
-        
+
         hdl->valid = 1;
     }
     struct ProcTopicInfo *info=handle->info;
     
     int64_t order_read=info->write_order-1;
-    if(order_read<=0) return NULL;
     
     int order = order_read%8;
-    
     int locate= info->topic[order].locate;
     int size  = info->topic[order].size;
 
     if(read_size!=NULL) {if(*read_size>0) {size=MIN(*read_size,size);} *read_size=size;}
     if(data!=NULL) memcpy(data,info->ptr+locate,size);
 
+    // printf("order_read=%d,handle->order_read=%d\n",order_read,handle->order_read);
     char *p =(order_read>handle->order_read)?(info->ptr+locate):NULL;
     handle->order_read = order_read;
     return p;
@@ -524,7 +540,7 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
         int flag,ID;
         do{flag = access(handle->filename,F_OK);WAIT}while(flag<0);
         handle->file = m_Open(handle->filename);
-        int fsize;do{fsize = m_Fsize(handle->file);WAIT}while(fsize<sizeof(struct ProcTopicInfo));
+        int f_size;do{f_size = m_Fsize(handle->file);WAIT}while(f_size<sizeof(struct ProcTopicInfo));
         do{do{m_Read(handle->file,0,&ID,sizeof(int));WAIT}while(ID==0);flag=m_Exist(ID);}while(!flag);
         handle->filesize=m_Fsize(handle->file)-sizeof(struct ProcMessageInfo);
         m_Mmap(handle->file,handle->info,handle->filesize+sizeof(struct ProcMessageInfo));
@@ -693,7 +709,9 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
 
 struct HandleProcVariate
 {
-    int ID;
+    char idxname[256];
+    char dataname[256];
+    // int ID;
     #if defined(_WIN64)||defined(_WIN32)
     HANDLE file_idx;
     HANDLE file_data;
@@ -712,10 +730,18 @@ void endProcVariate(struct HandleProcVariate *handle)
 {
     if(handle->map!=NULL) mMapRelease(handle->map);
 
+    int user_num;m_Read(handle->file_idx,8,&user_num,sizeof(int32_t));
+    user_num--; m_Write(handle->file_idx,8,&user_num,sizeof(int32_t));
+
     if(handle->buff_idx !=NULL) m_Munmap(handle->buff_idx ,65536);
     if(handle->buff_data!=NULL) m_Munmap(handle->buff_data,65536);
     m_Close(handle->file_idx);
     m_Close(handle->file_data);
+    if(user_num==0) 
+    {
+        mSleep(10);remove(handle->dataname);
+        mSleep(10);remove(handle->idxname);
+    }
 }
 #define HASH_ProcVariate 0x45828c6f
 void *mProcVariate(const char *name,int size)
@@ -724,7 +750,7 @@ void *mProcVariate(const char *name,int size)
 
     MHandle *hdl = mHandle("ProcVariate",ProcVariate);
     struct HandleProcVariate *handle = (struct HandleProcVariate *)(hdl->handle);
-    if(hdl->valid == 0)
+    if(!mHandleValid(hdl))
     {
         mPropertyFunction("ProcVariate","exit",mornObjectRemove,"ProcVariate");
 
@@ -738,36 +764,40 @@ void *mProcVariate(const char *name,int size)
             if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file,0777);
             #endif
         }
-        char filename[256];
-        sprintf(filename,"%s/.morn_variate_idx.bin",morn_message_file);
-        int flag = access(filename,F_OK);
-        handle->file_idx = m_Open(filename);
+        
+        sprintf(handle->idxname,"%s/.morn_variate_idx.bin",morn_message_file);
+        int flag = access(handle->idxname,F_OK);
+        handle->file_idx = m_Open(handle->idxname);
         if(flag>=0)
         {
-            mException(m_Fsize(handle->file_idx)<65536,EXIT,"invalid map file %s",filename);
+            mException(m_Fsize(handle->file_idx)<65536,EXIT,"invalid map file %s",handle->idxname);
+            int user_num;m_Read(handle->file_idx,8,&user_num,sizeof(int32_t));
+            user_num++; m_Write(handle->file_idx,8,&user_num,sizeof(int32_t));
         }
         else
         {
-            int n=0;
-            m_Write(handle->file_idx,65532,&n,sizeof(int));
-            m_Write(handle->file_idx,0    ,&n,sizeof(int));
-            m_Write(handle->file_idx,4    ,&n,sizeof(int));
+            int n;
+            n= 0;m_Write(handle->file_idx,65532,&n,sizeof(int32_t));
+            n=12;m_Write(handle->file_idx,0    ,&n,sizeof(int32_t));
+            n= 0;m_Write(handle->file_idx,4    ,&n,sizeof(int32_t));
+            n= 1;m_Write(handle->file_idx,8    ,&n,sizeof(int32_t));
         }
         m_Mmap(handle->file_idx,handle->buff_idx,65536);
 
-        sprintf(filename,"%s/.morn_variate_data.bin",morn_message_file);
-        flag = access(filename,F_OK);
-        handle->file_data = m_Open(filename);
+        sprintf(handle->dataname,"%s/.morn_variate_data.bin",morn_message_file);
+        flag = access(handle->dataname,F_OK);
+        handle->file_data = m_Open(handle->dataname);
         if(flag>=0)
         {
-            mException(m_Fsize(handle->file_data)<65536,EXIT,"invalid map file %s",filename);
+            mException(m_Fsize(handle->file_data)<65536,EXIT,"invalid map file %s",handle->dataname);
         }
         else
         {
-            int n=0;
-            m_Write(handle->file_data,65532,&n,sizeof(int));
-            m_Write(handle->file_data,0    ,&n,sizeof(int));
-            m_Write(handle->file_data,4    ,&n,sizeof(int));
+            int n;
+            n=0;m_Write(handle->file_data,65532,&n,sizeof(int32_t));
+            n=8;m_Write(handle->file_data,0    ,&n,sizeof(int32_t));
+            n=0;m_Write(handle->file_data,4    ,&n,sizeof(int32_t));
+
         }
         m_Mmap(handle->file_data,handle->buff_data,65536);
 
@@ -785,6 +815,7 @@ void *mProcVariate(const char *name,int size)
     int *p_idx = (int *)(handle->buff_idx);
     while(p_idx[1]!=0) {if(!m_Exist(p_idx[1])) break;} p_idx[1]=getpid()*1000;
     int size_idx = p_idx[0];
+
     uint8_t *p=handle->buff_idx+8+handle->size_idx;
     while(handle->size_idx<size_idx)
     {
@@ -800,26 +831,27 @@ void *mProcVariate(const char *name,int size)
 
         if(strcmp(name,key)==0) {m_Unlock(handle->file_idx);p_idx[1]=0;return pvalue;}
     }
-
+    
     keysize=(strlen(name)+1+3)/4;
     keysize=keysize*4;
     mException(keysize>128,EXIT,"invalid input");
+    handle->size_idx += 4+keysize;
+    mException(handle->size_idx>65536,EXIT,"too much variate\n");
 
     valuesize = (size+7)/8;
     valuesize = valuesize*8;
 
     m_Lock(handle->file_data);
     int size_data = *((int *)(handle->buff_data));
+    mException(size_data+valuesize>65536,EXIT,"too much variate\n");
 
     *((uint16_t *)(p  ))=size_data;
     *((uint16_t *)(p+2))=keysize;
     memcpy((char *)(p+4),name,keysize);
     pvalue = handle->buff_data+size_data;
-
-    handle->size_idx += 4+keysize;
-    p_idx[0] =handle->size_idx;
-
     size_data += valuesize;
+    
+    p_idx[0] =handle->size_idx;
     *((int *)(handle->buff_data)) = size_data;
 
     m_Unlock(handle->file_data);
@@ -829,31 +861,3 @@ void *mProcVariate(const char *name,int size)
     mMapWrite(handle->map,p+4,DFLT,&pvalue,sizeof(void *));
     return pvalue;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

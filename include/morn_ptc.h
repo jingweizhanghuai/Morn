@@ -35,13 +35,13 @@ int mThreadID();
 #define mAtomicSet(pA,B) __sync_lock_test_and_set(pA,B)
 #define mAtomicCompare(pA,B,C) __sync_bool_compare_and_swap(pA,B,C)
 #elif defined _MSC_VER
-#define mAtomicAdd(pA,B) ((sizeof(*(pA))==4)?InterlockedAdd((int32_t *)(pA),(int32_t)(B)):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),(int8_t)(B)))))
-#define mAtomicSub(pA,B) ((sizeof(*(pA))==4)?InterlockedAdd((int32_t *)(pA),0-(int32_t)(B)):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),0-(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),0-(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),0-(int8_t)(B)))))
-#define mAtomicOr( pA,B) ((sizeof(*(pA))==4)?_InterlockedOr((uint32_t *)(pA),(uint32_t)(B)):((sizeof(*(pA))==8)?_InterlockedOr64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedOr16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedOr8((uint8_t *)(pA),(uint8_t)(B)))))
-#define mAtomicAnd(pA,B) ((sizeof(*(pA))==4)?_InterlockedAnd((uint32_t *)(pA),(uint32_t)(B)):((sizeof(*(pA))==8)?_InterlockedAnd64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedAnd16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedAnd8((uint8_t *)(pA),(uint8_t)(B)))))
-#define mAtomicXor(pA,B) ((sizeof(*(pA))==4)?_InterlockedXor((uint32_t *)(pA),(uint32_t)(B)):((sizeof(*(pA))==8)?_InterlockedXor64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedXor16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedXor8((uint8_t *)(pA),(uint8_t)(B)))))
-#define mAtomicSet(pA,B) ((sizeof(*(pA))==4)?_InterlockedExchange((int32_t *)(pA),(int32_t)(B)):((sizeof(*(pA))==8)?_InterlockedExchange64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchange16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchange8((int8_t *)(pA),(int8_t)(B)))))
-#define mAtomicCompare(pA,B,C) ((sizeof(*(pA))==4)?(_InterlockedCompareExchange((int32_t *)(pA),(int32_t)((intptr_t)(C)),(int32_t)((intptr_t)(B)))==(int32_t)((intptr_t)(B))):((sizeof(*(pA))==8)?(_InterlockedCompareExchange64((int64_t *)(pA),(int64_t)(C),(int64_t)(B))==(int64_t)(B)):((sizeof(*(pA))==2)?(_InterlockedCompareExchange16((int16_t *)(pA),(int16_t)(C),(int16_t)(B))==(int16_t)(B)):(_InterlockedCompareExchange8((int8_t *)(pA),(int8_t)(C),(int8_t)(B))==(int8_t)(B)))))
+#define mAtomicAdd(pA,B) InterlockedAdd( pA,B)//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),(int8_t)(B)))))
+#define mAtomicSub(pA,B) InterlockedAdd( pA,0-(B))//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),0-(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),0-(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),0-(int8_t)(B)))))
+#define mAtomicOr( pA,B) _InterlockedOr( pA,B)//):((sizeof(*(pA))==8)?_InterlockedOr64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedOr16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedOr8((uint8_t *)(pA),(uint8_t)(B)))))
+#define mAtomicAnd(pA,B) _InterlockedAnd(pA,B)//):((sizeof(*(pA))==8)?_InterlockedAnd64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedAnd16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedAnd8((uint8_t *)(pA),(uint8_t)(B)))))
+#define mAtomicXor(pA,B) _InterlockedXor(pA,B)//):((sizeof(*(pA))==8)?_InterlockedXor64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedXor16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedXor8((uint8_t *)(pA),(uint8_t)(B)))))
+#define mAtomicSet(pA,B) _InterlockedExchange(pA,B)//):((sizeof(*(pA))==8)?_InterlockedExchange64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchange16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchange8((int8_t *)(pA),(int8_t)(B)))))
+#define mAtomicCompare(pA,B,C) (_InterlockedCompareExchange(pA,C,B)==B)//:((sizeof(*(pA))==8)?(_InterlockedCompareExchange64((int64_t *)(pA),(int64_t)(C),(int64_t)(B))==(int64_t)(B)):((sizeof(*(pA))==2)?(_InterlockedCompareExchange16((int16_t *)(pA),(int16_t)(C),(int16_t)(B))==(int16_t)(B)):(_InterlockedCompareExchange8((int8_t *)(pA),(int8_t)(C),(int8_t)(B))==(int8_t)(B)))))
 #else
 #define mAtomicAdd(pA,B) atomic_fetch_add((atomic_int *)(pA),(int)(B))
 #define mAtomicSub(pA,B) atomic_fetch_sub((atomic_int *)(pA),(int)(B))
@@ -66,16 +66,11 @@ typedef struct MThreadSignal
     volatile int valid;
 }MThreadSignal;
 #define _ThreadLockInit(Sgn) do{\
-    if((Sgn).valid!=HASH_Thread)\
+    if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
     {\
-        if(mAtomicCompare(&((Sgn).valid),0,1))\
-        {\
-            pthread_mutex_init( &((Sgn).mutex    ),PTHREAD_PROCESS_PRIVATE);\
-            pthread_cond_init(  &((Sgn).condition),PTHREAD_PROCESS_PRIVATE);\
-            pthread_rwlock_init(&((Sgn).rwlock   ),NULL);\
-            (Sgn).valid = HASH_Thread;\
-        }\
-        else while((Sgn).valid!=HASH_Thread);\
+        pthread_mutex_init( &((Sgn).mutex    ),PTHREAD_PROCESS_PRIVATE);\
+        pthread_cond_init(  &((Sgn).condition),PTHREAD_PROCESS_PRIVATE);\
+        pthread_rwlock_init(&((Sgn).rwlock   ),NULL);\
     }\
 }while(0)
 #define mThreadLockBegin(Sgn) do{_ThreadLockInit(Sgn);pthread_mutex_lock(&((Sgn).mutex));}while(0)
@@ -118,16 +113,11 @@ typedef struct MThreadSignal
     volatile int valid;
 }MThreadSignal;
 #define _ThreadLockInit(Sgn) do{\
-    if((Sgn).valid!=HASH_Thread)\
+    if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
     {\
-        if(mAtomicCompare(&((Sgn).valid),0,1))\
-        {\
-            InitializeCriticalSection(  &((Sgn).mutex    ));\
-            InitializeConditionVariable(&((Sgn).condition));\
-            InitializeSRWLock(          &((Sgn).rwlock   ));\
-            (Sgn).valid = HASH_Thread;\
-        }\
-        else while((Sgn).valid!=HASH_Thread);\
+        InitializeCriticalSection(  &((Sgn).mutex    ));\
+        InitializeConditionVariable(&((Sgn).condition));\
+        InitializeSRWLock(          &((Sgn).rwlock   ));\
     }\
 }while(0)
 #define mThreadLockBegin(Sgn) do{_ThreadLockInit(Sgn);EnterCriticalSection(&((Sgn).mutex));}while(0)
@@ -161,16 +151,11 @@ typedef struct MThreadSignal
     volatile int valid;
 }MThreadSignal;
 #define _ThreadLockInit(Sgn) do{\
-    if((Sgn).valid!=HASH_Thread)\
+    if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
     {\
-        if(mAtomicCompare(&((Sgn).valid),0,1))\
-        {\
-            mtx_init(&((Sgn).mutex),mtx_plain);\
-            cnd_init(&((Sgn).condition));\
-            (Sgn).rwlock= 0;\
-            (Sgn).valid = HASH_Thread;\
-        }\
-        else while((Sgn).valid!=HASH_Thread);\
+        mtx_init(&((Sgn).mutex),mtx_plain);\
+        cnd_init(&((Sgn).condition));\
+        (Sgn).rwlock= 0;\
     }\
 }while(0)
 #define mThreadLockBegin(Sgn) do{_ThreadLockInit(Sgn);mtx_lock(&((Sgn).mutex));}while(0)
@@ -222,7 +207,7 @@ typedef struct MThreadSignal
     THREAD_FUNC0 F0;\
     for(int I=0;I<VAN-1;I++) {mThreadEnd(&(Thrd[I]));}\
 }while(0)
-#define mThread(...) ARG(_mThread(VANumber(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL)))
+#define mThread(...) _mThread(VANumber(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL))
 
 void *m_ProcTopicWrite(const char *msgname,void *data,int size);
 void *m_ProcTopicRead(const char *msgname,void *data,int *size);
@@ -257,7 +242,6 @@ void *mProcVariate(const char *name,int size);
 int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);
 void *mQueueRead(MList *queue,void *data,int *size);
-
 
 void m_ThreadPool(void *function,void *para,int *flag,float priority);
 #define mThreadPool(Func,...) do{\

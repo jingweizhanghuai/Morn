@@ -8,30 +8,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <gsl/gsl_sort_double.h>
 #include "morn_math.h"
 
-void AscSort(double *a,int n)
-{
-    double buff;
-    for(int i=0;i<n;i+=2) {if(a[i]>a[i+1]) {buff=a[i];a[i]=a[i+1];a[i+1]=buff;}}
-    if(n==2) return;
-    
-    buff=a[n>>1];a[n>>1]=a[1];a[1]=buff;
-         if(a[1]<a[  0]) {buff=a[  0];a[  0]=a[1];}
-    else if(a[1]>a[n-1]) {buff=a[n-1];a[n-1]=a[1];}
-    if(n==3) {a[1]=buff;return;}
-
-    int I=1;int J=n-1;
-    while(1)
-    {
-        while(a[J]>=Buff){J=J-2;if(J>=I) goto AscSortData_next;}\
-        a[I] = a[J];      I=I+2;if(J==I) goto AscSortData_next; \
-        while(a[I]<=Buff){I=I+2;if(J==I) goto AscSortData_next;}\
-        a[J] = a[I];      J=J-2;if(J==I) goto AscSortData_next; \
-    }\
-        
-    
-}
-
-
 int compare(const void *v1, const void *v2) {return ((*((double *)v1))>(*((double *)v2)))?1:-1;}
 void test1_1()
 {

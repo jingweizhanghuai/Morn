@@ -21,7 +21,7 @@ Licensed under the Apache License, Version 2.0; you may not use this json except
 
 int cjson_test1()
 {
-    FILE *f = fopen("./citm_catalog.json","rb");
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -62,7 +62,7 @@ int jsoncpp_test1()
     Json::Value jsoncpp_root;
     JSONCPP_STRING errs;
     
-    std::ifstream jsondata("./citm_catalog.json");
+    std::ifstream jsondata("./testdata/citm_catalog.json");
 
     mTimerBegin("jsoncpp");
     Json::parseFromStream(reader, jsondata, &jsoncpp_root, &errs);
@@ -92,7 +92,7 @@ int nlohmann_test1()
 {
     nlohmann::json nlohmannjson;
     
-    std::ifstream jsondata("./citm_catalog.json");
+    std::ifstream jsondata("./testdata/citm_catalog.json");
     
     mTimerBegin("nlohmann");
     jsondata >> nlohmannjson;
@@ -120,7 +120,7 @@ int rapidjson_test1()
 {
     rapidjson::Document document;
     
-    FILE *f = fopen("./citm_catalog.json","rb");
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -153,7 +153,7 @@ int rapidjson_test1()
 
 int yyjson_test1()
 {
-    FILE *f = fopen("./citm_catalog.json","rb");
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -192,7 +192,7 @@ int yyjson_test1()
 int Morn_test1()
 {
     MObject *jsondata=mObjectCreate();
-    mFile(jsondata,"./citm_catalog.json");
+    mFile(jsondata,"./testdata/citm_catalog.json");
     
     mTimerBegin("Morn Json");
     struct JSONNode *json = mJSONLoad(jsondata);
@@ -248,7 +248,7 @@ void test1()
 
 int cjson_test2()
 {
-    FILE *f = fopen("./canada.json","rb");
+    FILE *f = fopen("./testdata/canada.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -286,7 +286,7 @@ int jsoncpp_test2()
     Json::Value root;
     JSONCPP_STRING errs;
     
-    std::ifstream jsondata("./canada.json");
+    std::ifstream jsondata("./testdata/canada.json");
 
     mTimerBegin("jsoncpp");
     Json::parseFromStream(reader,jsondata,&root, &errs);
@@ -313,7 +313,7 @@ int nlohmann_test2()
 {
     nlohmann::json nlohmannjson;
     
-    std::ifstream jsondata("./canada.json");
+    std::ifstream jsondata("./testdata/canada.json");
 
     mTimerBegin("nlohmann");
     jsondata >> nlohmannjson;
@@ -340,7 +340,7 @@ int rapidjson_test2()
 {
     rapidjson::Document doc;
     
-    FILE *f = fopen("./canada.json","rb");
+    FILE *f = fopen("./testdata/canada.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -370,7 +370,7 @@ int rapidjson_test2()
 
 int yyjson_test2()
 {
-    FILE *f = fopen("./canada.json","rb");
+    FILE *f = fopen("./testdata/canada.json","rb");
     int size = fsize(f);
     char *jsondata=(char *)malloc(size);
     fread(jsondata,size,1,f);
@@ -406,7 +406,7 @@ int yyjson_test2()
 int Morn_test2()
 {
     MObject *jsondata=mObjectCreate();
-    mFile(jsondata,"./canada.json");
+    mFile(jsondata,"./testdata/canada.json");
     
     mTimerBegin("Morn json");
     struct JSONNode *json=mJSONLoad(jsondata);
@@ -499,13 +499,13 @@ void test3()
 {
     const char *filename;
 
-    filename = "./canada.json";
+    filename = "./testdata/canada.json";
     printf("\nfor %s:\n",filename);
     rapidjson_test3(filename);
     yyjson_test3(filename);
     Morn_test3(filename);
 
-    filename = "./citm_catalog.json";
+    filename = "./testdata/citm_catalog.json";
     printf("\nfor %s:\n",filename);
     rapidjson_test3(filename);
     yyjson_test3(filename);

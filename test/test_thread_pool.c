@@ -15,14 +15,40 @@ void func(char *str)
              if((str[i]>='a')&&(str[i]<='z')) str[i]+=('A'-'a');
         else if((str[i]>='A')&&(str[i]<='Z')) str[i]+=('a'-'A');
     }
-    
     printf("Thread %d output: %s\n",mThreadID(),str);
 }
 
-
-int main()
+void test_no_adjust()
 {
-    char data[100][64];
+    MList *list = mListCreate();
+    mListPlace(list,NULL,1024,64);
+
+    int thread_num =5;
+    mPropertyWrite("ThreadPool","thread_num",&thread_num,sizeof(int));
+
+    mPropertyRead("ThreadPool","thread_num",&thread_num);
+    printf("thread_num=%d\n",thread_num);
+    
+    for(int i=0;i<1024;i++)
+    {
+        mSleep(mRand(0,30));
+        mRandString(list->data[i],32,64);
+        mThreadPool(func,list->data[i]);
+    }
+
+    mPropertyRead("ThreadPool","thread_num",&thread_num);
+    
+    mPropertyWrite("ThreadPool","exit");
+    printf("thread_num=%d\n",thread_num);
+    
+    mListRelease(list);
+    printf("finish\n");
+}
+
+void test_adjust()
+{
+    MList *list = mListCreate();
+    mListPlace(list,NULL,1024,64);
 
     int thread_num =2;
     mPropertyWrite("ThreadPool","thread_num",&thread_num,sizeof(int));
@@ -34,16 +60,26 @@ int main()
     mPropertyRead("ThreadPool","thread_num",&thread_num);
     printf("thread_num=%d\n",thread_num);
     
-    for(int i=0;i<100;i++)
+    for(int i=0;i<1024;i++)
     {
-        mSleep(mRand(0,20));
-        mRandString(&data[i][0],32,64);
-        mThreadPool(func,&data[i][0]);
+        mSleep(mRand(0,30));
+        mRandString(list->data[i],32,64);
+        mThreadPool(func,list->data[i]);
     }
 
     mPropertyRead("ThreadPool","thread_num",&thread_num);
     
     mPropertyWrite("ThreadPool","exit");
     printf("thread_num=%d\n",thread_num);
+    
+    mListRelease(list);
     printf("finish\n");
+}
+
+int main(int argc,char *argv[])
+{
+    if(argc<2)                                  test_no_adjust();
+    else if(strcmp(argv[1],"enable_adjust")==0) test_adjust();
+    else                                        test_no_adjust();
+    return 0;
 }

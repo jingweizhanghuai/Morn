@@ -5,224 +5,11 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_ptc.h"
 
-struct HandleLog
-{
-    FILE *f;
-    MThreadSignal sgn;
-    int64_t filesize;
-    int fileorder;
-    char filename[256];
-    char filetype[16];
-
-    void (*func)(void *,int,void *);
-
-    MList *buff_list;
-};
-#define HASH_Log 0x3f37e6f1
-static struct HandleLog *morn_log_info=NULL;
-
-__thread int morn_log_level=1;
-int morn_log_levelset = -1;
-static int64_t morn_log_filesize_set = 0x7FFFFFFFFFFFFFFF;
-static void *morn_log_func_para = NULL;
-
-static int morn_log_console_valid0= 0;
-static int morn_log_console_valid = 1;
-static int morn_log_file_valid    = 0;
-static int morn_log_function_valid= 0;
-
-__thread char *morn_log_buff=NULL;
-#define MORN_BUFF_SIZE 1024
-__thread int morn_log_buff_size=MORN_BUFF_SIZE;
-
-void endLogFile()
-{
-    if(morn_log_info->f!=NULL)
-    {
-        int size = MORN_BUFF_SIZE-morn_log_buff_size;
-        if(size>0) fwrite(morn_log_buff-MORN_BUFF_SIZE,1,size,morn_log_info->f);
-        fclose(morn_log_info->f);
-        morn_log_buff_size=MORN_BUFF_SIZE;
-    }
-}
-void endLogFunction()
-{
-    if(morn_log_info->func!=NULL)
-    {
-        int size = MORN_BUFF_SIZE-morn_log_buff_size;
-        if(size>0) (morn_log_info->func)(morn_log_buff-MORN_BUFF_SIZE,size,morn_log_func_para);
-        morn_log_buff_size=MORN_BUFF_SIZE;
-    }
-}
-void endLog(struct HandleLog *handle)
-{
-    mException(morn_log_info!=handle,EXIT,"invalid log set");
-    endLogFile();
-    endLogFunction();
-    if(morn_log_info->buff_list==NULL) return;
-    for(int i=0;i<morn_log_info->buff_list->num;i++)
-    {
-        char **buff = (char **)morn_log_info->buff_list->data[i];
-        free((*buff)-MORN_BUFF_SIZE);
-    }
-    mListRelease(morn_log_info->buff_list);
-}
-
-void LogInfoInit()
-{
-    MHandle *hdl = mHandle(mMornObject("Log",DFLT),Log);
-    morn_log_info = (struct HandleLog *)(hdl->handle);
-    if(morn_log_info->buff_list==NULL) morn_log_info->buff_list = mListCreate();
-
-    hdl->valid=1;
-}
-
-void LogFile(char *filename)
-{
-    if(filename==NULL) return;
-
-    if(morn_log_info==NULL) LogInfoInit();
-
-    if(strcmp(morn_log_info->filename,filename)==0) return;
-    strcpy(morn_log_info->filename,filename);
-
-    endLogFile();
-    if(strcmp(filename,"exit")==0)
-    {
-        morn_log_file_valid    = 0;
-        morn_log_console_valid = morn_log_console_valid0||(!morn_log_function_valid);
-        return;
-    }
-
-    printf("morn_log_info->filename=%s\n",morn_log_info->filename);
-    morn_log_info->f = fopen(morn_log_info->filename,"wb+");
-
-    morn_log_info->filetype[0]=0;
-    int len = strlen(morn_log_info->filename);
-    for(int j=len;j>0;j--)
-    {
-        if(morn_log_info->filename[j]=='.')
-        {
-            strcpy(morn_log_info->filetype,morn_log_info->filename+j);
-            morn_log_info->filename[j]=0;
-            break;
-        }
-    }
-    morn_log_info->filesize = 0;
-    morn_log_info->fileorder= 0;
-
-    morn_log_file_valid    = 1;
-    morn_log_console_valid = morn_log_console_valid0;
-}
-
-void LogFunction(void **function)
-{
-    if(function==NULL) return;
-    void *func = *function;
-    if(func==NULL) return;
-
-    if(morn_log_info==NULL) LogInfoInit();
-
-    endLogFunction();
-
-    morn_log_info->func = func;
-
-    if(func==NULL)
-    {
-        morn_log_function_valid = 0;
-        morn_log_console_valid  = morn_log_console_valid0||(!morn_log_file_valid);
-    }
-    else
-    {
-        morn_log_function_valid = 1;
-        morn_log_console_valid  = morn_log_console_valid0;
-    }
-}
-
-void LogConsole(int *valid)
-{
-    morn_log_console_valid0= *valid;
-    morn_log_console_valid = *valid;
-}
-
-#ifdef _MSC_VER
-#define vsnprintf _vsnprintf
-#endif
-
-static int morn_log_init = 0;
-void m_Log(int level,const char *format,...)
-{
-    if(morn_log_init==0)
-    {
-        mPropertyVariate( "Log","log_level"    ,&morn_log_levelset);
-        mPropertyVariate( "Log","log_filesize" ,&morn_log_filesize_set);
-        mPropertyVariate( "Log","log_func_para",&morn_log_func_para);
-        mPropertyFunction("Log","log_console"  ,LogConsole);
-        mPropertyFunction("Log","log_file"     ,LogFile);
-        mPropertyFunction("Log","log_function" ,LogFunction);
-        if(morn_log_level<morn_log_levelset) return;
-        morn_log_init=1;
-    }
-    // printf("morn_log_levelset=%d\n\n",morn_log_levelset);
-
-    va_list args;
-    if(morn_log_console_valid){va_start(args,format);vprintf(format,args);va_end(args);}
-    if(morn_log_file_valid||morn_log_function_valid)
-    {
-        if(morn_log_buff == NULL)
-        {
-            morn_log_buff =  ((char *)malloc(MORN_BUFF_SIZE))+MORN_BUFF_SIZE;
-            morn_log_buff_size=MORN_BUFF_SIZE;
-            mListWrite(morn_log_info->buff_list,DFLT,&morn_log_buff,sizeof(char *));
-        }
-
-        va_start(args,format);unsigned int n=vsnprintf(morn_log_buff-morn_log_buff_size,morn_log_buff_size,format,args);va_end(args);
-        printf("morn_log_buff_size=%d\n",morn_log_buff_size);
-        if(n>morn_log_buff_size)
-        {
-            mThreadLockBegin(morn_log_info->sgn);
-            if(morn_log_file_valid)
-            {
-                printf("aaaaaaaaaaaaaaaaaaaa\n");
-                fwrite(morn_log_buff-MORN_BUFF_SIZE,1,MORN_BUFF_SIZE-morn_log_buff_size,morn_log_info->f);
-                morn_log_info->filesize += (MORN_BUFF_SIZE-morn_log_buff_size);
-                if(morn_log_info->filesize>=morn_log_filesize_set)
-                {
-                    fclose(morn_log_info->f);
-                    morn_log_info->fileorder+=1;
-                    snprintf(morn_filename,256,"%s_%d%s",morn_log_info->filename,morn_log_info->fileorder,morn_log_info->filetype);
-                    morn_log_info->f=fopen(morn_filename,"wb");
-                    morn_log_info->filesize=0;
-                }
-            }
-            if(morn_log_function_valid)
-            {
-                (morn_log_info->func)(morn_log_buff-MORN_BUFF_SIZE,MORN_BUFF_SIZE-morn_log_buff_size,morn_log_func_para);
-            }
-            mThreadLockEnd(morn_log_info->sgn);
-
-            morn_log_buff_size = MORN_BUFF_SIZE;
-            va_start(args, format);n = vsnprintf(morn_log_buff-MORN_BUFF_SIZE,MORN_BUFF_SIZE,format,args);va_end(args);
-        }
-        morn_log_buff_size-=n;
-    }
-}
-
-static const char *morn_log_levelname[5]={"Debug","Info","Warning","Error","\0"};
-const char *mLogLevel()
-{
-    if(morn_log_level%16!=0) return morn_log_levelname[4];
-    int n=morn_log_level/16;
-    if((n<0)||(n>3)) return morn_log_levelname[4];
-    return morn_log_levelname[n];
-}
-/*
-#include "morn_ptc.h"
-
 #if defined(_WIN64)||defined(_WIN32)
 #include <Windows.h>
 #include <io.h>
 #define access _access
+#define FHandle HANDLE
 #define F_OK 0
 #define m_Open(Filename) CreateFile(Filename,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_ALWAYS,0,0)
 #define m_Close(File) CloseHandle(File)
@@ -230,35 +17,37 @@ const char *mLogLevel()
     do{A=SetFilePointer(File,Locate,NULL,FILE_BEGIN);}while(A!=Locate);\
     do{A=WriteFile(File,Pointer,Size,NULL,NULL);}while(A==0);\
 }while(0)
+#define m_Fsize(File) SetFilePointer(File,0,NULL,FILE_END)
 #define m_Lock(File)   LockFile(File,0,0,2*sizeof(int),0)
 #define m_Unlock(File) UnlockFile(File,0,0,2*sizeof(int),0)
-#define m_Mmap(File,Locate,Pointer,Size) do{\
-    HANDLE Map = CreateFileMapping(File,NULL,PAGE_READWRITE,0,Locate+Size,NULL);\
-    Pointer = MapViewOfFile(Map,FILE_MAP_WRITE,0,0,0);\
-    Pointer+=Locate;\
+#define m_Mmap(File,Pointer,Size) do{\
+    HANDLE Map = CreateFileMapping(File,NULL,PAGE_READWRITE,0,Size,NULL);\
+    Pointer = MapViewOfFile(Map,FILE_MAP_ALL_ACCESS,0,0,Size);\
     CloseHandle(Map);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
-#define m_Munmap(Pointer,Size) UnmapViewOfFile(Pointer);
+#define m_Munmap(Pointer,Size) UnmapViewOfFile((void *)(Pointer));
 #else
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>
 #include <signal.h>
+#define FHandle int
 #define m_Open(Filename) open(Filename,O_RDWR|O_CREAT,S_IRUSR|S_IWUSR);
 #define m_Close(File) close(File)
 #define m_Write(File,Locate,Pointer,Size) do{\
     mException((lseek(File,Locate,SEEK_SET)!=Locate),EXIT,"error with file lseek");\
     mException((write(File,Pointer,Size)!=Size),EXIT,"error with file write");\
 }while(0)
+#define m_Fsize(File) lseek(File,0,SEEK_END)
 #define m_Lock(File)   flock(File,LOCK_EX)
 #define m_Unlock(File) flock(File,LOCK_UN)
-#define m_Mmap(File,Locate,Pointer,Size) do{\
-    Pointer=mmap(NULL,(Size),PROT_WRITE,MAP_SHARED,File,Locate);\
+#define m_Mmap(File,Pointer,Size) do{\
+    Pointer=mmap(NULL,(Size),PROT_READ|PROT_WRITE,MAP_SHARED,File,0);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
-#define m_Munmap(Pointer,Size) munmap(Pointer,Size);
+#define m_Munmap(Pointer,Size) munmap((void *)(Pointer),Size);
 #endif
 
 #ifdef _MSC_VER
@@ -275,48 +64,59 @@ struct HandleLog
     char filetype[16];
     int fileorder;
     int filebyte;
-    #if defined(_WIN64)||defined(_WIN32)
-    HANDLE file;
-    #else
-    int file;
-    #endif
+    
+    FHandle file;
     int filesize;
-    int mapsize;
     int writesize;
     char *filepointer;
-    int filecount;
+    volatile int file_flag;
 
     int console_valid0;
     int console_valid;
 
     int func_valid;
-    char funcbuff[1024];
     void (*func)(void *,int,void *);
     void *func_para;
 };
 void endLog(struct HandleLog *handle)
 {
-    // int *proc_num = mProcVariate("log_proc",sizeof(int));
-    // *proc_num--;
-
     if(handle->file_valid)
     {
-        m_Munmap(handle->filepointer,handle->mapsize);
+        memset((void *)(handle->filepointer+handle->writesize),' ',handle->filesize-handle->writesize-1);
+        m_Munmap(handle->filepointer,handle->filesize);
         m_Close(handle->file);
     }
 }
 #define HASH_Log 0x3f37e6f1
-struct HandleLog *LogInit();
+
 void LogFile(char *filename)
 {
     if(filename==NULL) return;
-    struct HandleLog *handle= LogInit();
-
-    if(handle->file_valid) m_Munmap(handle->filepointer,handle->mapsize);
+    MHandle *hdl = mHandle("Log",Log);
+    struct HandleLog *handle = hdl->handle;
+    
+    int v=mAtomicCompare(&(handle->file_flag),0,1);
+    if(v==0) while(1) {if(handle->file_flag==0) return;}
+    
+    if(strcmp(filename,"exit")==0) 
+    {
+        if(handle->file_valid)
+        {
+            memset((void *)(handle->filepointer+handle->writesize),' ',handle->filesize-handle->writesize-1);
+            m_Munmap(handle->filepointer,handle->filesize);
+            m_Close(handle->file);
+        }
+    
+        handle->filename[0]=0;
+        handle->file_valid=0;
+        handle->console_valid = handle->console_valid0||(!(handle->func_valid));
+        handle->file_flag=0;
+        return;
+    }
+    
     if(strcmp(handle->filename,filename)!=0)
     {
         if(handle->file_valid) m_Close(handle->file);
-        if(strcmp(filename,"exit")==0) {handle->filename[0]=0;handle->file_valid=0;handle->console_valid = handle->console_valid0||(!(handle->func_valid));return;}
         
         if(handle->filebyte>0)
         {
@@ -336,35 +136,41 @@ void LogFile(char *filename)
             char name[128];
             snprintf(name,128,"%s%d.%s",handle->filename,handle->fileorder,handle->filetype);
             handle->fileorder++;
+            if(access(name,F_OK)>=0) remove(name);
+            
             handle->file=m_Open(name);
         }
         else
         {
             strcpy(handle->filename,filename);
-            // printf("handle->filename=%s\n",handle->filename);
+            if(access(handle->filename,F_OK)>=0) remove(handle->filename);
             handle->file=m_Open(handle->filename);
         }
         handle->writesize= 0;
         handle->filesize = 0;
     }
+
+    if(handle->filesize-handle->writesize>=1024) {handle->file_flag=0; return;}
     
-    // printf("handle->writesize=%d\n",handle->writesize);
-    int locate=handle->filesize-(handle->mapsize-handle->writesize);
-    int byte=handle->filebyte;if(byte==0) byte=1024*1024;
-    handle->filesize = handle->filesize+byte;
-    handle->mapsize  = handle->filesize-locate;
-    // printf("handle->filesize=%d,handle->mapsize=%d\n",handle->filesize,handle->mapsize);
-    char a=0;m_Write(handle->file,handle->filesize,&a,1);
-    m_Mmap(handle->file,locate,handle->filepointer,handle->mapsize);
-    handle->writesize=0;
+    int byte=handle->filebyte;if(byte==0) byte=64*1024;
+    int filesize = handle->filesize+byte;
+    char a=0;m_Write(handle->file,filesize-1,&a,1);
+
+//     char *filepointer0=handle->filepointer;
+    m_Mmap(handle->file,handle->filepointer,filesize);
+//     if(filepointer0) m_Munmap(filepointer0,handle->filesize);
+    
+    handle->filesize=filesize;
     
     handle->file_valid = 1;
     handle->console_valid = handle->console_valid0;
+    handle->file_flag=0;
 }
 
 void LogFunction(void **function)
 {
-    struct HandleLog *handle = LogInit();
+    MHandle *hdl = mHandle("Log",Log);
+    struct HandleLog *handle = hdl->handle;
     if(function==NULL) {handle->func_valid=0;handle->console_valid = handle->console_valid0||(!(handle->file_valid));return;}
     void *func = *function;
     if(func==NULL) {handle->func_valid=0;handle->console_valid = handle->console_valid0||(!(handle->file_valid));return;}
@@ -374,264 +180,104 @@ void LogFunction(void **function)
     handle->console_valid = handle->console_valid0;
 }
 
+void LogConsole(int *valid)
+{
+    MHandle *hdl = mHandle("Log",Log);
+    struct HandleLog *handle = hdl->handle;
+    handle->console_valid0= *valid;
+    handle->console_valid = handle->console_valid0||(!((handle->file_valid)||(handle->func_valid)));
+    if(handle->console_valid!=handle->console_valid0)
+        mLog(MORN_WARNING,mLogFormat1("connot disable log_console"));
+}
+
 struct HandleLog *morn_log_handle = NULL;
 struct HandleLog *LogInit()
 {
     if(morn_log_handle !=NULL) return morn_log_handle;
     MHandle *hdl = mHandle("Log",Log);
     struct HandleLog *handle = hdl->handle;
-    morn_log_handle = handle;
-    if(hdl->valid==0)
+    if(!mHandleValid(hdl))
     {
         mPropertyFunction("Log","exit"         ,mornObjectRemove,"Log");
         mPropertyVariate( "Log","log_level"    ,&morn_log_levelset);
-        
+
         mPropertyVariate( "Log","log_filesize" ,&handle->filebyte);
         mPropertyFunction("Log","log_file"     ,LogFile);
-
+        
         mPropertyFunction("Log","log_function" ,LogFunction);
         mPropertyVariate( "Log","log_func_para",&handle->func_para);
         
-        mPropertyVariate( "Log","log_console"  ,&handle->console_valid0);
+        mPropertyFunction("Log","log_console"  ,LogConsole);
+        
         handle->console_valid = handle->console_valid0||(!((handle->file_valid)||(handle->func_valid)));
+       
         hdl->valid=1;
     }
+    morn_log_handle = handle;
     return handle;
 }
 
+__thread char morn_log_string[1024];
 void m_Log(int level,const char *format,...)
 {
     struct HandleLog *handle = LogInit();
+    int n=0;
+    va_list args;va_start(args,format);
+    n=vsnprintf(morn_log_string,1024,format,args);
+    va_end(args);
     
-    va_list args; va_start(args,format);
-    if(handle->console_valid){vprintf(format,args);}
-    
+    if(handle->console_valid) printf(morn_log_string);
     if(handle->file_valid)
     {
-        int n=vsnprintf(handle->filepointer+handle->writesize,handle->mapsize-handle->writesize,format,args);
-        if(n<0)
+        int l=mAtomicAdd(&(handle->writesize),n);
+        int m=handle->filesize-l+n;
+        if(m<=n) LogFile(handle->filename);
+        memcpy((void *)(handle->filepointer+l-n),morn_log_string,n);
+    }
+    if(handle->func_valid)handle->func(morn_log_string,n,handle->func_para);
+}
+
+static const char *morn_log_levelname[6]={"\0","Debug","Info","Warning","Error","\0"};
+const char *mLogLevel()
+{
+    if(morn_log_level%16!=0) return morn_log_levelname[5];
+    int n=morn_log_level/16;
+    if((n<0)||(n>3)) return morn_log_levelname[4];
+    return morn_log_levelname[n];
+}
+
+void LogTail(const char *filename)
+{
+    int flag=-1; 
+    while(flag<0){flag = access(filename,F_OK); mSleep(10);}
+
+    FHandle file=m_Open(filename);
+    int size = 0;
+    int locate=0;
+    char *filepointer=NULL;
+
+    while(1)
+    {
+        mSleep(10);
+        if(locate>=size)
         {
-            LogFile(handle->filename);
-            n=vsnprintf(handle->filepointer,handle->mapsize,format,args);
+            if(filepointer!=NULL) m_Munmap(filepointer,size);
+            size=m_Fsize(file);
+            // printf("size=%d\n",size);
+            m_Mmap(file,filepointer,size);
+            if(locate==0) {for(int i=0;i<size;i++) {if(filepointer[i]==0) {locate=i;break;}}}
         }
-        handle->writesize+=n;
-    }
-    
-    if(handle->func_valid)
-    {
-        int n = vsprintf(handle->funcbuff,format,args);
-        handle->func(handle->funcbuff,n,handle->func_para);
-    }
-    
-    va_end(args);
-}
-*/
-
-
-
-
-
-
-
-/*
-
-
-struct HandleLog
-{
-    FILE *f;
-    MThreadSignal sgn;
-    int64_t filesize;
-    int fileorder;
-    char filename[256];
-    char filetype[16];
-    
-    void (*func)(void *,int,void *);
-
-    MList *buff_list;
-};
-#define HASH_Log 0x3f37e6f1
-static struct HandleLog *morn_log_info=NULL;
-
-__thread int morn_log_level=1;
-int morn_log_levelset = -1;
-static int64_t morn_log_filesize_set = 0x7FFFFFFFFFFFFFFF;
-static void *morn_log_func_para = NULL;
-
-static int morn_log_console_valid0= 0;
-static int morn_log_console_valid = 1;
-static int morn_log_file_valid    = 0;
-static int morn_log_function_valid= 0;
-
-__thread char *morn_log_buff=NULL;
-__thread int morn_log_buff_size=65536;
-
-void endLogFile()
-{
-    if(morn_log_info->f!=NULL)
-    {
-        int size = 65536-morn_log_buff_size;
-        if(size>0) fwrite(morn_log_buff-65536,1,size,morn_log_info->f);
-        fclose(morn_log_info->f);
-        morn_log_buff_size=65536;
-    }
-}
-void endLogFunction()
-{
-    if(morn_log_info->func!=NULL)
-    {
-        int size = 65536-morn_log_buff_size;
-        if(size>0) (morn_log_info->func)(morn_log_buff-65536,size,morn_log_func_para);
-        morn_log_buff_size=65536;
-    }
-}
-void endLog(struct HandleLog *handle)
-{
-    mException(morn_log_info!=handle,EXIT,"invalid log set");
-    endLogFile();
-    endLogFunction();
-    if(morn_log_info->buff_list==NULL) return;
-    for(int i=0;i<morn_log_info->buff_list->num;i++)
-    {
-        char **buff = (char **)morn_log_info->buff_list->data[i];
-        free((*buff)-65536);
-    }
-    mListRelease(morn_log_info->buff_list);
-}
-
-void LogInfoInit()
-{
-    MHandle *hdl = mHandle(mMornObject("Log",DFLT),Log);
-    morn_log_info = (struct HandleLog *)(hdl->handle);
-    if(morn_log_info->buff_list==NULL) morn_log_info->buff_list = mListCreate();
-    hdl->valid=1;
-}
-
-void LogFile(char *filename)
-{
-    if(filename==NULL) return;
-    
-    if(morn_log_info==NULL) LogInfoInit();
-    
-    if(strcmp(morn_log_info->filename,filename)==0) return;
-    strcpy(morn_log_info->filename,filename);
-    
-    endLogFile();
-    if(strcmp(filename,"exit")==0)
-    {
-        morn_log_file_valid    = 0;
-        morn_log_console_valid = morn_log_console_valid0||(!morn_log_function_valid);
-        return;
-    }
-    
-    morn_log_info->f = fopen(morn_log_info->filename,"wb");
-    
-    morn_log_info->filetype[0]=0;
-    int len = strlen(morn_log_info->filename);
-    for(int j=len;j>0;j--)
-    {
-        if(morn_log_info->filename[j]=='.')
+        // printf("locate=%d,size=%d\n",locate,size);
+        char *p=filepointer+locate;
+        if(p[0])
         {
-            strcpy(morn_log_info->filetype,morn_log_info->filename+j);
-            morn_log_info->filename[j]=0;
-            break;
+            int s=strlen(p);
+            locate+=s;
+            printf("%s",p);
         }
     }
-    morn_log_info->filesize = 0;
-    morn_log_info->fileorder= 0;
-    
-    morn_log_file_valid    = 1;
-    morn_log_console_valid = morn_log_console_valid0;
-}
-
-void LogFunction(void **function)
-{
-    if(function==NULL) return;
-    void *func = *function;
-    if(func==NULL) return;
-    
-    if(morn_log_info==NULL) LogInfoInit();
-
-    endLogFunction();
-
-    morn_log_info->func = func;
-    
-    if(func==NULL)
-    {
-        morn_log_function_valid = 0;
-        morn_log_console_valid  = morn_log_console_valid0||(!morn_log_file_valid);
-    }
-    else
-    {
-        morn_log_function_valid = 1;
-        morn_log_console_valid  = morn_log_console_valid0;
-    }
-}
-
-void LogConsole(int *valid)
-{
-    morn_log_console_valid0= *valid;
-    morn_log_console_valid = *valid;
 }
 
 
-
-static int morn_log_init = 0;
-void _mLog(int level,const char *format,...)
-{
-    if(morn_log_init==0)
-    {
-        mPropertyVariate( "Log","log_level"    ,&morn_log_levelset);
-        mPropertyVariate( "Log","log_filesize" ,&morn_log_filesize_set);
-        mPropertyVariate( "Log","log_func_para",&morn_log_func_para);
-        mPropertyFunction("Log","log_console"  ,LogConsole);
-        mPropertyFunction("Log","log_file"     ,LogFile);
-        mPropertyFunction("Log","log_function" ,LogFunction);
-        if(morn_log_level<morn_log_levelset) return;
-        morn_log_init=1;
-    }
-    // printf("morn_log_levelset=%d\n\n",morn_log_levelset);
-    
-    va_list args; 
-    if(morn_log_console_valid){va_start(args,format);vprintf(format,args);va_end(args);}
-    if(morn_log_file_valid||morn_log_function_valid)
-    {
-        if(morn_log_buff == NULL)
-        {
-            morn_log_buff =  ((char *)malloc(65536))+65536;
-            morn_log_buff_size=65536;
-            mListWrite(morn_log_info->buff_list,DFLT,&morn_log_buff,sizeof(char *));
-        }
-        
-        va_start(args,format);unsigned int n=vsnprintf(morn_log_buff-morn_log_buff_size,morn_log_buff_size,format,args);va_end(args);
-        if(n>morn_log_buff_size)
-        {
-            mThreadLockBegin(morn_log_info->sgn);
-            if(morn_log_file_valid)
-            {
-                fwrite(morn_log_buff-65536,1,65536-morn_log_buff_size,morn_log_info->f);
-                morn_log_info->filesize += (65536-morn_log_buff_size);
-                if(morn_log_info->filesize>=morn_log_filesize_set)
-                {
-                    fclose(morn_log_info->f);
-                    morn_log_info->fileorder+=1;
-                    snprintf(morn_filename,256,"%s_%d%s",morn_log_info->filename,morn_log_info->fileorder,morn_log_info->filetype);
-                    morn_log_info->f=fopen(morn_filename,"wb");
-                    morn_log_info->filesize=0;
-                }
-            }
-            if(morn_log_function_valid)
-            {
-                (morn_log_info->func)(morn_log_buff-65536,65536-morn_log_buff_size,morn_log_func_para);
-            }
-            mThreadLockEnd(morn_log_info->sgn);
-            
-            morn_log_buff_size = 65536;
-            va_start(args, format);n = vsnprintf(morn_log_buff-65536,65536,format,args);va_end(args);
-        }
-        morn_log_buff_size-=n;
-    }
-}
-
-*/
 
 

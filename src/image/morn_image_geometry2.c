@@ -395,44 +395,36 @@ float mPolygonIntersetArea(MList *polygon1,MList *polygon2)
 
 int PolygonCross(MList *polygon1,MList *polygon2)
 {
-    int n1,n2;
-    MImagePoint **v1,**v2;
-    MImagePoint *p,*p1,*p2;
     float result,flag;
-    
     int i,j;
     
-    n1 = polygon1->num;
-    n2 = polygon2->num;
-    v1 = (MImagePoint **)(polygon1->data);
-    v2 = (MImagePoint **)(polygon2->data);
+    int n1 = polygon1->num;
+    int n2 = polygon2->num;
+    MImagePoint **v1 = (MImagePoint **)(polygon1->data);
+    MImagePoint **v2 = (MImagePoint **)(polygon2->data);
     
-    p = v1[n1-2];
-    p1 = v1[n1-1];
-    p2 = v1[0];
+    MImagePoint *p  = v1[n1-2];
+    MImagePoint *p1 = v1[n1-1];
+    MImagePoint *p2 = v1[0];
     result = PointLineCheck(p->x,p->y,p1->x,p1->y,p2->x,p2->y);
-    if(result==0.0f)
-        return 1;
+    if(result==0.0f) return 1;
     for(i=0;i<n2;i++)
     {
         flag = PointLineCheck(v2[i]->x,v2[i]->y,p1->x,p1->y,p2->x,p2->y);
-        if((flag>0)==(result>0))
-            break;
+        if((flag>0)==(result>0)) break;
     }
-    if(i==n2)
-        return 0;
+    if(i==n2) return 0;
     
     for(j=1;j<n1;j++)
     {
         p=p1;p1=p2;p2=v1[j];
         result = PointLineCheck(p->x,p->y,p1->x,p1->y,p2->x,p2->y);
-        if(result==0.0f)
-            return 1;
+        if(result==0.0f) return 1;
+           
         for(i=0;i<n2;i++)
         {
             flag = PointLineCheck(v2[i]->x,v2[i]->y,p1->x,p1->y,p2->x,p2->y);
-            if((flag>0)==(result>0))
-                break;
+            if((flag>0)==(result>0)) break;
         }
         if(i==n2)
             return 0;
@@ -442,11 +434,8 @@ int PolygonCross(MList *polygon1,MList *polygon2)
 
 int mPolygonCross(MList *polygon1,MList *polygon2)
 {
-    if(PolygonCross(polygon1,polygon2)==0)
-        return 0;
-    if(PolygonCross(polygon2,polygon1)==0)
-        return 0;
-    
+    if(PolygonCross(polygon1,polygon2)==0) return 0;
+    if(PolygonCross(polygon2,polygon1)==0) return 0;
     return 1;
 }
 
