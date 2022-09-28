@@ -237,7 +237,9 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *size);
     NULL\
 )
 
-void *mProcVariate(const char *name,int size);
+void *m_ProcVariate(const char *name,int size,int type);
+#define mProcMasterVariate(Name,Size) m_ProcVariate(Name,Size,DFLT)
+#define mProcSlaveVariate(Name,Size)  m_ProcVariate(Name,Size,1)
 
 int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);

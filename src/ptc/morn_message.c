@@ -31,6 +31,13 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
     CloseHandle(Map);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
+#define m_Mrmap(File,Pointer,Size) do{\
+    HANDLE Map = CreateFileMapping(File,NULL,PAGE_READONLY,0,Size,NULL);\
+    Pointer = MapViewOfFile(Map,FILE_MAP_READ,0,0,Size);\
+    CloseHandle(Map);\
+    mException(Pointer==NULL,EXIT,"error with mmap");\
+}while(0)
+
 #define m_Munmap(Pointer,Size) UnmapViewOfFile(Pointer);
 #else
 #include <sys/mman.h>
@@ -54,6 +61,10 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define m_Fsize(File) lseek(File,1,SEEK_END)
 #define m_Mmap(File,Pointer,Size) do{\
     Pointer=mmap(NULL,(Size),PROT_READ|PROT_WRITE,MAP_SHARED,File,0);\
+    mException(Pointer==NULL,EXIT,"error with mmap");\
+}while(0)
+#define m_Mrmap(File,Pointer,Size) do{\
+    Pointer=mmap(NULL,(Size),PROT_READ,MAP_SHARED,File,0);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
 #define m_Munmap(Pointer,Size) munmap(Pointer,Size);
@@ -293,27 +304,27 @@ void *m_ProcTopicRead(const char *topicname,void *data,int *read_size)
     return p;
 }
 
-void UserSet(int *user,int ID)
-{
-    for(int i=0;i<1024;i++)
-    {
-        if(user[i]==0)   {user[i]=ID; return;}
-        if(!m_Exist(ID)) {user[i]=ID; return;}
-    }
-    mException(1,EXIT,"too many user");
-}
-int UserUnset(int *user,int ID)
-{
-    int count = 0;
-    for(int i=0;i<1024;i++)
-    {
-        if(user[i]==0) continue;
-        if(user[i]==ID) {user[i]=0;continue;}
-        if(!m_Exist(ID)){user[i]=0;continue;}
-        count++;
-    }
-    return count;
-}
+// void UserSet(int *user,int ID)
+// {
+//     for(int i=0;i<1024;i++)
+//     {
+//         if(user[i]==0)   {user[i]=ID; return;}
+//         if(!m_Exist(ID)) {user[i]=ID; return;}
+//     }
+//     mException(1,EXIT,"too many user");
+// }
+// int UserUnset(int *user,int ID)
+// {
+//     int count = 0;
+//     for(int i=0;i<1024;i++)
+//     {
+//         if(user[i]==0) continue;
+//         if(user[i]==ID) {user[i]=0;continue;}
+//         if(!m_Exist(ID)){user[i]=0;continue;}
+//         count++;
+//     }
+//     return count;
+// }
 
 struct ProcMessageState
 {
@@ -335,6 +346,7 @@ struct ProcMessageInfo
     char ptr[0];
 };
 
+/*
 struct HandleProcMessage
 {
     char filename[256];
@@ -591,127 +603,14 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *read_size)
     
     return (info->ptr+locate);
 }
-
-// struct HandleProcVariate
-// {
-//     char filename[256];
-//
-//     int ID;
-//     #if defined(_WIN64)||defined(_WIN32)
-//     HANDLE file;
-//     #else
-//     int file;
-//     #endif
-//
-//     int filesize;
-//
-//     uint8_t *buff;
-//     MMap *map;
-// };
-// void endProcVariate(struct HandleProcVariate *handle)
-// {
-//     if(handle->map!=NULL) mMapRelease(handle->map);
-//
-//     if(handle->buff==NULL) return;
-//     m_Munmap(handle->buff,4096);
-//     m_Close(handle->file);
-// }
-// #define HASH_ProcVariate 0x45828c6f
-// void *mProcVariate(const char *name,int size)
-// {
-//      mException((name==NULL)||(size<=0)||(size>128),EXIT,"invalid input");
-//
-//     MHandle *hdl = mHandle("ProcVariate",ProcVariate);
-//     struct HandleProcVariate *handle = (struct HandleProcVariate *)(hdl->handle);
-//     if(hdl->valid == 0)
-//     {
-//         mPropertyFunction("ProcVariate","exit",mornObjectRemove,"ProcVariate");
-//
-//         if(morn_message_file[0]==0)
-//         {
-//             #if defined(_WIN64)||defined(_WIN32)
-//             sprintf(morn_message_file,"%s/morn_message",getenv("TEMP"));
-//             if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file);
-//             #else
-//             sprintf(morn_message_file,"/tmp/morn_message");
-//             if(access(morn_message_file,F_OK)<0) mkdir(morn_message_file,0777);
-//             #endif
-//         }
-//         sprintf(handle->filename,"%s/.morn_variate.bin",morn_message_file);
-//
-//         int flag = access(handle->filename,F_OK);
-//         handle->file = m_Open(handle->filename);
-//
-//         if(flag>=0)
-//         {
-//             mException(m_Fsize(handle->file)<4096,EXIT,"invalid map file %s",handle->filename);
-//         }
-//         else
-//         {
-//             int n=0;
-//             m_Write(handle->file,4092,&n,sizeof(int));
-//             m_Write(handle->file,0   ,&n,sizeof(int));
-//             m_Write(handle->file,4   ,&n,sizeof(int));
-//         }
-//         m_Mmap(handle->file,handle->buff,4096);
-//
-//         if(handle->map==NULL) handle->map = mMapCreate();
-//         hdl->valid = 1;
-//     }
-//
-//     uint8_t *pvalue=NULL;
-//     mMapRead(handle->map,name,DFLT,&pvalue,NULL);
-//     // printf("name=%s,pvalue=%p\n",name,pvalue);
-//     if(pvalue) return pvalue;
-//
-//     uint16_t keysize,valuesize;
-//
-//     m_Lock(handle->file);
-//     int filesize = *((int *)(handle->buff));
-//     uint8_t *p=handle->buff+8+handle->filesize;
-//
-//     while(handle->filesize<filesize)
-//     {
-//         keysize  =*((uint16_t *)(p  ));
-//         valuesize=*((uint16_t *)(p+2));
-//         char *key=(char *)(p+4);
-//         pvalue=p+4+keysize;
-//         mMapWrite(handle->map,key,DFLT,&pvalue,sizeof(void *));
-//
-//         handle->filesize += 4+keysize+valuesize;
-//         p=handle->buff+8+handle->filesize;
-//
-//         if(strcmp(name,key)==0) {m_Unlock(handle->file);return pvalue;}
-//     }
-//
-//     keysize = (strlen(name)+4)/4;
-//     if(keysize%2==0) keysize+=1;
-//     keysize=keysize*4;
-//     mException(keysize>128,EXIT,"invalid input");
-//
-//     valuesize = (size+7)/8;
-//     valuesize = valuesize*8;
-//
-//     *((uint16_t *)(p  ))=keysize;
-//     *((uint16_t *)(p+2))=valuesize;
-//     memcpy((char *)(p+4),name,keysize);
-//     pvalue = p+4+keysize;
-//
-//     handle->filesize += 4+keysize+valuesize;
-//     *((int *)(handle->buff)) =handle->filesize;
-//
-//     m_Unlock(handle->file);
-//
-//     mMapWrite(handle->map,p+4,DFLT,&pvalue,sizeof(void *));
-//     return pvalue;
-// }
+*/
 
 
 struct HandleProcVariate
 {
     char idxname[256];
     char dataname[256];
-    // int ID;
+    int32_t ID;
     #if defined(_WIN64)||defined(_WIN32)
     HANDLE file_idx;
     HANDLE file_data;
@@ -723,7 +622,8 @@ struct HandleProcVariate
     int size_idx;
 
     uint8_t *buff_idx;
-    uint8_t *buff_data;
+    uint8_t *master_data;
+    uint8_t *slave_data;
     MMap *map;
 };
 void endProcVariate(struct HandleProcVariate *handle)
@@ -733,8 +633,9 @@ void endProcVariate(struct HandleProcVariate *handle)
     int user_num;m_Read(handle->file_idx,8,&user_num,sizeof(int32_t));
     user_num--; m_Write(handle->file_idx,8,&user_num,sizeof(int32_t));
 
-    if(handle->buff_idx !=NULL) m_Munmap(handle->buff_idx ,65536);
-    if(handle->buff_data!=NULL) m_Munmap(handle->buff_data,65536);
+    if(handle->buff_idx   !=NULL) m_Munmap(handle->buff_idx   ,65536);
+    if(handle->master_data!=NULL) m_Munmap(handle->master_data,65536);
+    if(handle->slave_data !=NULL) m_Munmap(handle->slave_data ,65536);
     m_Close(handle->file_idx);
     m_Close(handle->file_data);
     if(user_num==0) 
@@ -744,7 +645,7 @@ void endProcVariate(struct HandleProcVariate *handle)
     }
 }
 #define HASH_ProcVariate 0x45828c6f
-void *mProcVariate(const char *name,int size)
+void *m_ProcVariate(const char *name,int size,int type)
 {
     mException((name==NULL)||(size<=0)||(size>128),EXIT,"invalid input");
 
@@ -753,6 +654,7 @@ void *mProcVariate(const char *name,int size)
     if(!mHandleValid(hdl))
     {
         mPropertyFunction("ProcVariate","exit",mornObjectRemove,"ProcVariate");
+        handle->ID= getpid()*1000+mThreadID();
 
         if(morn_message_file[0]==0)
         {
@@ -787,29 +689,30 @@ void *mProcVariate(const char *name,int size)
         sprintf(handle->dataname,"%s/.morn_variate_data.bin",morn_message_file);
         flag = access(handle->dataname,F_OK);
         handle->file_data = m_Open(handle->dataname);
+        
         if(flag>=0)
-        {
             mException(m_Fsize(handle->file_data)<65536,EXIT,"invalid map file %s",handle->dataname);
-        }
         else
         {
             int n;
             n=0;m_Write(handle->file_data,65532,&n,sizeof(int32_t));
             n=8;m_Write(handle->file_data,0    ,&n,sizeof(int32_t));
             n=0;m_Write(handle->file_data,4    ,&n,sizeof(int32_t));
-
         }
-        m_Mmap(handle->file_data,handle->buff_data,65536);
-
+        m_Mmap( handle->file_data,handle->master_data,65536);
+        m_Mrmap(handle->file_data,handle->slave_data ,65536);
+        
         if(handle->map==NULL) handle->map = mMapCreate();
         hdl->valid = 1;
     }
 
+    void *p_data=(type==DFLT)?handle->master_data:handle->slave_data;
+    
     uint8_t *pvalue=NULL;
-    mMapRead(handle->map,name,DFLT,&pvalue,NULL);
-    if(pvalue) return pvalue;
-
-    uint16_t offset,keysize,valuesize;
+    uint16_t offset=0,keysize,valuesize;
+    
+    mMapRead(handle->map,name,DFLT,&offset,NULL);
+    if(offset) return (p_data+offset);
 
     m_Lock(handle->file_idx);
     int *p_idx = (int *)(handle->buff_idx);
@@ -819,45 +722,63 @@ void *mProcVariate(const char *name,int size)
     uint8_t *p=handle->buff_idx+8+handle->size_idx;
     while(handle->size_idx<size_idx)
     {
-        offset =*((uint16_t *)(p  ));
-        keysize=*((uint16_t *)(p+2));
-        char *key=(char *)(p+4);
-        pvalue=handle->buff_data+offset;
+        offset     =*((uint16_t *)(p  ));
+        keysize    =*((uint16_t *)(p+2));
+        int32_t *ID=  ( int32_t *)(p+4) ;
+        char   *key=  (    char *)(p+8) ;
+        
+        pvalue=p_data+offset;
+        mMapWrite(handle->map,key,DFLT,&offset,sizeof(uint16_t));
 
-        mMapWrite(handle->map,key,DFLT,&pvalue,sizeof(void *));
-
-        handle->size_idx += 4+keysize;
+        handle->size_idx += 8+keysize;
         p=handle->buff_idx+8+handle->size_idx;
 
-        if(strcmp(name,key)==0) {m_Unlock(handle->file_idx);p_idx[1]=0;return pvalue;}
+        if(strcmp(name,key)==0) 
+        {
+            if(type==DFLT)
+            {
+                if(*ID==0) *ID=handle->ID;
+                else if(*ID!=handle->ID)
+                {
+                    mException(m_Exist(*ID),EXIT,"mult process master variate");
+                    *ID=handle->ID;
+                }
+            }
+            m_Unlock(handle->file_idx);p_idx[1]=0;
+            return pvalue;
+        }
     }
     
     keysize=(strlen(name)+1+3)/4;
     keysize=keysize*4;
     mException(keysize>128,EXIT,"invalid input");
-    handle->size_idx += 4+keysize;
-    mException(handle->size_idx>65536,EXIT,"too much variate\n");
-
+   
     valuesize = (size+7)/8;
     valuesize = valuesize*8;
 
     m_Lock(handle->file_data);
-    int size_data = *((int *)(handle->buff_data));
+    handle->size_idx += 8+keysize;
+    mException(handle->size_idx>65536,EXIT,"too much variate\n");
+    
+    int size_data = *((int *)(handle->master_data));
     mException(size_data+valuesize>65536,EXIT,"too much variate\n");
 
     *((uint16_t *)(p  ))=size_data;
     *((uint16_t *)(p+2))=keysize;
-    memcpy((char *)(p+4),name,keysize);
-    pvalue = handle->buff_data+size_data;
+    *(( int32_t *)(p+4))=(type==DFLT)?handle->ID:0;
+    memcpy((char *)(p+8),name,keysize);
+    offset = size_data;
+    pvalue = p_data+offset;
     size_data += valuesize;
     
     p_idx[0] =handle->size_idx;
-    *((int *)(handle->buff_data)) = size_data;
+    *((int *)(handle->master_data)) = size_data;
 
     m_Unlock(handle->file_data);
     m_Unlock(handle->file_idx);
     p_idx[1]=0;
 
-    mMapWrite(handle->map,p+4,DFLT,&pvalue,sizeof(void *));
+    mMapWrite(handle->map,p+4,DFLT,&offset,sizeof(uint16_t));
     return pvalue;
 }
+
