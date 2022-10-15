@@ -25,8 +25,7 @@ typedef struct MImage {
 
 #define INVALID_IMAGE(Img) ((((Img) ==NULL)||((intptr_t)(Img) == DFLT))?1:(((Img)->data == NULL)||((intptr_t)((Img)->data) == DFLT)\
                                                                     ||((Img)->channel <= 0)\
-                                                                    ||((Img)->height <= 0)||((Img)->width <= 0)\
-                                                                    ||(((MList **)(Img))[-1] == NULL)))
+                                                                    ||((Img)->height <= 0)||((Img)->width <= 0)))
 
 MImage *ImageCreate(int channel,int height,int width,unsigned char **data[]);
 #define mImageCreate(...) (\

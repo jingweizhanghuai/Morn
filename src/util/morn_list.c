@@ -25,12 +25,10 @@ void endListCreate(struct HandleListCreate *handle)
     if(handle->data != NULL) mFree(handle->data);
 
     memset(handle->list,0,sizeof(MList));
-    // mFree(((MList **)(handle->list))-1);
 }
 #define HASH_ListCreate 0xfa6c59f
 MList *ListCreate(int num,void **data)
 {
-    
     MList *list = ObjectAlloc(sizeof(MList));
     MHandle *hdl=mHandle(list,ListCreate);
     struct HandleListCreate *handle = (struct HandleListCreate *)(hdl->handle);

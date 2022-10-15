@@ -265,7 +265,7 @@ static int morn_atoi[8][10]={
 
 int mAtoi(char *str)
 {
-    while(*str==' ') str++;
+    while((*str==' ')||(*str=='0')) str++;
     int flag=0;unsigned char *s=(unsigned char *)str;
          if(*str=='-') {flag=1;s++;}
     else if(*str=='+')         s++;

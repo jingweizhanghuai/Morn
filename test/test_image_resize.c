@@ -4,21 +4,17 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 // build: gcc -O2 -fopenmp test_image_resize.c -I ..\include\ -L ..\lib\x64\mingw\ -lmorn -ljpeg -lpng -lz -o test_image_resize.exe
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "morn_image.h"
 
 int main()
 {
     MImage *src = mImageCreate(DFLT,DFLT,DFLT,NULL);
-    mImageLoad("../doc/test.jpg",src);
+    mImageLoad(src,"../doc/test.jpg");
     
     MImage *dst = mImageCreate(src->channel,512,512,NULL);
     
     mImageResize(src,dst,DFLT,DFLT,DFLT);
-    mImageSave(dst,"./test_resize1.jpg");
+    mImageSave(dst,"./test_resize1.png");
     
     mImageResize(src,dst,DFLT,DFLT,MORN_RESIZE_MINUNIFORM);
     mImageSave(dst,"./test_resize2.jpg");

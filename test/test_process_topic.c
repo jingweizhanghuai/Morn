@@ -1,4 +1,4 @@
-// build: gcc -O2 test_process_topic.c -liceoryx_binding_c -liceoryx_posh -liceoryx_utils -liceoryx_platform -lstdc++ -lpthread -lrt -lmorn -lm -o test_process_topic.exe
+// build: gcc -O2 test_process_topic.c -lmorn -o test_process_topic.exe
 
 #include "morn_ptc.h"
 

@@ -36,7 +36,6 @@ void endImageCreate(struct HandleImageCreate *handle)
     if(handle->backup_memory!=NULL) mMemoryRelease(handle->backup_memory);
 
     memset(handle->img,0,sizeof(MImage));
-    // mFree(((MList **)(handle->img))-1);
 }
 #define HASH_ImageCreate 0xccb34f86
 MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
