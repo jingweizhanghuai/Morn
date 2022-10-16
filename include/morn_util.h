@@ -972,6 +972,9 @@ void mDecrypt(const char *in_name,const char *out_name,uint64_t key);
 void mFileEncrypt(MFile *file,uint64_t key);
 void mFileDecrypt(MFile *file,uint64_t key);
 
+uint32_t m_CRC(uint8_t* input,int len);
+#define mCRC(...) m_CRC((uint8_t *)VA0(__VA_ARGS__),(VANumber(__VA_ARGS__)==1)?DFLT:(int)VA1(__VA_ARGS__))
+
 void mINIFile(const char *filename);
 MSheet *mINI();
 void mINILoad(MSheet *list,const char *ininame,...);
