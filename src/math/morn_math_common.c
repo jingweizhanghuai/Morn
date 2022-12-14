@@ -401,35 +401,52 @@ int LowestCommonMultiple(int n,...)
     return a;
 }
 
-int mBinaryCeil(int data)
+int64_t morn_math_decimal[19]={0,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000};    
+uint64_t mDecimalCeil(uint64_t data)
 {
-    int floor = mBinaryFloor(data);
-    if(floor==data) return data;
-    return (data>0)?(floor*2):(floor/2);
+    float a=data+0.1;void *p=&a;
+    int n=(((((*((int32_t *)p))>>23)-127)*77)>>8)+1;
+    return morn_math_decimal[(data>morn_math_decimal[n])+n];
 }
-
-int mBinaryFloor(int data)
+uint64_t mDecimalFloor(uint64_t data)
 {
-    if (data<0) return (0-mBinaryCeil(0-data));
-    int v[16]={0,1,2,2,4,4,4,4,8,8,8,8,8,8,8,8};
-    if(data<16) return v[data];
-    if(data<256) return (v[data>>4]<<4);
-    if(data<4096) return (v[data>>8]<<8);
-    if(data<65536) return (v[data>>12]<<12);
-    if(data<1048576) return (v[data>>16]<<16);
-    if(data<16777216) return (v[data>>20]<<20);
-    if(data<268435456) return (v[data>>24]<<24);
-    return (v[data>>28]<<28);
+    float a=data+1;void *p=&a;
+    int n=((((*((int32_t *)p))>>23)-127)*77)>>8;
+    return morn_math_decimal[(data>=morn_math_decimal[n+1])+n];
 }
-
-int mBinaryRound(int data)
+uint64_t mDecimalRound(uint64_t data)
 {
-    int floor = mBinaryFloor(data);
-    int ceil = (data>0)?(floor*2):(floor/2);
+    uint64_t floor= mDecimalFloor(data);
+    uint64_t ceil =floor*10;
     return ((ceil-data)<=(data-floor))?ceil:floor;
 }
+int mDecimalDigits(uint64_t data)
+{
+    float a=data+0.1;void *p=&a;
+    int n=(((((*((int32_t *)p))>>23)-127)*77)>>8)+1;
+    return (data>=morn_math_decimal[n])+n;
+}
 
-
+int64_t morn_math_binary[63]={0,1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304,8388608,16777216,33554432,67108864,134217728,268435456,536870912,1073741824,2147483648,4294967296,8589934592,17179869184,34359738368,68719476736,137438953472,274877906944,549755813888,1099511627776,2199023255552,4398046511104,8796093022208,17592186044416,35184372088832,70368744177664,140737488355328,281474976710656,562949953421312,1125899906842624,2251799813685248,4503599627370496,9007199254740992,18014398509481984,36028797018963968,72057594037927936,144115188075855872,288230376151711744,576460752303423488,1152921504606846976,2305843009213693952};
+uint64_t mBinaryCeil(uint64_t data)
+{
+    if(data<=2) return data;
+    float a=data;void *p=&a;
+    int n=((*((int32_t *)p))>>23)-126;
+    return morn_math_binary[(data>morn_math_binary[n])+n];
+}
+uint64_t mBinaryFloor(uint64_t data)
+{
+    float a=data+1;void *p=&a;
+    int n=((*((int32_t *)p))>>23)-127;
+    return morn_math_binary[(data>=morn_math_binary[n+1])+n];
+}
+uint64_t mBinaryRound(uint64_t data)
+{
+    uint64_t floor= mBinaryFloor(data);
+    uint64_t ceil =floor+floor;
+    return ((ceil-data)<=(data-floor))?ceil:floor;
+}
 
 unsigned int m_Hash(const char *in,int size)
 {

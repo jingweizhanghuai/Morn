@@ -8,8 +8,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 void test1()
 {
-    printf("\n\n");
-    MObject *map = mMapCreate();
+    MMap *map = mMapCreate();
     int n;
     
     n=0; mMapWrite(map,"zero" ,DFLT,&n,sizeof(int));
@@ -35,10 +34,9 @@ void test1()
     p = mMapRead(map,"eight");if(p!=NULL)printf("eight= %d\n",*p);else printf("eight not found\n");
     p = mMapRead(map,"nine" );if(p!=NULL)printf("nine = %d\n",*p);else printf("nine  not found\n");
     p = mMapRead(map,"ten"  );if(p!=NULL)printf("ten  = %d\n",*p);else printf("ten   not found\n");
-    printf("\n");
 
-    mMapNodeDelete(map,"zero" ,DFLT);
-    mMapNodeDelete(map,"one"  ,DFLT);
+    mMapNodeDelete(map,"zero" );
+    mMapNodeDelete(map,"one"  );
     mMapNodeDelete(map,"two"  ,DFLT);
     mMapNodeDelete(map,"three",DFLT);
     mMapNodeDelete(map,"four" ,DFLT);
@@ -64,8 +62,7 @@ void test1()
 
 void test2()
 {
-    printf("\n\n");
-    MChain *map = mMapCreate();
+    MMap *map = mMapCreate();
     
     int n;
     n=0; mMapWrite(map,&n,sizeof(int),"zero" ,DFLT);
@@ -91,7 +88,6 @@ void test2()
     n= 8;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
     n= 9;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
     n=10;p=mMapRead(map,&n,sizeof(int),NULL,NULL);if(p!=NULL)printf("%d = %s\n",n,p);else printf("%d not found\n",n);
-    printf("\n");
     
     n= 0;mMapNodeDelete(map,&n,sizeof(int));
     n= 1;mMapNodeDelete(map,&n,sizeof(int));
@@ -120,8 +116,7 @@ void test2()
 
 void test3()
 {
-    printf("\n\n");
-    MChain *map = mMapCreate();
+    MMap *map = mMapCreate();
 
     //key is pointer
     int *a=NULL;int idx=1;
@@ -159,8 +154,7 @@ void test3()
 
 void test4()
 {
-    printf("\n\n");
-    MChain *map = mMapCreate(NULL);
+    MMap *map = mMapCreate();
     
     char *a="abcd";int idx=1;
     mMapWrite(map,a,strlen(a),&idx,sizeof(int));
@@ -182,10 +176,66 @@ void test4()
     mMapRelease(map);
 }
 
+void test5()
+{
+    MMap *map = mMapCreate();
+    
+    int n;
+    n=0; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=1; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=2; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=3; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=4; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=5; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=6; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=7; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=8; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    n=9; mMapWrite(map,"test",DFLT,&n,sizeof(int));
+    
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test")); 
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test")); 
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    printf("map with overwrite = %d\n",*(int *)mMapRead(map,"test"));
+    
+    int flag=0; //0 means don't overwrite
+    mPropertyWrite(map,"overwrite",&flag,sizeof(int));
+    
+    n=0; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=1; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=2; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=3; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=4; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=5; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=6; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=7; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=8; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    n=9; mMapWrite(map,"overwrite_test",DFLT,&n,sizeof(int));
+    
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));    
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test")); 
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test")); 
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    printf("map without overwrite = %d\n",*(int *)mMapRead(map,"overwrite_test"));
+    
+    mMapRelease(map);
+}
+
 int main()
 {
-    test1();
-    test2();
-    test3();
-    test4();
+    printf("\n\ntest1:\n");test1();
+    printf("\n\ntest2:\n");test2();
+    printf("\n\ntest3:\n");test3();
+    printf("\n\ntest4:\n");test4();
+    printf("\n\ntest5:\n");test5();
 }

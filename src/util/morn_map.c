@@ -20,10 +20,13 @@ struct HandleMornMap
     int num;
     MChainNode **list;
     int list_num;
+    int overwrite_disable;
+    MMemory *memory;
 };
 void endMornMap(struct HandleMornMap *handle)
 {
     if(handle->list!=NULL) mFree(handle->list);
+    if(handle->memory!=NULL) mMemoryRelease(handle->memory);
 }
 #define HASH_MornMap 0x197e7023
 
@@ -120,6 +123,12 @@ MChainNode *_MapNode(struct HandleMornMap *handle,const void *key,int key_size,i
     return node;
 }
 
+struct OverWriteChain
+{
+    struct OverWriteChain *next;
+    int value_size;
+    char data[0];
+};
 void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,int value_size)
 {
     mException(INVALID_POINTER(map),EXIT,"invalid input map");
@@ -152,14 +161,34 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     }
     if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
     if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
-
+    
     int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
     if(flag!=DFLT)
     {
         data = (int *)(p->data);
-        if(value_size<=data[1]) 
+        if(handle->overwrite_disable)
         {
-            if(value!=NULL) {memcpy(data+2+mkey_size,value,value_size);}
+            struct OverWriteChain **pchain = (struct OverWriteChain **)(data+2+mkey_size);
+            struct OverWriteChain *pp;
+            if(data[1]>0)
+            {
+                if(handle->memory==NULL) handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);
+                pp=mMemoryWrite(handle->memory,NULL,sizeof(struct OverWriteChain)+data[1]);
+                pp->value_size = data[1];
+                memcpy(pp->data,pchain,data[1]);
+                pp->next=pp;
+                data[1]=-1;*pchain=pp;
+            }
+            pp=mMemoryWrite(handle->memory,NULL,sizeof(struct OverWriteChain)+value_size);
+            pp->value_size=value_size;
+            if(value!=NULL) memcpy(pp->data,value,value_size);
+            pp->next = (*pchain)->next;(*pchain)->next=pp;
+            return pp->data;
+        }
+        
+        if(value_size<=data[1])
+        {
+            if(value!=NULL) memcpy(data+2+mkey_size,value,value_size);
             data[1]=value_size;
             return (data+2+mkey_size);
         }
@@ -201,61 +230,89 @@ void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int *valu
 
     int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
     int *data = (int *)(node->data);
-    int vsize=data[1];if(!INVALID_POINTER(value_size)) {{if(*value_size>0) vsize=MIN(*value_size,data[1]);}*value_size=data[1];}
-    if(!INVALID_POINTER(value)) memcpy(value,data+2+mkey_size,vsize);
-    return (data+2+mkey_size);
+    void *ret=(data+2+mkey_size);
+    int vsize=data[1];
+    if(vsize<0)
+    {
+        struct OverWriteChain **pchain = (struct OverWriteChain **)ret;
+        *pchain = (*pchain)->next;
+        ret=(*pchain)->data;
+        vsize=(*pchain)->value_size;
+    }
+    if(!INVALID_POINTER(value_size)) {int ret_size=vsize;{if(*value_size>0) vsize=MIN(*value_size,vsize);}*value_size=ret_size;}
+    if(!INVALID_POINTER(value)) memcpy(value,ret,vsize);
+    return ret;
 }
 
-void *mornMapNodeKey(MChainNode *node)
-{
-    mException(INVALID_POINTER(node),EXIT,"invalid map node");
-    int *data=(int *)(node->data);
-    return (void *)(data+2);
-}
-void *mornMapNodeValue(MChainNode *node)
-{
-    mException(INVALID_POINTER(node),EXIT,"invalid map node");
-    int *data=(int *)(node->data);
-    int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
-    return (void *)(data+2+mkey_size);
-}
-int mornMapNodeKeySize(MChainNode *node)
-{
-    mException(INVALID_POINTER(node),EXIT,"invalid map node");
-    int *data=(int *)(node->data);
-    return data[0];
-}
-int mornMapNodeValueSize(MChainNode *node)
-{
-    mException(INVALID_POINTER(node),EXIT,"invalid map node");
-    int *data=(int *)(node->data);
-    return data[1];
-}
+// void *mornMapNodeKey(MChainNode *node)
+// {
+//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
+//     int *data=(int *)(node->data);
+//     return (void *)(data+2);
+// }
+// void *mornMapNodeValue(MChainNode *node)
+// {
+//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
+//     int *data=(int *)(node->data);
+//     int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
+//     return (void *)(data+2+mkey_size);
+// }
+// int mornMapNodeKeySize(MChainNode *node)
+// {
+//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
+//     int *data=(int *)(node->data);
+//     return data[0];
+// }
+// int mornMapNodeValueSize(MChainNode *node)
+// {
+//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
+//     int *data=(int *)(node->data);
+//     return data[1];
+// }
 
-int mornMapNodeNumber(MChain *map)
-{
-    MList *hlist = (MList *)(((struct HandleList *)map)-1);//((MList **)map)[-1];
-    if(hlist->num<3) return 0;
-    MHandle *hdl = (MHandle *)(hlist->data[2]);
-    mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
-    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
-    return (handle->num-1);
-}
+// int mornMapNodeNumber(MChain *map)
+// {
+//     MList *hlist = (MList *)(((struct HandleList *)map)-1);//((MList **)map)[-1];
+//     if(hlist->num<3) return 0;
+//     MHandle *hdl = (MHandle *)(hlist->data[2]);
+//     mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
+//     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
+//     return (handle->num-1);
+// }
 
 int mornMapNodeOperate(MChain *map,void *function,void *para)
 {
-    mException(INVALID_POINTER(map),EXIT,"invalid input map");
+    if(INVALID_POINTER(map)) return 0; 
+    if(map->chainnode==NULL) return 0;
     mException(INVALID_POINTER(function),EXIT,"invalid input map function");
     int (*func)(void *,int,void *,int,void *) = function;
-    mException(INVALID_POINTER(map)||(func==NULL),EXIT,"invalid input");
-    if(map->chainnode==NULL) return 0;
+    
     MChainNode *node = map->chainnode->next;
+    char buff[1024];
     while(node!=map->chainnode)
     {
         int *data=(int *)(node->data);
         int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
-        int ret=func((void *)(data+2),data[0],(void *)(data+2+mkey_size),data[1],para);
-        if(ret) return 1;
+        memcpy(buff,data+2,MIN(1024,data[0]));
+        
+        int ret;
+        if(data[1]<0)
+        {
+            struct OverWriteChain **pchain = (struct OverWriteChain **)(data+2+mkey_size);
+            struct OverWriteChain *pp=(*pchain)->next;
+            do{
+                ret=func((void *)(data+2),data[0],(void *)(pp->data),pp->value_size,para);
+                mException((memcmp(buff,data+2,MIN(1024,data[0]))!=0),EXIT,"invalid operate");
+                if(ret) return 1;
+                pp=pp->next;
+            }while(pp!=*pchain);
+        }
+        else 
+        {
+            ret=func((void *)(data+2),data[0],(void *)(data+2+mkey_size),data[1],para);
+            mException((memcmp(buff,data+2,MIN(1024,data[0]))!=0),EXIT,"invalid operate");
+            if(ret) return 1;
+        }
         node = node->next;
     }
     return 0;
@@ -274,6 +331,19 @@ void mornMapNodeDelete(MChain *map,const void *key,int key_size)
 
     int n;MChainNode *node = _MapNode(handle,key,key_size,&n);
     if(n==DFLT) return;
+    int *data = (int *)(node->data);
+    if(data[1]<0)
+    {
+        int mkey_size =((key_size  +7)>>3)*(8/sizeof(int));
+        struct OverWriteChain **pchain = (struct OverWriteChain **)(data+2+mkey_size);
+        struct OverWriteChain *pp=(*pchain)->next;
+        if(pp!=*pchain)
+        {
+            while(pp->next!=(*pchain)) pp=pp->next;
+            pp->next = (*pchain)->next;
+            *pchain=pp;return;
+        }
+    }
     if(n>=0) handle->list[n]=(node->prev!=map->chainnode)?node->prev:node->next;
     for(int m = n+1;handle->list[m]==node;m++)handle->list[m]=handle->list[n];
     for(int m = n-1;handle->list[m]==node;m--)handle->list[m]=handle->list[n];
@@ -288,6 +358,9 @@ void mornMapNodeDelete(MChain *map,const void *key,int key_size)
 
 void mMapCopy(MChain *src,MChain *dst)
 {
+    MHandle *hdl = mHandle(dst,MornMap);
+    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
+    
     mChainClear(dst);
     MChainNode *src_node = src->chainnode;
     int *data=(int *)(src_node->data);
@@ -310,10 +383,26 @@ void mMapCopy(MChain *src,MChain *dst)
         memcpy(dst_node->data,src_node->data,size*sizeof(int));
         src_node=src_node->next;
         num++;
+        
+        if(data[1]<0)
+        {
+            int *dst_data=(int *)(dst_node->data);
+            struct OverWriteChain **psrc = (struct OverWriteChain **)(    data+2+mkey_size);
+            struct OverWriteChain **pdst = (struct OverWriteChain **)(dst_data+2+mkey_size);
+            struct OverWriteChain *ppsrc = (*psrc);
+            struct OverWriteChain *ppdst = (*pdst);
+            if(handle->memory==NULL) handle->memory=mMemoryCreate(DFLT,DFLT,MORN_HOST);
+            *pdst = mMemoryWrite(handle->memory,*psrc,sizeof(struct OverWriteChain)+mvalue_size*sizeof(int));
+            while(1)
+            {
+                ppsrc=ppsrc->next;
+                if(ppsrc==*psrc) {ppdst->next=*pdst;break;}
+                ppdst->next=mMemoryWrite(handle->memory,ppsrc,sizeof(struct OverWriteChain)+mvalue_size*sizeof(int));
+                ppdst=ppdst->next;
+            }
+        }
     }
     
-    MHandle *hdl = mHandle(dst,MornMap);
-    struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
     handle->num = num;
     handle->list_num=mBinaryFloor(num);
     if(handle->list!=NULL) mFree(handle->list);
@@ -321,11 +410,27 @@ void mMapCopy(MChain *src,MChain *dst)
     _MapListAppend(handle);
 }
 
+void MapOverWrite(int *overwrite,MMap *map)
+{
+    int flag=!(*overwrite);
+    MChain **amap = (MChain **)(map->object);
+    for(int i=0;i<256;i++)
+    {
+        if(amap[i]==NULL) continue;
+        MHandle *hdl = ObjHandle(amap[i],2);
+        mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");
+        struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
+        handle->overwrite_disable = flag;
+    }
+}
+
 MMap *mMapCreate()
 {
     MChain **amap = mMalloc(256*sizeof(MChain *));
     memset(amap,0,256*sizeof(MChain *));
-    return mObjectCreate(amap);
+    MMap *map=mObjectCreate(amap);
+    mPropertyFunction(map,"overwrite",MapOverWrite,map);
+    return map;
 }
 void mMapRelease(MMap *map)
 {
@@ -340,7 +445,17 @@ void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int va
     if(key_size<=0) key_size = strlen((char *)key);
     unsigned char *p = (unsigned char *)key;
     int n = p[0]+p[key_size-1];n=n&0x0ff;
-    if(amap[n]==NULL) amap[n]=mChainCreate();
+    if(amap[n]==NULL)
+    {
+        amap[n]=mChainCreate();
+        int overwrite=1;mPropertyRead(map,"overwrite",&overwrite);
+        if(overwrite==0)
+        {
+            MHandle *hdl = mHandle(amap[n],MornMap);
+            struct HandleMornMap *handle = hdl->handle;
+            handle->overwrite_disable=1;
+        }
+    }
     return mornMapWrite(amap[n],key,key_size,value,value_size);
 }
 void *m_MapRead(MMap *map,const void *key,int key_size,void *value,int *value_size)
@@ -366,13 +481,14 @@ void mMapNodeOperate(MMap *map,void *function,void *para)
     MChain **amap = (MChain **)(map->object);
     for(int n=0;n<256;n++) {if(amap[n]) mornMapNodeOperate(amap[n],function,para);}
 }
-int mMapNodeNumber(MMap *map)
-{
-    MChain **amap = (MChain **)(map->object);
-    int sum=0;
-    for(int n=0;n<256;n++) {if(amap[n]) sum+=mornMapNodeNumber(amap[n]);}
-    return sum;
-}
+
+// int mMapNodeNumber(MMap *map)
+// {
+//     MChain **amap = (MChain **)(map->object);
+//     int sum=0;
+//     for(int n=0;n<256;n++) {if(amap[n]) sum+=mornMapNodeNumber(amap[n]);}
+//     return sum;
+// }
 
 // struct HandleSingle
 // {

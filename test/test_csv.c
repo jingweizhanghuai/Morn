@@ -5,7 +5,7 @@ int main()
 {
 //     MFile *file = mFileCreate("D:/data/Women_Shoes_Prices/data/data/7210_1.csv");
 //     MFile *file = mFileCreate("D:/data/Denver_Police/data/police_pedestrian_stops_and_vehicle_stops.csv");
-    MFile *file = mFileCreate("D:/data/Denver_Police/data/test.csv");
+    MFile *file = mFileCreate("../data/test.csv");
     mTimerBegin();
     mCSVLoad(file);
     mTimerEnd();
@@ -29,12 +29,13 @@ int main()
     mPropertyWrite(file,"key","TIME_PHONEPICKUP");
     p=mCSVRead(file,"2015-11-05 00:37:02","PROBLEM");
     printf("p=%s\n",p);
-    return 0;
+    
 
     MList *list = mCSVCol(file,"MASTER_INCIDENT_NUMBER");
+    
     printf("list->num=%d\n",list->num);
-//     for(int i=0;i<list->num;i++) printf("%s\n",list->data[i]);
-
+    for(int i=0;i<list->num;i++) printf("%s\n",(char *)(list->data[i]));
+    
     mPropertyWrite(file,"key","MASTER_INCIDENT_NUMBER");
     for(int i=0;i<100;i++)
     {

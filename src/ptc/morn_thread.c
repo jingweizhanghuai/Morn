@@ -21,6 +21,67 @@ int mThreadID()
     return morn_thread_ID;
 }
 
+
+/*
+struct ThreadFuncInfo
+{
+    void *func;
+    void *para;
+    MThread thread;
+    int flag;
+};
+void myfunc(struct ThreadFuncInfo *info)
+{
+    info->flag=0;
+    (void *(*func)(void *)) = info->func;
+    func(info->para);
+    info->flag=1;
+}
+
+struct HandleThreadFunc
+{
+    MList *list;
+    MChain *map;
+};
+struct HandleThreadFunc *morn_thread_func_handle=NULL;
+void endThreadFunc(struct HandleThreadFunc *handle)
+{
+    if(handle->list!=NULL) mListRelease(handle->list);
+    morn_thread_func_handle=NULL;
+}
+#define HASH_ThreadFunc 0x3fac1631
+void mThreadFunc(char *thread_name,void *func,void *para)
+{
+    struct ThreadFuncInfo info={.func=func,.para=para};
+    struct HandleThreadFunc *handle=morn_thread_func_handle;
+    if(handle==NULL)
+    {
+        MHandle *hdl = mHandle("Morn",ThreadFunc);
+        handle=hdl->handle;
+        if(!mHandleValid(hdl))
+        {
+            if(handle->list==NULL) handle->list=mListCreate();
+            morn_thread_func_handle = handle;
+            hdl->valid=1;
+        }
+    }
+    mListWrite(handle->list,DFLT,&info,sizeof(struct ThreadFuncInfo));
+}
+
+void mThreadFuncRun()
+{
+    struct HandleThreadFunc *handle=morn_thread_func_handle;
+    if(handle==NULL) return;
+    MList *list = handle->list;
+    
+    MThread *pthread=mMalloc(
+    for(int i=1;i<handle->list->num;i++)
+    {
+*/
+
+
+
+
 /*
 MThreadSignal *morn_thread_signal0=NULL;
 

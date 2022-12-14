@@ -153,7 +153,7 @@ void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
         MHandle *hdl=mHandle("ThreadPool",ThreadPool);
         handle = (struct HandleThreadPool *)(hdl->handle);
     
-        mPropertyVariate("ThreadPool","thread_num",&(handle->pool_num));
+        mPropertyVariate("ThreadPool","thread_num",&(handle->pool_num),sizeof(int));
         if(handle->pool_num<=0)
         {
             #ifndef __linux__
@@ -171,9 +171,9 @@ void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
         if(handle->buff==NULL) handle->buff=mListCreate();
 
         handle->thread_adjust=0;
-        mPropertyVariate("ThreadPool","thread_adjust",&(handle->thread_adjust));
+        mPropertyVariate("ThreadPool","thread_adjust",&(handle->thread_adjust),sizeof(int));
         handle->thread_max = handle->pool_num*2;
-        mPropertyVariate("ThreadPool","thread_max"   ,&(handle->thread_max   ));
+        mPropertyVariate("ThreadPool","thread_max"   ,&(handle->thread_max   ),sizeof(int));
 
         hdl->valid =1;
         morn_thread_pool_handle=handle;

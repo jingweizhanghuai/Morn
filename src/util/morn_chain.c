@@ -50,6 +50,7 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode)+size);
+    
     node->next=node;node->prev=node;
     if(size!=0) 
     {

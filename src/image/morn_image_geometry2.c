@@ -5,7 +5,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #include "morn_image.h"
 
-// #define PointLineCheck(px,py,lx1,ly1,lx2,ly2) ((lx1 - lx2)*(py-ly2)-(ly1 - ly2)*(px-lx2))
+#define _PointLineCheck(px,py,lx1,ly1,lx2,ly2) (((lx1)-(lx2))*((py)-(ly2))-((ly1)-(ly2))*((px)-(lx2)))
+
 int mLinePointCheck(MImagePoint *point,MImagePoint *p1,MImagePoint *p2)//MList *line,)
 {
     // MImagePoint **line_point = (MImagePoint **)(line->data);
@@ -576,26 +577,30 @@ void ConvexHull(MList *point,MChain *chain,MChainNode *node)
     MImagePoint *p2 = (MImagePoint *)(node->next->data);
     MImagePoint **p = (MImagePoint **)(point->data);
     
-    float ky = p1->x - p2->x; float kx= p1->y -p2->y; float b=kx*p2->x - ky*p2->y;
+    double ky = p1->x - p2->x; double kx= p1->y - p2->y; double b=kx*p2->x - ky*p2->y;
     
     MImagePoint *buff;
     MImagePoint value;
     
     int n = 0;
-    
-    float min = 0;
+    double min = 0.1;
     for(int i=0;i<point->num;i++)
     {
-        float v = kx*p[i]->x -ky*p[i]->y -b;
+        double v = kx*p[i]->x -ky*p[i]->y -b;
         if(v<0)
         {
-            if(v<min) {min = v;value.x = p[i]->x;value.y = p[i]->y;}
-            buff = p[n];p[n] = p[i]; p[i] = buff; n=n+1;
+            if(v<min) {min = v;value=*p[i];}
+            buff = p[n];p[n] = p[i];p[i] = buff;n=n+1;
         }
     }
     
-    if(min<-1.0f)
+    if(min<-0.0)
     {
+        if(n==1)
+        {
+            if(memcmp(&value,p1,sizeof(MImagePoint))==0) return;
+            if(memcmp(&value,p2,sizeof(MImagePoint))==0) return;
+        }
         MChainNode *next = mChainNode(chain,&value,sizeof(MImagePoint));
         mChainNodeInsert(node,next,NULL);
         
@@ -626,10 +631,6 @@ void mConvexHull(MList *point,MList *polygon)
         if(p[i]->y > y_max) {y_max = p[i]->y;i2=i;}else if(p[i]->y < y_min) {y_min = p[i]->y;i4=i;}
     }
 
-    // printf("i1 is %d,p[i1]->x is %f,p[i1]->y is %f\n",i1,p[i1]->x,p[i1]->y);
-    // printf("i2 is %d,p[i2]->x is %f,p[i2]->y is %f\n",i2,p[i2]->x,p[i2]->y);
-    // printf("i3 is %d,p[i3]->x is %f,p[i3]->y is %f\n",i3,p[i3]->x,p[i3]->y);
-    // printf("i4 is %d,p[i4]->x is %f,p[i4]->y is %f\n",i4,p[i4]->x,p[i4]->y);
     double kx1=0,ky1=0,b1=0; if(i1 != i2) {ky1=p[i1]->x - p[i2]->x;kx1=p[i1]->y - p[i2]->y; b1=kx1*p[i1]->x - ky1*p[i1]->y;}
     double kx2=0,ky2=0,b2=0; if(i2 != i3) {ky2=p[i2]->x - p[i3]->x;kx2=p[i2]->y - p[i3]->y; b2=kx2*p[i2]->x - ky2*p[i2]->y;}
     double kx3=0,ky3=0,b3=0; if(i3 != i4) {ky3=p[i3]->x - p[i4]->x;kx3=p[i3]->y - p[i4]->y; b3=kx3*p[i3]->x - ky3*p[i3]->y;}
@@ -647,7 +648,6 @@ void mConvexHull(MList *point,MList *polygon)
         if(i4 != i1) if(kx4*p[i]->x - ky4*p[i]->y < b4) {list4->data[n4] = p[i]; n4=n4+1; continue;}
     }
     list1->num = n1; list2->num = n2; list3->num = n3; list4->num = n4;
-    // printf("n is %d,%d,%d,%d\n",list1->num,list2->num,list3->num,list4->num);
     
     MChain *chain = mChainCreate();
     MChainNode *node1=NULL; if(i1!=i2) {node1 = mChainNode(chain,NULL,DFLT);node1->data = p[i1];                         chain->object = (void *)node1;}

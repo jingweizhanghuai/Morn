@@ -4,12 +4,48 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// 编译： gcc -O2 -fopenmp test_large_integer.c -I ..\include\ -I C:\ProgramFiles\CPackage\gmp\include -L ..\lib\x64_mingw\ -lmorn -L C:\ProgramFiles\CPackage\gmp\lib_x64_mingw -lgmp -o test_large_integer.exe
-
-#include <stdio.h>
-#include <stdlib.h>
+// build: gcc -O2 -fopenmp test_large_integer.c -I ..\include\ -I C:\ProgramFiles\CPackage\gmp\include -L ..\lib\x64_mingw\ -lmorn -L C:\ProgramFiles\CPackage\gmp\lib_x64_mingw -lgmp -o test_large_integer.exe
 
 #include "morn_math.h"
+
+int main1()
+{
+    MArray *a=mArrayCreate();
+    mIntToLInt(a,1*2*3*4*5*6*7*8);
+    
+    for(int i=9;i<100;i+=4)
+        mLIntMul(a,i*(i+1)*(i+2)*(i+3),a);
+    
+    char str[1024];
+    mLIntToString(a,str);
+    printf("100!=%s\n",str);
+    
+    mArrayRelease(a);
+}
+
+int main()
+{
+    MArray *a=mArrayCreate();
+    mIntToLInt(a,1);
+    
+    int n=10000;
+    for(int i=1;i<=n;i++)
+        mLIntMul(a,i);
+    
+    char str[40000];
+    mLIntToString(a,str);
+    printf("%d!=%s\n",n,str);
+    
+    printf("strlen=%ld\n",strlen(str));
+    
+    mArrayRelease(a);
+}
+    
+
+
+
+/*
+
 #include "gmp.h"
 
 int main1()
@@ -107,3 +143,4 @@ int main2()
                                  
 //     return 0;
 // }
+*/

@@ -2,7 +2,7 @@
 Copyright (C) 2019-2022 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this json except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-//编译： g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn
+//buuld: g++ -O2 test_JSON_file2.cpp -o test_JSON_file2.exe -lcjson -ljsoncpp -lyyjson -lmorn
 
 #include "morn_util.h"
 
@@ -58,16 +58,19 @@ int cjson_test1()
 
 int jsoncpp_test1()
 {
-    Json::CharReaderBuilder reader;
-    Json::Value jsoncpp_root;
-    JSONCPP_STRING errs;
+    Json::Value root;
+    Json::Reader reader;
     
-    std::ifstream jsondata("./testdata/citm_catalog.json");
-
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+    
     mTimerBegin("jsoncpp");
-    Json::parseFromStream(reader, jsondata, &jsoncpp_root, &errs);
+    reader.parse(jsondata,root);
     int n=0;
-    Json::Value performances = jsoncpp_root["performances"];
+    Json::Value performances = root["performances"];
     for(int i=0;i<performances.size();i++)
     {
         Json::Value seatCategories = performances[i]["seatCategories"];
@@ -92,10 +95,14 @@ int nlohmann_test1()
 {
     nlohmann::json nlohmannjson;
     
-    std::ifstream jsondata("./testdata/citm_catalog.json");
-    
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+
     mTimerBegin("nlohmann");
-    jsondata >> nlohmannjson;
+    nlohmannjson=nlohmann::json::parse(jsondata,jsondata+size);
     int n=0;
     nlohmann::json performances = nlohmannjson["performances"];
     for(int i=0;i<performances.size();i++)
@@ -191,11 +198,17 @@ int yyjson_test1()
 
 int Morn_test1()
 {
-    MObject *jsondata=mObjectCreate();
-    mFile(jsondata,"./testdata/citm_catalog.json");
+    MObject *mornjson=mObjectCreate();
+    
+    FILE *f = fopen("./testdata/citm_catalog.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
     
     mTimerBegin("Morn Json");
-    struct JSONNode *json = mJSONLoad(jsondata);
+    mornjson->string=jsondata;mornjson->size=size;
+    struct JSONNode *json = mJSONLoad(mornjson);
     int n=0;
     struct JSONNode *performances_array = mJSONRead(json,"performances");
     for(int i=0;i<performances_array->num;i++)
@@ -218,7 +231,7 @@ int Morn_test1()
     }
     mTimerEnd("Morn Json");
 
-    mObjectRelease(jsondata);
+    mObjectRelease(mornjson);
     return n;
 }
 
@@ -282,14 +295,17 @@ int cjson_test2()
 
 int jsoncpp_test2()
 {
-    Json::CharReaderBuilder reader;
     Json::Value root;
-    JSONCPP_STRING errs;
+    Json::Reader reader;
     
-    std::ifstream jsondata("./testdata/canada.json");
-
+    FILE *f = fopen("./testdata/canada.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
+    
     mTimerBegin("jsoncpp");
-    Json::parseFromStream(reader,jsondata,&root, &errs);
+    reader.parse(jsondata,root);
     int n=0;
     Json::Value coordinates0 = root["features"][0]["geometry"]["coordinates"];
     for(int j=0;j<coordinates0.size();j++)
@@ -313,10 +329,14 @@ int nlohmann_test2()
 {
     nlohmann::json nlohmannjson;
     
-    std::ifstream jsondata("./testdata/canada.json");
+    FILE *f = fopen("./testdata/canada.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
 
     mTimerBegin("nlohmann");
-    jsondata >> nlohmannjson;
+    nlohmannjson=nlohmann::json::parse(jsondata,jsondata+size);
     int n=0;
     nlohmann::json coordinates0 = nlohmannjson["features"][0]["geometry"]["coordinates"];
     for(int j=0;j<coordinates0.size();j++)
@@ -405,11 +425,17 @@ int yyjson_test2()
 
 int Morn_test2()
 {
-    MObject *jsondata=mObjectCreate();
-    mFile(jsondata,"./testdata/canada.json");
+    MObject *mornjson=mObjectCreate();
+    
+    FILE *f = fopen("./testdata/canada.json","rb");
+    int size = fsize(f);
+    char *jsondata=(char *)malloc(size);
+    fread(jsondata,size,1,f);
+    fclose(f);
     
     mTimerBegin("Morn json");
-    struct JSONNode *json=mJSONLoad(jsondata);
+    mornjson->string=jsondata;mornjson->size=size;
+    struct JSONNode *json=mJSONLoad(mornjson);
     int n=0;
     struct JSONNode *coordinates0=mJSONRead(json,"features[0].geometry.coordinates");
     for (int j=0;j<coordinates0->num;j++)
@@ -426,7 +452,7 @@ int Morn_test2()
     }
     mTimerEnd("Morn json");
     
-    mObjectRelease(jsondata);
+    mObjectRelease(mornjson);
     return n;
 }
 
@@ -454,10 +480,28 @@ void test2()
     printf("get %d coordinates\n\n",n);
 }
 
+
 #define TEST_TIME 100
+
+void cjson_test3(const char *filename)
+{
+    printf("\nfor %s:\n",filename);
+    MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
+    mTimerBegin("rapidjson");
+    for(int i=0;i<TEST_TIME;i++)
+    {
+        cJSON *root = cJSON_Parse(jsondata->string);
+        cJSON_Delete(root);
+    }
+    mTimerEnd("rapidjson");
+    mObjectRelease(jsondata);
+}
 
 void rapidjson_test3(const char *filename)
 {
+    printf("\nfor %s:\n",filename);
     MString *jsondata=mObjectCreate();
     mFile(jsondata,filename);
 
@@ -471,20 +515,59 @@ void rapidjson_test3(const char *filename)
     mObjectRelease(jsondata);
 }
 
+void nlohmann_test3(const char *filename)
+{
+    printf("\nfor %s:\n",filename);
+    MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
+    mTimerBegin("nlohmann");
+    for(int i=0;i<TEST_TIME;i++)
+    {
+        nlohmann::json nlohmannjson;
+        nlohmannjson=nlohmann::json::parse(jsondata->string,jsondata->string+jsondata->size);
+    }
+    mTimerEnd("nlohmann");
+    mObjectRelease(jsondata);
+}
+
+void jsoncpp_test3(const char *filename)
+{
+    printf("\nfor %s:\n",filename);
+    MString *jsondata=mObjectCreate();
+    mFile(jsondata,filename);
+
+    mTimerBegin("jsoncpp");
+    for(int i=0;i<TEST_TIME;i++)
+    {
+        Json::Value root;
+        Json::Reader reader;
+        reader.parse(jsondata->string,root);
+    }
+    mTimerEnd("jsoncpp");
+    mObjectRelease(jsondata);
+}
+
 void yyjson_test3(const char *filename)
 {
+    printf("\nfor %s:\n",filename);
     MString *jsondata=mObjectCreate();
     mFile(jsondata,filename);
 
     mTimerBegin("yyjson");
     for(int i=0;i<TEST_TIME;i++)
-        yyjson_doc_get_root(yyjson_read(jsondata->string,jsondata->size-1,0));
+    {
+        yyjson_doc *doc = yyjson_read(jsondata->string,jsondata->size,0);
+        yyjson_doc_get_root(doc);
+        yyjson_doc_free(doc);
+    }
     mTimerEnd("yyjson");
     mObjectRelease(jsondata);
 }
 
 void Morn_test3(const char *filename)
 {
+    printf("\nfor %s:\n",filename);
     MString *jsondata=mObjectCreate();
     mFile(jsondata,filename);
 
@@ -495,101 +578,88 @@ void Morn_test3(const char *filename)
     mObjectRelease(jsondata);
 }
 
-void test3()
+void test_cjson()
 {
-    const char *filename;
+    cjson_test3("./testdata/canada.json");
+    cjson_test3("./testdata/citm_catalog.json");
+    cjson_test3("./testdata/twitter.json");
+    cjson_test3("./testdata/github_events.json");
+    cjson_test3("./testdata/apache_builds.json");
+    cjson_test3("./testdata/mesh.json");
+    cjson_test3("./testdata/mesh.pretty.json");
+    cjson_test3("./testdata/update-center.json");
+}
 
-    filename = "./testdata/canada.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
+void test_rapidjson()
+{
+    rapidjson_test3("./testdata/canada.json");
+    rapidjson_test3("./testdata/citm_catalog.json");
+    rapidjson_test3("./testdata/twitter.json");
+    rapidjson_test3("./testdata/github_events.json");
+    rapidjson_test3("./testdata/apache_builds.json");
+    rapidjson_test3("./testdata/mesh.json");
+    rapidjson_test3("./testdata/mesh.pretty.json");
+    rapidjson_test3("./testdata/update-center.json");
+}
 
-    filename = "./testdata/citm_catalog.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
-    
+void test_nlohmann()
+{
+    nlohmann_test3("./testdata/canada.json");
+    nlohmann_test3("./testdata/citm_catalog.json");
+    nlohmann_test3("./testdata/twitter.json");
+    nlohmann_test3("./testdata/github_events.json");
+    nlohmann_test3("./testdata/apache_builds.json");
+    nlohmann_test3("./testdata/mesh.json");
+    nlohmann_test3("./testdata/mesh.pretty.json");
+    nlohmann_test3("./testdata/update-center.json");
+}
 
-    filename = "./testdata/twitter.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
+void test_jsoncpp()
+{
+    jsoncpp_test3("./testdata/canada.json");
+    jsoncpp_test3("./testdata/citm_catalog.json");
+    jsoncpp_test3("./testdata/twitter.json");
+    jsoncpp_test3("./testdata/github_events.json");
+    jsoncpp_test3("./testdata/apache_builds.json");
+    jsoncpp_test3("./testdata/mesh.json");
+    jsoncpp_test3("./testdata/mesh.pretty.json");
+    jsoncpp_test3("./testdata/update-center.json");
+}
 
-    filename = "./testdata/github_events.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
+void test_yyjson()
+{
+    yyjson_test3("./testdata/canada.json");
+    yyjson_test3("./testdata/citm_catalog.json");
+    yyjson_test3("./testdata/twitter.json");
+    yyjson_test3("./testdata/github_events.json");
+    yyjson_test3("./testdata/apache_builds.json");
+    yyjson_test3("./testdata/mesh.json");
+    yyjson_test3("./testdata/mesh.pretty.json");
+    yyjson_test3("./testdata/update-center.json");
+}
 
-    filename = "./testdata/apache_builds.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
-
-    filename = "./testdata/mesh.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
-
-    filename = "./testdata/mesh.pretty.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
-
-    filename = "./testdata/update-center.json";
-    printf("\nfor %s:\n",filename);
-    rapidjson_test3(filename);
-    yyjson_test3(filename);
-    Morn_test3(filename);
+void test_Morn()
+{
+    Morn_test3("./testdata/canada.json");
+    Morn_test3("./testdata/citm_catalog.json");
+    Morn_test3("./testdata/twitter.json");
+    Morn_test3("./testdata/github_events.json");
+    Morn_test3("./testdata/apache_builds.json");
+    Morn_test3("./testdata/mesh.json");
+    Morn_test3("./testdata/mesh.pretty.json");
+    Morn_test3("./testdata/update-center.json");
 }
 
 int main(int argc,char *argv[])
 {
     if(argc!=2) {printf("try as: \"test_json_file2.exe test1\" or \"test_json_file2.exe test2\"\n"); return 0;}
-    if(strcmp(argv[1],"test1")==0) test1();
-    if(strcmp(argv[1],"test2")==0) test2();
-    if(strcmp(argv[1],"test3")==0) test3();
+    else if(strcmp(argv[1],"test1"    )==0) test1();
+    else if(strcmp(argv[1],"test2"    )==0) test2();
+    else if(strcmp(argv[1],"cjson"    )==0) test_cjson();
+    else if(strcmp(argv[1],"rapidjson")==0) test_rapidjson();
+    else if(strcmp(argv[1],"nlohmann" )==0) test_nlohmann();
+    else if(strcmp(argv[1],"jsoncpp"  )==0) test_jsoncpp();
+    else if(strcmp(argv[1],"yyjson"   )==0) test_yyjson();
+    else if(strcmp(argv[1],"Morn"     )==0) test_Morn();
     return 0;
 }
-
-
-// void rapidjson_object(const rapidjson::Value& node)
-// {
-//     int i;double d;char *p;
-//     for(auto iter = node.MemberBegin(); iter != node.MemberEnd(); iter++)
-//     {
-//         auto key = (iter->name).GetString();
-//         if((iter->name).IsObject()) rapidjson_object(iter->name);
-//         if((iter->name).IsNumber()) 
-//     }
-// }
-
-// int main()
-// {
-//     MString *jsondata=mObjectCreate();
-//     mFile(jsondata,"./test_json.json");
-
-//     rapidjson::Document doc;
-//     doc.Parse(jsondata->string);
-
-//     if(doc.IsObject(),"bettingBoard::initBettingBoard: 读取json失败，无法初始化下注区！");
-    
-//     for(auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter)
-//     {
-//         auto key = (iter->name).GetString();
-//         //auto& v = doc[key]
-//         for(auto i = 0; i < doc[key].Size(); ++i)
-//         {
-//             double d = doc[key][i].GetDouble();
-//         }
-//     }
-// }
-
-
-

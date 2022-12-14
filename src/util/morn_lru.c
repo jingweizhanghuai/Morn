@@ -22,11 +22,11 @@ void *mLRU(MChain *chain,void *key)
         if(hdl->valid == 0)
         {
             handle->num=256;
-            mPropertyVariate(chain,"LRU_number"      ,&(handle->num));
-            mPropertyVariate(chain,"LRU_enable"      ,&(handle->enable));
-            mPropertyVariate(chain,"LRU_enable_para" ,&(handle->enable_para));
-            mPropertyVariate(chain,"LRU_disable"     ,&(handle->enable));
-            mPropertyVariate(chain,"LRU_disable_para",&(handle->enable_para));
+            mPropertyVariate(chain,"LRU_number"      ,&(handle->num)        ,sizeof(int   ));
+            mPropertyVariate(chain,"LRU_enable"      ,&(handle->enable)     ,sizeof(void *));
+            mPropertyVariate(chain,"LRU_enable_para" ,&(handle->enable_para),sizeof(void *));
+            mPropertyVariate(chain,"LRU_disable"     ,&(handle->enable)     ,sizeof(void *));
+            mPropertyVariate(chain,"LRU_disable_para",&(handle->enable_para),sizeof(void *));
             mException(handle->enable==NULL,EXIT,"no lru enable function");
             hdl->valid = 1;
         }

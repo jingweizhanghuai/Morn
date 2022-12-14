@@ -3,6 +3,7 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 #include "morn_image.h"
+#include "morn_image_caculate.h"
 
 struct HandleBinaryImageResize
 {
@@ -197,6 +198,7 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
         for(int i=0;i<width;i++)
         {
             float x = ((float)i-dcx)*kx+scx;
+            if((x<0)||(x>src->width-1)) {handle->lx[i]=0;handle->wx[i]=128;continue;}
             handle->lx[i] = floor(x);
             handle->wx[i] = 128 - (unsigned char)((x-(float)(handle->lx[i]))*128.0f);
         }
@@ -204,6 +206,7 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
         for(int j=0;j<height;j++)
         {
             float y = ((float)j-dcy)*ky+scy;
+            if(y<0) {handle->ly[j]=0;handle->wy[j]=128;continue;}
             handle->ly[j] = floor(y);
             handle->wy[j] = 128 - (unsigned char)((y-(float)(handle->ly[j]))*128.0f);
         }
@@ -213,25 +216,40 @@ void m_ImageResize(MImage *src,MImage *dst,int height,int width,int type)
    
     int j;
     #pragma omp parallel for
-    for(j=0;j<height;j++)for(int i=0;i<width;i++)
+    for(j=0;j<height;j++)//for(int i=0;i<width;i++)
     {
-        if((lx[i]<0)||(lx[i]>src->width-1)||(ly[j]<0)||(ly[j]>src->height-1))
-        {
-            for(int cn=0;cn<src->channel;cn++)
-                dst->data[cn][j][i] = 0;
+//         if((lx[i]<0)||(lx[i]>src->width-1)||(ly[j]<0)||(ly[j]>src->height-1))
+//         {
+//             for(int cn=0;cn<src->channel;cn++)
+//                 dst->data[cn][j][i] = 0;
+//             continue;
+//         }
+        
+        #define ImageResize(i,o) {\
+            dst->data[0][j][i+o]=((src->data[0][ly[j]  ][lx[i+o]]*wx[i+o]+src->data[0][ly[j]  ][lx[i+o]+1]*(128-wx[i+o]))*     wy[j] \
+                                 +(src->data[0][ly[j]+1][lx[i+o]]*wx[i+o]+src->data[0][ly[j]+1][lx[i+o]+1]*(128-wx[i+o]))*(128-wy[j]))/16384;\
+            if(src->channel>1)\
+            dst->data[1][j][i+o]=((src->data[1][ly[j]  ][lx[i+o]]*wx[i+o]+src->data[1][ly[j]  ][lx[i+o]+1]*(128-wx[i+o]))*     wy[j] \
+                                 +(src->data[1][ly[j]+1][lx[i+o]]*wx[i+o]+src->data[1][ly[j]+1][lx[i+o]+1]*(128-wx[i+o]))*(128-wy[j]))/16384;\
+            if(src->channel>2)\
+            dst->data[2][j][i+o]=((src->data[2][ly[j]  ][lx[i+o]]*wx[i+o]+src->data[2][ly[j]  ][lx[i+o]+1]*(128-wx[i+o]))*     wy[j] \
+                                 +(src->data[2][ly[j]+1][lx[i+o]]*wx[i+o]+src->data[2][ly[j]+1][lx[i+o]+1]*(128-wx[i+o]))*(128-wy[j]))/16384;\
+            if(src->channel>3)\
+            dst->data[3][j][i+o]=((src->data[3][ly[j]  ][lx[i+o]]*wx[i+o]+src->data[3][ly[j]  ][lx[i+o]+1]*(128-wx[i+o]))*     wy[j] \
+                                 +(src->data[3][ly[j]+1][lx[i+o]]*wx[i+o]+src->data[3][ly[j]+1][lx[i+o]+1]*(128-wx[i+o]))*(128-wy[j]))/16384;\
         }
-        else
-        {
-            int x1 = lx[i];int x2 = x1+1;
-            int y1 = ly[j];int y2 = y1+1;
-            unsigned char wx1 = wx[i];unsigned char wx2 = 128-wx1;
-            unsigned char wy1 = wy[j];unsigned char wy2 = 128-wy1;
-            for(int cn=0;cn<src->channel;cn++)
-            {
-                dst->data[cn][j][i] =((src->data[cn][y1][x1]*wx1+src->data[cn][y1][x2]*wx2)*wy1
-                                     +(src->data[cn][y2][x1]*wx1+src->data[cn][y2][x2]*wx2)*wy2)/16384;
-            }
-        }
+        
+        RowCalculate(ImageResize,width);
+        
+//         int x1 = lx[i];int x2 = x1+1;
+//         int y1 = ly[j];int y2 = y1+1;
+//         unsigned char wx1 = wx[i];unsigned char wx2 = 128-wx1;
+//         unsigned char wy1 = wy[j];unsigned char wy2 = 128-wy1;
+//         for(int cn=0;cn<src->channel;cn++)
+//         {
+//             dst->data[cn][j][i] =((src->data[cn][y1][x1]*wx1+src->data[cn][y1][x2]*wx2)*wy1
+//                                  +(src->data[cn][y2][x1]*wx1+src->data[cn][y2][x2]*wx2)*wy2)/16384;
+//         }
     }
     
     if(p!=dst)

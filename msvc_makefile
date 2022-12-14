@@ -1,6 +1,4 @@
 ﻿OPENMP=1
-USE_PNG=1
-USE_JPEG=1
 USE_SOCKET=1
 USE_USBCAMERA=0
 DEBUG=0
@@ -20,16 +18,6 @@ endif
 
 WRAPDEF = 
 DEPENDLIB = $(LIBDIR)/libopenblas.lib
-
-ifeq ($(USE_PNG),1)
-WRAPDEF += -D MORN_USE_PNG
-DEPENDLIB += $(LIBDIR)/libpng.lib $(LIBDIR)/zlib.lib
-endif
-
-ifeq ($(USE_JPEG),1)
-WRAPDEF += -D MORN_USE_JPEG
-DEPENDLIB += $(LIBDIR)/libjpeg.lib
-endif
 
 ifeq ($(USE_SOCKET),1)
 WRAPDEF += -D MORN_USE_SOCKET

@@ -43,7 +43,6 @@ void endCSV(struct HandleCSV *handle)
 
 void CSVKey(char *key,struct HandleCSV *handle)
 {
-    printf("ffffffffffffffff\n");
     if(handle->col_map==NULL) return;
     int key_idx=0;
     mornMapRead(handle->col_map,key,DFLT,&key_idx,NULL);
@@ -51,6 +50,7 @@ void CSVKey(char *key,struct HandleCSV *handle)
     if(handle->row_map[key_idx]!=NULL) return;
 
     MMap *map = mMapCreate();
+    int overwrite=0; mPropertyWrite(map,"overwrite",&overwrite,sizeof(int));
     for(int i=0;i<handle->row;i++)
     {
         int idx = handle->array->dataS32[i*handle->col+key_idx];
@@ -71,10 +71,9 @@ void mCSVLoad(MFile *csv)
     struct HandleCSV *handle = hdl->handle;
     if(hdl->valid ==0)
     {
-        mPropertyVariate(csv,"key",handle->key);
+        mPropertyVariate(csv,"key",handle->key,DFLT);
         mPropertyFunction(csv,"key",CSVKey,handle);
         if(handle->array  ==NULL) handle->array  = mArrayCreate(1024,sizeof(int));
-//         if(handle->row_map==NULL) handle->row_map= mMapCreate();
         if(handle->col_map==NULL) handle->col_map= mChainCreate();
         if(handle->list   ==NULL) handle->list   = mListCreate();
 
@@ -92,7 +91,7 @@ void mCSVLoad(MFile *csv)
 
     int flag=0;
     uint8_t *p = handle->file+1;while(*p>=128) p++;
-    int *idx = handle->array->dataS32;idx[0]=0;
+    int *idx = handle->array->dataS32;idx[0]=1;
     int n=1;int n0=0;
     while(p<handle->file+size+1)
     {
@@ -225,7 +224,7 @@ char *m_CSVRead(MFile *csv,intptr_t row,intptr_t col,const char *format,...)
     }
     else col_idx=col;
 
-    printf("row_idx=%d,col_idx=%d\n",row_idx,col_idx);
+//     printf("row_idx=%d,col_idx=%d\n",row_idx,col_idx);
 
     int idx=row_idx*handle->col+col_idx;
     idx = handle->array->dataS32[idx];
@@ -252,13 +251,17 @@ MList *m_CSVCol(MFile *csv,intptr_t col)
     if(col>handle->col)
     {
         char *name = (char *)col;
+        printf("name=%s\n",name);
         p=mornMapRead(handle->col_map,name,DFLT,&col_idx,NULL);
+        printf("pppppppppppppppppp=%p\n",p);
         if(p==NULL) return NULL;
     }
     else col_idx=col;
 
+    printf("col_idx=%d\n",col_idx);
     if(handle->col_list[col_idx]==NULL) handle->col_list[col_idx]=mListCreate();
     MList *col_list = handle->col_list[col_idx];
+    printf("aaaaaaaaaaaaaaa\n");
     mListClear(col_list);
     for(int i=0;i<handle->row;i++)
     {

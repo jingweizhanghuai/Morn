@@ -142,16 +142,12 @@ extern __thread int  morn_data_type;
       uint64_t :MORN_TYPE_U64,int64_t:MORN_TYPE_S64,\
       float    :MORN_TYPE_F32,double :MORN_TYPE_D64,\
       char     :((((char)(-1))>0)?MORN_TYPE_U8:MORN_TYPE_S8),\
-   signed long :((sizeof(  signed long)==4)?MORN_TYPE_S32:MORN_TYPE_S64),\
- unsigned long :((sizeof(unsigned long)==4)?MORN_TYPE_U32:MORN_TYPE_U64),\
       uint8_t *:MORN_TYPE_PU8,  int8_t *:MORN_TYPE_PS8, \
      uint16_t *:MORN_TYPE_PU16,int16_t *:MORN_TYPE_PS16,\
      uint32_t *:MORN_TYPE_PU32,int32_t *:MORN_TYPE_PS32,\
      uint64_t *:MORN_TYPE_PU64,int64_t *:MORN_TYPE_PS64,\
      float    *:MORN_TYPE_PF32,double  *:MORN_TYPE_PD64,\
      char     *:MORN_TYPE_PCHAR,\
-  signed long *:((sizeof(  signed long)==4)?MORN_TYPE_PS32:MORN_TYPE_PS64),\
-unsigned long *:((sizeof(unsigned long)==4)?MORN_TYPE_PU32:MORN_TYPE_PU64),\
 default:DFLT))
 #else
 #define MORN_TYPE_P8    ((sizeof(void *)==8)?MORN_TYPE_S64:MORN_TYPE_S32)
@@ -246,6 +242,18 @@ int64_t m_StringTime(char *in,const char *format);
     (VANumber(__VA_ARGS__)==2)?m_StringTime((char *)(VA0(__VA_ARGS__)),(const char *)(VA1(__VA_ARGS__))):\
     DFLT\
 )
+
+#ifndef LITTLE_ENDIAN
+#define LITTLE_ENDIAN 1234
+#endif
+
+#ifndef BIG_ENDIAN
+#define BIG_ENDIAN 4321
+#endif
+
+extern int morn_endian; //=1,morn_codec.c
+#define mEndian() ((*((uint8_t *)&morn_endian))?LITTLE_ENDIAN:BIG_ENDIAN)
+
 
 void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...);
 
@@ -532,6 +540,7 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
 void mArrayAppend(MArray *arr,int n);
 #define mArrayClear(Array) do{Array->num=0;}while(0)
 void mArrayElementDelete(MArray *array,int n);
+void mArrayDataExchange(MArray *arr1,MArray *arr2);
 // void ArrayExpand(MArray *array,int n);
 void *m_ArrayPushBack(MArray *arr,void *data);
 void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num);
@@ -574,8 +583,9 @@ int m_RandString(char *str,int l1,int l2);
 #define MString MObject
 
 #define mString(a) #a
-int mStringRegular(const char *str1,const char *str2);
-MList *mStringSplit(const char *str_in,const char *flag);
+// int mStringRegular(const char *str1,const char *str2);
+// MList *mStringSplit(const char *str_in,const char *flag);
+void mStringSplit(MList *list,const char *in,const char *flag);
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
 char *m_StringArgument(int argc,char **argv,const char *flag,const char *format,...);
 #define mStringArgument(...) m_StringArgument(__VA_ARGS__,NULL)
@@ -766,11 +776,11 @@ float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss
 DFLT)
 
 
-void  m_PropertyVariate(MObject *obj,const char *key,void *var);
+void  m_PropertyVariate(MObject *obj,const char *key,void *var,int var_size);
 void  m_PropertyFunction(MObject *obj,const char *key,void *function,void *para);
 void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_size);
 void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size);
-#define mPropertyVariate(Obj,Key,Var) m_PropertyVariate(mObject(Obj),Key,Var)
+#define mPropertyVariate(Obj,Key,Var,Size) m_PropertyVariate(mObject(Obj),Key,Var,Size)
 #define mPropertyFunction(Obj,Key,...) do {\
     if(VANumber(__VA_ARGS__)==1) m_PropertyFunction(mObject(Obj),Key,(void *)(_VA0(__VA_ARGS__,DFLT)),NULL);\
     else                         m_PropertyFunction(mObject(Obj),Key,(void *)(_VA0(__VA_ARGS__,DFLT)),(void *)VA1(__VA_ARGS__,DFLT));\
@@ -811,7 +821,6 @@ MMemoryBlock *mMemoryBlock(void *data);
 
 // cl_context mDeviceContext(int device);
 // cl_command_queue mDeviceQueue(int device);
-
 
 void mMemoryBlockWrite(MMemoryBlock *block);
 void mMemoryBlockRead(MMemoryBlock *block);

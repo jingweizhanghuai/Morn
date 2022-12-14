@@ -44,7 +44,7 @@ void ImageRedefine(MImage *img,int channel,int height,int width,unsigned char **
     else mException(1,EXIT,"invalid input para");\
 }while(0)
 void mImageRelease(MImage *img);
-unsigned char ***mImageBackup(MImage *img,int cn,int height,int width);
+// unsigned char ***mImageBackup(MImage *img,int cn,int height,int width);
 
 #define MORN_IMAGE_GRAY 1
 #define MORN_IMAGE_RGB  3
@@ -97,7 +97,7 @@ void mImageDataInputS64(MImage *img,S64 *stream,int stream_type,void *func,void 
 void mImageDataInputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataInputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
 #define m_ImageDataInput(Img,Stream,Stream_type,Func,Para) do{\
-    int data_type = mDataType(Stream[0]);\
+    int data_type = mDataType((Stream)[0]);\
          if(data_type==MORN_TYPE_U8 ) mImageDataInputU8 (Img,(U8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_S8 ) mImageDataInputS8 (Img,(S8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_U16) mImageDataInputU16(Img,(U16 *)Stream,Stream_type,Func,Para);\
@@ -132,9 +132,9 @@ void mImageDataOutputS64(MImage *img,S64 *stream,int stream_type,void *func,void
 void mImageDataOutputU64(MImage *img,U64 *stream,int stream_type,void *func,void *para);
 void mImageDataOutputD64(MImage *img,D64 *stream,int stream_type,void *func,void *para);
 #define m_ImageDataOutput(Img,Stream,Stream_type,Func,Para) do{\
-    int data_type = mDataType(Stream[0]);\
-         if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8 (Img,(U8  *)Stream,Stream_type,Func,Para);\
-    else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8 (Img,(S8  *)Stream,Stream_type,Func,Para);\
+    int data_type = mDataType((Stream)[0]);\
+         if(data_type==MORN_TYPE_U8 ) mImageDataOutputU8( Img,(U8  *)Stream,Stream_type,Func,Para);\
+    else if(data_type==MORN_TYPE_S8 ) mImageDataOutputS8( Img,(S8  *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_U16) mImageDataOutputU16(Img,(U16 *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_S16) mImageDataOutputS16(Img,(S16 *)Stream,Stream_type,Func,Para);\
     else if(data_type==MORN_TYPE_U32) mImageDataOutputU32(Img,(U32 *)Stream,Stream_type,Func,Para);\
@@ -164,7 +164,7 @@ void m_ImageYUVToRGB(MImage *src,MImage *dst);
 void m_ImageRGBToHSV(MImage *src,MImage *dst);
 #define mImageRGBToHSV(...) ((VANumber(__VA_ARGS__)==2)?m_ImageRGBToHSV(VA0(__VA_ARGS__),(MImage *)VA1(__VA_ARGS__)):m_ImageRGBToHSV(VA0(__VA_ARGS__),NULL))
 void m_ImageHSVToRGB(MImage *src,MImage *dst);
-#define mImageHSVToRGB(...) ((VANumber(__VA_ARGS__)==2)?m_ImageHSVToRGB(VA0(__VA_ARGS__),(MImage *)VA1(__VA_ARGS__)):m_ImageHSVToRGB(__VA_ARGS__),NULL))
+#define mImageHSVToRGB(...) ((VANumber(__VA_ARGS__)==2)?m_ImageHSVToRGB(VA0(__VA_ARGS__),(MImage *)VA1(__VA_ARGS__)):m_ImageHSVToRGB(VA0(__VA_ARGS__),NULL))
 void m_ImageRGBToGray(MImage *src,MImage *dst);
 #define mImageRGBToGray(...) ((VANumber(__VA_ARGS__)==2)?m_ImageRGBToGray(VA0(__VA_ARGS__),(MImage *)VA1(__VA_ARGS__)):m_ImageRGBToGray(VA0(__VA_ARGS__),NULL))
 void m_ImageYUVToGray(MImage *src,MImage *dst);
@@ -228,14 +228,14 @@ void mCurve(MImageCurve *curve,float i1,float i2,int type,float (*func)(float,fl
 
 void mBMPSave(MImage *img,const char *filename);
 void mBMPLoad(MImage *img,const char *filename);
-#if defined MORN_USE_JPEG
-void mJPGSave(MImage *img,const char *filename);
-void mJPGLoad(MImage *img,const char *filename);
-#endif
-#if defined MORN_USE_PNG
-void mPNGSave(MImage *img,const char *filename);
-void mPNGLoad(MImage *img,const char *filename);
-#endif
+// #if defined MORN_USE_JPEG
+// void mJPGSave(MImage *img,const char *filename);
+// void mJPGLoad(MImage *img,const char *filename);
+// #endif
+// #if defined MORN_USE_PNG
+// void mPNGSave(MImage *img,const char *filename);
+// void mPNGLoad(MImage *img,const char *filename);
+// #endif
 void mImageLoad(MImage *img,const char *filename,...);
 void mImageSave(MImage *img,const char *filename,...);
 // #define mImageLoad(Img,...) do{sprintf(morn_filename,__VA_ARGS__);ImageLoad(Img,morn_filename);}while(0)

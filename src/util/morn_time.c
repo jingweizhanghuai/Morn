@@ -64,7 +64,7 @@ int m_ChronoTask(int delay,int mode)
     if(hdl->valid == 0)
     {
         handle->defalt_cycle=100;
-        mPropertyVariate("Chrono","defalt_cycle",&(handle->defalt_cycle));
+        mPropertyVariate("Chrono","defalt_cycle",&(handle->defalt_cycle),sizeof(int));
         if(handle->chain==NULL) handle->chain = mChainCreate();
         hdl->valid = 1;
     }
@@ -149,7 +149,7 @@ int mChrono()
     if(handle->num==0)
     {
         handle->defalt_cycle=100;
-        mPropertyVariate("Chrono","defalt_cycle",&(handle->defalt_cycle));
+        mPropertyVariate("Chrono","defalt_cycle",&(handle->defalt_cycle),sizeof(int));
         
         if(handle->chain==NULL) handle->chain = mChainCreate();
         node= mChainNode(handle->chain,NULL,sizeof(struct ChronoData));

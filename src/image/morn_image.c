@@ -4,6 +4,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 
 #include "morn_image.h"
+#include "morn_image_caculate.h"
 
 struct HandleImageCreate
 {
@@ -50,13 +51,13 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(hdl->handle);
     handle->img = img;
 
-    mPropertyVariate(img,"image_type",&(handle->image_type));
+    mPropertyVariate(img,"image_type",&(handle->image_type),sizeof(int));
          if(cn==1) handle->image_type=MORN_IMAGE_GRAY;
     else if(cn==3) handle->image_type=MORN_IMAGE_RGB ;
     else if(cn==4) handle->image_type=MORN_IMAGE_RGBA;
     else           handle->image_type=DFLT;
 
-    mPropertyVariate(img,"border_type",&(handle->border_type));
+    mPropertyVariate(img,"border_type",&(handle->border_type),sizeof(int));
     handle->border_type=DFLT;
     if((cn==0)||(height == 0))
     {
@@ -114,11 +115,6 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
     int flag = (img->channel&&img->height&&img->width);
     
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input channel");
-    img->channel = cn;
-    img->height = height;
-    img->width = width;
-    
-    if(same_size&&reuse) return;
     struct HandleImageCreate *handle = (struct HandleImageCreate *)(ObjHandle(img,0)->handle);
     if(cn!= img->channel)
     {
@@ -126,6 +122,11 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
         else if(cn==3) handle->image_type=MORN_IMAGE_RGB ;
         else if(cn==4) handle->image_type=MORN_IMAGE_RGBA;
     }
+    img->channel = cn;
+    img->height = height;
+    img->width = width;
+    
+    if(same_size&&reuse) return;
     if(same_size&&INVALID_POINTER(data)&&(handle->width >0)) return;
     // 
     mException(reuse&&flag&&(handle->width==0),EXIT,"invalid redefine");
@@ -190,6 +191,28 @@ void ImageRedefine(MImage *img,int cn,int height,int width,unsigned char **data[
 void mImageRelease(MImage *img)
 {
     ObjectFree(img);
+}
+
+void MImageDataExchange(MImage *img1,MImage *img2)
+{
+    struct HandleImageCreate *handle1 = (struct HandleImageCreate *)(ObjHandle(img1,0)->handle);
+    struct HandleImageCreate *handle2 = (struct HandleImageCreate *)(ObjHandle(img2,0)->handle);
+    int buff;void *p[4];
+    buff=img1->channel;img1->channel=img2->channel;img2->channel=buff;
+    buff=img1->width  ;img1->width  =img2->width  ;img2->width  =buff;
+    buff=img1->height ;img1->height =img2->height ;img2->height =buff;
+    memcpy(p         ,img1->data,4*sizeof(uint8_t *));
+    memcpy(img1->data,img2->data,4*sizeof(uint8_t *));
+    memcpy(img2->data,p         ,4*sizeof(uint8_t *));
+    
+    buff=handle1->cn    ;handle1->cn    =handle2->cn    ;handle2->cn    =buff;
+    buff=handle1->width ;handle1->width =handle2->width ;handle2->width =buff;
+    buff=handle1->height;handle1->height=handle2->height;handle2->height=buff;
+    p[0]=handle1->index ;handle1->index =handle2->index ;handle2->index =p[0];
+    p[0]=handle1->memory;handle1->memory=handle2->memory;handle2->memory=p[0];
+    
+    buff=handle1-> image_type;handle1-> image_type=handle2-> image_type;handle2-> image_type=buff;
+    buff=handle1->border_type;handle1->border_type=handle2->border_type;handle2->border_type=buff;
 }
 
 unsigned char ***mImageBackup(MImage *img,int cn,int height,int width)
@@ -333,7 +356,6 @@ void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate)
 
     int h = ABS(y1-y2);int w = ABS(x1-x2);
     if((h==0)||(w==0)) return;
-    // printf("x1=%d,x2=%d,width=%d,w=%d\n",x1,x2,width,w);
 
     if(INVALID_POINTER(dst)) dst=img;
     unsigned char ***dst_data;
@@ -369,24 +391,6 @@ void m_ImageCut(MImage *img,MImage *dst,MImageRect *rect,MImagePoint *locate)
     if(img==dst) mImageRedefine(dst,DFLT,height,width,dst_data);
 }
 
-// void mImageCut(MImage *img,MImage *ROI,int x1,int x2,int y1,int y2,int lx,int ly)
-// {
-//     mException(INVALID_IMAGE(img),EXIT,"invalid input");
-
-//     int flag = (x1<0)||(x2>=img->width)||(x1>=x2)||(y1<0)||(y2>=img->height)||(y1>=y2)||((img==ROI)&&(ly<y1));
-//     if(flag){ImageCut(img,ROI,x1,x2,y1,y2,lx,ly);return;}
-
-//     int height=y2-y1;int width =x2-x1;
-//     if(INVALID_POINTER(ROI)) ROI=img;
-//     else mImageRedefine(ROI,img->channel,height,width);
-    
-//     if(lx<0) {x1=x1-lx;lx=0;} else if(lx>0) {x2=x2-lx;}
-//     if(ly<0) {y1=y1-ly;ly=0;} else if(ly>0) {y2=y2-ly;}
-    
-//     // printf("x1 is %d,x2 is %d,y1 is %d,y2 is %d\n",x1,x2,y1,y2);
-//     for(int j=y1;j<y2;j++)for(int cn=0;cn<ROI->channel;cn++)
-//         memmove(ROI->data[cn][ly+j-y1]+lx,img->data[cn][j]+x1,MIN((ROI->width-lx),(x2-x1))*sizeof(unsigned char));
-// }
 
 void mImageCopy(MImage *src,MImage *dst)
 {
@@ -525,20 +529,18 @@ void mImageDataAdd(MImage *src1,MImage *src2,MImage *dst)
          if(!INVALID_POINTER(src1->border)) dst->border = src1->border;
     else if(!INVALID_POINTER(src2->border)) dst->border = src2->border;
        
-    unsigned char **data1,**data2;
     for(int k=0;k<dst->channel;k++)
     {
-        data1 = src1->data[k];
-        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        unsigned char **data1 = src1->data[k];
+        unsigned char **data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
         
         int j;
         #pragma omp parallel for
         for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-            {
-                register int data = data1[j][i]+data2[j][i];
-                dst->data[k][j][i] = (data>255)?255:data;
-            }
+        {
+            #define ImageAdd(i,o) {dst->data[k][j][i+o] = MIN(data1[j][i+o]-data2[j][i+o],255);}
+            RowCalculate(ImageAdd,dst->width);
+        }
     }
 }
 
@@ -557,20 +559,23 @@ void mImageDataWeightAdd(MImage *src1,MImage *src2,MImage *dst,float w1,float w2
     int v1[256];int v2[256];
     for(int i=0;i<256;i++){v1[i]=(int)((float)i*w1); v2[i]=(int)((float)i*w2);}
     
-    unsigned char **data1,**data2;
     for(int k=0;k<dst->channel;k++)
     {
-        data1 = src1->data[k];
-        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        unsigned char **data1 = src1->data[k];
+        unsigned char **data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
         
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-            {
-                register int data = v1[data1[j][i]]+v2[data2[j][i]];
-                dst->data[k][j][i] = (data>255)?255:((data<0)?0:data);
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageWeightAdd(i,o) {\
+                int rst=v1[data1[j][i]]+v2[data2[j][i]];\
+                     if(rst<  0)dst->data[k][j][i]=0  ;\
+                else if(rst>255)dst->data[k][j][i]=255;\
+                else            dst->data[k][j][i]=rst;\
             }
+            RowCalculate(ImageWeightAdd,dst->width);
+        }
     }
 }
 
@@ -586,20 +591,18 @@ void mImageDataSub(MImage *src1,MImage *src2,MImage *dst)
          if(!INVALID_POINTER(src1->border)) dst->border = src1->border;
     else if(!INVALID_POINTER(src2->border)) dst->border = src2->border;
     
-    unsigned char **data1,**data2;
     for(int k=0;k<dst->channel;k++)
     {
-        data1 = src1->data[k];
-        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        unsigned char **data1 = src1->data[k];
+        unsigned char **data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
         
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-            {
-                register int data = data1[j][i]-data2[j][i];
-                dst->data[k][j][i] = (data<0)?0:data;
-            }
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageSub(i,o) {dst->data[k][j][i+o] = MAX(data1[j][i+o]-data2[j][i+o],0);}
+            RowCalculate(ImageSub,dst->width);
+        }
     }
 }
 
@@ -615,17 +618,18 @@ void mImageDataAnd(MImage *src1,MImage *src2,MImage *dst)
          if(!INVALID_POINTER(src1->border)) dst->border = src1->border;
     else if(!INVALID_POINTER(src2->border)) dst->border = src2->border;
     
-    unsigned char **data1,**data2;
     for(int k=0;k<dst->channel;k++)
     {
-        data1 = src1->data[k];
-        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        unsigned char **data1 = src1->data[k];
+        unsigned char **data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
         
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-                dst->data[k][j][i] = data1[j][i]&data2[j][i];
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageAnd(i,o) {dst->data[k][j][i+o] = data1[j][i+o]&data2[j][i+o];}
+            RowCalculate(ImageAnd,dst->width);
+        }
     }
 }
 
@@ -641,17 +645,18 @@ void mImageDataOr(MImage *src1,MImage *src2,MImage *dst)
          if(!INVALID_POINTER(src1->border)) dst->border = src1->border;
     else if(!INVALID_POINTER(src2->border)) dst->border = src2->border;
     
-    unsigned char **data1,**data2;
     for(int k=0;k<dst->channel;k++)
     {
-        data1 = src1->data[k];
-        data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
+        unsigned char **data1 = src1->data[k];
+        unsigned char **data2 = (k>=src2->channel)?src2->data[0]:src2->data[k];
         
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-                dst->data[k][j][i] = data1[j][i]|data2[j][i];
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageOr(i,o) {dst->data[k][j][i+o] = data1[j][i+o]|data2[j][i+o];}
+            RowCalculate(ImageOr,dst->width);
+        }
     }
 }
 
@@ -668,9 +673,11 @@ void mImageInvert(MImage *src,MImage *dst)
     {
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-                dst->data[k][j][i] = 255-src->data[k][j][i];
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageInvert(i,o) {dst->data[k][j][i+o] = 255-src->data[k][j][i+o];}
+            RowCalculate(ImageInvert,dst->width);
+        }
     }
     dst->border = src->border;
 }
@@ -697,9 +704,11 @@ void mImageLinearMap(MImage *src,MImage *dst,float k,float b)
     {
         int j;
         #pragma omp parallel for
-        for(j=ImageY1(dst);j<ImageY2(dst);j++)
-            for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
-                dst->data[cn][j][i] = data[src->data[cn][j][i]];
+        for(j=0;j<dst->height;j++)
+        {
+            #define ImageLinearMap(i,o) {dst->data[cn][j][i+o] = data[src->data[cn][j][i+o]];}
+            RowCalculate(ImageLinearMap,dst->width);
+        }
     }
     dst->border = src->border;
 }
@@ -721,7 +730,7 @@ void mImageOperate(MImage *src,MImage *dst,void (*func)(unsigned char *,unsigned
     unsigned char odata[MORN_MAX_IMAGE_CN];
     int j;
     // #pragma omp parallel for
-    for(j=ImageY1(dst);j<ImageY2(dst);j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
+    for(j=0;j<dst->height;j++)for(int i=ImageX1(dst,j);i<ImageX2(dst,j);i++)
     {
         for(int cn=0;cn<src->channel;cn++) idata[cn]=src->data[cn][j][i];
         
@@ -771,4 +780,118 @@ MImage *mImageChannelSplit(MImage *src,int num,...)
     handle->n=n+1;
     return handle->img[n];
 }
+
+void mImageMask(MImage *in1,MImage *in2,MImage *mask,MImage *out)
+{
+    if(in2==NULL) in2=mask;
+    if(mask==NULL) mask=in2;
+    mException(INVALID_IMAGE(in1)||INVALID_IMAGE(in2),EXIT,"invalid input image");
+    int height=in1->height;int width=in1->width;
+    mException((in1->channel!=in2->channel)||(height!=in2->height)||(height!=mask->height)||(width!=in2->width)||(width!=mask->width),EXIT,"invalid image size");
+    if(out==NULL) out=in1;
+    if((out!=in1)&&(out!=in2)) mImageRedefine(out,in1->channel,height,width);
+    
+    for(int c=0;c<in1->channel;c++)
+    {
+        uint8_t **m=(mask->channel>=c)?mask->data[0]:mask->data[c];
+        for(int j=0;j<height;j++)
+        {
+            uint8_t *p1=in1->data[c][j];uint8_t *p2=in2->data[c][j];uint8_t *pout=out->data[c][j];
+            #define ImageMask(i,o) {pout[i+o]=m[j][i+o]?p1[i+o]:p2[i+o];}
+            RowCalculate(ImageMask,width);
+        }
+    }
+}
+
+struct HandleImageROI
+{
+    int x0,y0,x1,y1;
+    MImage *roi;
+    int img_height;
+    uint8_t **data[4];
+    uint8_t ***img_data;
+};
+void endImageROI(struct HandleImageROI *handle)
+{
+    if(handle->roi!=NULL) mImageRelease(handle->roi);
+    if(handle->data[0]!=NULL) mFree(handle->data[0]);
+}
+#define HASH_ImageROI 0xf83d8c22
+MImage *m_ImageROI(MImage *img,int x0,int y0,int x1,int y1)
+{
+    mException(INVALID_IMAGE(img),EXIT,"invalid image");
+    mException((x0<0)||(x1>=img->width)||(x0>=x1)||(y0<0)||(y1>=img->height)||(y0>=y1),EXIT,"invalid ROI region");
+    MHandle *hdl = mHandle(img,ImageROI);
+    struct HandleImageROI *handle=hdl->handle;
+    if(handle->img_height>img->height) {mFree(handle->data[0]);handle->data[0]=NULL;hdl->valid=0;}
+    if(!mHandleValid(hdl))
+    {
+        if(handle->roi==NULL) handle->roi=mImageCreate();
+        if(handle->data[0]==NULL) handle->data[0]=mMalloc(img->height*4*sizeof(uint8_t *));
+        handle->data[1]=handle->data[0]+img->height;
+        handle->data[2]=handle->data[1]+img->height;
+        handle->data[3]=handle->data[2]+img->height;
+        handle->img_height=img->height;
+        hdl->valid=1;
+    }
+    int valid=1;
+    if(handle->img_data!=img->data) valid=0;
+    else if((handle->x0!=x0)||(handle->y0!=y0)||(handle->x1!=x1)||(handle->y1!=y1)) valid=0;
+    if(valid==1) return handle->roi;
+    
+    for(int c=0;c<img->channel;c++)
+    {
+        for(int j=0;j<y1-y0;j++) handle->data[c][j]=img->data[c][y0+j]+x0;
+    }
+    mImageRedefine(handle->roi,img->channel,y1-y0,x1-x0,handle->data);
+    handle->x0=x0;handle->y0=y0;handle->x1=x1;handle->y1=y1;handle->img_data=img->data;
+    return handle->roi;
+}
+
+struct HandleMornImage
+{
+    MImage *buff0;
+    MImage *buff1;
+    MImage *buff2;
+};
+void endMornImage(struct HandleMornImage *handle)
+{
+    if(handle->buff0!=NULL) mImageRelease(handle->buff0);
+    if(handle->buff1!=NULL) mImageRelease(handle->buff1);
+    if(handle->buff2!=NULL) mImageRelease(handle->buff2);
+}
+#define HASH_MornImage 0xbc9d0150
+struct HandleMornImage *morn_Morn_image_handle = NULL;
+struct HandleMornImage *mornImageInit()
+{
+    if(morn_Morn_image_handle!=NULL) return morn_Morn_image_handle;
+    MHandle *hdl = mHandle("Morn",MornImage);
+    morn_Morn_image_handle = hdl->handle;
+    hdl->valid=1;
+    return morn_Morn_image_handle;
+}
+MImage *mornImageBuff(int channel,int height,int width)
+{
+    struct HandleMornImage *handle = mornImageInit();
+    if(handle->buff0==NULL) handle->buff0 = mImageCreate(channel,height,width);
+    else                    mImageRedefine(handle->buff0,channel,height,width);
+    return handle->buff0;
+}
+MImage *mornImageBuff1(int channel,int height,int width)
+{
+    struct HandleMornImage *handle = mornImageInit();
+    if(handle->buff1==NULL) handle->buff1 = mImageCreate(channel,height,width);
+    else                    mImageRedefine(handle->buff1,channel,height,width);
+    return handle->buff1;
+}
+MImage *mornImageBuff2(int channel,int height,int width)
+{
+    struct HandleMornImage *handle = mornImageInit();
+    if(handle->buff2==NULL) handle->buff2 = mImageCreate(channel,height,width);
+    else                    mImageRedefine(handle->buff2,channel,height,width);
+    return handle->buff2;
+}
+
+
+
 

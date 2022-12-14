@@ -32,11 +32,10 @@ int m_Rand(int floor,int ceiling)
     }
     #endif
 
-    if((floor==DFLT)&&( ceiling==DFLT)) {return rand();}
+    if((floor==DFLT)&&(ceiling==DFLT)) {return rand();}
     if(floor==ceiling) return floor;
     int d = ceiling-floor;
-    if(d>RAND_MAX)
-        return (((rand()<<15)+rand())%d)+floor;
+    if(d>RAND_MAX) return (((rand()<<15)+rand())%d)+floor;
     return (rand()%d)+floor;
 }
  
@@ -242,15 +241,17 @@ struct Property
     char value[0];
 };
 
-void m_PropertyVariate(MObject *obj,const char *key,void *var)
+void m_PropertyVariate(MObject *obj,const char *key,void *var,int var_size)
 {
+    if(var_size<0) var_size = strlen((char *)var)+1;
+    
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
     if(handle->property==NULL) handle->property = mChainCreate();
     
-    int vsize=sizeof(struct Property);
+    int vsize=sizeof(struct Property)+var_size;
     struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
     
-    if(p!=NULL) {if(vsize>sizeof(struct Property)) memcpy(var,p->value,vsize-sizeof(struct Property));}
+    if(p!=NULL) memcpy(var,p->value,vsize-sizeof(struct Property));
     else {p=mornMapWrite(handle->property,key,DFLT,NULL,vsize);p->func=NULL;p->para=NULL;}
     p->var = var;
 }
@@ -310,7 +311,7 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
     if(p!=NULL) {q->var=p->var;q->func=p->func;q->para=p->para;}
     else        {q->var=  NULL;q->func=   NULL;q->para=   NULL;}
 
-    if((q->var !=NULL)&&(value!=NULL)) memcpy(q->var,value,value_size);
+    if((q->var!=NULL)&&(value!=NULL)) memcpy(q->var,value,value_size);
     if(q->func!=NULL) q->func(q->value,q->para);
     return q->value;
 }
@@ -318,12 +319,13 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
 void *m_PropertyRead(MObject *obj,const char *key,void *value,int *value_size)
 {
     struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
+    
     if(handle->property==NULL) return NULL;
     int vsize=0;
     struct Property *q= mornMapRead(handle->property,key,DFLT,NULL,&vsize);
     if(q==NULL) return NULL;
-    void *p=(q->var!=NULL)?q->var:q->value;
     
+    void *p=(q->var!=NULL)?q->var:q->value;
     vsize = vsize-sizeof(struct Property);
     int size=vsize;
     if(value_size!=NULL) {{if(*value_size>0) size=MIN(*value_size,size);}*value_size = vsize;}
@@ -419,7 +421,7 @@ void mFile(MObject *object,const char *file_name,...)
     va_end(namepara);
     FILE *f = fopen(filename,"rb");
     int size = fsize(f);
-    mObjectRedefine(object,NULL,size+1);
+    m_ObjectRedefine(object,NULL,size+1);
     fread(object->string,size,1,f);
     object->string[size]=0;
     fclose(f);
@@ -557,6 +559,11 @@ int mHandleValid(MHandle *hdl)
 }
 
 void endMAF();
+int mornObjectMapNodeRelease(char *key,int key_size,void *value,int value_size,void *para)
+{
+    mObjectRelease(*(MObject **)value);
+    return 0;
+}
 
 __thread MObject *morn_object=NULL;
 MChain *morn_object_map=NULL;
@@ -569,11 +576,16 @@ void mMornEnd(void)
     
     if(morn_object_map!=NULL)
     {
-        if(morn_object_map->chainnode!=NULL)
-        {
-            MChainNode *node = morn_object_map->chainnode->next;
-            while(node!=morn_object_map->chainnode){mObjectRelease(*(MObject **)mornMapNodeValue(node));node=node->next;}
-        }
+//         if(morn_object_map->chainnode!=NULL)
+//         {
+//             MChainNode *node = morn_object_map->chainnode->next;
+//             while(node!=morn_object_map->chainnode)
+//             {
+//                 mObjectRelease(*(MObject **)mornMapNodeValue(node));
+//                 node=node->next;
+//             }
+//         }
+        mornMapNodeOperate(morn_object_map,mornObjectMapNodeRelease,NULL);
         mChainRelease(morn_object_map);
     }
     morn_object_map = NULL;
@@ -604,16 +616,16 @@ __attribute__((destructor)) void mMornEnd()
     
     if(morn_object_map!=NULL)
     {
-        if(morn_object_map->chainnode!=NULL)
-        {
-            MChainNode *node = morn_object_map->chainnode->next;
-            while(node!=morn_object_map->chainnode)
-            {
-                MObject *obj = *(MObject **)mornMapNodeValue(node);
-                mObjectRelease(obj);
-                node=node->next;
-            }
-        }
+//         if(morn_object_map->chainnode!=NULL)
+//         {
+//             MChainNode *node = morn_object_map->chainnode->next;
+//             while(node!=morn_object_map->chainnode)
+//             {
+//                 mObjectRelease(*(MObject **)mornMapNodeValue(node));
+//                 node=node->next;
+//             }
+//         }
+        mornMapNodeOperate(morn_object_map,mornObjectMapNodeRelease,NULL);
         mChainRelease(morn_object_map);
     }
     morn_object_map = NULL;

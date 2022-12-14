@@ -83,7 +83,7 @@ void *mQueueWrite(MList *queue,void *data,int size)
         handle->read_order=0;
         handle->write_order=0;
         handle->wait_time=DFLT;
-        mPropertyVariate(queue,"wait_time",&(handle->wait_time));
+        mPropertyVariate(queue,"wait_time",&(handle->wait_time),sizeof(int));
         mPropertyFunction(queue,"queue_num",QueqeNum,handle);
     }
     hdl->valid = 1;

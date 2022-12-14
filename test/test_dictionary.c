@@ -1,4 +1,8 @@
-
+/*
+Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
+// build: gcc -O2 test_dictionary.c -o test_dictionary.exe -lmorn
 #include "morn_util.h"
 void test1()
 {
@@ -136,10 +140,83 @@ void test3()
     printf("a idx=%d\n",*(int *)mDictionaryRead(&a,sizeof(a),NULL,NULL));
 }
 
+void test4()
+{    
+    char *a="abcd";int idx=1;
+    mDictionaryWrite(a,strlen(a),&idx,sizeof(int));
+    
+    unsigned char b[4]={97,98,99,100};idx=2;
+    mDictionaryWrite(b,sizeof(b),&idx,sizeof(int));
+    
+    int c = 1684234849;idx=3;
+    mDictionaryWrite(&c,sizeof(c),&idx,sizeof(int));
+    
+    float d = 16777999408082104000000.0f;idx=4;
+    mDictionaryWrite(&d,sizeof(d),&idx,sizeof(int));
+    
+    printf("a idx=%d\n",*(int *)mDictionaryRead( a,strlen(a),NULL,NULL));
+    printf("b idx=%d\n",*(int *)mDictionaryRead( b,sizeof(b),NULL,NULL));
+    printf("c idx=%d\n",*(int *)mDictionaryRead(&c,sizeof(c),NULL,NULL));
+    printf("d idx=%d\n",*(int *)mDictionaryRead(&d,sizeof(d),NULL,NULL));
+}
+
+void test5()
+{
+    int n;
+    n=0; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=1; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=2; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=3; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=4; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=5; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=6; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=7; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=8; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    n=9; mDictionaryWrite("test",DFLT,&n,sizeof(int));
+    
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test")); 
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test")); 
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    printf("dictionary with overwrite = %d\n",*(int *)mDictionaryRead("test"));
+    
+    int flag=0; //0 means don't overwrite
+    mPropertyWrite("Dictionary","overwrite",&flag,sizeof(int));
+    
+    n=0; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=1; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=2; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=3; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=4; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=5; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=6; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=7; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=8; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    n=9; mDictionaryWrite("overwrite_test",DFLT,&n,sizeof(int));
+    
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));    
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test")); 
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test")); 
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+    printf("dictionary without overwrite = %d\n",*(int *)mDictionaryRead("overwrite_test"));
+}
+
 int main()
 {
-    test1();
-    test2();
-    test3();
+    printf("\n\ntest1:\n");test1();
+    printf("\n\ntest2:\n");test2();
+    printf("\n\ntest3:\n");test3();
+    printf("\n\ntest4:\n");test4();
+    printf("\n\ntest5:\n");test5();
     return 0;
 }

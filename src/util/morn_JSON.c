@@ -406,7 +406,7 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
     
     MHandle *hdl = mHandle(jsonfile,JSON);
     struct HandleJSON *handle=hdl->handle;
-    if(hdl->valid==0)
+    if(!mHandleValid(hdl))
     {
         handle-> list_node0[0].data.handle0=handle;handle-> list_node0[0].type=0;
         handle->array_node0[0].data.handle0=handle;handle->array_node0[0].type=0;
@@ -415,7 +415,6 @@ struct JSONNode *mJSONLoad(MFile *jsonfile)
             handle-> list_layer[i].node = handle-> list_node0;handle-> list_layer[i].cap=1;
             handle->array_layer[i].node = handle->array_node0;handle->array_layer[i].cap=1;
         }
-        
         hdl->valid=1;
     }
     for(int i=0;i<64;i++) {handle-> list_layer[i].num=1;handle->array_layer[i].num=1;}

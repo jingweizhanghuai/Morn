@@ -36,8 +36,8 @@ MGraph *mGraphCreate()
     MHandle *hdl = mHandle(graph,GraphCreate);hdl->valid = 1;
     struct HandleGraphCreate *handle = hdl->handle;
 
-    mPropertyVariate(graph,"linkloss"     ,&(handle->linkloss));
-    mPropertyVariate(graph,"linkloss_para",&(handle->linkloss_para));
+    mPropertyVariate(graph,"linkloss"     ,&(handle->linkloss)     ,sizeof(void *));
+    mPropertyVariate(graph,"linkloss_para",&(handle->linkloss_para),sizeof(void *));
     
     return graph;
 }

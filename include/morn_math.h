@@ -66,9 +66,13 @@ void mMean(float *in,int num,float *sum,float *mean);
 void mVariance(float *in,int num,float *mean,float *variance);
 void mCovariance(float *in1,float *in2,int num,float *mean1,float *mean2,float *covariance);
 
-int mBinaryCeil(int data);
-int mBinaryFloor(int data);
-int mBinaryRound(int data);
+uint64_t mBinaryCeil(uint64_t data);
+uint64_t mBinaryFloor(uint64_t data);
+uint64_t mBinaryRound(uint64_t data);
+
+uint64_t mDecimalCeil(uint64_t data);
+uint64_t mDecimalFloor(uint64_t data);
+uint64_t mDecimalRound(uint64_t data);
 
 int GreatestCommonDivisor(int n,...);
 #define mGCD(...) GreatestCommonDivisor(VANumber(__VA_ARGS__),__VA_ARGS__)
@@ -366,34 +370,33 @@ void m_CalculateFunction(const char *name,void *func);
 
 // unsigned int mHash(const char *in,int size);
 
-typedef struct MLInt
-{
-	uint32_t data[32];
-	char sign;
-	char len;
-}MLInt;
-void mS64ToLInt(int64_t in,MLInt *a);
-int64_t mLIntToS64(MLInt *a);
-int mLIntCompare(MLInt *a,MLInt *b);
+void mIntToLInt(MArray *a,int64_t in);
+int64_t mLIntToInt(MArray *a);
 
-void mLIntAddU32(MLInt *a,uint32_t b,MLInt *c);
-void mLIntAddS32(MLInt *a,int b,MLInt *c);
-void mLIntAdd(MLInt *a,MLInt *b,MLInt *c);
+int mLIntCompare(MArray *a,MArray *b);
 
-void mLIntSubU32(MLInt *a,uint32_t b,MLInt *c);
-void mLIntSubS32(MLInt *a,int b,MLInt *c);
-void mLIntSub(MLInt *a,MLInt *b,MLInt *c);
+void m_LIntAdd(MArray *a,MArray *b,MArray *c);
+void m_LIntAddInt(MArray *a,int32_t b,MArray *c);
+#define _LIntAdd(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntAddInt(A,(int32_t)((intptr_t)(B)),C):m_LIntAdd(A,(MArray *)((intptr_t)(B)),C))
+#define mLIntAdd(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntAdd(A,B,A):_LIntAdd(A,B,VA0(__VA_ARGS__)))
 
-void mLIntMulU32(MLInt *a,uint32_t b,MLInt *c);
-void mLIntMulS32(MLInt *a,int b,MLInt *c);
-void mLIntMul(MLInt *a,MLInt *b,MLInt *c);
+void m_LIntSub(MArray *a,MArray *b,MArray *c);
+void m_LIntSubInt(MArray *a,int32_t b,MArray *c);
+#define _LIntSub(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntSubInt(A,(int32_t)((intptr_t)(B)),C):m_LIntSub(A,(MArray *)((intptr_t)(B)),C))
+#define mLIntSub(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntSub(A,B,A):_LIntSub(A,B,VA0(__VA_ARGS__)))
 
-void mLIntDivU32(MLInt *a,uint32_t b,MLInt *c,int32_t *remainder);
-void mLIntDivS32(MLInt *a,int b,MLInt *c,int *remainder);
-void mLIntDiv(MLInt *a,MLInt *b,MLInt *c,MLInt *remainder);
+void m_LIntMulInt(MArray *a,int32_t b,MArray *c);
+void m_LIntMul(MArray *a,MArray *b,MArray *c);
+#define _LIntMul(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntMulInt(A,(int32_t)((intptr_t)(B)),C):m_LIntMul(A,(MArray *)((intptr_t)(B)),C))
+#define mLIntMul(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntMul(A,B,A):_LIntMul(A,B,VA0(__VA_ARGS__)))
 
-void mLIntToString(MLInt *a,char *str);
-void mStringToLInt(char *str,MLInt *a);
+void m_LIntDivInt(MArray *a,int b,MArray *c,int *remainder);
+void m_LIntDiv(MArray *a,MArray *b,MArray *c,MArray *remainder);
+#define _LIntDiv(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntDivInt(A,(int32_t)((intptr_t)(B)),C):m_LIntDiv(A,(MArray *)((intptr_t)(B)),C))
+#define mLIntDiv(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntDiv(A,B,A):_LIntDiv(A,B,VA0(__VA_ARGS__)))
+
+void mLIntToString(MArray *a,char *str);
+void mStringToLInt(MArray *a,const char *str);
 
 void mLinearRegression(float **x,float *y,int n,int m,float *A);
 

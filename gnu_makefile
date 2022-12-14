@@ -1,6 +1,4 @@
 OPENMP=1
-USE_PNG=1
-USE_JPEG=1
 USE_SOCKET=1
 USE_USBCAMERA=1
 DEBUG=0
@@ -21,16 +19,6 @@ endif
 
 WRAPDEF = 
 DEPENDLIB = -lopenblas -lm
-
-ifeq ($(USE_PNG),1)
-WRAPDEF += -DMORN_USE_PNG
-DEPENDLIB += -lpng -lz
-endif
-
-ifeq ($(USE_JPEG),1)
-WRAPDEF += -DMORN_USE_JPEG
-DEPENDLIB += -ljpeg
-endif
 
 ifeq ($(USE_SOCKET),1)
 WRAPDEF += -DMORN_USE_SOCKET

@@ -35,8 +35,8 @@ int mThreadID();
 #define mAtomicSet(pA,B) __sync_lock_test_and_set(pA,B)
 #define mAtomicCompare(pA,B,C) __sync_bool_compare_and_swap(pA,B,C)
 #elif defined _MSC_VER
-#define mAtomicAdd(pA,B) InterlockedAdd( pA,B)//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),(int8_t)(B)))))
-#define mAtomicSub(pA,B) InterlockedAdd( pA,0-(B))//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),0-(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),0-(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),0-(int8_t)(B)))))
+#define mAtomicAdd(pA,B)  InterlockedAdd(pA,B)//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),(int8_t)(B)))))
+#define mAtomicSub(pA,B)  InterlockedAdd(pA,0-(B))//):((sizeof(*(pA))==8)?_InterlockedAdd64((int64_t *)(pA),0-(int64_t)(B)):((sizeof(*(pA))==2)?_InterlockedExchangeAdd16((int16_t *)(pA),0-(int16_t)(B)):_InterlockedExchangeAdd8((int8_t *)(pA),0-(int8_t)(B)))))
 #define mAtomicOr( pA,B) _InterlockedOr( pA,B)//):((sizeof(*(pA))==8)?_InterlockedOr64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedOr16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedOr8((uint8_t *)(pA),(uint8_t)(B)))))
 #define mAtomicAnd(pA,B) _InterlockedAnd(pA,B)//):((sizeof(*(pA))==8)?_InterlockedAnd64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedAnd16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedAnd8((uint8_t *)(pA),(uint8_t)(B)))))
 #define mAtomicXor(pA,B) _InterlockedXor(pA,B)//):((sizeof(*(pA))==8)?_InterlockedXor64((uint64_t *)(pA),(uint64_t)(B)):((sizeof(*(pA))==2)?_InterlockedXor16((uint16_t *)(pA),(uint16_t)(B)):_InterlockedXor8((uint8_t *)(pA),(uint8_t)(B)))))
@@ -240,6 +240,11 @@ void *m_ProcMessageRead(const char *dstname,void *data,int *size);
 void *m_ProcVariate(const char *name,int size,int type);
 #define mProcMasterVariate(Name,Size) m_ProcVariate(Name,Size,DFLT)
 #define mProcSlaveVariate(Name,Size)  m_ProcVariate(Name,Size,1)
+
+void m_ProcLockBegin(const char *mutexname);
+void m_ProcLockEnd(const char *mutexname);
+#define mProcLockBegin(...) m_ProcLockBegin((VANumber(__VA_ARGS__)==0)?NULL:(const char *)VA0(__VA_ARGS__))
+#define mProcLockEnd(...) m_ProcLockEnd((VANumber(__VA_ARGS__)==0)?NULL:(const char *)VA0(__VA_ARGS__))
 
 int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);

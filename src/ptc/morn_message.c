@@ -142,7 +142,7 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
         handle->ID= getpid()*1000+mThreadID();
         // printf("handle->ID=%d\n",handle->ID);
         mPropertyFunction(topicname,"exit",mornObjectRemove,topicname);
-        mPropertyVariate(topicname,"topic_size",&(handle->topicsize));
+        mPropertyVariate(topicname,"topic_size",&(handle->topicsize),sizeof(int));
         
         char dirname[128];
         #if defined(_WIN64)||defined(_WIN32)
@@ -380,7 +380,7 @@ void *m_ProcMessageWrite(const char *messagename,void *data,int write_size)
     {
         handle->ID= getpid()*1000+mThreadID();
         mPropertyFunction(messagename,"exit",mornObjectRemove,messagename);
-        mPropertyVariate(messagename,"message_size",&(handle->messagesize));
+        mPropertyVariate(messagename,"message_size",&(handle->messagesize),sizeof(int));
         
         char dirname[128];
         #if defined(_WIN64)||defined(_WIN32)
@@ -543,7 +543,7 @@ void *m_ProcMessageRead(const char *messagename,void *data,int *read_size)
                     mException(i==256,EXIT,"too many readers");
                     handle->info->reader_num=i+1;
                 }
-                handle->info->rorder[i]=handle->info->write_order-1;
+                handle->info->rorder[i]=handle->info->write_order;
                 handle->info->rID[i]=handle->ID;
                 handle->reader_idx=i;
                 break;
@@ -734,6 +734,7 @@ void *m_ProcVariate(const char *name,int size,int type)
     memcpy((char *)(p+8),name,keysize);
     offset = size_data;
     pvalue = p_data+offset;
+    memset(pvalue,DFLT,valuesize);
     size_data += valuesize;
     
     p_idx[0] =handle->size_idx;
@@ -745,5 +746,103 @@ void *m_ProcVariate(const char *name,int size,int type)
 
     mMapWrite(handle->map,p+4,DFLT,&offset,sizeof(uint16_t));
     return pvalue;
+}
+
+struct HandleProcLock
+{
+    int ID;
+    int state;
+    #if defined(_WIN64)||defined(_WIN32)
+    HANDLE file;
+    #else
+    int file;
+    #endif
+    char filename[256];
+};
+void endProcLock(struct HandleProcLock *handle)
+{
+    if(handle->file!=0)
+    {
+        int num;
+        m_Lock(handle->file);
+        m_Read(handle->file,sizeof(int),&num,sizeof(int));
+        num--;
+        m_Write(handle->file,sizeof(int),&num,sizeof(int));
+        m_Unlock(handle->file);
+        m_Close(handle->file);
+        if(num==0) remove(handle->filename);
+    }
+}
+#define HASH_ProcLock 0x426e864
+void m_ProcLockBegin(const char *mutexname)
+{
+    if(mutexname==NULL) mutexname="morn_procmutex";
+    MHandle *hdl = mHandle(mMornObject((void *)mutexname,DFLT),ProcLock);
+    struct HandleProcLock *handle = (struct HandleProcLock *)(hdl->handle);
+    if(hdl->valid == 0)
+    {
+        handle->ID=getpid()*1000+mThreadID();
+        if(handle->filename[0]==0)
+        {
+            char dirname[128];
+            #if defined(_WIN64)||defined(_WIN32)
+            sprintf(dirname,"%s/morn_lock",getenv("TEMP"));
+            if(access(dirname,F_OK)<0) mkdir(dirname);
+            #else
+            sprintf(dirname,"/tmp/morn_lock");
+            if(access(dirname,F_OK)<0) mkdir(dirname,0777);
+            #endif
+            sprintf(handle->filename,"%s/.%s.bin",dirname,mutexname);
+            // printf("filename=%s\n",handle->filename);
+        }
+        
+        int num=0;int ID=0;
+        int flag = access(handle->filename,F_OK);
+        handle->file = m_Open(handle->filename);
+        if(flag>=0){volatile int fsize;do {fsize = m_Fsize(handle->file);}while(fsize<2*sizeof(int));}
+        m_Lock(handle->file);
+        if(flag>=0)
+        {
+            m_Read(handle->file,0,&ID,sizeof(int));
+            if(ID!=0) {if(!m_Exist(ID)) {flag=-1;ID=0;}}
+        }
+        if(flag>=0) m_Read(handle->file,sizeof(int),&num,sizeof(int));
+        else m_Write(handle->file,0,&ID,sizeof(int));
+        num++;m_Write(handle->file,sizeof(int),&num,sizeof(int));
+//         printf("num=%d,handle->ID=%d\n",num,handle->ID);
+        
+        m_Unlock(handle->file);
+
+        handle->state=0;
+        
+        hdl->valid = 1;
+    }
+    int ID;
+    do
+    {
+        m_Lock(handle->file);
+        m_Read(handle->file,0,&ID,sizeof(int));
+        if(ID==0)
+        {
+            ID=handle->ID;
+            m_Write(handle->file,0,&ID,sizeof(int));
+        }
+        m_Unlock(handle->file);
+    }while(ID!=handle->ID);
+    handle->state=1;
+}
+
+void m_ProcLockEnd(const char *mutexname)
+{
+    if(mutexname==NULL) mutexname="morn_process";
+    MHandle *hdl = mHandle(mMornObject((void *)mutexname,DFLT),ProcLock);
+    struct HandleProcLock *handle = (struct HandleProcLock *)(hdl->handle);
+    mException((hdl->valid==0),EXIT,"no process mutex named %s",mutexname);
+    mException(handle->state!=1,EXIT,"unlock error");
+    int ID=0;
+//     m_Lock(handle->file);
+    m_Write(handle->file,0,&ID,sizeof(int));
+//     m_Unlock(handle->file);
+    handle->state=0;
 }
 

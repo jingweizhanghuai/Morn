@@ -147,10 +147,10 @@ struct HandleCRC *CRCInit()
         mPropertyFunction("CRC","exit"  ,mornObjectRemove,"CRC");
         mPropertyFunction("CRC","type"  ,CRCType);
         mPropertyFunction("CRC","poly"  ,CRCTable);
-        mPropertyVariate( "CRC","bit"   ,&(handle->bit));
-        mPropertyVariate( "CRC","init"  ,&(handle->init));
-        mPropertyVariate( "CRC","xor"   ,&(handle->xor ));
-        mPropertyVariate( "CRC","endian",&(handle->endian));
+        mPropertyVariate( "CRC","bit"   ,&(handle->bit)   ,sizeof(int    ));
+        mPropertyVariate( "CRC","init"  ,&(handle->init)  ,sizeof(int32_t));
+        mPropertyVariate( "CRC","xor"   ,&(handle->xor )  ,sizeof(int32_t));
+        mPropertyVariate( "CRC","endian",&(handle->endian),sizeof(int32_t));
         handle->endian0 = mEndian();
         
         if(handle->poly==0) 

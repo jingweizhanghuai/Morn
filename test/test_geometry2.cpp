@@ -1,14 +1,19 @@
-//build_x64_mingw: g++ -O2 -fopenmp test_geometry.cpp -o test_geometry.exe -I ..\..\download\CGAL-5.0.2\include\ -I C:\ProgramFiles\CPackage\boost\include\ -I ..\include\ -L ..\lib\x64_mingw\ -lmorn
-//build_x64_gnu:   g++ -O2 -fopenmp test_geometry.cpp -o test_geometry.exe -I ../include/ -L ../lib/x64_gnu/ -lmorn -lm
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_2_algorithms.h>
+//build:   g++ -O2 -fopenmp test_geometry2.cpp -o test_geometry2.exe -lmorn -lCGAL -lgmp
+#include "morn_image.h"
+#include "CGAL/Exact_predicates_inexact_constructions_kernel.h"
+// #include <CGAL/Polygon_2_algorithms.h>
 // #include <CGAL/draw_polygon_2.h>
-#include <CGAL/convex_hull_2.h>
-#include <iostream>
+#include "CGAL/convex_hull_2.h"
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 CGALPoint;
-using std::cout; using std::endl;
+#include "geos/geom.h"
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel::Point_2 CGALPoint;
+
+// typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+// typedef K::Point_2 CGALPoint;
+/*
+using std::cout; 
+using std::endl;
 
 void check_inside(CGALPoint pt, CGALPoint *pgn_begin, CGALPoint *pgn_end, K traits)
 {
@@ -45,10 +50,6 @@ int main1()
     return 0;
 }
 
-#include "morn_image.h"
-
-// typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-// typedef K::Point_2 CGALPoint;
 
 int main2()
 {
@@ -147,46 +148,87 @@ void test1()
     mListRelease(morn_polygon);
     free(pt);
 }
+*/
+
+// int main()
+// {
+//     MImage *img = mImageCreate(1,200,200);
+//     MImagePoint pt;
+//     int n=0;
+//     while(n<1000)
+//     {
+//         pt.x=mNormalRand(100,50);if((pt.x<0)||(pt.x>200)) continue;
+//         pt.y=mNormalRand(100,50);if((pt.y<0)||(pt.y>200)) continue;
+//         n++;
+//         mImageDrawPoint(img,&pt);
+//     }
+//     mImageSave(img,"./test_geometry.png");
+//     
+//     mImageRelease(img);
+// }
+
+
+
 
 int main()
 {
-    MImagePoint pt[10000];
-    CGALPoint cgal_point[10000];
+    #define N 10000
     
-    MImagePoint center;mPoint(&center,50,50);
-    for(int i=0;i<10000;i++)
-    {
-        do{
-            pt[i].x=mRand(0,100100)/1001.0;
-            pt[i].y=mRand(0,100100)/1001.0;
-        }while(mPointDistance(pt+i,&center)>50);
-        cgal_point[i]=CGALPoint(pt[i].x,pt[i].y);
-    }
-    
+    CGALPoint cgal_point[N];
     MList *list = mListCreate();
-    mListPlace(list,pt,10000,sizeof(MImagePoint));
+    std::vector<Coordinate> points;
+    
+    MImagePoint pt;
+    int num=0;
+    while(num<N)
+    {
+        pt.x=mRand(-135700,135700)/1357.0;
+        pt.y=mRand(-135700,135700)/1357.0;
+        if(pt.x*pt.x+pt.y*pt.y>100*100) continue;
+        mListWrite(list,DFLT,&pt,sizeof(MImagePoint));
+        cgal_point[num]=CGALPoint(pt.x,pt.y);
+        points.push_back(Coordinate(pt.x,pt.y));
+        num++;
+    }
 
-    CGALPoint cgal_result[10000];
+    CGALPoint cgal_result[N];
     CGALPoint *ptr;
     mTimerBegin("CGAL");
-    for(int i=0;i<10000;i++)
-        ptr = CGAL::convex_hull_2(cgal_point,cgal_point+10000,cgal_result);
+    for(int i=0;i<1000;i++)
+        ptr = CGAL::convex_hull_2(cgal_point,cgal_point+N,cgal_result);
     mTimerEnd("CGAL");
-    // printf("cgal result num = %d\n",ptr-cgal_result);
-    // for(int i=0;i<ptr-cgal_result;i++)
-    //     std::cout<<cgal_result[i]<<std::endl;
+    printf("cgal result num = %ld\n",ptr-cgal_result);
+//     for(int i=0;i<ptr-cgal_result;i++)
+//     {
+//         printf("cgal_result=(%f,%f)\n",cgal_result[i][0],cgal_result[i][1]);
+//     }
+    
+    const GeometryFactory* factory = GeometryFactory::getDefaultInstance();
+    MultiPoint* mp = factory->createMultiPoint(points);
+    Geometry* geos_rst;
+    mTimerBegin("geos");
+    for(int i=0;i<1000;i++)
+        geos_rst=mp->convexHull();
+    mTimerEnd("geos");
+    printf("geos result num = %ld\n",geos_rst->getNumPoints()-1);
+//     CoordinateSequence* cs=geos_rst->getCoordinates();
+//     for(int i=0;i<geos_rst->getNumPoints()-1;i++)
+//     {
+//         Coordinate co=cs->getAt(i);
+//         printf("geos result=(%f,%f)\n",co.x,co.y);
+//     }
 
     MList *morn_result = mListCreate();
     mTimerBegin("Morn");
-    for(int i=0;i<10000;i++)
+    for(int i=0;i<1000;i++)
         mConvexHull(list,morn_result);
     mTimerEnd("Morn");
-    // printf("morn result num = %d\n",morn_result->num);
-    // for(int i=0;i<morn_result->num;i++) 
-    // {
-    //     MImagePoint *pt = (MImagePoint *)(morn_result->data[i]);
-    //     printf("pt=(%f,%f)\n",pt->x,pt->y);
-    // }
+    printf("morn result num = %d\n",morn_result->num);
+//     for(int i=0;i<morn_result->num;i++) 
+//     {
+//         MImagePoint *pt = (MImagePoint *)(morn_result->data[i]);
+//         printf("morn_result=(%f,%f)\n",pt->x,pt->y);
+//     }
 
     mListRelease(morn_result);
     mListRelease(list);

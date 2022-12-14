@@ -221,7 +221,7 @@ char *mUDPRead(const char *udpaddress,void *data,int *size)
         }
 
         handle->wait_time=DFLT;
-        mPropertyVariate(address,"UDP_wait",&(handle->wait_time));
+        mPropertyVariate(address,"UDP_wait",&(handle->wait_time),sizeof(int));
         
         hdl->valid=1;
     }

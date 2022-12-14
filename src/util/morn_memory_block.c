@@ -633,7 +633,6 @@ void MemoryDefrag(MMemory *memory)
     struct HandleMemory *handle = (struct HandleMemory *)(ObjHandle(memory,0)->handle);
     mException((handle->collect_num!=memory->num)||(handle->collect_idx<0),EXIT,"invalid defrag memory");
     handle->collect_idx = 0;
-    // printf("hhhhhhhhdddddddddddddh2hhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     handle->collect_valid[handle->write_idx] = 1;
     
     int n=0;
@@ -779,7 +778,6 @@ void *mMemoryWrite(MMemory *memory,void *data,int size)
     }
     mException((handle->write_idx>=memory->num),EXIT,"invalid write memory with write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
 
-    // printf("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhandle->write_idx=%d,memory->num=%d\n",handle->write_idx,memory->num);
     MemoryWrite_Check:
     if(handle->write_size < size)
     {

@@ -55,155 +55,36 @@ int mStringRegular(const char *str1,const char *str2)
     }
 }
 
-// #define MORN_STRING_SPLIT_MODE(N) (((N)>0)?(N):(-1-(N)))
-// int mStringSplit(char *in,const char *flag,char **out1,char **out2,int mode)
-// {
-//     if(in==NULL) return 0;
-//     if((mode==DFLT)||(mode==0)) mode = 1;
-    
-//     *out1=in;*out2=NULL;
-//     int l = strlen(flag);
-
-//     if(mode>0)
-//     {
-//         int n = 0;
-//         for(int i=0;in[i+l]!=0;i++)
-//         {
-//             if(strncmp(in+i,flag,l)==0)
-//             {
-//                 n++;if(n==mode)
-//                 {
-//                     in[i]=0;
-//                     *out2=in+i+l;return 1;
-//                 }
-//             }
-//         }
-//     }
-//     else
-//     {
-//         int n = -1;
-//         for(int i=strlen(in)-l;i>=0;i--)
-//         {
-//             if(strncmp(in+i,flag,l)==0)
-//             {
-//                 n--;if(n==mode)
-//                 {
-//                     in[i]=0;
-//                     *out2=in+i+l;return 1;
-//                 }
-//             }
-//         }
-//     }
-//     return 0;
-// }
-
-struct HandleStringSplit
+void mStringSplit(MList *list,const char *in,const char *flag)
 {
-    MList *list;
-};
-void endStringSplit(struct HandleStringSplit *handle)
-{
-    if(handle->list!=NULL) mListRelease(handle->list);
+    int len=strlen(flag);
+    mListClear(list);
+    while(1)
+    {
+        char *p=strstr(in,flag);
+        if(p==NULL) break;
+        int size=p-in;
+        char *buff=mListWrite(list,DFLT,NULL,size+1);
+        memcpy(buff,in,size);buff[size]=0;
+        in=p+len;
+    }
+    mListWrite(list,DFLT,(void *)in,DFLT);
 }
-#define HASH_StringSplit 0xecdfe96e
-MList *mStringSplit(const char *str_in,const char *flag)
-{
-    mException(INVALID_POINTER(str_in)||INVALID_POINTER(flag),EXIT,"invalid input");
-    int src_len = strlen(str_in);
-    MHandle *hdl = mHandle(mMornObject((void *)str_in,src_len),StringSplit);
-    struct HandleStringSplit *handle =(struct HandleStringSplit *)(hdl->handle);
-    if(hdl->valid == 0)
-    {
-        if(handle->list==NULL) handle->list = mListCreate();
-        mListClear(handle->list);
-        hdl->valid = 1;
-    }
-    MList *list = handle->list;
-    src_len +=1;
-    
-    mListWrite(list,0,(void *)str_in,src_len);
-    char *str = (char *)(list->data[0]);
-
-    int *locate = (int *)mMalloc(src_len*sizeof(int));
-    uint64_t flag_len = strlen(flag);
-    int num;
-    if(strspn(str,flag)<flag_len)
-    {
-        locate[0] = 0;
-        num = 1;
-    }
-    else
-        num = 0;
-    
-    for(int i=0;i<src_len;i++)
-    {
-        if(strspn(str+i,flag)>=flag_len)
-        {
-            if(strspn(str+i+flag_len,flag)<flag_len)
-            {
-                locate[num] = i+flag_len;
-                num = num +1;
-            }
-            str[i] = 0;
-            i=i+flag_len-1;
-        }
-    }
-    
-    if(num > list->num) mListAppend(list,num);
-    for(int i=0;i<num;i++)
-        list->data[i] = str+locate[i];
-    list->num = num;
-   
-    mFree(locate);
-    
-    return list;
-}
-
-// int mStringCompare(const char *str1,const char *str2)
-// {
-    // int flag=1;
-    // for(int i=0;;i++)
-    // {
-        // if((str1[i]==0) == (str2[i]!=0)) return 1;
-        // if((str1[i]==0) || (str2[i]==0)) return 0;
-       
-        // if(str1[i] == str2[i]) continue;
-     
-        // if((str1[i]>='a')&&(str1[i]<='z'))
-            // if(str2[i] - str1[i] == 'A'-'a')
-                // continue;
-            
-        // if((str2[i]>='a')&&(str2[i]<='z'))
-            // if(str1[i] - str2[i] == 'A'-'a')
-                // continue;
-        
-        // return 1;
-    // }
-// }
 
 void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out)
 {
     int num_in = strlen(replace_in);
     int num_out= strlen(replace_out);
-    
-    int n=0;
-    int m=0;
-    while(src[n]!='\0')
+    while(1)
     {
-        if(memcmp(src+n,replace_in,num_in)==0)
-        {
-            memcpy(dst+m,replace_out,num_out);
-            n=n+num_in;
-            m=m+num_out;
-        }
-        else
-        {
-            dst[m] = src[n];
-            n=n+1;
-            m=m+1;
-        }
+        char *p=strstr(src,replace_in);
+        if(p==NULL) break;
+        int size=p-src;
+        memcpy(dst,        src,   size);dst+=size;
+        memcpy(dst,replace_out,num_out);dst+=num_out;
+        src=p+num_in;
     }
-    dst[m] = '\0';
+    strcpy(dst,src);
 }
 
 char morn_string_argument[2]={'?',0};
@@ -266,7 +147,7 @@ static int morn_atoi[8][10]={
 int mAtoi(char *str)
 {
     while((*str==' ')||(*str=='0')) str++;
-    int flag=0;unsigned char *s=(unsigned char *)str;
+    int flag=0;uint8_t *s=(uint8_t *)str;
          if(*str=='-') {flag=1;s++;}
     else if(*str=='+')         s++;
     int data=morn_atoi[0][s[0]-'0'];if((s[1]<'0')||(s[1]>'9')) {data=data/100000000;return (flag)?(0-data):data;}

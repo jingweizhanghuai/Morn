@@ -199,13 +199,13 @@ struct HandleLog *LogInit()
     if(!mHandleValid(hdl))
     {
         mPropertyFunction("Log","exit"         ,mornObjectRemove,"Log");
-        mPropertyVariate( "Log","log_level"    ,&morn_log_levelset);
+        mPropertyVariate( "Log","log_level"    ,&morn_log_levelset,sizeof(int));
 
-        mPropertyVariate( "Log","log_filesize" ,&handle->filebyte);
+        mPropertyVariate( "Log","log_filesize" ,&handle->filebyte,sizeof(int));
         mPropertyFunction("Log","log_file"     ,LogFile);
         
         mPropertyFunction("Log","log_function" ,LogFunction);
-        mPropertyVariate( "Log","log_func_para",&handle->func_para);
+        mPropertyVariate( "Log","log_func_para",&handle->func_para,sizeof(void *));
         
         mPropertyFunction("Log","log_console"  ,LogConsole);
         

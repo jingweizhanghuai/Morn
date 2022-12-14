@@ -95,6 +95,7 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     {
         num = mBinaryCeil(MAX(num,256));
         handle->memory = mMemoryBlockCreate(num*element_size,MORN_HOST);
+        
         handle->num = num;
         handle->element_size = element_size;
         array->dataS8 = handle->memory->data;
@@ -114,46 +115,57 @@ void ArrayRedefine(MArray *arr,int num,int element_size,void *data)
 {
     mException(INVALID_POINTER(arr),EXIT,"invalid input");
     struct _MArray *array = (struct _MArray *)arr;
+    if(data==array->dataS8) data=NULL;
 
-    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(arr,0)->handle);
     if(num          <=0) num = array->num;
     if(element_size <=0) element_size = array->element_size;
     array->num = num;
     array->element_size = element_size;
-    if((element_size ==0)||(num==0)) return;
-    // printf("element_size=%d,num=%d\n",element_size,num);
+    array->capacity=0;
+    if((element_size ==0)||(num==0)) {array->data=NULL; return;}
     
-    if((num!= handle->num)||(element_size!=handle->element_size)) mHandleReset(array);
+    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(arr,0)->handle);
+    if((num!= array->num)||(element_size!=handle->element_size)) mHandleReset(array);
+    
     handle->num = handle->num*handle->element_size/element_size;
     handle->element_size = element_size;
-    int same_size = (num <= handle->num);
-    int reuse = (data!=NULL)&&(data==array->dataS8);
     
-    if(same_size&&reuse) return;
+    if((num <= handle->num)&&(data==NULL)) return;
 
-    if(same_size&&(INVALID_POINTER(data))&&(handle->num >0)) {array->capacity = (handle->num-array->num)&0x0FFFF;return;}
-    mException(reuse&&(array->num>0)&&(handle->num==0),EXIT,"invalid redefine");
-
-    if((num <= 0)||(element_size<=0)) 
-    {
-        mException((!INVALID_POINTER(data))&&(!reuse),EXIT,"invalid input");
-        array->dataS8 = NULL;
-        return;
-    }
+    void *memory_data=NULL;if(handle->memory) memory_data=handle->memory->data;
+    mException((data==NULL)&&(array->data!=memory_data),EXIT,"invalid redefine");
     
-    if(reuse) data=NULL;
-    if(!INVALID_POINTER(data)) {array->dataS8 = data;return;}
+    if(data!=NULL) {array->data = data;return;}
     
     if(num>handle->num)
     {
-        handle->num = num;
-        array->capacity=0;
+        handle->num = mBinaryCeil(MAX(num,256));
         handle->element_size = element_size;
-        if(handle->memory!=NULL) handle->memory = MemoryBlockRedefine(handle->memory,num*element_size);
-        else                     handle->memory =mMemoryBlockCreate(num*element_size,MORN_HOST);
-        array->dataS8 = handle->memory->data;
+        if(handle->memory!=NULL) handle->memory =MemoryBlockRedefine(handle->memory,handle->num*element_size);
+        else                     handle->memory =mMemoryBlockCreate(handle->num*element_size,MORN_HOST);
+        
+        array->data = handle->memory->data;
     }
-    else array->capacity = (handle->num-array->num)&0x0FFFF;
+    array->capacity = (handle->num-array->num)&0x0FFFF;
+}
+
+void mArrayDataExchange(MArray *arr1,MArray *arr2)
+{
+    struct HandleArrayCreate *h1 = (struct HandleArrayCreate *)(ObjHandle(arr1,0)->handle);
+    struct HandleArrayCreate *h2 = (struct HandleArrayCreate *)(ObjHandle(arr2,0)->handle);
+    struct _MArray *a1=(struct _MArray *)arr1;struct _MArray *a2=(struct _MArray *)arr2;
+    
+    int buff;void *p;
+    buff=a1->num;         a1->num         =a2->num;         a2->num         =buff;
+    buff=a1->element_size;a1->element_size=a2->element_size;a2->element_size=buff;
+    buff=a1->capacity;    a1->capacity    =a2->capacity;    a2->capacity    =buff;
+    p   =a1->data;        a1->data        =a2->data;        a2->data        =p;
+    
+    buff=h1->num;         h1->num         =h2->num;         h2->num         =buff;
+    buff=h1->element_size;h1->element_size=h2->element_size;h2->element_size=buff;
+    p   =h1->memory;      h1->memory      =h2->memory;      h2->memory      =p;
+    
+    h1->read_order=0;h2->read_order=0;
 }
 
 void mArrayElementDelete(MArray *arr,int n)
