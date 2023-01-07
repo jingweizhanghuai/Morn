@@ -48,6 +48,7 @@ MChainNode *mChainNode(MChain *chain,void *data,int size)
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     if(size<0) {if(data==NULL) size=0; else size=strlen(data);}
     
+//     printf("HandleChainCreate handle=%p\n",handle);
     if(handle->memory == NULL) handle->memory = mMemoryCreate(DFLT,DFLT,MORN_HOST);
     MChainNode *node = (MChainNode *)mMemoryWrite(handle->memory,NULL,sizeof(MChainNode)+size);
     

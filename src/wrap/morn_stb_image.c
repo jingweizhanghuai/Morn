@@ -11,7 +11,7 @@ void mImageLoad(MImage *img,const char *imgname,...)
     va_list val;va_start(val,imgname);vsprintf(filename,imgname,val);va_end(val);
     
     int width,height,channel;
-    uint8_t *data = stbi_load("../doc/test2.jpg",&width,&height,&channel,0);
+    uint8_t *data = stbi_load(imgname,&width,&height,&channel,0);
     mImageRedefine(img,channel,height,width);
     
     uint8_t **buff;

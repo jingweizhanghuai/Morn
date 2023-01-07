@@ -17,6 +17,18 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <stdarg.h>
 #include <errno.h>
 
+#ifndef WINDOWS
+#if defined(WIN32)||defined(_WIN32)||defined(_WIN32_)||defined(WIN64)||defined(_WIN64)||defined(_WIN64_)
+#define WINDOWS
+#endif
+#endif
+
+#ifndef LINUX
+#if defined(__linux)||defined(__linux__)||defined(__gnu_linux__)
+#define LINUX
+#endif
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -680,7 +692,7 @@ void m_ObjectRedefine(MObject *object,void *p,int size);
     int VAN = VANumber(__VA_ARGS__);\
     MObject *Object = (MObject *)((intptr_t)VA0(__VA_ARGS__));\
          if(VAN==1) m_ObjectRedefine(Object,NULL,DFLT);\
-    else if(VAN==2) {intptr_t A=(intptr_t)(VA1(__VA_ARGS__)); if((A<=16384)&&(A>0)) {m_ObjectRedefine(Object,NULL,A);} else {m_ObjectRedefine(Object,(void *)A,DFLT);}}\
+    else if(VAN==2) m_ObjectRedefine(Object,NULL,(intptr_t)(VA1(__VA_ARGS__)));\
     else if(VAN==3) m_ObjectRedefine(Object,(void *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__));\
 }while(0)
 
@@ -712,7 +724,6 @@ struct HandleList
     int latest_flag;
     int latest_n;
     volatile int valid;
-//     MThreadSignal thread_sgn;
 };
 
 void *ObjectAlloc(int size);
@@ -970,10 +981,10 @@ void mFile(MObject *object,const char *file_name,...);
 // #define mFileState(File) ((MFileState *)(File->filename-4))
 int fsize(FILE *f);
 
-#define MProc  MObject
-#define mProcCreate   mObjectCreate
-#define mProcRelease  mObjectRelease
-#define mProcRedefine mObjectRedefine
+// #define MProc  MObject
+// #define mProcCreate   mObjectCreate
+// #define mProcRelease  mObjectRelease
+// #define mProcRedefine mObjectRedefine
 
 #define MORN_DESKEY 0x6f676c616e726f6d
 void mEncrypt(const char *in_name,const char *out_name,uint64_t key);
@@ -983,6 +994,85 @@ void mFileDecrypt(MFile *file,uint64_t key);
 
 uint32_t m_CRC(uint8_t* input,int len);
 #define mCRC(...) m_CRC((uint8_t *)VA0(__VA_ARGS__),(VANumber(__VA_ARGS__)==1)?DFLT:(int)VA1(__VA_ARGS__))
+
+void _BaseEncode(uint8_t *in,int insize,char *out,int *outsize);
+void m_BaseEncode(uint8_t *in,int insize,MString *out);
+void mornBaseEncode(MString *str);
+#define mBaseEncode(...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+    int S0=sizeof(*(_VA0(__VA_ARGS__)));\
+    if(VAN==4) _BaseEncode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(char *)VA2(__VA_ARGS__),(int *)VA3(__VA_ARGS__));\
+    else if(VAN==3)\
+    {\
+        int S=((intptr_t)(VA2(__VA_ARGS__)+1))-((intptr_t)VA2(__VA_ARGS__));\
+             if(S==sizeof(MString)) m_BaseEncode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(MString *)VA2(__VA_ARGS__));\
+        else if(S==1              )  _BaseEncode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(char *)VA2(__VA_ARGS__),NULL);\
+        else\
+        {\
+             if(S0==sizeof(MString)) _BaseEncode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(char *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));\
+             else                    _BaseEncode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(char *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));\
+        }\
+    }\
+    else if(VAN==2)\
+    {\
+        int S=((intptr_t)(VA1(__VA_ARGS__)+1))-((intptr_t)VA1(__VA_ARGS__));\
+        if(S==1)\
+        {\
+            if(S0==sizeof(MString)) _BaseEncode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(char *)VA1(__VA_ARGS__),NULL);\
+            else                    _BaseEncode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(char *)VA1(__VA_ARGS__),NULL);\
+        }\
+        else\
+        {\
+            if(S0==sizeof(MString)) m_BaseEncode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(MString *)VA1(__VA_ARGS__));\
+            else                    m_BaseEncode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(MString *)VA1(__VA_ARGS__));\
+        }\
+    }\
+    else if(VAN==1)\
+    {\
+        if(S0==sizeof(MString)) mornBaseEncode((MString *)_VA0(__VA_ARGS__));\
+        else  _BaseEncode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(char *)_VA0(__VA_ARGS__),NULL);\
+    }\
+}while(0)
+
+void _BaseDecode(uint8_t *in,int insize,uint8_t *out,int *outsize);
+void m_BaseDecode(uint8_t *in,int insize,MString *out);
+void mornBaseDecode(MString *str);
+#define mBaseDecode(...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+    int S0=sizeof(*(_VA0(__VA_ARGS__)));\
+    if(VAN==4) _BaseDecode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(uint8_t *)VA2(__VA_ARGS__),(int *)VA3(__VA_ARGS__));\
+    else if(VAN==3)\
+    {\
+        int S=((intptr_t)(VA2(__VA_ARGS__)+1))-((intptr_t)VA2(__VA_ARGS__));\
+             if(S==sizeof(MString)) m_BaseDecode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(MString *)VA2(__VA_ARGS__));\
+        else if(S==1              )  _BaseDecode((uint8_t *)_VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(uint8_t *)VA2(__VA_ARGS__),NULL);\
+        else\
+        {\
+             if(S0==sizeof(MString)) _BaseDecode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(uint8_t *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));\
+             else                    _BaseDecode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(uint8_t *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));\
+        }\
+    }\
+    else if(VAN==2)\
+    {\
+        int S=((intptr_t)(VA1(__VA_ARGS__)+1))-((intptr_t)VA1(__VA_ARGS__));\
+        if(S==1)\
+        {\
+            if(S0==sizeof(MString)) _BaseDecode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(uint8_t *)VA1(__VA_ARGS__),NULL);\
+            else                    _BaseDecode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(uint8_t *)VA1(__VA_ARGS__),NULL);\
+        }\
+        else\
+        {\
+            if(S0==sizeof(MString)) m_BaseDecode(((MString *)_VA0(__VA_ARGS__))->dataU8,((MString *)_VA0(__VA_ARGS__))->size,(MString *)VA1(__VA_ARGS__));\
+            else                    m_BaseDecode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(MString *)VA1(__VA_ARGS__));\
+        }\
+    }\
+    else if(VAN==1)\
+    {\
+        if(S0==sizeof(MString)) mornBaseDecode((MString *)_VA0(__VA_ARGS__));\
+        else  _BaseDecode((uint8_t *)_VA0(__VA_ARGS__),DFLT,(uint8_t *)_VA0(__VA_ARGS__),NULL);\
+    }\
+}while(0)
+
 
 void mINIFile(const char *filename);
 MSheet *mINI();

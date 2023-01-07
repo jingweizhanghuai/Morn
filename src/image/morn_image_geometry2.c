@@ -441,25 +441,25 @@ int mPolygonCross(MList *polygon1,MList *polygon2)
 }
 
 
-int mPolygonConcaveCheck(MList *polygon)
-{
-    int i;
-    MImagePoint point;
-    MImagePoint **vertex;
-    
-    vertex = (MImagePoint **)(polygon->data);
-    point.x=0;
-    point.y=0;
-    for(i=0;i<polygon->num;i++)
-    {
-        point.x += vertex[i]->x;
-        point.y += vertex[i]->y;
-    }
-    point.x = point.x/(float)(polygon->num);
-    point.y = point.y/(float)(polygon->num);
-    
-    return mPointInPolygon(&point,polygon);
-}
+// int mPolygonConcaveCheck(MList *polygon)
+// {
+//     int i;
+//     MImagePoint point;
+//     MImagePoint **vertex;
+//     
+//     vertex = (MImagePoint **)(polygon->data);
+//     point.x=0;
+//     point.y=0;
+//     for(i=0;i<polygon->num;i++)
+//     {
+//         point.x += vertex[i]->x;
+//         point.y += vertex[i]->y;
+//     }
+//     point.x = point.x/(float)(polygon->num);
+//     point.y = point.y/(float)(polygon->num);
+//     
+//     return mPointInPolygon(&point,polygon);
+// }
 
 void mShapeBounding(MList *shape,MList *bounding)
 {

@@ -136,6 +136,8 @@ void ThreadPoolNumber(int *number,struct HandleThreadPool *handle)
 
 void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
 {
+    if(flag!=NULL) *flag=0;
+    
     void (*func)(void *)=function;
     mException((func==NULL),EXIT,"invalid input");
 
@@ -143,8 +145,7 @@ void m_ThreadPool(void *function,void *func_para,int *flag,float priority)
     *para=func_para;
     
     if(priority<0) priority=0.0;
-    if(flag!=NULL) *flag=0;
-
+    
     int i;
     struct ThreadPoolData *data;
     struct HandleThreadPool *handle = morn_thread_pool_handle;

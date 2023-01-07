@@ -17,6 +17,10 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include <threads.h>
 #endif
 
+#ifdef __linux
+#include <ucontext.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -259,6 +263,46 @@ void m_ThreadPool(void *function,void *para,int *flag,float priority);
     else if(VAN==3) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__));\
     else mException(1,EXIT,"invalid input");\
 }while(0)
+
+/*
+#ifdef __linux
+struct CoroutineInfo
+{
+    char name[64];
+    ucontext_t ctx;
+    void *function;
+    int flag;
+    struct CoroutineInfo *prev;
+    struct CoroutineInfo *next;
+};
+extern __thread struct CoroutineInfo *morn_coroutine_info;
+struct CoroutineInfo *coroutine_info(const char *name);
+#define m_Coroutine(Func,...) do{\
+    static struct CoroutineInfo *Info0  = NULL;\
+    if(Info0==NULL) Info0=coroutine_info(__FUNCTION__);\
+    struct CoroutineInfo *Info1 = Info0->next;\
+    int Info1_valid= (Info1!=NULL);\
+    if(Info1_valid) Info1_valid=(strcmp(Info1->name,#Func)==0);\
+    if(!Info1_valid) {Info1=coroutine_info(#Func);Info0->next=Info1;}\
+    if(Info1->flag==-1) morn_coroutine_info=Info0;\
+    else {\
+        morn_coroutine_info=Info1;\
+        if(Info1->flag==0){Info1->prev=Info0;makecontext(&(Info1->ctx),(void*)Func,VANumber(__VA_ARGS__)-1,__VA_ARGS__);Info1->flag=1;}\
+        mException(swapcontext(&(Info0->ctx),&(Info1->ctx)),EXIT,"swapcontext error");\
+    }\
+}while(0)
+#define mCoroutine(...) m_Coroutine(__VA_ARGS__,NULL)
+#endif
+*/
+
+void *_CoroutineInfo(const char *name);
+void m_Coroutine(void *info,const char *name1,void *func,void *para);
+#define _Coroutine(Func,...) do{\
+    static void *Coroutine_Info=NULL;\
+    if(Coroutine_Info==NULL) {Coroutine_Info=_CoroutineInfo(__FUNCTION__);}\
+    m_Coroutine(Coroutine_Info,#Func,Func,_VA0(__VA_ARGS__));\
+}while(0)
+#define mCoroutine(...) _Coroutine(__VA_ARGS__,NULL)
 
 #ifdef __cplusplus
 }

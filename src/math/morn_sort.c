@@ -4,16 +4,6 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 #include "morn_math.h"
 
-// struct Bucket
-// {
-//     int num;
-//     int cap;
-//     union
-//     {
-//         U16 *dataU16;
-//         U32 *dataU32;
-//     };
-// };
 void AscSortDataU8(U8 *data,int num)
 {
     int bucket_num[256];memset(bucket_num,0,256*sizeof(int));

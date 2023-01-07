@@ -4,143 +4,101 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// build: gcc -O2 -fopenmp test_large_integer.c -I ..\include\ -I C:\ProgramFiles\CPackage\gmp\include -L ..\lib\x64_mingw\ -lmorn -L C:\ProgramFiles\CPackage\gmp\lib_x64_mingw -lgmp -o test_large_integer.exe
+// build: gcc -O2 -fopenmp test_large_integer.c  -lmorn -lcrypto -lgmp -o test_large_integer.exe
 
 #include "morn_math.h"
 
-int main1()
-{
-    MArray *a=mArrayCreate();
-    mIntToLInt(a,1*2*3*4*5*6*7*8);
-    
-    for(int i=9;i<100;i+=4)
-        mLIntMul(a,i*(i+1)*(i+2)*(i+3),a);
-    
-    char str[1024];
-    mLIntToString(a,str);
-    printf("100!=%s\n",str);
-    
-    mArrayRelease(a);
-}
-
-int main()
-{
-    MArray *a=mArrayCreate();
-    mIntToLInt(a,1);
-    
-    int n=10000;
-    for(int i=1;i<=n;i++)
-        mLIntMul(a,i);
-    
-    char str[40000];
-    mLIntToString(a,str);
-    printf("%d!=%s\n",n,str);
-    
-    printf("strlen=%ld\n",strlen(str));
-    
-    mArrayRelease(a);
-}
-    
-
-
-
-/*
-
 #include "gmp.h"
 
-int main1()
-{
-    char str[200];
-    MLInt a,b,c,d,e,f,g;
-
-    for(int i=0;i<100;i++)
-    {
-        printf("i is %d\n",i);
-        
-        int a1 = mRand(0,0x7fffffff);
-        int a2 = mRand(0,0x7fffffff);
-        uint64_t a3 = (((uint64_t)a1)<<31)+(uint64_t)a2;
-        mS64ToLInt(a3,&a);
-        mLIntToString(&a,str);printf("a is %s\n",str);
-
-        char b0[128];b0[0]=mRand('1','9');
-        int j;for(j=1;j<mRand(64,128);j++) b0[j]=mRand('0','9');
-        b0[j]=0;
-        mStringToLInt(b0,&b);
-        mLIntToString(&b,str);printf("b is %s\n",str);
-
-        mLIntMulU32(&a,mRand(0,0x7fffffff),&c);
-        mLIntToString(&c,str);printf("c is %s\n",str);
-
-        mLIntMul(&b,&c,&d);          
-        mLIntToString(&d,str);printf("d is %s\n",str);
-
-        mLIntAdd(&d,&a,&e);          
-        mLIntToString(&e,str);printf("e is %s\n",str);
-
-        mLIntDiv(&e,&c,&f,&g);       
-        mLIntToString(&f,str);printf("f is %s\n",str);
-        mLIntToString(&g,str);printf("g is %s\n",str);
-
-        int flag1=mLIntCompare(&f,&b);
-        if(flag1!=0)printf("flag1 is %d\n",flag1);
-
-        int flag2=mLIntCompare(&g,&a);
-        if(flag2!=0)printf("flag2 is %d\n",flag2);
-    }
-    return 0;
-}
-
-int main()
-{
-    char str[1024];
-    MLInt a;
-    mS64ToLInt(1000,&a);
-    for(int i=999;i>1;i--)mLIntMulU32(&a,i,&a);
-    mLIntToString(&a,str);
-    printf("%s\n",str);
-}
-
-int main2()
-{
-    char str[128];
-    mpz_t ga,gb,gc;
-    mpz_init(ga);mpz_init(gb);mpz_init(gc);
-    
-    MLInt ma,mb,mc;
-
-    strcpy(str,"-12345678900987654321");mpz_init_set_str(ga,str,10);mStringToLInt(str,&ma);
-    strcpy(str,"98765432100123456789");mpz_init_set_str(gb,str,10);mStringToLInt(str,&mb);
-
-    mTimerBegin();
-    for(int i=0;i<1000000;i++)mpz_mul(gc, ga, gb);
-    mTimerEnd();
-    gmp_sprintf(str,"%Zd",gc);printf("c=%s\n",str);
-
-    mTimerBegin();
-    for(int i=0;i<1000000;i++)mLIntMul(&ma,&mb,&mc);
-    mTimerEnd();
-    mLIntToString(&mc,str);printf("c=%s\n",str);
-
-    mpz_clear(ga);mpz_clear(gb);mpz_clear(gc);
-    return 0;
-}
+#include "openssl/bn.h"
 
 // int main()
 // {
-//     char str[100];
-//     MLInt a,b,c,d,e,f,g;
-//     mS64ToLInt(12345678987654,&a);mLIntToString(&a,str);printf("a is %s\n",str);
-//     char *num ="32101234567898765432101234567898765432101234567898765432101234567";
-//     mStringToLInt(num,&b);       mLIntToString(&b,str);printf("b is %s\n",str);
-//     mLIntMulU32(&a,8987654,&c);  mLIntToString(&c,str);printf("c is %s\n",str);
-    
-//     mLIntMul(&b,&c,&d);          mLIntToString(&d,str);printf("d is %s\n",str);
-//     mLIntAdd(&d,&a,&e);          mLIntToString(&e,str);printf("e is %s\n",str);
-    
-//     mLIntDiv(&e,&c,&f,&g);       mLIntToString(&f,str);printf("f is %s\n",str);
-//                                  mLIntToString(&g,str);printf("g is %s\n",str);
-                                 
-//     return 0;
+//     MArray *a=mArrayCreate();
+//     mIntToLInt(a,1);
+//     for(int i=1;i<=100;i++)
+//         mLIntMul(a,i);
+//     
+//     char rst[4000];
+//     mLIntToString(a,rst); 
+//     printf("rst=%s\n",rst);
+//     mArrayRelease(a);
 // }
-*/
+
+void test_Morn(int k,char *rst)
+{
+    MArray *a=mArrayCreate();
+    
+    mTimerBegin("Morn");
+    for(int n=0;n<1000000/k;n++)
+    {
+        mIntToLInt(a,1);
+        for(int i=1;i<=k;i++)
+            mLIntMul(a,i);
+    }
+    mTimerEnd("Morn");
+    
+    mLIntToString(a,rst);    
+    mArrayRelease(a);
+}
+
+int test_GMP(int k,char *rst)
+{
+    mpz_t a;
+    mpz_init(a);
+    
+    mTimerBegin("GMP");
+    for(int n=0;n<1000000/k;n++)
+    {
+        mpz_init_set_ui(a,1);
+        for(int i=1;i<=k;i++)
+            mpz_mul_ui(a,a,i);
+    }
+    mTimerEnd("GMP");
+    
+    gmp_sprintf(rst,"%Zd",a);
+    mpz_clear(a);
+}
+
+int test_OpenSSL(int k,char *rst)
+{
+    BIGNUM *a=BN_new();
+    
+    mTimerBegin("OpenSSL");
+    for(int n=0;n<1000000/k;n++)
+    {
+        BN_set_word(a,1);
+        for(int i=1;i<=k;i++)
+            BN_mul_word(a,i);
+    }
+    mTimerEnd("OpenSSL");
+    
+    strcpy(rst,BN_bn2dec(a));
+    BN_free(a);
+}
+
+int main()
+{
+    char rst1[40000];
+    char rst2[40000];
+    char rst3[40000];
+    
+    printf("\n");
+    test_GMP(100,rst1);
+    test_OpenSSL(100,rst2);
+    test_Morn(100,rst3);
+    mException((strcmp(rst1,rst2)!=0)||(strcmp(rst2,rst3)!=0),EXIT,"result error");
+    
+    printf("\n");
+    test_GMP(1000,rst1);
+    test_OpenSSL(1000,rst2);
+    test_Morn(1000,rst3);
+    mException((strcmp(rst1,rst2)!=0)||(strcmp(rst2,rst3)!=0),EXIT,"result error");
+    
+    printf("\n");
+    test_GMP(10000,rst1);
+    test_OpenSSL(10000,rst2);
+    test_Morn(10000,rst3);
+    mException((strcmp(rst1,rst2)!=0)||(strcmp(rst2,rst3)!=0),EXIT,"result error");
+}
+    

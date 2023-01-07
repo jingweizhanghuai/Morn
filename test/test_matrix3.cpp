@@ -1,5 +1,5 @@
-// g++ -O2 -fopenmp test_matrix3.cpp -o test_matrix3.exe -lclapack -lopenblas -lf2c -lmorn
-#define EIGEN_DONT_VECTORIZE
+// g++ -O2 -fopenmp test_matrix3.cpp -o test_matrix3.exe -lmorn
+// #define EIGEN_DONT_VECTORIZE
 #include "eigen3/Eigen/Dense"
 #include "morn_math.h"
 

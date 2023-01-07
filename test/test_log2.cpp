@@ -5,6 +5,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_GLOG -o test_log2_glog.exe -lglog -lmorn
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_SPDLOG -o test_log2_spdlog.exe -lmorn
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_LOG4CPP -o test_log2_log4cpp.exe -llog4cpp -lmorn
+// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_BOOST -DBOOST_LOG_DYN_LINK -o test_log2_boost.exe -lboost_log -lboost_thread -lmorn
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_MORN -o test_log2_morn.exe -lmorn
 
 #include "morn_ptc.h"
@@ -45,6 +46,63 @@ void test_spdlog(struct LogData *p)
         logger->info("[{} line {},function {}] Hello spdlog, datai={}, datad={}, datas={}",__FILE__,__LINE__,__FUNCTION__,p->datai[i],p->datad[i],p->datas+i*32);
     }
 }
+#endif
+
+#ifdef USE_BOOST
+#include <iostream>
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/timer.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+enum severity_level
+{
+    normal,
+    notification,
+    info,
+    error,
+    critical
+};
+std::string level_string[5]={"normal","notification","info","error","critical"};
+
+
+BOOST_LOG_ATTRIBUTE_KEYWORD(_timestamp, "TimeStamp", boost::posix_time::ptime);
+void test_boost(struct LogData *p)
+{
+    boost::log::add_file_log
+    (
+        boost::log::keywords::file_name = "./test_log_boost.log",
+        boost::log::keywords::filter = boost::log::expressions::attr< severity_level >("Severity") >= info,
+        boost::log::keywords::format =
+        (
+             boost::log::expressions::stream
+                << "["
+                << boost::log::expressions::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y.%m.%d %H:%M:%S")
+//                 << boost::log::expressions::format_date_time<boost::log::attributes::timer::value_type >("Uptime", "%O:%M:%S")
+                << "]"
+                << boost::log::expressions::attr<severity_level>("Severity")
+                << ": " 
+                <<  boost::log::expressions::smessage
+        )
+    );
+    
+    boost::log::add_common_attributes();
+    
+    boost::log::sources::severity_logger<severity_level> slg;
+    slg.add_attribute("Uptime", boost::log::attributes::timer());
+        
+    for(int n=0;n<10;n++)
+    {
+        int i=n%100;
+        BOOST_LOG_SEV(slg,info) << "Hello Boost, datai=" << p->datai[i] <<", datad=" << p->datad[i] <<", datas=" << p->datas+i*32;
+    }
+}
+
+
 #endif
 
 #ifdef USE_LOG4CPP
@@ -106,6 +164,12 @@ int main(int argc, char** argv)
     mTimerBegin("spdlog");
     test_spdlog(&data);
     mTimerEnd("spdlog");
+    #endif
+    
+    #ifdef USE_BOOST
+    mTimerBegin("Boost");
+    test_boost(&data);
+    mTimerEnd("Boost");
     #endif
 
     #ifdef USE_LOG4CPP
