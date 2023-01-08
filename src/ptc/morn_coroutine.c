@@ -1,9 +1,11 @@
+/*
+Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
 #include "morn_ptc.h"
-
 #define HASH_Coroutine 0x90997e8b
 
 #ifdef WINDOWS
-
 struct CoroutineInfo
 {
     char name[64];
@@ -19,8 +21,16 @@ struct HandleCoroutine
 {
     MChain *map;
 };
+int CoroutineRelease(void *p,int a,struct CoroutineInfo *info,int b)
+{
+    if(info->flag<0) DeleteFiber(info->fiber);
+    return 0;
+}
+
 void endCoroutine(struct HandleCoroutine *handle)
 {
+
+    mornMapNodeOperate(handle->map,CoroutineRelease,NULL);
     ConvertFiberToThread();
     if(handle->map!=NULL) mChainRelease(handle->map);
 }
@@ -29,7 +39,6 @@ void mornCoroutineFunction(struct CoroutineInfo *info)
 {
     void (*func)(void *) = info->func;
     func(info->para);
-    DeleteFiber(info->fiber);
     info->flag=-1;
     while(1) SwitchToFiber(info->prev->fiber);
 }
@@ -37,7 +46,7 @@ void mornCoroutineFunction(struct CoroutineInfo *info)
 __thread struct HandleCoroutine *morn_coroutine_handle = NULL;
 void *_CoroutineInfo(const char *name)
 {
-    static struct CoroutineInfo *info=NULL;
+    struct CoroutineInfo *info=NULL;
     if(morn_coroutine_handle==NULL)
     {
         MHandle *hdl=mHandle("Coroutine",Coroutine);
@@ -45,11 +54,11 @@ void *_CoroutineInfo(const char *name)
         if(!mHandleValid(hdl))
         {
             if(handle->map==NULL) handle->map=mChainCreate();
-            info=mornMapWrite(morn_coroutine_handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
-            strncpy(info->name,name0,64);
+            info=mornMapWrite(handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
+            strncpy(info->name,name,63);
             info->flag=1;info->func=NULL;info->prev=NULL;info->next=NULL;
             info->fiber=ConvertThreadToFiber(NULL);
-        
+
             morn_coroutine_handle = handle;
             hdl->valid=1;
         }
@@ -63,16 +72,17 @@ void m_Coroutine(void *info,const char *name1,void *func,void *para)
     struct CoroutineInfo *info0=info;
     struct CoroutineInfo *info1=info0->next;
     int info1_valid= (info1!=NULL);
-    if(info1_valid) info1_valid=(strcmp(info1->name,#Func)==0);
-    if(!info1_valid) 
+    if(info1_valid) info1_valid=(strcmp(info1->name,name1)==0);
+    if(!info1_valid) info1=mornMapRead(morn_coroutine_handle->map,name1,DFLT,NULL,NULL);
+    if(info1==NULL)
     {
-        info1=mornMapWrite(morn_coroutine_handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
+        info1=mornMapWrite(morn_coroutine_handle->map,name1,DFLT,NULL,sizeof(struct CoroutineInfo));
         info0->next=info1;
-        strncpy(info1->name,name1,64);
-        info1->func=func;info1->para=para;info1->prev=info0;info1->next=next;info1->flag=0;
+        strncpy(info1->name,name1,63);
+        info1->func=func;info1->para=para;info1->flag=0;
+        info1->prev=info0;
         info1->fiber = CreateFiber(0,(LPFIBER_START_ROUTINE)mornCoroutineFunction,info1);
     }
-    
     if(info1->flag>=0) SwitchToFiber(info1->fiber);
 }
 
@@ -85,22 +95,6 @@ struct CoroutineInfo
     struct CoroutineInfo *prev;
     struct CoroutineInfo *next;
 };
-
-// char *morn_coroutine_stack_pointer=NULL;
-// void stack_pointer()
-// {
-//     int a;
-//     morn_coroutine_stack_pointer=(char *)&a;
-//     printf("morn_coroutine_stack_pointer=%p\n",morn_coroutine_stack_pointer);
-// }
-// int stack_size()
-// {
-//     int size;
-//     size=morn_coroutine_stack_pointer-(char *)&size;
-//     size=ABS(size);
-//     morn_coroutine_stack_pointer=(char *)&size;
-//     return size+128;
-// }
 
 struct HandleCoroutine
 {
@@ -125,7 +119,6 @@ void endCoroutineFunc()
     {
         if(morn_coroutine_info!=NULL)
         {
-//             printf("morn_coroutine_info->name=%s\n",morn_coroutine_info->name);
             morn_coroutine_info->flag=-1;
             morn_coroutine_info = morn_coroutine_info->prev;
             swapcontext(morn_coroutine_handle->ctx0,&(morn_coroutine_info->ctx));
@@ -165,7 +158,7 @@ void *_CoroutineInfo(const char *name)
     if(info!=NULL) return info;
     
     info = mornMapWrite(morn_coroutine_handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
-    strncpy(info->name,name,64);
+    strncpy(info->name,name,63);
     getcontext(&(info->ctx));
     
     if(ctx0_valid==0)
@@ -207,7 +200,3 @@ void m_Coroutine(void *info,const char *name1,void *func,void *para)
     }
 }
 #endif
-
-
-
-    
