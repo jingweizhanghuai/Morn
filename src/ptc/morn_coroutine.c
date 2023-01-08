@@ -26,10 +26,8 @@ int CoroutineRelease(void *p,int a,struct CoroutineInfo *info,int b)
     if(info->flag<0) DeleteFiber(info->fiber);
     return 0;
 }
-
 void endCoroutine(struct HandleCoroutine *handle)
 {
-
     mornMapNodeOperate(handle->map,CoroutineRelease,NULL);
     ConvertFiberToThread();
     if(handle->map!=NULL) mChainRelease(handle->map);
@@ -100,18 +98,21 @@ struct HandleCoroutine
 {
     MChain *map;
     ucontext_t *ctx0;
-    char *stack[256];
-    int stack_num;
 };
+int CoroutineRelease(void *p,int a,struct CoroutineInfo *info,int b)
+{
+    if(info->flag<0) if(info->ctx.uc_stack.ss_sp) free(info->ctx.uc_stack.ss_sp);
+    return 0;
+}
 void endCoroutine(struct HandleCoroutine *handle)
 {
+    mornMapNodeOperate(handle->map,CoroutineRelease,NULL);
     if(handle->map!=NULL) mChainRelease(handle->map);
-    for(int i=0;i<handle->stack_num;i++) {if(handle->stack[i]) free(handle->stack[i]);}
 }
-
 
 __thread struct CoroutineInfo *morn_coroutine_info=NULL;
 __thread struct HandleCoroutine *morn_coroutine_handle = NULL;
+
 void endCoroutineFunc()
 {
     swapcontext(morn_coroutine_handle->ctx0,&(morn_coroutine_info->ctx));
@@ -141,13 +142,11 @@ void *_CoroutineInfo(const char *name)
             strcpy(info->name,"endCoroutineFunc");
             getcontext(&(info->ctx));
             info->flag=1;
-            handle->stack[handle->stack_num]=malloc(1024);
-            info->ctx.uc_stack.ss_sp = handle->stack[handle->stack_num];
+            info->ctx.uc_stack.ss_sp = malloc(1024);
             info->ctx.uc_stack.ss_size = 1024;
             info->ctx.uc_link = NULL;
             makecontext(&(info->ctx),(void*)endCoroutineFunc,0);
             handle->ctx0=&(info->ctx);
-            handle->stack_num++;
             ctx0_valid=0;
         
             morn_coroutine_handle = handle;
@@ -166,19 +165,15 @@ void *_CoroutineInfo(const char *name)
         info->prev=NULL;
         info->flag=1;
         morn_coroutine_info = info;
+        info->ctx.uc_stack.ss_sp = NULL;
         swapcontext(&(info->ctx),morn_coroutine_handle->ctx0);
     }
     else
     {
         info->flag=0;
-        char *stack=malloc(256*1024);
-        int stack_num=morn_coroutine_handle->stack_num;
-        mException(stack_num>=256,EXIT,"coroutine too much");
-        info->ctx.uc_stack.ss_sp = stack;
+        info->ctx.uc_stack.ss_sp = malloc(256*1024);;
         info->ctx.uc_stack.ss_size = 256*1024;
         info->ctx.uc_link = morn_coroutine_handle->ctx0;
-        morn_coroutine_handle->stack[stack_num]=stack;
-        morn_coroutine_handle->stack_num =stack_num+1;
     }
     return info;
 }
