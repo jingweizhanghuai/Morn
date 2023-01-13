@@ -44,10 +44,10 @@ struct HandleLIntBuff *LIntIint()
 #define LIntBuff4() (LIntIint()->buff4)
 
 #define HASH_LInt 0xec1b15a6
-#define LInt_ADD 0
-#define LInt_SUB 1
-#define LInt_MUL 2
-#define LInt_NUL 4
+#define LInt_ADD 1
+#define LInt_SUB 2
+#define LInt_MUL 3
+#define LInt_NUL 0
 
 #ifdef __GNUC__
 #ifdef __amd64
@@ -56,46 +56,50 @@ struct HandleLIntBuff *LIntIint()
 #endif
 
 #ifdef LInt128
-struct HandleLInt
+struct LIntInfo
 {
-    int type;
-    __int128_t data;
+    uint8_t sign;
+    uint8_t type;
+    __int128_t data:112;
 };
-void endLInt(void *p) {NULL;}
-
+#define SIGN(A) (((struct LIntInfo *)((A)->data))->sign)
+#define TYPE(A) (((struct LIntInfo *)((A)->data))->type)
+#define DATA(A) (((struct LIntInfo *)((A)->data))->data)
 void mIntToLInt(MArray *a,int64_t in)
 {
-    mArrayRedefine(a,16,sizeof(int64_t));
-    MHandle *hdl=mHandle(a,LInt);hdl->valid=1;
-    if(hdl->valid==1) {struct HandleLInt *handle=hdl->handle;handle->type=LInt_NUL;handle->data=0;}
-    if(in<0) {a->dataU64[0]=1;a->dataU64[1]=0-in;}
-    else     {a->dataU64[0]=0;a->dataU64[1]=  in;}
-    a->num = 2;
+    mArrayRedefine(a,32,sizeof(int64_t));
+    TYPE(a)=LInt_NUL;//DATA(a)=0;
+    if(in<0) {SIGN(a)=1;a->dataU64[2]=0-in;}
+    else     {SIGN(a)=0;a->dataU64[2]=  in;}
+    a->num = 3;
 }
 int64_t mLIntToInt(MArray *a)
 {
     mException(INVALID_POINTER(a),EXIT,"invalid input");
-    uint64_t data=(a->num>2)?0x7fffffffffffffff:(int64_t)(a->dataU64[1]);
-    return ((a->dataU64[0])?(0-data):data);
+    uint64_t data=(a->num>3)?0x7fffffffffffffff:(int64_t)(a->dataU64[2]);
+    return ((SIGN(a))?(0-data):data);
 }
 
-#define SIGN(A) ((A)->dataU64[0])
 void m_LIntAdd(MArray *a,MArray *b,MArray *c)
 {
     if(c==NULL) c=a;
+    if(a->num<b->num) {m_LIntAdd(b,a,c);return;}
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
-    LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
+    
+    __int128_t c_data=0;
+    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
+    if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data+DATA(b):c_data-DATA(b);
+    
     if((SIGN(a)==0)&&(SIGN(b)==1)) {SIGN(b)=0;m_LIntSub(a,b,c);SIGN(b)=1;return;}
     if((SIGN(a)==1)&&(SIGN(b)==0)) {SIGN(a)=0;m_LIntSub(b,a,c);SIGN(a)=1;return;}
-    if(a->num<b->num) {m_LIntAdd(b,a,c);return;}
     
     MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff1();
     mArrayRedefine(c,MAX(a->num,b->num)+1,sizeof(uint64_t));
-    SIGN(c)=SIGN(a);
+    SIGN(c)=SIGN(a);TYPE(c)=(c_data==0)?LInt_NUL:LInt_ADD;DATA(c)=c_data;
     
     int i;
     __uint128_t rst=0;
-    for(i=1;i<b->num;i++)
+    for(i=2;i<b->num;i++)
     {
         rst = rst+(__uint128_t)(a->dataU64[i])+(__uint128_t)(b->dataU64[i]);
         c->dataU64[i]=rst&0x0ffffffffffffffff;
@@ -120,6 +124,7 @@ void m_LIntAdd(MArray *a,MArray *b,MArray *c)
     }
     if(pc==a) mArrayDataExchange(a,c);
     if(pc==b) mArrayDataExchange(b,c);
+    
 }
 
 void m_LIntSubInt(MArray *a,__int128_t b,MArray *c);
@@ -133,13 +138,13 @@ void m_LIntAddInt(MArray *a,__int128_t b,MArray *c)
     
     MArray *pc=c;if(c==a) c=LIntBuff1();
     mArrayRedefine(c,a->num+1,sizeof(uint64_t));
-    SIGN(c)=SIGN(a);
+    SIGN(c)=SIGN(a);TYPE(c)=LInt_NUL;//DATA(c)=0;
     
-    __uint128_t rst = (__uint128_t)(a->dataU64[1])+(__uint128_t)b;
-    c->dataU64[1]=(uint64_t)(rst&0x0ffffffffffffffff);
+    __uint128_t rst = (__uint128_t)(a->dataU64[2])+(__uint128_t)b;
+    c->dataU64[2]=(uint64_t)(rst&0x0ffffffffffffffff);
     rst = rst>>64;
     
-    int i;for(i=2;i<a->num;i++)
+    int i;for(i=3;i<a->num;i++)
     {
         rst = rst+(__uint128_t)(a->dataU64[i]);
         c->dataU64[i]=(uint64_t)(rst&0x0ffffffffffffffff);
@@ -165,7 +170,7 @@ int m_LIntCompare(MArray *a,MArray *b)
     if((SIGN(a)==1)&&(SIGN(b)==0)) return -1;
     if(a->num>b->num) return ((SIGN(a))?-1:1);
     if(a->num<b->num) return ((SIGN(a))?1:-1);
-    for(int i=a->num-1;i>0;i--)
+    for(int i=a->num-1;i>=2;i--)
     {
         if(a->dataU64[i]>b->dataU64[i]) return ((SIGN(a))?-1:1);
         if(a->dataU64[i]<b->dataU64[i]) return ((SIGN(a))?1:-1);
@@ -184,7 +189,11 @@ void m_LIntSub(MArray *a,MArray *b,MArray *c)
 {
     if(c==NULL) c=a;
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
-    LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
+    
+    __int128_t c_data=0;
+    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
+    if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data-DATA(b):c_data+DATA(b);
+    
     if((SIGN(a)==0)&&(SIGN(b)==1)) {SIGN(b)=0;m_LIntAdd(a,b,c);SIGN(b)=1;return;}
     if((SIGN(a)==1)&&(SIGN(b)==0)) {SIGN(b)=1;m_LIntAdd(a,b,c);SIGN(b)=0;return;}
     int flag = m_LIntCompare(a,b);if(flag==0) {mArrayRedefine(c,1,sizeof(uint64_t));SIGN(c)=0;return;}
@@ -192,10 +201,10 @@ void m_LIntSub(MArray *a,MArray *b,MArray *c)
     
     MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff1();
     mArrayRedefine(c,MAX(a->num,b->num),sizeof(uint64_t));
-    SIGN(c)=SIGN(a);
+    SIGN(c)=SIGN(a);TYPE(c)=(c_data==0)?LInt_NUL:LInt_ADD;DATA(c)=c_data;
     
     int i;__uint128_t rst=1;
-    for(i=1;i<b->num;i++)
+    for(i=2;i<b->num;i++)
     {
         rst = rst+0x0ffffffffffffffff+(__uint128_t)(a->dataU64[i])-(__uint128_t)(b->dataU64[i]);
         c->dataU64[i]=(uint64_t)(rst&0x0ffffffffffffffff);
@@ -229,20 +238,20 @@ void m_LIntSubInt(MArray *a,__int128_t b,MArray *c)
     
     MArray *pc=c;if(c==a) c=LIntBuff1();
     mArrayRedefine(c,a->num,sizeof(uint64_t));
-    if((a->num==2)&&(b<0xffffffff))
+    SIGN(c)=SIGN(a);TYPE(c)=LInt_NUL;//DATA(c)=0;
+    
+    if((a->num==3)&&(b<0xffffffff))
     {
-        c->num=2;
-             if(a->dataU64[1]<(uint64_t)b) {c->dataU64[1]=(uint64_t)b-a->dataU64[1];c->num=2;SIGN(c)=1;}
-        else if(a->dataU64[1]>(uint64_t)b) {c->dataU64[1]=a->dataU64[1]-(uint64_t)b;c->num=2;SIGN(c)=0;}
-        else                               {                                        c->num=1;SIGN(c)=0;}
+             if(a->dataU64[2]<(uint64_t)b) {c->dataU64[2]=(uint64_t)b-a->dataU64[2];c->num=3;SIGN(c)=1;}
+        else if(a->dataU64[2]>(uint64_t)b) {c->dataU64[2]=a->dataU64[2]-(uint64_t)b;c->num=3;SIGN(c)=0;}
+        else                               {                                        c->num=2;SIGN(c)=0;}
         if(pc==a) mArrayDataExchange(a,c);
         return;
     }
-    SIGN(c)=SIGN(a);
     
     __uint128_t rst=1+0x0ffffffffffffffff+(__uint128_t)(a->dataU64[1])-(__uint128_t)b;
-    c->dataU64[1]=rst&0x0ffffffffffffffff;
-    c->num=2;
+    c->dataU64[2]=rst&0x0ffffffffffffffff;
+    c->num=3;
     rst = rst>>64;
     int i=2;
     for(;i<a->num;i++)
@@ -262,10 +271,10 @@ void m_LIntSubInt(MArray *a,__int128_t b,MArray *c)
     if(pc==a) mArrayDataExchange(a,c);
 }
 
-void LIntMulU128(MArray *a,__uint128_t b,MArray *c)
+void LIntMulInt(MArray *a,__uint128_t b,MArray *c)
 {
     __uint128_t rst=0;
-    for(int i=1;i<a->num;i++)
+    for(int i=2;i<a->num;i++)
     {
         rst=rst+(__uint128_t)(a->dataU64[i])*b;
         c->dataU64[i] = rst&0x0ffffffffffffffff;
@@ -275,18 +284,6 @@ void LIntMulU128(MArray *a,__uint128_t b,MArray *c)
     else {c->dataU64[a->num]=(uint64_t)rst; c->num=a->num+1;}
 }
 
-// void LIntMulU64(MArray *a,uint64_t b,MArray *c)
-// {
-//     c->dataU64[1]=0;
-//     for(int i=1;i<a->num;i++)
-//     {
-//         __uint128_t *rst = (__uint128_t *)(c->dataU64+i);
-//         c->dataU64[i+1]=0;
-//         *rst=*rst+(__uint128_t)(a->dataU64[i])*(__uint128_t)b;
-//     }
-//     c->num = a->num+(c->dataU64[a->num]!=0);
-// }
-
 void m_LIntMulInt(MArray *a,__int128_t b,MArray *c)
 {
     mException(INVALID_POINTER(a),EXIT,"invalid input");
@@ -294,32 +291,33 @@ void m_LIntMulInt(MArray *a,__int128_t b,MArray *c)
     
     mArrayRedefine(c,a->num+1,sizeof(uint64_t));
     
-    int sign=(b<0);if(sign) b=0-b;
-    LIntMulU128(a,(__uint128_t)b,c);
-    SIGN(c)=(SIGN(a)!=sign);
+    uint8_t sign=(b<0);if(sign) b=0-b;
+    LIntMulInt(a,(__uint128_t)b,c);
     
+    SIGN(c)=(SIGN(a)!=sign);TYPE(c)=LInt_NUL;//DATA(c)=0;
     if(pc==a) mArrayDataExchange(a,c);
 }
 
 void m_LIntMul(MArray *a,MArray *b,MArray *c)
 {
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
+    
     LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
     if(c==NULL) {c=a;} MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff2();
-    mArrayRedefine(c,a->num+b->num,sizeof(uint64_t));
-    LIntMulU128(a,(__uint128_t)(b->dataU64[1]),c);
+    mArrayRedefine(c,a->num+b->num+2,sizeof(uint64_t));
     
+    LIntMulInt(a,(__uint128_t)(b->dataU64[2]),c);
     MArray *d=LIntBuff1();
     mArrayRedefine(d,a->num+b->num,sizeof(uint64_t));
-    for(int i=2;i<b->num;i++)
+    for(int i=3;i<b->num;i++)
     {
-        LIntMulU128(a,(__uint128_t)(b->dataU64[i]),d);
-        memmove(d->dataU64+i,d->dataU64+1,(d->num-1)*sizeof(uint64_t));
-        memset(d->dataU64+1,0,(i-1)*sizeof(uint64_t));
-        d->num+=i-1;
+        LIntMulInt(a,(__uint128_t)(b->dataU64[i]),d);
+        memmove(d->dataU64+i,d->dataU64+2,(d->num-2)*sizeof(uint64_t));
+        memset(d->dataU64+2,0,(i-2)*sizeof(uint64_t));
+        d->num+=i-2;
         m_LIntAdd(d,c,c);
     }
-    SIGN(c)=(SIGN(a)!=SIGN(b));
+    SIGN(c)=(SIGN(a)!=SIGN(b));TYPE(c)=LInt_NUL;//DATA(c)=0;
     
     if(pc==a) mArrayDataExchange(a,c);
     if(pc==b) mArrayDataExchange(b,c);
@@ -327,61 +325,48 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
 
 void LIntCaculate(MArray *a,int32_t b,MArray *c,int type)
 {
-    MHandle *hdl=mHandle(c,LInt);hdl->valid=1;
-    struct HandleLInt *handle=hdl->handle;
-    if(handle->type==LInt_NUL) {handle->type=type;handle->data=b;return;}
-    
-    if((handle->type==LInt_ADD)&&(type==LInt_ADD))
+    uint8_t a_type=TYPE(a);__int128_t a_data=DATA(a);
+    if(a_type==LInt_NUL) 
     {
-        __int128_t data=handle->data+b;
-        if((data>0x7ffffffffffeffff)||(data<0-0x7ffffffffffeffff))
-            {m_LIntAddInt(a,data,c);handle->data=0;handle->type=LInt_NUL;}
-        else{if(a!=c){mArrayDataExchange(a,c);} handle->data=data;}
+        if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));}
+        TYPE(c)=type;DATA(c)=b;
         return;
     }
-    if((handle->type==LInt_SUB)&&(type==LInt_SUB))
+    if((a_type==LInt_MUL)&&(type==LInt_MUL))
     {
-        __int128_t data=handle->data+b;
-        if((data>0x7ffffffffffeffff)||(data<0-0x7ffffffffffeffff))
-            { m_LIntSubInt(a,data,c);handle->data=0;handle->type=LInt_NUL;}
-        else{if(a!=c){mArrayDataExchange(a,c);} handle->data=data;}
-        return;
-    }
-    if(handle->type+type==1)
-    {
-        __int128_t data=handle->data-b;
-        if((data>0x7ffffffffffeffff)||(data<0-0x7ffffffffffeffff))
+        __int128_t data=a_data*b;
+        if((data>0x0ffffffffffffffff)||(data<0-0x0ffffffffffffffff))
         {
-            if(handle->type==LInt_ADD) m_LIntAddInt(a,data,c);
-            else                       m_LIntSubInt(a,data,c);
-            handle->data=0;handle->type=LInt_NUL;
+            m_LIntMulInt(a,a_data,c);
+            TYPE(c)=LInt_MUL;DATA(c)=b;
         }
-        else{if(a!=c){mArrayDataExchange(a,c);} handle->data=data;}
-        return;
-    }
-    if((handle->type==LInt_MUL)&&(type==LInt_MUL))
-    {
-        __int128_t data=handle->data*b;
-        if((data>0x0ffffffffffff)||(data<0-0x0ffffffffffff))
-            { m_LIntMulInt(a,data,c);handle->data=0;handle->type=LInt_NUL;}
-        else{if(a!=c){mArrayDataExchange(a,c);} handle->data=data;}
+        else
+        {
+            if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));}
+            TYPE(c)=LInt_MUL;DATA(c)=data;
+        }
         return;
     }
     
-         if(handle->type==LInt_ADD) m_LIntAddInt(a,handle->data,c);
-    else if(handle->type==LInt_SUB) m_LIntSubInt(a,handle->data,c);
-    else if(handle->type==LInt_MUL) m_LIntMulInt(a,handle->data,c);
+    if((a_type==LInt_ADD)&&(type==LInt_ADD)) {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)+(__int128_t)b;return;}
+    if((a_type==LInt_SUB)&&(type==LInt_SUB)) {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)+(__int128_t)b;return;}
+    if((a_type+type==3)&&(type!=0))          {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)-(__int128_t)b;return;}
     
-    handle->type=type;handle->data=b;
+    
+         if(a_type==LInt_ADD) m_LIntAddInt(a,a_data,c);
+    else if(a_type==LInt_SUB) m_LIntSubInt(a,a_data,c);
+    else if(a_type==LInt_MUL) m_LIntMulInt(a,a_data,c);
+    
+    TYPE(c)=type;DATA(c)=(__int128_t)b;
 }
 
-void LIntDivU64(MArray *a,uint64_t b,MArray *c,int64_t *remainder)
+void LIntDivInt(MArray *a,uint64_t b,MArray *c,int64_t *remainder)
 {
     int i=a->num-1;
     __uint128_t rst = (__uint128_t)(a->dataU64[i]);
     c->dataU64[i]=(uint64_t)(rst/b); rst=rst%b;
     c->num = (c->dataU64[i]==0)?(a->num-1):a->num;
-    for(i=i-1;i>=1;i--)
+    for(i=i-1;i>=2;i--)
     {
         rst=(rst<<64)+(__uint128_t)(a->dataU64[i]);
         c->dataU64[i]=(uint64_t)(rst/b);rst=rst%b;
@@ -400,9 +385,9 @@ void m_LIntDivInt(MArray *a,int b,MArray *c,int *remainder)
     int sign=(b<0);if(sign) b=0-b;
     
     int64_t rmd;
-    LIntDivU64(a,(uint64_t)b,c,&rmd);
+    LIntDivInt(a,(uint64_t)b,c,&rmd);
     *remainder=(int)rmd;
-    SIGN(c) = (SIGN(a)!=sign);
+    SIGN(c) = (SIGN(a)!=sign);TYPE(c)=LInt_NUL;//DATA(c)=0;
     if(pc==a) mArrayDataExchange(a,c);
 }
 
@@ -450,7 +435,7 @@ void m_LIntDiv(MArray *a,MArray *b,MArray *c,MArray *remainder)
     }
     memcpy(remainder->dataU64,a->dataU64,a->num*sizeof(uint64_t));remainder->num=a->num;
     memcpy(a->dataU64,buff,num_a*sizeof(uint64_t));a->num=num_a;mFree(buff);
-    SIGN(c) = (SIGN(a)!=SIGN(b));
+    SIGN(c) = (SIGN(a)!=SIGN(b));TYPE(c)=LInt_NUL;//DATA(c)=0;
     SIGN(remainder)=SIGN(a);
     
     if(pc==a) mArrayDataExchange(a,c);
@@ -470,17 +455,16 @@ void mLIntToString(MArray *a,char *str)
     
     MArray *buff1 = LIntBuff1(); mArrayRedefine(buff1,num,sizeof(uint64_t));
     MArray *buff2 = LIntBuff2(); mArrayRedefine(buff2,num,sizeof(uint64_t));
-    SIGN(buff1)=0;memcpy(buff1->dataU64+1,a->dataU64+1,(num-1)*sizeof(uint64_t));
+    memcpy(buff1->dataU64+2,a->dataU64+2,(num-2)*sizeof(uint64_t));
     
     int64_t *rst = mMalloc(num*2*sizeof(int64_t));
-    
     int i=num+num-1;
     while(1)
     {
-        LIntDivU64(buff1,100000000000000000,buff2,rst+i);i--;
-        if(buff2->num==1) break;
-        LIntDivU64(buff2,100000000000000000,buff1,rst+i);i--;
-        if(buff1->num==1) break;
+        LIntDivInt(buff1,100000000000000000,buff2,rst+i);i--;
+        if(buff2->num==2) break;
+        LIntDivInt(buff2,100000000000000000,buff1,rst+i);i--;
+        if(buff1->num==2) break;
     }
     
     i=i+1;sprintf(str,"%ld",rst[i]);str+=strlen(str);
@@ -493,19 +477,18 @@ void mLIntToString(MArray *a,char *str)
 void mStringToLInt(MArray *a,const char *str)
 {
     mException(INVALID_POINTER(a),EXIT,"invalid input");
-    MHandle *hdl=mHandle(a,LInt);hdl->valid=1;
-    if(hdl->valid==1) {struct HandleLInt *handle=hdl->handle;handle->type=LInt_NUL;handle->data=0;}
+    
     int l = strlen(str);
     mArrayRedefine(a,l/10,sizeof(uint64_t));
     memset(a->dataU64,0,a->num*sizeof(uint64_t));
-    SIGN(a)=0;
     if(str[0]=='-') {str++;l--;SIGN(a)=1;}
+    TYPE(a)=LInt_NUL;//DATA(a)=0;
     
     MArray *c = LIntBuff1();mArrayRedefine(c,a->num,sizeof(uint64_t));
-    memset(c->dataU64,0,a->num*sizeof(uint64_t));
+    memset(c->dataU64,0,c->num*sizeof(uint64_t));
     
     char buff[10];buff[9]=0;
-    memcpy(buff,str  ,9*sizeof(char)); int b=atoi(buff);
+    memcpy(buff,str,9*sizeof(char)); int b=atoi(buff);
     mIntToLInt(a,(int64_t)b);
     
     int i=9;for(;i<=l-9;i+=9)

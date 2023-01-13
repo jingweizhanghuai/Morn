@@ -377,15 +377,15 @@ int mLIntCompare(MArray *a,MArray *b);
 void LIntCaculate(MArray *a,int32_t b,MArray *c,int type);
 
 void m_LIntAdd(MArray *a,MArray *b,MArray *c);
-#define _LIntAdd(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,0):m_LIntAdd(A,(MArray *)((intptr_t)(B)),C))
+#define _LIntAdd(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,1):m_LIntAdd(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntAdd(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntAdd(A,B,A):_LIntAdd(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntSub(MArray *a,MArray *b,MArray *c);
-#define _LIntSub(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,1):m_LIntSub(A,(MArray *)((intptr_t)(B)),C))
+#define _LIntSub(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,2):m_LIntSub(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntSub(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntSub(A,B,A):_LIntSub(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntMul(MArray *a,MArray *b,MArray *c);
-#define _LIntMul(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,2):m_LIntMul(A,(MArray *)((intptr_t)(B)),C))
+#define _LIntMul(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,3):m_LIntMul(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntMul(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntMul(A,B,A):_LIntMul(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntDivInt(MArray *a,int b,MArray *c,int *remainder);
