@@ -26,6 +26,7 @@ void endWaveCreate(struct HandleWaveCreate *handle)
 MWave *mWaveCreate(int cn,int size,float **data)
 {
     MWave *wave = (MWave *)ObjectAlloc(sizeof(MWave));
+    mObjectType(wave)=HASH_WaveCreate;
     MHandle *hdl = mHandle(wave,WaveCreate);
     struct HandleWaveCreate *handle = (struct HandleWaveCreate *)(hdl->handle);
     handle->wave = wave;

@@ -18,7 +18,7 @@ void endChainCreate(struct HandleChainCreate *handle)
 MChain *mChainCreate()
 {
     MObject *chain = mObjectCreate();
-    
+    mObjectType(chain)=HASH_ChainCreate;
     MHandle *hdl=mHandle(chain,ChainCreate);hdl->valid =1;
     struct HandleChainCreate *handle = (struct HandleChainCreate *)(hdl->handle);
     

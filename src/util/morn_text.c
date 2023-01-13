@@ -1,5 +1,10 @@
+/*
+Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
 #include "morn_util.h"
 
+#define HASH_Text 0x93a49bd4
 void mFileText(MArray *text,const char *file_name,...)
 {
     char filename[256];
@@ -11,6 +16,7 @@ void mFileText(MArray *text,const char *file_name,...)
     mException(f==NULL,EXIT,"can not find file %s",filename);
     int size = fsize(f);
     mArrayRedefine(text,size+1,1,NULL);
+    mObjectType(text)=HASH_Text;
     fread(text->text,size,1,f);
     text->text[size]=0;
     fclose(f);

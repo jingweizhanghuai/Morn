@@ -416,6 +416,7 @@ void endMemory(struct HandleMemory *handle)
 MMemory *mMemoryCreate(int num,int size,int device)
 {
     MMemory *memory = ObjectAlloc(sizeof(MMemory));
+    mObjectType(memory)=HASH_Memory;
     MHandle *hdl=mHandle(memory,Memory);hdl->valid = 1;
     if(num<0) {mException(size>0,EXIT,"invalid input"); return memory;}
     

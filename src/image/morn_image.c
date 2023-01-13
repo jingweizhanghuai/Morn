@@ -45,6 +45,7 @@ MImage *ImageCreate(int cn,int height,int width,unsigned char **data[])
     mException((cn>MORN_MAX_IMAGE_CN),EXIT,"invalid input");
 
     MImage *img = (MImage *)ObjectAlloc(sizeof(MImage));
+    mObjectType(img)=HASH_ImageCreate;
     img->height = height;img->width = width;img->channel = cn;
     
     MHandle *hdl=mHandle(img,ImageCreate);

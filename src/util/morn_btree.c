@@ -19,7 +19,7 @@ void endBtreeCreate(void *info)
 MBtree *mBtreeCreate()
 {
     MBtree *btree = mObjectCreate();
-    
+    mObjectType(btree)=HASH_BtreeCreate;
     mHandle(btree,BtreeCreate);
     
     return btree;

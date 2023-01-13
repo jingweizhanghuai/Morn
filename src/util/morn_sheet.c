@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
@@ -45,6 +45,7 @@ void endSheetCreate(struct HandleSheetCreate *handle)
 MSheet *SheetCreate(int row,int *col,void **info,void ***data)
 {
     MSheet *sheet = (MSheet *)ObjectAlloc(sizeof(MSheet));
+    mObjectType(sheet)=HASH_SheetCreate;
     MHandle *hdl=mHandle(sheet,SheetCreate);
     struct HandleSheetCreate *handle = (struct HandleSheetCreate *)(hdl->handle);
     handle->sheet = sheet;
@@ -475,6 +476,7 @@ void mSheetReorder(MSheet *sheet)
     }
 }
 
+/*
 inline uint16_t _LookupHash(const void *p,int size)
 {
     if(size==1) return ((uint16_t)(*(uint8_t *)p));
@@ -698,5 +700,5 @@ void mHashSheetElementDelete(MSheet *sheet,void *key,int key_size)
     
     handle->num -= 1;
 }
-
+*/
 

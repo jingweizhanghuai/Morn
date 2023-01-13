@@ -255,55 +255,45 @@ int mQueueSize(MList *queue);
 void *mQueueWrite(MList *queue,void *data,int size);
 void *mQueueRead(MList *queue,void *data,int *size);
 
-void m_ThreadPool(void *function,void *para,int *flag,float priority);
-#define mThreadPool(Func,...) do{\
+void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int priority);
+#define mThreadPool(Ptr,...) do{\
     int VAN=VANumber(__VA_ARGS__);\
-         if(VAN==0) m_ThreadPool(Func,NULL,NULL,0.0f);\
-    else if(VAN==1) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
-    else if(VAN==2) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),0.0f);\
-    else if(VAN==3) m_ThreadPool(Func,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(float)VA2(__VA_ARGS__));\
-    else mException(1,EXIT,"invalid input");\
-}while(0)
-
-/*
-#ifdef __linux
-struct CoroutineInfo
-{
-    char name[64];
-    ucontext_t ctx;
-    void *function;
-    int flag;
-    struct CoroutineInfo *prev;
-    struct CoroutineInfo *next;
-};
-extern __thread struct CoroutineInfo *morn_coroutine_info;
-struct CoroutineInfo *coroutine_info(const char *name);
-#define m_Coroutine(Func,...) do{\
-    static struct CoroutineInfo *Info0  = NULL;\
-    if(Info0==NULL) Info0=coroutine_info(__FUNCTION__);\
-    struct CoroutineInfo *Info1 = Info0->next;\
-    int Info1_valid= (Info1!=NULL);\
-    if(Info1_valid) Info1_valid=(strcmp(Info1->name,#Func)==0);\
-    if(!Info1_valid) {Info1=coroutine_info(#Func);Info0->next=Info1;}\
-    if(Info1->flag==-1) morn_coroutine_info=Info0;\
-    else {\
-        morn_coroutine_info=Info1;\
-        if(Info1->flag==0){Info1->prev=Info0;makecontext(&(Info1->ctx),(void*)Func,VANumber(__VA_ARGS__)-1,__VA_ARGS__);Info1->flag=1;}\
-        mException(swapcontext(&(Info0->ctx),&(Info1->ctx)),EXIT,"swapcontext error");\
+    if((Ptr==NULL)||(mObjectType(Ptr)==0xfa6c59f))\
+    {\
+             if(VAN==1) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),NULL,NULL,0.0f);\
+        else if(VAN==2) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL,0.0f);\
+        else if(VAN==3) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)((intptr_t)VA2(__VA_ARGS__)),0.0f);\
+        else if(VAN==4) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)((intptr_t)VA2(__VA_ARGS__)),(int)VA3(__VA_ARGS__));\
+        else mException(1,EXIT,"invalid input");\
+    }\
+    else\
+    {\
+             if(VAN==0) m_ThreadPool(NULL,Ptr,NULL,NULL,0.0f);\
+        else if(VAN==1) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
+        else if(VAN==2) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),0.0f);\
+        else if(VAN==3) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__));\
+        else mException(1,EXIT,"invalid input");\
     }\
 }while(0)
-#define mCoroutine(...) m_Coroutine(__VA_ARGS__,NULL)
-#endif
-*/
 
-void *_CoroutineInfo(const char *name);
-void m_Coroutine(void *info,const char *name1,void *func,void *para);
-#define _Coroutine(Func,...) do{\
-    static void *Coroutine_Info=NULL;\
-    if(Coroutine_Info==NULL) {Coroutine_Info=_CoroutineInfo(__FUNCTION__);}\
-    m_Coroutine(Coroutine_Info,#Func,Func,_VA0(__VA_ARGS__));\
+// void m_Coroutine(void *func,void *para);
+// #define mCoroutine(...) do{\
+//     if(VANumber(__VA_ARGS__)==0) m_Coroutine(NULL,NULL);\
+//     else m_Coroutine((void *)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__));\
+// }while(0)
+
+void *m_CoroutineInfo(void *func,void *para,int *Flag);
+void m_Coroutine(void *info);
+#define _Coroutine(Func,Para,Flag) do{\
+    static void *Info=NULL;\
+    void *Key[2]={Func,Para};\
+    if((Info==NULL)||(memcmp(Key,Info,2*sizeof(void *))!=0)) Info=m_CoroutineInfo(Func,Para,Flag);\
+    m_Coroutine(Info);\
 }while(0)
-#define mCoroutine(...) _Coroutine(__VA_ARGS__,NULL)
+#define mCoroutine(...) do{\
+    if(VANumber(__VA_ARGS__)==0) _Coroutine(NULL,NULL,NULL);\
+    else _Coroutine((void *)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));\
+}while(0)
 
 #ifdef __cplusplus
 }

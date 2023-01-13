@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
@@ -27,6 +27,7 @@ void endVectorCreate(struct HandleVectorCreate *handle)
 MVector *VectorCreate(int size,float *data)
 {
     MVector *vec = (MVector *)ObjectAlloc(sizeof(MVector));
+    mObjectType(vec)=HASH_VectorCreate;
     MHandle *hdl=mHandle(vec,VectorCreate);
     struct HandleVectorCreate *handle = (struct HandleVectorCreate *)(hdl->handle);
     handle->vec = vec;
@@ -130,6 +131,7 @@ void endMatrixCreate(struct HandleMatrixCreate *handle)
 MMatrix *MatrixCreate(int row,int col,float **data)
 {
     MMatrix *mat = (MMatrix *)ObjectAlloc(sizeof(MMatrix));
+    mObjectType(mat)=HASH_MatrixCreate;
     MHandle *hdl=mHandle(mat,MatrixCreate);
     struct HandleMatrixCreate *handle = (struct HandleMatrixCreate *)(hdl->handle);
     handle->mat = mat;

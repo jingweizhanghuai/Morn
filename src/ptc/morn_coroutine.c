@@ -8,11 +8,11 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #ifdef WINDOWS
 struct CoroutineInfo
 {
-    char name[64];
-    void *fiber;
     void *func;
     void *para;
+    void *fiber;
     int flag;
+    int *p_flag;
     struct CoroutineInfo *prev;
     struct CoroutineInfo *next;
 };
@@ -20,10 +20,11 @@ struct CoroutineInfo
 struct HandleCoroutine
 {
     MChain *map;
+    struct CoroutineInfo *info;
 };
 int CoroutineRelease(void *p,int a,struct CoroutineInfo *info,int b)
 {
-    if(info->flag<0) DeleteFiber(info->fiber);
+    if(*(info->p_flag)>=0) DeleteFiber(info->fiber);
     return 0;
 }
 void endCoroutine(struct HandleCoroutine *handle)
@@ -37,59 +38,76 @@ void mornCoroutineFunction(struct CoroutineInfo *info)
 {
     void (*func)(void *) = info->func;
     func(info->para);
-    info->flag=-1;
+    *(info->p_flag)=1;
     while(1) SwitchToFiber(info->prev->fiber);
 }
 
 __thread struct HandleCoroutine *morn_coroutine_handle = NULL;
-void *_CoroutineInfo(const char *name)
+void *m_CoroutineInfo(void *func,void *para,int *flag)
 {
-    struct CoroutineInfo *info=NULL;
-    if(morn_coroutine_handle==NULL)
+    if((intptr_t)flag==DFLT) flag=NULL;
+    if((intptr_t)func==DFLT) func=NULL;
+    __thread struct HandleCoroutine *handle=morn_coroutine_handle;
+    struct CoroutineInfo *info0=NULL;
+    void *key[2];
+    if(handle==NULL)
     {
+        if(flag!=NULL) *flag=0;
         MHandle *hdl=mHandle("Coroutine",Coroutine);
-        struct HandleCoroutine *handle = hdl->handle;
+        handle = hdl->handle;
         if(!mHandleValid(hdl))
         {
             if(handle->map==NULL) handle->map=mChainCreate();
-            info=mornMapWrite(handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
-            strncpy(info->name,name,63);
-            info->flag=1;info->func=NULL;info->prev=NULL;info->next=NULL;
-            info->fiber=ConvertThreadToFiber(NULL);
-
+            
+            key[0]=NULL;key[1]=NULL;
+            info0=mornMapWrite(handle->map,key,2*sizeof(void *),NULL,sizeof(struct CoroutineInfo));
+            info0->flag=-1;info0->p_flag=&(info0->flag);
+            info0->func=NULL;info0->para=NULL;
+            info0->prev=NULL;info0->next=NULL;
+            info0->fiber=ConvertThreadToFiber(NULL);
+            handle->info=info0;
+            
             morn_coroutine_handle = handle;
             hdl->valid=1;
         }
     }
-    if(info==NULL) info=mornMapRead(morn_coroutine_handle->map,name,DFLT,NULL,NULL);
-    return info;
-}
-
-void m_Coroutine(void *info,const char *name1,void *func,void *para)
-{
-    struct CoroutineInfo *info0=info;
+    info0=handle->info;
+    
     struct CoroutineInfo *info1=info0->next;
-    int info1_valid= (info1!=NULL);
-    if(info1_valid) info1_valid=(strcmp(info1->name,name1)==0);
-    if(!info1_valid) info1=mornMapRead(morn_coroutine_handle->map,name1,DFLT,NULL,NULL);
+    int valid=(info1!=NULL);
+    if( valid) valid=(info1->func==func)&&(info1->para==para);
+    if(!valid) {key[0]=func;key[1]=para;info1=mornMapRead(handle->map,key,2*sizeof(void *),NULL,NULL);}
     if(info1==NULL)
     {
-        info1=mornMapWrite(morn_coroutine_handle->map,name1,DFLT,NULL,sizeof(struct CoroutineInfo));
-        info0->next=info1;
-        strncpy(info1->name,name1,63);
-        info1->func=func;info1->para=para;info1->flag=0;
-        info1->prev=info0;
+        if(flag!=NULL) *flag=0;
+        key[0]=func;key[1]=para;
+        info1=mornMapWrite(handle->map,key,2*sizeof(void *),NULL,sizeof(struct CoroutineInfo));
         info1->fiber = CreateFiber(0,(LPFIBER_START_ROUTINE)mornCoroutineFunction,info1);
+        info1->flag=0;info1->p_flag=(flag!=NULL)?flag:&(info1->flag);
+        info1->func=func;info1->para=para;
+        info1->next=NULL;info1->prev=info0;
     }
-    if(info1->flag>=0) SwitchToFiber(info1->fiber);
+    info0->next=info1;
+    return info1;
+}
+
+void m_Coroutine(void *info)
+{
+    struct CoroutineInfo *info1=info;
+    if(*(info1->p_flag)==1) return;
+    
+    morn_coroutine_handle->info=info1;
+    SwitchToFiber(info1->fiber);
 }
 
 #else
 struct CoroutineInfo
 {
-    char name[64];
+    void *func;
+    void *para;
     ucontext_t ctx;
     int flag;
+    int *p_flag;
     struct CoroutineInfo *prev;
     struct CoroutineInfo *next;
 };
@@ -97,11 +115,12 @@ struct CoroutineInfo
 struct HandleCoroutine
 {
     MChain *map;
-    ucontext_t *ctx0;
+    ucontext_t *end_ctx;
+    struct CoroutineInfo *info;
 };
 int CoroutineRelease(void *p,int a,struct CoroutineInfo *info,int b)
 {
-    if(info->flag<0) if(info->ctx.uc_stack.ss_sp) free(info->ctx.uc_stack.ss_sp);
+    if(*(info->p_flag)>=0) if(info->ctx.uc_stack.ss_sp) free(info->ctx.uc_stack.ss_sp);
     return 0;
 }
 void endCoroutine(struct HandleCoroutine *handle)
@@ -110,88 +129,98 @@ void endCoroutine(struct HandleCoroutine *handle)
     if(handle->map!=NULL) mChainRelease(handle->map);
 }
 
-__thread struct CoroutineInfo *morn_coroutine_info=NULL;
 __thread struct HandleCoroutine *morn_coroutine_handle = NULL;
 
 void endCoroutineFunc()
 {
-    swapcontext(morn_coroutine_handle->ctx0,&(morn_coroutine_info->ctx));
+    struct HandleCoroutine *handle=morn_coroutine_handle;
+    swapcontext(handle->end_ctx,&(handle->info->ctx));
     while(1)
     {
-        if(morn_coroutine_info!=NULL)
+        if(handle->info!=NULL)
         {
-            morn_coroutine_info->flag=-1;
-            morn_coroutine_info = morn_coroutine_info->prev;
-            swapcontext(morn_coroutine_handle->ctx0,&(morn_coroutine_info->ctx));
+            *(handle->info->p_flag)=1;
+            handle->info = handle->info->prev;
+            swapcontext(handle->end_ctx,&(handle->info->ctx));
         }
     }
 }
 
-void *_CoroutineInfo(const char *name)
+void *m_CoroutineInfo(void *func,void *para,int *flag)
 {
-    struct CoroutineInfo *info;
-    int ctx0_valid=1;
-    if(morn_coroutine_handle==NULL)
+    if((intptr_t)flag==DFLT) flag=NULL;
+    if((intptr_t)func==DFLT) func=NULL;
+    struct HandleCoroutine *handle=morn_coroutine_handle;
+    struct CoroutineInfo *info0=NULL;
+    void *key[2];
+    if(handle==NULL)
     {
+        if(flag!=NULL) *flag=0;
         MHandle *hdl=mHandle("Coroutine",Coroutine);
-        struct HandleCoroutine *handle = hdl->handle;
+        handle = hdl->handle;
+        
         if(!mHandleValid(hdl))
         {
             if(handle->map==NULL) handle->map=mChainCreate();
-            info = mornMapWrite(handle->map,"endCoroutineFunc",DFLT,NULL,sizeof(struct CoroutineInfo));
-            strcpy(info->name,"endCoroutineFunc");
-            getcontext(&(info->ctx));
-            info->flag=1;
-            info->ctx.uc_stack.ss_sp = malloc(1024);
-            info->ctx.uc_stack.ss_size = 1024;
-            info->ctx.uc_link = NULL;
-            makecontext(&(info->ctx),(void*)endCoroutineFunc,0);
-            handle->ctx0=&(info->ctx);
-            ctx0_valid=0;
-        
+            
+            key[0]=endCoroutineFunc;key[1]=NULL;
+            info0 = mornMapWrite(handle->map,key,2*sizeof(void *),NULL,sizeof(struct CoroutineInfo));
+            getcontext(&(info0->ctx));
+            info0->flag=0;info0->p_flag=&(info0->flag);
+            info0->func=endCoroutineFunc;info0->para=NULL;
+            info0->ctx.uc_stack.ss_sp = malloc(1024);
+            info0->ctx.uc_stack.ss_size = 1024;
+            info0->ctx.uc_link = NULL;
+            makecontext(&(info0->ctx),(void*)endCoroutineFunc,0);
+            handle->end_ctx=&(info0->ctx);
+            
+            key[0]=NULL;key[1]=NULL;
+            info0 = mornMapWrite(handle->map,key,2*sizeof(void *),NULL,sizeof(struct CoroutineInfo));
+            getcontext(&(info0->ctx));
+            info0->flag=-1;info0->p_flag=&(info0->flag);
+            info0->func=NULL;info0->para=NULL;
+            info0->ctx.uc_stack.ss_sp = NULL;
+            info0->ctx.uc_link = NULL;
+            info0->prev=NULL;info0->next=NULL;
+            handle->info=info0;
+            
             morn_coroutine_handle = handle;
+            swapcontext(&(info0->ctx),handle->end_ctx);
+            
             hdl->valid=1;
         }
     }
-    info=mornMapRead(morn_coroutine_handle->map,name,DFLT,NULL,NULL);
-    if(info!=NULL) return info;
+    info0=handle->info;
     
-    info = mornMapWrite(morn_coroutine_handle->map,name,DFLT,NULL,sizeof(struct CoroutineInfo));
-    strncpy(info->name,name,63);
-    getcontext(&(info->ctx));
-    
-    if(ctx0_valid==0)
+    struct CoroutineInfo *info1=info0->next;
+    int valid=(info1!=NULL);
+    if( valid) valid=(info1->func==func)&&(info1->para==para);
+    if(!valid) {key[0]=func;key[1]=para;info1=mornMapRead(handle->map,key,2*sizeof(void *),NULL,NULL);}
+    if(info1==NULL)
     {
-        info->prev=NULL;
-        info->flag=1;
-        morn_coroutine_info = info;
-        info->ctx.uc_stack.ss_sp = NULL;
-        swapcontext(&(info->ctx),morn_coroutine_handle->ctx0);
+        if(flag!=NULL) *flag=0;
+        key[0]=func;key[1]=para;
+        info1 = mornMapWrite(handle->map,key,2*sizeof(void *),NULL,sizeof(struct CoroutineInfo));
+        getcontext(&(info1->ctx));
+        info1->flag=0;info1->p_flag=(flag!=NULL)?flag:&(info1->flag);
+        info1->func=func;info1->para=para;
+        info1->ctx.uc_stack.ss_sp = malloc(256*1024);;
+        info1->ctx.uc_stack.ss_size = 256*1024;
+        info1->ctx.uc_link = handle->end_ctx;
+        info1->next=NULL;info1->prev=info0;
+        makecontext(&(info1->ctx),(void*)func,1,para);
     }
-    else
-    {
-        info->flag=0;
-        info->ctx.uc_stack.ss_sp = malloc(256*1024);;
-        info->ctx.uc_stack.ss_size = 256*1024;
-        info->ctx.uc_link = morn_coroutine_handle->ctx0;
-    }
-    return info;
+    info0->next=info1;
+    return info1;
 }
 
-void m_Coroutine(void *info,const char *name1,void *func,void *para) 
+void m_Coroutine(void *info)
 {
-    struct CoroutineInfo *info0 = info;
-    struct CoroutineInfo *info1 = info0->next;
-    int info1_valid= (info1!=NULL);
-    if(info1_valid) info1_valid=(strcmp(info1->name,name1)==0);
+    struct CoroutineInfo *info0,*info1=info;
+    if(*(info1->p_flag)==1) return;
     
-    if(!info1_valid) {info1=_CoroutineInfo(name1);info0->next=info1;}
-    
-    if(info1->flag==-1) morn_coroutine_info=info0;
-    else {
-        morn_coroutine_info=info1;
-        if(info1->flag==0){info1->prev=info0;makecontext(&(info1->ctx),(void*)func,1,para);info1->flag=1;}
-        mException(swapcontext(&(info0->ctx),&(info1->ctx)),EXIT,"swapcontext error");
-    }
+    info0=morn_coroutine_handle->info;
+    morn_coroutine_handle->info=info1;
+    mException(swapcontext(&(info0->ctx),&(info1->ctx)),EXIT,"swapcontext error");
 }
 #endif

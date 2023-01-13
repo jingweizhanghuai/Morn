@@ -724,16 +724,23 @@ struct HandleList
     int latest_flag;
     int latest_n;
     volatile int valid;
+    int type;
 };
-
+#define mObjectType(Obj) (((struct HandleList *)Obj)[-1].type)
 void *ObjectAlloc(int size);
 void ObjectFree(void *obj);
 void mHandleReset(void *p);
 #define mReset(Obj) mHandleReset(Obj)
 MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
-#define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
-// MHandle *ObjHandle(void *Obj,int N);
+// #define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
+#define mHandle(Obj,Func) ({\
+    static MHandle *_Handle=NULL;\
+    static void *_Obj=NULL;\
+    if((_Handle==NULL)||(_Obj!=Obj)) {_Obj=Obj;_Handle=GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func));}\
+    _Handle;\
+})
+
 #define ObjHandle(Obj,N) ((MHandle *)(((struct HandleList *)Obj)[-1].list.data[N]))
 int mHandleValid(MHandle *hdl);
 

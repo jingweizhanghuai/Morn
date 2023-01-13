@@ -30,10 +30,10 @@ void endListCreate(struct HandleListCreate *handle)
 MList *ListCreate(int num,void **data)
 {
     MList *list = ObjectAlloc(sizeof(MList));
+    mObjectType(list)=HASH_ListCreate;
     MHandle *hdl=mHandle(list,ListCreate);
     struct HandleListCreate *handle = (struct HandleListCreate *)(hdl->handle);
     handle->list = list;
-
     
     if(num<0) num = 0;
     handle->num = num;
@@ -45,9 +45,8 @@ MList *ListCreate(int num,void **data)
         if(!INVALID_POINTER(data)) memcpy(handle->data,data,num*sizeof(void *));
         else                       memset(handle->data,   0,num*sizeof(void *));
     }
-    else
-        mException((!INVALID_POINTER(data)),EXIT,"invalid input");
-
+    else mException((!INVALID_POINTER(data)),EXIT,"invalid input");
+       
     mPropertyFunction(list,"device",mornMemoryDevice,NULL);
     list->data = handle->data;
     return list;

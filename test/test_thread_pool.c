@@ -37,7 +37,6 @@ void test_no_adjust()
     }
 
     mPropertyRead("ThreadPool","thread_num",&thread_num);
-    
     mPropertyWrite("ThreadPool","exit");
     printf("thread_num=%d\n",thread_num);
     

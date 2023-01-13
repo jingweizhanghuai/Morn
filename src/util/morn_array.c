@@ -73,6 +73,7 @@ void endArrayCreate(struct HandleArrayCreate *handle)
 MArray *ArrayCreate(int num,int element_size,void *data)
 {
     struct _MArray *array = ObjectAlloc(sizeof(MArray));
+    mObjectType(array)=HASH_ArrayCreate;
     if(num<0) {num = 0;} array->num = num;
     if(element_size<0) {element_size=0;} array->element_size=element_size;
     

@@ -137,12 +137,13 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     MChainNode *node;
     int *data;
 
-    MList *hlist = (MList *)(((struct HandleList *)map)-1);//((MList **)map)[-1];
+    MList *hlist = (MList *)(((struct HandleList *)map)-1);
     MHandle *hdl;
     if(hlist->num<3) hdl = mHandle(map,MornMap);
     else {hdl = (MHandle *)(hlist->data[2]);mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");}
     struct HandleMornMap *handle = (struct HandleMornMap *)(hdl->handle);
-    if(hdl->valid == 0)
+    
+    if(!mHandleValid(hdl))
     {
         if(handle->list==NULL)
         {
@@ -161,7 +162,6 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     }
     if(key_size  <=0) {key_size  = strlen((char *)key  )  ;} int mkey_size  =((key_size  +7)>>3)*(8/sizeof(int));
     if(value_size<=0) {value_size= strlen((char *)value)+1;} int mvalue_size=((value_size+7)>>3)*(8/sizeof(int));
-    
     int flag;MChainNode *p = _MapNode(handle,key,key_size,&flag);
     if(flag!=DFLT)
     {
@@ -429,6 +429,7 @@ MMap *mMapCreate()
     MChain **amap = mMalloc(256*sizeof(MChain *));
     memset(amap,0,256*sizeof(MChain *));
     MMap *map=mObjectCreate(amap);
+    mObjectType(map)=HASH_MornMap;
     mPropertyFunction(map,"overwrite",MapOverWrite,map);
     return map;
 }
@@ -690,8 +691,9 @@ void *mBimapWrite(MChain *map,const void *key,int key_size,const void *value,int
     if(hlist->num<3) hdl = mHandle(map,MornMap);
     else {hdl = (MHandle *)(hlist->data[2]);mException(hdl->flag!= HASH_MornMap,EXIT,"invalid map");}
     struct HandleBimap *handle = (struct HandleBimap *)(hdl->handle);
-    if(hdl->valid == 0)
+    if(!mHandleValid(hdl))
     {
+        mObjectType(map)=HASH_Bimap;
         if(handle->list==NULL)
         {
             handle->list=(MChainNode **)mMalloc(129*sizeof(MChainNode *));

@@ -37,6 +37,7 @@ void endTensorCreate(struct HandleTensorCreate *handle)
 MTensor *TensorCreate(int batch,int channel,int height,int width,float **data,int device)
 {
     MTensor *tns = (MTensor *)ObjectAlloc(sizeof(MTensor));
+    mObjectType(tns)=HASH_TensorCreate;
     MHandle *hdl=mHandle(tns,TensorCreate);
     struct HandleTensorCreate *handle = (struct HandleTensorCreate *)(hdl->handle);
     handle->tns = tns;
