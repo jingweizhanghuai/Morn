@@ -297,6 +297,12 @@ void m_LIntMulInt(MArray *a,int64_t b,MArray *c)
 void m_LIntMul(MArray *a,MArray *b,MArray *c)
 {
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
+    
+    __int128_t c_data=1;
+    if(TYPE(a)!=LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else c_data =DATA(a);
+    if(TYPE(b)!=LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else c_data*=DATA(b);
+    if((c_data>0x07fffffffffffffff)||(c_data<0-0x07fffffffffffffff)){LIntCaculate(b,0,b,LInt_NUL);c_data=DATA(a);}
+    
     LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
     if(c==NULL) {c=a;} MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff2();
     mArrayRedefine(c,a->num+b->num+2,sizeof(uint64_t));
@@ -312,7 +318,7 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
         d->num+=i-2;
         m_LIntAdd(d,c,c);
     }
-    SIGN(c)=(SIGN(a)!=SIGN(b));TYPE(c)=LInt_NUL;//DATA(c)=0;
+    SIGN(c)=(SIGN(a)!=SIGN(b));if(c_data==1){TYPE(c)=LInt_NUL;}else{TYPE(c)=LInt_MUL;DATA(c)=c_data;}
     
     if(pc==a) mArrayDataExchange(a,c);
     if(pc==b) mArrayDataExchange(b,c);
