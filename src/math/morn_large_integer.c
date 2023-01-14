@@ -752,6 +752,13 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
     if(pc==b) mArrayDataExchange(b,c);
 }
 
+void LIntCaculate(MArray *a,int32_t b,MArray *c,int type)
+{
+         if(type==1) m_LIntAddInt(a,b,c);
+    else if(type==2) m_LIntSubInt(a,b,c);
+    else if(type==3) m_LIntMulInt(a,b,c);
+}
+
 void LIntDivU32(MArray *a,uint32_t b,MArray *c,int32_t *remainder)
 {
     int i=a->num-1;
