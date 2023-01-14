@@ -56,15 +56,9 @@ struct HandleLIntBuff *LIntIint()
 #endif
 
 #ifdef LInt128
-struct LIntInfo
-{
-    uint8_t sign;
-    uint8_t type;
-    __int128_t data:112;
-};
-#define SIGN(A) (((struct LIntInfo *)((A)->data))->sign)
-#define TYPE(A) (((struct LIntInfo *)((A)->data))->type)
-#define DATA(A) (((struct LIntInfo *)((A)->data))->data)
+#define SIGN(A) (a->dataS32[0])
+#define TYPE(A) (a->dataS32[1])
+#define DATA(A) (a->dataS64[1])
 void mIntToLInt(MArray *a,int64_t in)
 {
     mArrayRedefine(a,32,sizeof(int64_t));
@@ -86,7 +80,7 @@ void m_LIntAdd(MArray *a,MArray *b,MArray *c)
     if(a->num<b->num) {m_LIntAdd(b,a,c);return;}
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
     
-    __int128_t c_data=0;
+    int64_t c_data=0;
     if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
     if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data+DATA(b):c_data-DATA(b);
     
@@ -190,7 +184,7 @@ void m_LIntSub(MArray *a,MArray *b,MArray *c)
     if(c==NULL) c=a;
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
     
-    __int128_t c_data=0;
+    int64_t c_data=0;
     if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
     if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data-DATA(b):c_data+DATA(b);
     
@@ -291,7 +285,7 @@ void m_LIntMulInt(MArray *a,__int128_t b,MArray *c)
     
     mArrayRedefine(c,a->num+1,sizeof(uint64_t));
     
-    uint8_t sign=(b<0);if(sign) b=0-b;
+    int32_t sign=(b<0);if(sign) b=0-b;
     LIntMulInt(a,(__uint128_t)b,c);
     
     SIGN(c)=(SIGN(a)!=sign);TYPE(c)=LInt_NUL;//DATA(c)=0;
@@ -323,35 +317,32 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
     if(pc==b) mArrayDataExchange(b,c);
 }
 
+#define LIntCopy(A,C,Type,Data) do{\
+    if(A!=C)\
+    {\
+        mArrayRedefine(C,A->num,sizeof(uint64_t));\
+        memcpy(C->dataU64+2,A->dataU64+2,(A->num-2)*sizeof(uint64_t));\
+        SIGN(C)=SIGN(A);\
+    }\
+    TYPE(C)=Type;\
+    DATA(C)=Data;\
+}while(0)
 void LIntCaculate(MArray *a,int32_t b,MArray *c,int type)
 {
-    uint8_t a_type=TYPE(a);__int128_t a_data=DATA(a);
-    if(a_type==LInt_NUL) 
-    {
-        if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));}
-        TYPE(c)=type;DATA(c)=b;
-        return;
-    }
+    int32_t a_type=TYPE(a);int64_t a_data=DATA(a);
+    if(a_type==LInt_NUL) {LIntCopy(a,c,type,b);return;}
     if((a_type==LInt_MUL)&&(type==LInt_MUL))
     {
-        __int128_t data=a_data*b;
-        if((data>0x0ffffffffffffffff)||(data<0-0x0ffffffffffffffff))
-        {
-            m_LIntMulInt(a,a_data,c);
-            TYPE(c)=LInt_MUL;DATA(c)=b;
-        }
-        else
-        {
-            if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));}
-            TYPE(c)=LInt_MUL;DATA(c)=data;
-        }
+        __int128_t data=(__int128_t)a_data*b;
+        if((data>0x07fffffffffffffff)||(data<0-0x07fffffffffffffff))
+            {m_LIntMulInt(a,a_data,c);TYPE(c)=LInt_MUL;DATA(c)=b;}
+        else LIntCopy(a,c,LInt_MUL,data);
         return;
     }
     
-    if((a_type==LInt_ADD)&&(type==LInt_ADD)) {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)+(__int128_t)b;return;}
-    if((a_type==LInt_SUB)&&(type==LInt_SUB)) {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)+(__int128_t)b;return;}
-    if((a_type+type==3)&&(type!=0))          {if(a!=c) {mArrayRedefine(c,a->num,sizeof(uint64_t));memcpy(c->dataU64,a->dataU64,a->num*sizeof(uint64_t));} DATA(c)=DATA(c)-(__int128_t)b;return;}
-    
+    if((a_type==LInt_ADD)&&(type==LInt_ADD)) {LIntCopy(a,c,LInt_ADD,DATA(c)+b);return;}
+    if((a_type==LInt_SUB)&&(type==LInt_SUB)) {LIntCopy(a,c,LInt_SUB,DATA(c)+b);return;}
+    if((a_type+type==3)&&(type!=0))          {LIntCopy(a,c, a_type ,DATA(c)-b);return;}
     
          if(a_type==LInt_ADD) m_LIntAddInt(a,a_data,c);
     else if(a_type==LInt_SUB) m_LIntSubInt(a,a_data,c);
