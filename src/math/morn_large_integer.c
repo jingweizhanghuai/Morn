@@ -81,8 +81,9 @@ void m_LIntAdd(MArray *a,MArray *b,MArray *c)
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
     
     int64_t c_data=0;
-    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
+    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(a):     0-DATA(a);
     if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data+DATA(b):c_data-DATA(b);
+    if((c_data>0x07fffffffffffffff)||(c_data<0-0x07fffffffffffffff)){LIntCaculate(b,0,b,LInt_NUL);c_data=(TYPE(a)==LInt_ADD)?DATA(a):0-DATA(a);}
     
     if((SIGN(a)==0)&&(SIGN(b)==1)) {SIGN(b)=0;m_LIntSub(a,b,c);SIGN(b)=1;return;}
     if((SIGN(a)==1)&&(SIGN(b)==0)) {SIGN(a)=0;m_LIntSub(b,a,c);SIGN(a)=1;return;}
@@ -184,9 +185,10 @@ void m_LIntSub(MArray *a,MArray *b,MArray *c)
     if(c==NULL) c=a;
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
     
-    int64_t c_data=0;
-    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(b):     0-DATA(b);
+    __int128_t c_data=0;
+    if(TYPE(a)==LInt_MUL) LIntCaculate(a,0,a,LInt_NUL);else if(TYPE(a)) c_data=(TYPE(a)==LInt_ADD)?       DATA(a):     0-DATA(a);
     if(TYPE(b)==LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else if(TYPE(b)) c_data=(TYPE(b)==LInt_ADD)?c_data-DATA(b):c_data+DATA(b);
+    if((c_data>0x07fffffffffffffff)||(c_data<0-0x07fffffffffffffff)){LIntCaculate(b,0,b,LInt_NUL);c_data=(TYPE(a)==LInt_ADD)?DATA(a):0-DATA(a);}
     
     if((SIGN(a)==0)&&(SIGN(b)==1)) {SIGN(b)=0;m_LIntAdd(a,b,c);SIGN(b)=1;return;}
     if((SIGN(a)==1)&&(SIGN(b)==0)) {SIGN(b)=1;m_LIntAdd(a,b,c);SIGN(b)=0;return;}
