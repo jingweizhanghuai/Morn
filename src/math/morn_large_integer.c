@@ -278,7 +278,7 @@ void LIntMulInt(MArray *a,__uint128_t b,MArray *c)
     else {c->dataU64[a->num]=(uint64_t)rst; c->num=a->num+1;}
 }
 
-void m_LIntMulInt(MArray *a,__int128_t b,MArray *c)
+void m_LIntMulInt(MArray *a,int64_t b,MArray *c)
 {
     mException(INVALID_POINTER(a),EXIT,"invalid input");
     if(c==NULL) {c=a;} MArray *pc=c;if(c==a) c=LIntBuff2();
@@ -295,7 +295,6 @@ void m_LIntMulInt(MArray *a,__int128_t b,MArray *c)
 void m_LIntMul(MArray *a,MArray *b,MArray *c)
 {
     mException(INVALID_POINTER(a)||INVALID_POINTER(b),EXIT,"invalid input");
-    
     LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
     if(c==NULL) {c=a;} MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff2();
     mArrayRedefine(c,a->num+b->num+2,sizeof(uint64_t));
@@ -330,25 +329,26 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
 void LIntCaculate(MArray *a,int32_t b,MArray *c,int type)
 {
     int32_t a_type=TYPE(a);int64_t a_data=DATA(a);
-    if(a_type==LInt_NUL) {LIntCopy(a,c,type,b);return;}
-    if((a_type==LInt_MUL)&&(type==LInt_MUL))
+    if(  type==LInt_NUL) goto end_LIntCaculate;
+    if(a_type==LInt_NUL){LIntCopy(a,c,type,b);return;}
+    if(type==LInt_MUL)
     {
         __int128_t data=(__int128_t)a_data*b;
-        if((data>0x07fffffffffffffff)||(data<0-0x07fffffffffffffff))
-            {m_LIntMulInt(a,a_data,c);TYPE(c)=LInt_MUL;DATA(c)=b;}
-        else LIntCopy(a,c,LInt_MUL,data);
-        return;
+        if((data>0x07fffffffffffffff)||(data<0-0x07fffffffffffffff)) goto end_LIntCaculate;
+        LIntCopy(a,c,a_type,data);return;
+    }
+    if(a_type<LInt_MUL)
+    {
+        __int128_t data=(a_type==type)?((__int128_t)a_data+b):((__int128_t)a_data-b);
+        if((data>0x07fffffffffffffff)||(data<0-0x07fffffffffffffff)) goto end_LIntCaculate;
+        LIntCopy(a,c,a_type,data);return;
     }
     
-    if((a_type==LInt_ADD)&&(type==LInt_ADD)) {LIntCopy(a,c,LInt_ADD,DATA(c)+b);return;}
-    if((a_type==LInt_SUB)&&(type==LInt_SUB)) {LIntCopy(a,c,LInt_SUB,DATA(c)+b);return;}
-    if((a_type+type==3)&&(type!=0))          {LIntCopy(a,c, a_type ,DATA(c)-b);return;}
-    
-         if(a_type==LInt_ADD) m_LIntAddInt(a,a_data,c);
-    else if(a_type==LInt_SUB) m_LIntSubInt(a,a_data,c);
-    else if(a_type==LInt_MUL) m_LIntMulInt(a,a_data,c);
-    
-    TYPE(c)=type;DATA(c)=(__int128_t)b;
+    end_LIntCaculate:
+         if(a_type==LInt_ADD) {m_LIntAddInt(a,a_data,c);TYPE(c)=type;DATA(c)=(__int128_t)b;return;}
+    else if(a_type==LInt_SUB) {m_LIntSubInt(a,a_data,c);TYPE(c)=type;DATA(c)=(__int128_t)b;return;}
+    else if(a_type==LInt_MUL) {m_LIntMulInt(a,a_data,c);TYPE(c)=type;DATA(c)=(__int128_t)b;return;}
+    LIntCopy(a,c,type,b);return;
 }
 
 void LIntDivInt(MArray *a,uint64_t b,MArray *c,int64_t *remainder)
