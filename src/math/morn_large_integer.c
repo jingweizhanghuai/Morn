@@ -303,7 +303,6 @@ void m_LIntMul(MArray *a,MArray *b,MArray *c)
     if(TYPE(b)!=LInt_MUL) LIntCaculate(b,0,b,LInt_NUL);else c_data*=DATA(b);
     if((c_data>0x07fffffffffffffff)||(c_data<0-0x07fffffffffffffff)){LIntCaculate(b,0,b,LInt_NUL);c_data=DATA(a);}
     
-    LIntCaculate(a,0,a,LInt_NUL);LIntCaculate(b,0,b,LInt_NUL);
     if(c==NULL) {c=a;} MArray *pc=c;if((c==a)||(c==b)) c=LIntBuff2();
     mArrayRedefine(c,a->num+b->num+2,sizeof(uint64_t));
     
