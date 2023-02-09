@@ -4,7 +4,7 @@
 
 void test_boost()
 {
-    FILE *f=fopen("a_Q_zheng_zhuan.txt","rb");
+    FILE *f=fopen("./testdata/a_Q_zheng_zhuan.txt","rb");
     int size = fsize(f);
     char *data=(char *)malloc(size);
     size=fread(data,1,size,f);
@@ -27,7 +27,7 @@ void test_boost()
 
 void test_Morn()
 {
-    FILE *f=fopen("a_Q_zheng_zhuan.txt","rb");
+    FILE *f=fopen("./testdata/a_Q_zheng_zhuan.txt","rb");
     int size = fsize(f);
     char *data=(char *)malloc(size);
     size=fread(data,1,size,f);
@@ -44,10 +44,11 @@ void test_Morn()
     free(data);
 }
 
-int main(int arc,char *argv[])
+int main(int argc,char *argv[])
 {
-    if(strcmp(argv[1],"boost")==0) test_boost();
-    else                           test_Morn();
+         if(argc<=1)                    test_Morn();
+    else if(strcmp(argv[1],"boost")==0) test_boost();
+    else                                test_Morn();
     return 0;
 }
 

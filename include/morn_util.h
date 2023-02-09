@@ -263,9 +263,12 @@ int64_t m_StringTime(char *in,const char *format);
 #define BIG_ENDIAN 4321
 #endif
 
+#if defined MORN_ENDIAN
+#define mEndian() MORN_ENDIAN
+#else
 extern int morn_endian; //=1,morn_codec.c
 #define mEndian() ((*((uint8_t *)&morn_endian))?LITTLE_ENDIAN:BIG_ENDIAN)
-
+#endif
 
 void m_Exception(int err,int ID,const char *file,int line,const char *function,const char *message,...);
 
@@ -274,11 +277,11 @@ void m_Exception(int err,int ID,const char *file,int line,const char *function,c
 #define MORN_WARNING 48
 #define MORN_ERROR   64
 const char *mLogLevel();
-#define mLogFormat1(Message) "[%s,line %d,function %s]%s: " Message "\n",__FILE__,__LINE__,__FUNCTION__,mLogLevel()
+#define mLogFormat1(Message) "[%s,line %d function %s]%s: " Message "\n",__FILE__,__LINE__,__FUNCTION__,mLogLevel()
 #define mLogFormat2(Message) "[%s]%s: " Message "\n",mTimeNowString(),mLogLevel()
 #define mLogFormat3(Message) "[thread%03d]%s: " Message "\n",mThreadID(),mLogLevel()
 #define mLogFormat4(Message) "[%s thread%03d]%s: " Message "\n",mTimeNowString(),mThreadID(),mLogLevel()
-#define mLogFormat5(Message) "[%s thread%03d %s,line %d,function %s]%s: " Message "\n",mTimeNowString(),mThreadID(),__FILE__,__LINE__,__FUNCTION__,mLogLevel()
+#define mLogFormat5(Message) "[%s thread%03d %s,line %d function %s]%s: " Message "\n",mTimeNowString(),mThreadID(),__FILE__,__LINE__,__FUNCTION__,mLogLevel()
 extern __thread int morn_log_level;
 extern int morn_log_levelset;
 void m_Log(int Level,const char *format,...);
@@ -549,7 +552,16 @@ void ArrayRedefine(MArray *array,int num,int element_size,void *data);
     else if(VAN==3) ArrayRedefine(Array,VA0(__VA_ARGS__),VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)));\
     else mException(1,EXIT,"invalid input with argument number");\
 }while(0)
-void mArrayAppend(MArray *arr,int n);
+// void mArrayAppend(MArray *arr,int n);
+void m_ArrayAppend(MArray *array,void *data,int n);
+#define mArrayAppend(Array,...) do{\
+    int VAN = VANumber(__VA_ARGS__);\
+         if(VAN==1) m_ArrayAppend(Array,NULL,(intptr_t)VA0(__VA_ARGS__));\
+    else if(VAN==2) m_ArrayAppend(Array,(void *)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input with argument number");\
+}while(0)
+    
+
 #define mArrayClear(Array) do{Array->num=0;}while(0)
 void mArrayElementDelete(MArray *array,int n);
 void mArrayDataExchange(MArray *arr1,MArray *arr2);
@@ -733,13 +745,7 @@ void mHandleReset(void *p);
 #define mReset(Obj) mHandleReset(Obj)
 MHandle *GetHandle(void *p,int size,unsigned int hash,void (*end)(void *));
 #define mObject(P) ((sizeof(P[0])==sizeof(char))?mMornObject(P,DFLT):(MObject *)(P))
-// #define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
-#define mHandle(Obj,Func) ({\
-    static MHandle *_Handle=NULL;\
-    static void *_Obj=NULL;\
-    if((_Handle==NULL)||(_Obj!=Obj)) {_Obj=Obj;_Handle=GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func));}\
-    _Handle;\
-})
+#define mHandle(Obj,Func) GetHandle(mObject(Obj),sizeof(struct Handle##Func),HASH_##Func,(void (*)(void *))(end##Func))
 
 #define ObjHandle(Obj,N) ((MHandle *)(((struct HandleList *)Obj)[-1].list.data[N]))
 int mHandleValid(MHandle *hdl);

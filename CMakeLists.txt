@@ -1,0 +1,130 @@
+cmake_minimum_required(VERSION 2.4.0)
+cmake_policy(SET CMP0003 NEW)
+cmake_policy(SET CMP0048 NEW)
+cmake_policy(SET CMP0065 NEW)
+set(PROJECT_VERSION 1.0.0)
+
+if (CMAKE_VERSION VERSION_LESS 3.0)
+    project(Morn C)
+else()
+    project(Morn VERSION ${PROJECT_VERSION} LANGUAGES C)
+endif()
+message("${PROJECT_NAME} cmake version: ${CMAKE_VERSION}")
+message("${PROJECT_NAME} project version: ${PROJECT_VERSION}")
+message("${PROJECT_NAME} compiler: ${CMAKE_C_COMPILER_ID}")
+
+# set(CMAKE_VERBOSE_MAKEFILE ON)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+add_definitions(-DNDEBUG)
+
+include(TestBigEndian)
+test_big_endian(FLAG_BIG_ENDIAN)
+if(${FLAG_BIG_ENDIAN})
+    message("${PROJECT_NAME} using big_endian")
+    add_definitions(-DMORN_ENDIAN=4321)
+else()
+    message("${PROJECT_NAME} using little_endian")
+    add_definitions(-DMORN_ENDIAN=1234)
+endif()
+
+include(CheckCCompilerFlag)
+if((${CMAKE_C_COMPILER_ID} STREQUAL Clang) OR (${CMAKE_C_COMPILER_ID} STREQUAL GNU))
+    set(MORN_C_FLAG -O2 -Wall -Wno-format -fopenmp)
+    list(LENGTH MORN_C_FLAG FLAG_NUM)
+    math(EXPR FLAG_NUM ${FLAG_NUM}-1)
+    foreach(I RANGE ${FLAG_NUM})
+        list(GET MORN_C_FLAG ${I} FLAG)
+        CHECK_C_COMPILER_FLAG(${FLAG} FLAG_VALID_${I})
+        if(${FLAG_VALID_${I}})
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAG}")
+        else()
+            message("${PROJECT_NAME} ${FLAG} is not avilid")
+        endif()
+    endforeach()
+# elseif(${CMAKE_C_COMPILER_ID} STREQUAL MSVC)
+endif()
+message("${PROJECT_NAME} compiler flag: ${CMAKE_C_FLAGS}")
+
+set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${INCLUDE_DIR})
+message("${PROJECT_NAME} include directorie: ${INCLUDE_DIR}")
+file(GLOB MORN_INCLUDE ${INCLUDE_DIR}/*.h)
+message("${PROJECT_NAME} include file:")
+foreach(INCLUDE_FILE ${MORN_INCLUDE})
+    message("    ${INCLUDE_FILE}")
+endforeach()
+install(FILES ${MORN_INCLUDE} DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+
+message("${PROJECT_NAME} source dir is ${CMAKE_CURRENT_SOURCE_DIR}")
+file(GLOB MORN_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/util/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/wave/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ptc/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/image/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/wrap/*.c
+)
+message("${PROJECT_NAME} source file:")
+foreach(SRC_FILE ${MORN_SRC})
+    message("    ${SRC_FILE}")
+endforeach()
+
+add_library(MORN_STATIC STATIC ${MORN_SRC})
+set_target_properties(MORN_STATIC PROPERTIES OUTPUT_NAME morn)
+install(TARGETS MORN_STATIC DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
+
+add_library(MORN_SHARED SHARED ${MORN_SRC})
+set_target_properties(MORN_SHARED PROPERTIES OUTPUT_NAME morn)
+if (NOT WIN32)
+    target_link_libraries(MORN_SHARED m pthread)
+endif()
+install(TARGETS MORN_SHARED
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+)
+
+set(TOOL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tool/)
+file(GLOB MORN_TOOL ${TOOL_DIR}*.c)
+list(LENGTH MORN_TOOL TOOL_NUM)
+math(EXPR TOOL_NUM ${TOOL_NUM}-1)
+foreach(N RANGE ${TOOL_NUM})
+    list(GET MORN_TOOL ${N} TOOL_SRC${N})
+    string(REGEX REPLACE ${TOOL_DIR} morn_ TOOL_FILE${N} ${TOOL_SRC${N}})
+    string(REGEX REPLACE .c$ .exe TOOL_EXE${N} ${TOOL_FILE${N}})
+    message("${PROJECT_NAME} tool file: ${TOOL_SRC${N}}\n\toutput: ${TOOL_EXE${N}}")
+    add_executable(${TOOL_EXE${N}} ${TOOL_SRC${N}})
+    if(NOT WIN32)
+        target_link_libraries(${TOOL_EXE${N}} MORN_STATIC m pthread)
+    else()
+        target_link_libraries(${TOOL_EXE${N}} MORN_STATIC)
+    endif()
+    install(TARGETS ${TOOL_EXE${N}} DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+endforeach()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
+install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake.in ${PROJECT_NAME}Config.cmake @ONLY)
+install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/${PROJECT_NAME})
+
+set(EXAMPLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/example/)
+file(GLOB MORN_EXAMPLE ${EXAMPLE_DIR}*.c)
+list(LENGTH MORN_EXAMPLE EXAMPLE_NUM)
+math(EXPR EXAMPLE_NUM ${EXAMPLE_NUM}-1)
+foreach(N RANGE ${EXAMPLE_NUM})
+    list(GET MORN_EXAMPLE ${N} EXAMPLE_SRC${N})
+    string(REGEX REPLACE ${EXAMPLE_DIR} "" EXAMPLE_FILE${N} ${EXAMPLE_SRC${N}})
+    string(REGEX REPLACE .c$ .exe EXAMPLE_EXE${N} ${EXAMPLE_FILE${N}})
+    message("${PROJECT_NAME} example file: ${EXAMPLE_SRC${N}}\n\toutput: ${EXAMPLE_EXE${N}}")
+    add_executable(${EXAMPLE_EXE${N}} ${EXAMPLE_SRC${N}})
+    if(NOT WIN32)
+        target_link_libraries(${EXAMPLE_EXE${N}} MORN_STATIC m pthread)
+    else()
+        target_link_libraries(${EXAMPLE_EXE${N}} MORN_STATIC)
+    endif()
+    set_target_properties(${EXAMPLE_EXE${N}} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXAMPLE_DIR})
+endforeach()

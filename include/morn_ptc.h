@@ -18,6 +18,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #ifdef LINUX
 #include <ucontext.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 #elif defined WINDOWS
 #include <windows.h>
 #endif
@@ -71,11 +73,16 @@ typedef struct MThreadSignal
     volatile int valid;
 }MThreadSignal;
 #define _ThreadLockInit(Sgn) do{\
-    if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
+    static int Sgn_valid=0;\
+    if(Sgn_valid==0)\
     {\
-        pthread_mutex_init( &((Sgn).mutex    ),PTHREAD_PROCESS_PRIVATE);\
-        pthread_cond_init(  &((Sgn).condition),PTHREAD_PROCESS_PRIVATE);\
-        pthread_rwlock_init(&((Sgn).rwlock   ),NULL);\
+        if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
+        {\
+            pthread_mutex_init( &((Sgn).mutex    ),PTHREAD_PROCESS_PRIVATE);\
+            pthread_cond_init(  &((Sgn).condition),PTHREAD_PROCESS_PRIVATE);\
+            pthread_rwlock_init(&((Sgn).rwlock   ),NULL);\
+        }\
+        Sgn_valid=1;\
     }\
 }while(0)
 #define mThreadLockBegin(Sgn) do{_ThreadLockInit(Sgn);pthread_mutex_lock(&((Sgn).mutex));}while(0)
@@ -199,20 +206,10 @@ typedef struct MThreadSignal
 #define  mReadLocked(Sgn) ((Sgn).state&MORN_READLOCKED )
 #define mWriteLocked(Sgn) ((Sgn).state&MORN_WRITELOCKED)
 
-#define THREAD_FUNC(F,P) mThreadBegin(pThrd++,F,P)
-#define THREAD_FUNC0(F,P) F(P)
-#define _mThread(Nl,F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,...) do{\
-    int VAN=Nl;\
-    mException(VAN<2,EXIT,"invalid Thread number");\
-    MThread Thrd[16];\
-    MThread *pThrd = &(Thrd[0]);\
-    THREAD_FUNC F1;\
-    if(VAN> 2) THREAD_FUNC F2;if(VAN> 3) THREAD_FUNC F3 ;if(VAN> 4) THREAD_FUNC F4 ;if(VAN> 5) THREAD_FUNC F5 ;if(VAN> 6) THREAD_FUNC F6 ;if(VAN> 7) THREAD_FUNC F7 ;if(VAN> 8) THREAD_FUNC F8 ;\
-    if(VAN> 9) THREAD_FUNC F9;if(VAN>10) THREAD_FUNC F10;if(VAN>11) THREAD_FUNC F11;if(VAN>12) THREAD_FUNC F12;if(VAN>13) THREAD_FUNC F13;if(VAN>14) THREAD_FUNC F14;if(VAN>15) THREAD_FUNC F15;\
-    THREAD_FUNC0 F0;\
-    for(int I=0;I<VAN-1;I++) {mThreadEnd(&(Thrd[I]));}\
-}while(0)
-#define mThread(...) _mThread(VANumber(__VA_ARGS__),__VA_ARGS__,(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL),(mNULL,NULL))
+void m_Thread(void *func,void *para,int *flag);
+#define mThread(...) m_Thread((void *)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)VA2(__VA_ARGS__));
+void mThreadJoin();
+void mThreadExit(void *func,void *para);
 
 void *m_ProcTopicWrite(const char *msgname,void *data,int size);
 void *m_ProcTopicRead(const char *msgname,void *data,int *size);
@@ -262,7 +259,12 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
     {\
              if(VAN==1) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),NULL,NULL,0.0f);\
         else if(VAN==2) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL,0.0f);\
-        else if(VAN==3) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)((intptr_t)VA2(__VA_ARGS__)),0.0f);\
+        else if(VAN==3)\
+        {\
+            intptr_t T1=(intptr_t)(VA2(__VA_ARGS__)+1);intptr_t T2=((intptr_t)VA2(__VA_ARGS__))+1;\
+            if(T1!=T2) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)((intptr_t)VA2(__VA_ARGS__)),0);\
+            else       m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL,(intptr_t)VA2(__VA_ARGS__));\
+        }\
         else if(VAN==4) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),(int *)((intptr_t)VA2(__VA_ARGS__)),(int)VA3(__VA_ARGS__));\
         else mException(1,EXIT,"invalid input");\
     }\
@@ -270,19 +272,18 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
     {\
              if(VAN==0) m_ThreadPool(NULL,Ptr,NULL,NULL,0.0f);\
         else if(VAN==1) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
-        else if(VAN==2) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),0.0f);\
-        else if(VAN==3) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__));\
+        else if(VAN==2)\
+        {\
+            intptr_t T1=(intptr_t)(VA2(__VA_ARGS__)+1);intptr_t T2=((intptr_t)VA2(__VA_ARGS__))+1;\
+            if(T1!=T2) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),0);\
+            else       m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),NULL,(intptr_t)VA1(__VA_ARGS__));\
+        }\
+        else if(VAN==3) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),(int)VA2(__VA_ARGS__));\
         else mException(1,EXIT,"invalid input");\
     }\
 }while(0)
 
-// void m_Coroutine(void *func,void *para);
-// #define mCoroutine(...) do{\
-//     if(VANumber(__VA_ARGS__)==0) m_Coroutine(NULL,NULL);\
-//     else m_Coroutine((void *)VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__));\
-// }while(0)
-
-void *m_CoroutineInfo(void *func,void *para,int *Flag);
+void *m_CoroutineInfo(void *func,void *para,int *flag);
 void m_Coroutine(void *info);
 #define _Coroutine(Func,Para,Flag) do{\
     static void *Info=NULL;\

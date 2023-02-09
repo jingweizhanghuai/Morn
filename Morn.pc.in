@@ -1,0 +1,10 @@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: Morn
+Version: @PROJECT_VERSION@
+Description: C Library of basic algorithm and basic tools
+URL: https://github.com/jingweizhanghuai/Morn
+Libs: -L${libdir} -lmorn
+Libs.private: -lm
+Cflags: -I${includedir}

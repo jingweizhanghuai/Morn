@@ -65,7 +65,6 @@ void endArrayCreate(struct HandleArrayCreate *handle)
     mException((handle->array == NULL),EXIT,"invalid array");
     if(handle->property!=NULL) mChainRelease(handle->property);
     if(handle->memory!= NULL) mMemoryBlockRelease(handle->memory);
-    
     memset(handle->array,0,sizeof(struct _MArray));
     // ObjectFree(handle->array);
 }
@@ -76,7 +75,7 @@ MArray *ArrayCreate(int num,int element_size,void *data)
     mObjectType(array)=HASH_ArrayCreate;
     if(num<0) {num = 0;} array->num = num;
     if(element_size<0) {element_size=0;} array->element_size=element_size;
-    
+     
     MHandle *hdl=mHandle(array,ArrayCreate);
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(hdl->handle);
     handle->writeable=1;
@@ -103,7 +102,6 @@ MArray *ArrayCreate(int num,int element_size,void *data)
         array->capacity = (num-array->num)&0x0FFFF;
     }
     mPropertyFunction(array,"device",mornMemoryDevice,NULL);
-    
     return (MArray *)array;
 }
 
@@ -111,6 +109,13 @@ void mArrayRelease(MArray *array)
 {
     ObjectFree(array);
 }
+
+// int ArrayCapacity(MArray *arr)
+// {
+//     mException(INVALID_POINTER(arr),EXIT,"invalid input");
+//     struct _MArray *array = (struct _MArray *)arr;
+//     return array->capacity;
+// }
 
 void ArrayRedefine(MArray *arr,int num,int element_size,void *data)
 {
@@ -203,30 +208,51 @@ void mArrayElementDelete(MArray *arr,int n)
 //     return p;
 // }
 
-void mArrayAppend(MArray *arr,int n)
+void m_ArrayAppend(MArray *array,void *data,int n)
 {
-    struct _MArray *array = (struct _MArray *)arr;
-    mException((INVALID_POINTER(array)),EXIT,"invalid input");
-    if(n<=0) n = array->num+1;
-    else mException(n<array->num,EXIT,"invalid input");
-    
-    if(n-array->num>array->capacity)
+    int es=array->element_size;
+    struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
+    if(array->num+n>handle->num)
     {
-        struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
-        if(n>handle->num)
-        {
-            MMemoryBlock *memory = mMemoryBlockCreate((n+256)*array->element_size,MORN_HOST);
-            if(array->num>0) memcpy(memory->data,array->dataS8,array->num*array->element_size);
-            if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
-            handle->memory =memory;
-            handle->num = n+256;
-            array->dataS8 = memory->data;
-        }
-        array->capacity = (handle->num-n)&0x0FFFF;
+        MMemoryBlock *memory = mMemoryBlockCreate((array->num+n+256)*es,MORN_HOST);
+        if(array->num>0) memcpy(memory->data,array->dataS8,array->num*es);
+        if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+        handle->memory =memory;
+        handle->num = array->num+n+256;
+        array->dataS8 = memory->data;
     }
-    else array->capacity -= (n-array->num);
-    array->num = n;
+    if(data!=NULL)
+    {
+        mException(n<=0,EXIT,"invalid input");
+        memcpy(array->dataU8+array->num*es,data,n*es);
+    }
+    array->num+=n;
+    ((struct _MArray *)array)->capacity = (handle->num-array->num)&0x0FFFF;
 }
+
+// void ArrayAppend(MArray *arr,int n)
+// {
+//     struct _MArray *array = (struct _MArray *)arr;
+//     mException((INVALID_POINTER(array)),EXIT,"invalid input");
+//     if(n<=0) n = array->num+1;
+//     
+//     if(n-array->num>array->capacity)
+//     {
+//         struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
+//         if(n>handle->num)
+//         {
+//             MMemoryBlock *memory = mMemoryBlockCreate((n+256)*array->element_size,MORN_HOST);
+//             if(array->num>0) memcpy(memory->data,array->dataS8,array->num*array->element_size);
+//             if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+//             handle->memory =memory;
+//             handle->num = n+256;
+//             array->dataS8 = memory->data;
+//         }
+//         array->capacity = (handle->num-n)&0x0FFFF;
+//     }
+//     else array->capacity -= (n-array->num);
+//     array->num = n;
+// }
 
 void *m_ArrayPushBack(MArray *arr,void *data)
 {
@@ -278,11 +304,28 @@ void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num)
     }
     else
     {
-        if(n<0) n=arr->num;
-        mArrayAppend(arr,n+num);
-        int es=arr->element_size;
+        struct _MArray *array = (struct _MArray *)arr;
+        int es=array->element_size;
+        if(n<0) n=array->num;
+        if(n-array->num>array->capacity)
+        {
+            struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
+            if(n>handle->num)
+            {
+                MMemoryBlock *memory = mMemoryBlockCreate((n+256)*es,MORN_HOST);
+                if(array->num>0) memcpy(memory->data,array->dataS8,array->num*es);
+                if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+                handle->memory =memory;
+                handle->num = n+256;
+                array->dataS8 = memory->data;
+            }
+            array->capacity = (handle->num-n)&0x0FFFF;
+        }
+        else array->capacity -= (n+1-array->num);
+        array->num = n;
+        
         S8 *p=(S8 *)(arr->dataS8+n*es);
-        memcpy(p,data,num*es);
+        if(data!=NULL) memcpy(p,data,num*es);
         return (void *)p;
     }
 }

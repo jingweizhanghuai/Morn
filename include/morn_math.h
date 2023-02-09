@@ -374,25 +374,33 @@ void mIntToLInt(MArray *a,int64_t in);
 int64_t mLIntToInt(MArray *a);
 
 int mLIntCompare(MArray *a,MArray *b);
-void LIntCaculate(MArray *a,int32_t b,MArray *c,int type);
 
 void m_LIntAdd(MArray *a,MArray *b,MArray *c);
-#define _LIntAdd(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,1):m_LIntAdd(A,(MArray *)((intptr_t)(B)),C))
+void m_LIntAddInt(MArray *a,int64_t b,MArray *c);
+#define _LIntAdd(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntAddInt(A,(int32_t)((intptr_t)(B)),C):m_LIntAdd(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntAdd(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntAdd(A,B,A):_LIntAdd(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntSub(MArray *a,MArray *b,MArray *c);
-#define _LIntSub(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,2):m_LIntSub(A,(MArray *)((intptr_t)(B)),C))
+void m_LIntSubInt(MArray *a,int64_t b,MArray *c);
+#define _LIntSub(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntSubInt(A,(int32_t)((intptr_t)(B)),C):m_LIntSub(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntSub(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntSub(A,B,A):_LIntSub(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntMul(MArray *a,MArray *b,MArray *c);
-#define _LIntMul(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?LIntCaculate(A,(int32_t)((intptr_t)(B)),C,3):m_LIntMul(A,(MArray *)((intptr_t)(B)),C))
+void m_LIntMulInt(MArray *a,int64_t b,MArray *c);
+#define _LIntMul(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntMulInt(A,(int32_t)((intptr_t)(B)),C):m_LIntMul(A,(MArray *)((intptr_t)(B)),C))
 #define mLIntMul(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntMul(A,B,A):_LIntMul(A,B,VA0(__VA_ARGS__)))
 
 void m_LIntDivInt(MArray *a,int b,MArray *c,int *remainder);
 void m_LIntDiv(MArray *a,MArray *b,MArray *c,MArray *remainder);
-#define _LIntDiv(A,B,C) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntDivInt(A,(int32_t)((intptr_t)(B)),C):m_LIntDiv(A,(MArray *)((intptr_t)(B)),C))
-#define mLIntDiv(A,B,...) ((VANumber(__VA_ARGS__)==0)?_LIntDiv(A,B,A):_LIntDiv(A,B,VA0(__VA_ARGS__)))
+#define _LIntDiv(A,B,C,D) (((intptr_t)((B)+1)==((intptr_t)(B))+1)?m_LIntDivInt(A,(int32_t)((intptr_t)(B)),C,D):m_LIntDiv(A,(MArray *)((intptr_t)(B)),C,D))
+#define mLIntDiv(A,B,...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==0) _LIntDiv(A,B,A,NULL);\
+    else if(VAN==1) _LIntDiv(A,B,VA0(__VA_ARGS__),NULL);\
+    else            _LIntDiv(A,B,VA0(__VA_ARGS__),VA1(__VA_ARGS__));\
+}while(0)
 
+void mFactorial(MArray *array,int n);
 void mLIntToString(MArray *a,char *str);
 void mStringToLInt(MArray *a,const char *str);
 

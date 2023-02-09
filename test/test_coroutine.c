@@ -3,43 +3,43 @@
 
 void test1(int *c)
 {
-    printf("test1 begin\n");
+//     printf("test1 begin\n");
     for(int i=0;*c;i++)
     {
         printf("running in test1,i=%d\n",i);
         mCoroutine();
     }
-    printf("test1 end\n");
+//     printf("test1 end\n");
 }
 
 void test2_1(int *c)
 {
-    printf("test2_1 begin\n");
+//     printf("test2_1 begin\n");
     for(int i=0;*c;i++)
     {
         printf("running in test2_1,i=%d\n",i);
         mCoroutine();
     }
-    printf("test2_1 end\n");
+//     printf("test2_1 end\n");
 }
 
 void test2(int *c)
 {
-    printf("test2 begin\n");
+//     printf("test2 begin\n");
     for(int i=0;*c;i++)
     {
         printf("running in test2,i=%d\n",i);
         mCoroutine(test2_1,c);
     }
     mCoroutine(test2_1,c);
-    printf("test2 end\n");
+//     printf("test2 end\n");
 }
 
 void test3(int *c)
 {
-    printf("test3 begin\n");
+//     printf("test3 begin\n");
     test1(c);
-    printf("test3 end\n");
+//     printf("test3 end\n");
 }
 
 int main()

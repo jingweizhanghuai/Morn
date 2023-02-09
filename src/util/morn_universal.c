@@ -289,7 +289,7 @@ void *m_PropertyWrite(MObject *obj,const char *key,const void *value,int value_s
     if(value==NULL) {value=&deft_value;value_size=sizeof(int);}
     else if(value_size<=0) value_size=strlen(value)+1;
     
-    struct HandleObjectCreate *handle = (struct HandleObjectCreate *)(ObjHandle(obj,0)->handle);
+    struct HandleObjectCreate *handle = ObjHandle(obj,0)->handle;
     if(handle->property==NULL) handle->property = mChainCreate();
 
     int vsize;
@@ -462,7 +462,7 @@ void mFile(MObject *object,const char *file_name,...)
 //         hdl->valid = 0;
 //     }
 // }
-
+ 
 void *ObjectAlloc(int size)
 {
     struct HandleList *hl = mMalloc(sizeof(struct HandleList)+size);
@@ -570,21 +570,13 @@ MChain *morn_object_map=NULL;
 #ifdef _MSC_VER
 void mMornEnd(void)
 {
-    // printf("endendendendendendendendendendend\n");
+    mThreadJoin();
+    
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
     
     if(morn_object_map!=NULL)
     {
-//         if(morn_object_map->chainnode!=NULL)
-//         {
-//             MChainNode *node = morn_object_map->chainnode->next;
-//             while(node!=morn_object_map->chainnode)
-//             {
-//                 mObjectRelease(*(MObject **)mornMapNodeValue(node));
-//                 node=node->next;
-//             }
-//         }
         mornMapNodeOperate(morn_object_map,mornObjectMapNodeRelease,NULL);
         mChainRelease(morn_object_map);
     }
@@ -605,26 +597,17 @@ __attribute__((constructor)) void mMornBegin()
 {
     if(morn_object==NULL) morn_object=mObjectCreate();
     if(morn_object_map==NULL) morn_object_map=mChainCreate();
-    // printf("before mai222n\n");
 }
 
 __attribute__((destructor)) void mMornEnd()
 {
+    mThreadJoin();
+    
     if(morn_object!=NULL) mObjectRelease(morn_object);
     morn_object=NULL;
-    // printf("aaaaaaaaaaa1111\n");
     
     if(morn_object_map!=NULL)
     {
-//         if(morn_object_map->chainnode!=NULL)
-//         {
-//             MChainNode *node = morn_object_map->chainnode->next;
-//             while(node!=morn_object_map->chainnode)
-//             {
-//                 mObjectRelease(*(MObject **)mornMapNodeValue(node));
-//                 node=node->next;
-//             }
-//         }
         mornMapNodeOperate(morn_object_map,mornObjectMapNodeRelease,NULL);
         mChainRelease(morn_object_map);
     }

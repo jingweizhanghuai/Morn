@@ -1,11 +1,11 @@
 /*
-Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
+Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_GLOG -o test_log2_glog.exe -lglog -lmorn
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_SPDLOG -o test_log2_spdlog.exe -lmorn
-// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_LOG4CPP -o test_log2_log4cpp.exe -llog4cpp -lmorn
-// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_BOOST -DBOOST_LOG_DYN_LINK -o test_log2_boost.exe -lboost_log -lboost_thread -lmorn
+// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_LOG4CPLUS -o test_log2_log4cplus.exe -lmorn -llog4cplusS
+// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_G3LOG -o test_log2_g3log.exe -lg3log -lmorn -lpthread
+// build: g++ -O2 -fopenmp test_log2.cpp -DUSE_EASYLOGGINGPP -o test_log2_easylogingpp.exe -lmorn
 // build: g++ -O2 -fopenmp test_log2.cpp -DUSE_MORN -o test_log2_morn.exe -lmorn
 
 #include "morn_ptc.h"
@@ -18,128 +18,129 @@ struct LogData
     int N;
 };
 
-#ifdef USE_GLOG
-#include "glog/logging.h"
-void test_glog(struct LogData *p)
-{
-    google::InitGoogleLogging("test_log");
-    google::SetLogDestination(google::GLOG_INFO, "./test_log_glog.log");
-    for(int n=0;n<p->N;n++)
-    {
-        int i=n%100;
-        LOG(INFO)<<": Hello glog, "<<"datai="<<p->datai[i]<<", datad="<<p->datad[i]<<", datas="<< p->datas+i*32;
-    }
-    google::ShutdownGoogleLogging();
-}
-#endif
-
 #ifdef USE_SPDLOG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "spdlog/spdlog.h"
-void test_spdlog(struct LogData *p)
+#include "spdlog/sinks/rotating_file_sink.h"
+std::shared_ptr<spdlog::logger> spd_logger;
+void log_init()
 {
-    spdlog::set_async_mode(4096);
-    auto logger = spdlog::daily_logger_st("test_log", "test_log_spdlog.log");
-    spdlog::set_pattern("[%Y.%m.%d %H:%M:%S thread%t]%l: %v");
+    spd_logger = spdlog::rotating_logger_mt("test_log", "test_log_spdlog.log",1024*1024,2);
+    spdlog::set_pattern("[%Y.%m.%d %H:%M:%S thread%t %s,line%# function %!]%l: %v");
+}
+void log_test(struct LogData *p)
+{
     for(int n=0;n<p->N;n++)
     {
         int i=n%100;
-        logger->info("[{} line {},function {}] Hello spdlog, datai={}, datad={}, datas={}",__FILE__,__LINE__,__FUNCTION__,p->datai[i],p->datad[i],p->datas+i*32);
+        SPDLOG_LOGGER_INFO(spd_logger,"Hello world, datai={}, datad={}, datas={}",p->datai[i],p->datad[i],p->datas+i*32);
     }
 }
 #endif
 
-#ifdef USE_BOOST
-#include <iostream>
-#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/timer.hpp>
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
-enum severity_level
+#ifdef USE_LOG4CPLUS
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+#include <log4cplus/fileappender.h>
+#include <log4cplus/layout.h>
+log4cplus::Logger log4cplus_logger;
+void log_init()
 {
-    normal,
-    notification,
-    info,
-    error,
-    critical
-};
-std::string level_string[5]={"normal","notification","info","error","critical"};
-
-
-BOOST_LOG_ATTRIBUTE_KEYWORD(_timestamp, "TimeStamp", boost::posix_time::ptime);
-void test_boost(struct LogData *p)
-{
-    boost::log::add_file_log
-    (
-        boost::log::keywords::file_name = "./test_log_boost.log",
-        boost::log::keywords::filter = boost::log::expressions::attr< severity_level >("Severity") >= info,
-        boost::log::keywords::format =
-        (
-             boost::log::expressions::stream
-                << "["
-                << boost::log::expressions::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y.%m.%d %H:%M:%S")
-//                 << boost::log::expressions::format_date_time<boost::log::attributes::timer::value_type >("Uptime", "%O:%M:%S")
-                << "]"
-                << boost::log::expressions::attr<severity_level>("Severity")
-                << ": " 
-                <<  boost::log::expressions::smessage
-        )
-    );
-    
-    boost::log::add_common_attributes();
-    
-    boost::log::sources::severity_logger<severity_level> slg;
-    slg.add_attribute("Uptime", boost::log::attributes::timer());
-        
-    for(int n=0;n<10;n++)
-    {
-        int i=n%100;
-        BOOST_LOG_SEV(slg,info) << "Hello Boost, datai=" << p->datai[i] <<", datad=" << p->datad[i] <<", datas=" << p->datas+i*32;
-    }
+    log4cplus::SharedAppenderPtr appender(new log4cplus::RollingFileAppender("test_log_log4cplus.log",1024*1024,2));
+    std::auto_ptr<log4cplus::Layout> layout(new log4cplus::PatternLayout("[%D thread%t %F line%L function %c]%p: %m%n"));
+    appender->setLayout(layout);
+    log4cplus_logger = log4cplus::Logger::getInstance("log_test");
+    log4cplus_logger.addAppender(appender);
 }
-
-
-#endif
-
-#ifdef USE_LOG4CPP
-#include "log4cpp/Category.hh"
-#include "log4cpp/FileAppender.hh"
-#include "log4cpp/Priority.hh"
-#include "log4cpp/PatternLayout.hh"
-void test_log4cpp(struct LogData *p)
+void log_test(struct LogData *p)
 {
-    log4cpp::FileAppender * appender = new log4cpp::FileAppender("appender","./test_log_log4cpp.log");
-    log4cpp::PatternLayout* pLayout = new log4cpp::PatternLayout();
-    pLayout->setConversionPattern("[%d thread%t %c]%p: %m%n");
-    appender->setLayout(pLayout);
-    log4cpp::Category& root =log4cpp::Category::getRoot();
-    log4cpp::Category& infoCategory =root.getInstance("test_log");
-    infoCategory.addAppender(appender);
-    infoCategory.setPriority(log4cpp::Priority::INFO);
     for(int n=0;n<p->N;n++)
     {
         int i=n%100;
-        infoCategory.info("[%s,line %d,function %s] Hello log4cpp, datai=%d, datad=%f, datas=%s",__FILE__,__LINE__,__FUNCTION__,p->datai[i],p->datad[i],p->datas+i*32);
+        LOG4CPLUS_INFO(log4cplus_logger, "Hello world, datai"<<p->datai[i]<<", datad="<<p->datad[i]<<", datas=" <<p->datas+i*32);
     }
-    log4cpp::Category::shutdown();
+}
+#endif
+
+#ifdef USE_G3LOG
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
+std::unique_ptr<g3::LogWorker> g3log_logger;
+std::string my_format(const g3::LogMessage& msg) 
+{
+    return "["+msg.timestamp()+" thread"+msg.threadID()+" "+msg.file()+",line"+msg.line()+ " function "+msg.function()+"]"+ msg.level()+": ";
+}
+void log_init()
+{
+    g3log_logger = g3::LogWorker::createLogWorker();
+    auto handle = g3log_logger->addDefaultLogger("test","");
+    g3::initializeLogging(g3log_logger.get());
+    auto changeFormatting = handle->call(&g3::FileSink::overrideLogDetails,my_format);
+    auto changeHeader = handle->call(&g3::FileSink::overrideLogHeader, "\n");
+    changeFormatting.wait();
+    changeHeader.wait();
+}
+void log_test(struct LogData *p)
+{
+    for(int n=0;n<p->N;n++)
+    {
+        int i=n%100;
+        LOG(INFO) << "Hello world, datai=" << p->datai[i] << ",datad=" << p->datad[i] << ",datas=" << p->datas+i*32;
+    }
+}
+#endif
+
+#ifdef USE_EASYLOGGINGPP
+#define ELPP_THREAD_SAFE
+#include "easylogging++.h"
+#include "easylogging++.cc"
+INITIALIZE_EASYLOGGINGPP
+el::Configurations easyloggingpp_logger;
+void log_init()
+{
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::Enabled, "true");
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::ToFile, "true");
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::Filename, "test_log_EasyloggingPP.log");
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::MaxLogFileSize, "1048576");
+    
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::ToStandardOutput, "false");
+    easyloggingpp_logger.setGlobally(el::ConfigurationType::Format,"[%datetime thread%thread %file,line %line function %func]%level: %msg");
+    el::Loggers::reconfigureAllLoggers(easyloggingpp_logger);
+}
+void log_test(struct LogData *p)
+{
+    for(int n=0;n<p->N;n++)
+    {
+        int i=n%100;
+        LOG(INFO) << "Hello world, datai=" << p->datai[i] << ",datad=" << p->datad[i] << ",datas=" << p->datas+i*32;
+    }
 }
 #endif
 
 #ifdef USE_MORN
-void test_morn(struct LogData *p)
+void log_init()
 {
-    mPropertyWrite("Log","log_file","./test_log_morn.log");
+    mPropertyWrite("Log","log_file","./test_log_Morn.log");
+    int size=1024*1024;mPropertyWrite("Log","log_filesize"  ,&size,sizeof(int));
+    int num=2;         mPropertyWrite("Log","log_filerotate",&num ,sizeof(int));
+}
+void log_test(struct LogData *p)
+{
     for(int n=0;n<p->N;n++)
     {
         int i=n%100;
-        mLog(MORN_INFO,mLogFormat5("Hello Morn, datai=%d, datad=%f, datas=%s"),p->datai[i],p->datad[i],p->datas+i*32);
+        mLog(MORN_INFO,mLogFormat5("Hello world, datai=%d, datad=%f, datas=%s"),p->datai[i],p->datad[i],p->datas+i*32);
     }
 }
 #endif
+
+void test(struct LogData *p,int thread_num)
+{
+    for(int i=1;i<thread_num;i++)
+        mThread(log_test,p);
+    log_test(p);
+    mThreadJoin();
+}
 
 int main(int argc, char** argv)
 {
@@ -149,41 +150,32 @@ int main(int argc, char** argv)
     for(int i=0;i<100;i++)
     {
         datai[i]=mRand(DFLT,DFLT);
-        datad[i]=(double)mRand(-1000000,1000000)/1000000.0;
-        mRandString(&(datas[i][0]),15,31);
+        datad[i]=(double)mRand(-1000000,1000000)/1234567.0;
+        mRandString(&(datas[i][0]),31);
     }
-    struct LogData data={.datai=datai,.datad=datad,.datas=(char *)datas,.N=1000000};
+    struct LogData data={.datai=datai,.datad=datad,.datas=(char *)datas};
     
-    #ifdef USE_GLOG
-    mTimerBegin("glog");
-    test_glog(&data);
-    mTimerEnd("glog");
-    #endif
+    log_init();
     
-    #ifdef USE_SPDLOG
-    mTimerBegin("spdlog");
-    test_spdlog(&data);
-    mTimerEnd("spdlog");
-    #endif
-    
-    #ifdef USE_BOOST
-    mTimerBegin("Boost");
-    test_boost(&data);
-    mTimerEnd("Boost");
-    #endif
+    data.N=1000000;
+    printf("thread_num=1:\n");
+    mTimerBegin();
+    test(&data,1);
+    mTimerEnd();
 
-    #ifdef USE_LOG4CPP
-    mTimerBegin("log4cpp");
-    test_log4cpp(&data);
-    mTimerEnd("log4cpp");
-    #endif
-    
-    #ifdef USE_MORN
-    mTimerBegin("Morn");
-    test_morn(&data);
-    mTimerEnd("Morn");
-    #endif
+    data.N=100000;
+    printf("thread_num=10:\n");
+    mTimerBegin();
+    test(&data,10);
+    mTimerEnd();
+     
+    data.N=10000;
+    printf("thread_num=100:\n");
+    mTimerBegin();
+    test(&data,100);
+    mTimerEnd();
 
     return 0;
 }
+
 

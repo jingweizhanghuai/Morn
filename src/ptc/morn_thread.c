@@ -5,21 +5,131 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #include "morn_ptc.h"
 
 void mNULL(void *p) {NULL;}
-
-static __thread int morn_thread_ID = -1;
-static int morn_thread_count = 0;
-static MThreadSignal morn_thread_signal = MORN_THREAD_SIGNAL;
 int mThreadID()
 {
-    if(morn_thread_ID==-1)
-    {
-        mThreadLockBegin(morn_thread_signal);
-        morn_thread_count +=1;
-        morn_thread_ID = morn_thread_count;
-        mThreadLockEnd(morn_thread_signal);
-    }
-    return morn_thread_ID;
+    static __thread int ID=0;
+    #if defined LINUX
+    if(ID==0) ID=syscall(__NR_gettid);
+    #elif defined WINDOWS
+    if(ID==0) ID=GetCurrentThreadId();
+    #endif
+    return ID;
 }
+
+struct ThreadInfo
+{
+    int ID;
+    MThread thrd;
+    void (*func)(void *);
+    void *para;
+    int *flag;
+    MList *exit;
+};
+
+struct HandleThread
+{
+    MList *list;
+    int ID;
+};
+void endThread(struct HandleThread *handle)
+{
+    if(handle->list!=NULL) mListRelease(handle->list);
+}
+// #define HASH_Thread 0xbc4bf36f
+struct HandleThread *morn_thread_handle=NULL;
+int morn_thread_ok=1;
+MList *ThreadList()
+{
+    struct HandleThread *handle=morn_thread_handle;
+    if(handle!=NULL) return handle->list;
+    MHandle *hdl=mHandle("Morn",Thread);
+    if(!mHandleValid(hdl))
+    {
+        handle=hdl->handle;
+        handle->ID=mThreadID();
+        if(handle->list==NULL) handle->list=mListCreate();
+        morn_thread_handle=handle;
+        hdl->valid=1;
+    }
+    return handle->list;
+}
+
+void mThreadJoin()
+{
+    if(morn_thread_ok) return;
+    morn_thread_ok=1;
+    
+    struct HandleThread *handle=morn_thread_handle;
+    for(int i=0;i<handle->list->num;i++)
+    {
+        struct ThreadInfo *info=handle->list->data[i];
+        mThreadEnd(&(info->thrd));
+    }
+    mListClear(handle->list);
+}
+
+void mThreadExit(void *func,void *para)
+{
+    int ID=mThreadID();
+    MList *list = ThreadList();
+    MList **exit=NULL;
+    if(ID==morn_thread_handle->ID) return;
+    for(int i=0;i<list->num;i++)
+    {
+        struct ThreadInfo *info=morn_thread_handle->list->data[i];
+        if(ID==info->ID) {exit=&(info->exit);break;}
+    }
+    if(exit==NULL) return;
+    if(*exit==NULL) *exit=mListCreate();
+    void **data=mListWrite(*exit,DFLT,NULL,2*sizeof(void *));
+    data[0]=func;
+    data[1]=para;
+}
+
+void ThreadFuc(struct ThreadInfo *info)
+{
+    info->ID=mThreadID();
+    info->func(info->para);
+    if(info->exit!=NULL)
+    {
+        for(int i=0;i<info->exit->num;i++)
+        {
+            void **data=(void **)(info->exit->data[i]);
+            void (*func)(void *) = data[0];
+            func(data[1]);
+        }
+        mListRelease(info->exit);
+    }
+    if(info->flag!=NULL) {*(info->flag)=1;}
+}
+void m_Thread(void *func,void *para,int *flag)
+{
+    morn_thread_ok=0;
+    MList *list = ThreadList();
+    if((intptr_t)flag<0)flag=NULL;
+    if(flag!=NULL) *flag=0;
+    mException((func==NULL)||((intptr_t)func==DFLT),EXIT,"invalid thread function");
+    if((intptr_t)flag==DFLT) flag=NULL;
+    if((intptr_t)para==DFLT) para=NULL;
+    struct ThreadInfo *info=mListWrite(list,DFLT,NULL,sizeof(struct ThreadInfo));
+    info->func=func;info->para=para;info->flag=flag;info->exit=NULL;
+    mThreadBegin(&(info->thrd),ThreadFuc,info);
+}
+
+// static __thread int morn_thread_order = -1;
+// static int morn_thread_count = 0;
+// static MThreadSignal morn_thread_signal = MORN_THREAD_SIGNAL;
+// int mThreadID()
+// {
+//     if(morn_thread_order==-1)
+//     {
+//         mThreadLockBegin(morn_thread_signal);
+//         morn_thread_count +=1;
+//         morn_thread_order = morn_thread_count;
+//         mThreadLockEnd(morn_thread_signal);
+//     }
+//     return morn_thread_order;
+// }
 
 
 /*

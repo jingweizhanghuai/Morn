@@ -51,7 +51,8 @@ void endThreadPool(struct HandleThreadPool *handle)
     for(int i=0;i<handle->pool_num;i++)
     {
         struct ThreadPoolData *data = (struct ThreadPoolData *)(handle->pool->data[i]);
-        while(data->state == 1);// {mSleep(1);}
+        while(data->state == 1) {mSleep(1);}
+        
         data->func = NULL;
         data->state = 1;
         mThreadWake(data->sgn,1);
@@ -76,16 +77,12 @@ void ThreadFunc(struct ThreadPoolData *data)
     {
         mThreadWait(data->sgn,data->state==1);
         
-        if(data->func == NULL) return;
-        else
-        {
-            (data->func)(*(data->para));
-            if(data->flag!=NULL) *(data->flag)=1;
-            mFree(data->para);
-        }
+        if(data->func==NULL) return;
+        (data->func)(*(data->para));
+        if(data->flag!=NULL) *(data->flag)=1;
+        mFree(data->para);
 
         struct ThreadBuffData *buff_data;
-        
         mThreadLockBegin(handle->sgn0);
         if(buff->num>0)
         {
@@ -138,9 +135,7 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
     void (*func)(void *)=function;
     mException((func==NULL),EXIT,"invalid input");
 
-    void **para=mMalloc(sizeof(void *));
-    *para=func_para;
-    
+    void **para=mMalloc(sizeof(void *)); *para=func_para;
     if(priority<0) priority=0;
     
     int i;
@@ -162,16 +157,16 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
             morn_thread_pool_handle=handle;
         }
             
-        mPropertyVariate(object,"thread_num",&(handle->pool_num),sizeof(int));
+        mPropertyRead(object,"thread_num",&(handle->pool_num));
         if(handle->pool_num<=0)
         {
-            #ifndef __linux__
+            #ifdef LINUX
+            handle->pool_num=sysconf(_SC_NPROCESSORS_ONLN);// cpu number
+            #else
             SYSTEM_INFO sysInfo;GetSystemInfo(&sysInfo);
             handle->pool_num=sysInfo.dwNumberOfProcessors;// cpu number
-            #else
-            handle->pool_num=sysconf(_SC_NPROCESSORS_ONLN);// cpu number
             #endif
-            // printf("cpu num=%d\n",handle->pool_num);
+//             printf("cpu num=%d\n",handle->pool_num);
         }
         mListPlace(pool,NULL,handle->pool_num,sizeof(struct ThreadPoolData));
         
@@ -193,12 +188,12 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
         hdl->valid =1;
     }
     if(pool==NULL) pool=handle->pool;
-
+    
     for(i=0;i<handle->pool_num;i++)
     {
         data = (struct ThreadPoolData *)(pool->data[i]);
         if(data->state == 1) continue;
-
+        
         data->func = func;
         data->para = para;
         data->flag = flag;
