@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 */
 #include "morn_util.h"
 
-#include <cblas.h>
+// #include <cblas.h>
 #ifdef MORN_USE_CL
 #include <CL/cl.h>
 #include <clBLAS.h>
@@ -42,6 +42,15 @@ void SetupCLBlas()
     }
 }
 
+void mSgemm(int device,int a_trans,int b_trans,int m,int n,int k,float alpha,MMemoryBlock *a,int sa,MMemoryBlock *b,int sb,float beta,MMemoryBlock *c,int sc)
+{
+    NULL;
+}
+void mSaxpby(int device,int n,float alpha,MMemoryBlock *a,int sa,float beta,MMemoryBlock *b,int sb)
+{
+    NULL;
+}
+/*
 void mSgemm(int device,int a_trans,int b_trans,int m,int n,int k,float alpha,MMemoryBlock *a,int sa,MMemoryBlock *b,int sb,float beta,MMemoryBlock *c,int sc)
 {
     #ifdef MORN_USE_CL
@@ -93,3 +102,4 @@ void mSaxpby(int device,int n,float alpha,MMemoryBlock *a,int sa,float beta,MMem
     #endif
     cblas_saxpby(n,alpha,a->data,sa,beta,b->data,sb);
 }
+*/
