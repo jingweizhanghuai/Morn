@@ -212,11 +212,12 @@ void m_ArrayAppend(MArray *array,void *data,int n)
 {
     int es=array->element_size;
     struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
+    MMemoryBlock *memory0=NULL;
     if(array->num+n>handle->num)
     {
         MMemoryBlock *memory = mMemoryBlockCreate((array->num+n+256)*es,MORN_HOST);
         if(array->num>0) memcpy(memory->data,array->dataS8,array->num*es);
-        if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+        memory0=handle->memory;
         handle->memory =memory;
         handle->num = array->num+n+256;
         array->dataS8 = memory->data;
@@ -228,6 +229,7 @@ void m_ArrayAppend(MArray *array,void *data,int n)
     }
     array->num+=n;
     ((struct _MArray *)array)->capacity = (handle->num-array->num)&0x0FFFF;
+    if(memory0!=NULL) mMemoryBlockRelease(memory0);
 }
 
 // void ArrayAppend(MArray *arr,int n)
@@ -257,6 +259,7 @@ void m_ArrayAppend(MArray *array,void *data,int n)
 void *m_ArrayPushBack(MArray *arr,void *data)
 {
     struct _MArray *array = (struct _MArray *)arr;
+    MMemoryBlock *memory0=NULL;
     int es=array->element_size;
     if(array->capacity==0)
     {
@@ -269,21 +272,22 @@ void *m_ArrayPushBack(MArray *arr,void *data)
             handle->num = handle->num*2;
             MMemoryBlock *memory = mMemoryBlockCreate(handle->num*es,device);
             memcpy(memory->data,array->dataS8,es*array->num);
-            mMemoryBlockRelease(handle->memory);
+            memory0=handle->memory;
             handle->memory=memory;
             array->dataS8 = memory->data;
         }
         array->capacity=(handle->num-array->num)&0x0FFFF;
     }
-    S8 *p=(S8 *)(array->dataS8+array->num*es);
+    int8_t *p=(int8_t *)(array->dataS8+array->num*es);
     if(data==NULL) NULL;
-    else if(es==4) *((S32 *)p) = *((S32 *)data);
-    else if(es==8) *((S64 *)p) = *((S64 *)data);
-    else if(es==1) *(       p) = *((S8  *)data);
-    else if(es==2) *((S16 *)p) = *((S16 *)data);
+    else if(es==4) *((int32_t *)p) = *((int32_t *)data);
+    else if(es==8) *((int64_t *)p) = *((int64_t *)data);
+    else if(es==1) *(           p) = *(( int8_t *)data);
+    else if(es==2) *((int16_t *)p) = *((int16_t *)data);
     else memcpy(p,data,es);
     array->num++;
     array->capacity--;
+    if(memory0!=NULL) mMemoryBlockRelease(memory0);
     return (void *)p;
 }
 
@@ -293,39 +297,42 @@ void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num)
     {
         if(n<0) return m_ArrayPushBack(arr,data);
         int es=arr->element_size;
-        S8 *p=(S8 *)(arr->dataS8+n*es);
+        int8_t *p=(int8_t *)(arr->dataS8+n*es);
         if(data==NULL) NULL;
-        else if(es==4) *((S32 *)p) = *((S32 *)data);
-        else if(es==8) *((S64 *)p) = *((S64 *)data);
-        else if(es==1) *(       p) = *((S8  *)data);
-        else if(es==2) *((S16 *)p) = *((S16 *)data);
+        else if(es==4) *((int32_t *)p) = *((int32_t *)data);
+        else if(es==8) *((int64_t *)p) = *((int64_t *)data);
+        else if(es==1) *(           p) = *(( int8_t *)data);
+        else if(es==2) *((int16_t *)p) = *((int16_t *)data);
         else memcpy(p,data,es);
         return (void *)p;
     }
     else
     {
         struct _MArray *array = (struct _MArray *)arr;
+        MMemoryBlock *memory0=NULL;
         int es=array->element_size;
         if(n<0) n=array->num;
-        if(n-array->num>array->capacity)
+        if(n+num-array->num>array->capacity)
         {
             struct HandleArrayCreate *handle = (struct HandleArrayCreate *)(ObjHandle(array,0)->handle);
-            if(n>handle->num)
+            if(n+num>handle->num)
             {
-                MMemoryBlock *memory = mMemoryBlockCreate((n+256)*es,MORN_HOST);
+                MMemoryBlock *memory = mMemoryBlockCreate((n+num+256)*es,MORN_HOST);
                 if(array->num>0) memcpy(memory->data,array->dataS8,array->num*es);
-                if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+//                 if(handle->memory!=NULL) mMemoryBlockRelease(handle->memory);
+                memory0=handle->memory;
                 handle->memory =memory;
-                handle->num = n+256;
+                handle->num = n+num+256;
                 array->dataS8 = memory->data;
             }
-            array->capacity = (handle->num-n)&0x0FFFF;
+            array->capacity = (handle->num-n-num)&0x0FFFF;
         }
-        else array->capacity -= (n+1-array->num);
-        array->num = n;
+        else if(n+num>array->num) array->capacity -= (n+num-array->num);
+        array->num = MAX(n+num,array->num);
         
-        S8 *p=(S8 *)(arr->dataS8+n*es);
+        int8_t *p=(int8_t *)(arr->dataS8+n*es);
         if(data!=NULL) memcpy(p,data,num*es);
+        if(memory0!=NULL) mMemoryBlockRelease(memory0);
         return (void *)p;
     }
 }
@@ -434,4 +441,55 @@ int mStreamWrite(MArray *buff,void *data,int num)
     return ((size-num)/buff->element_size);
 }
 
-
+struct HandleArrayUnique
+{
+    uint8_t *pflag;
+    uint8_t **flag;
+    int es;
+};
+void endArrayUnique(struct HandleArrayUnique *handle)
+{
+    if(handle->pflag!=NULL) mFree(handle->pflag);
+}
+#define HASH_ArrayUnique 0x731ecd63
+void mArrayUnique(MArray *array)
+{
+    int es=array->element_size;
+    MHandle *hdl=mHandle(array,ArrayUnique);
+    struct HandleArrayUnique *handle=hdl->handle;
+    if((hdl->valid==0)||(handle->es!=es))
+    {
+        if(handle->pflag!=NULL) mFree(handle->pflag);
+        handle->pflag = mMalloc(es*256+es*sizeof(uint8_t *));
+        handle->es=es;
+        handle->flag=(uint8_t **)(handle->pflag+es*256);
+        handle->flag[0]=handle->pflag;
+        for(int n=1;n<es;n++) handle->flag[n]=handle->flag[n-1]+256;
+        hdl->valid=1;
+    }
+    memset(handle->pflag,0,es*256);
+    uint8_t **flag=handle->flag;
+    uint8_t *p0=array->dataU8;
+    uint8_t *p1=p0+es*array->num;
+    int num=0;
+    for(uint8_t *p=p0;p<p1;p+=es)
+    {
+        int n=0;
+        for(int i=0;i<es;i++) {int idx=p[i];n+=flag[i][idx];flag[i][idx]=1;}
+        if(n==es)
+        {
+            uint8_t *q;for(q=p0;q<p;q+=es) {if(memcmp(q,p,es)==0) break;}
+            if(q==p) n=0;
+        }
+        if(n<es)
+        {
+                 if(es==4) ((int32_t *)p0)[num] = *((int32_t *)p);
+            else if(es==8) ((int64_t *)p0)[num] = *((int64_t *)p);
+            else if(es==1)             p0 [num] = *            p ;
+            else if(es==2) ((int16_t *)p0)[num] = *((int16_t *)p);
+            else memcpy(p0+num*es,p,es);
+            num++;
+        }
+    }
+    array->num=num;
+}

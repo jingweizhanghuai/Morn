@@ -20,9 +20,9 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define m_Fsize(File) SetFilePointer(File,0,NULL,FILE_END)
 #define m_Lock(File)   LockFile(File,0,0,2*sizeof(int),0)
 #define m_Unlock(File) UnlockFile(File,0,0,2*sizeof(int),0)
-#define m_Mmap(File,Pointer,Size) do{\
+#define m_Mmap(File,Pointer,Size,Offset) do{\
     HANDLE Map = CreateFileMapping(File,NULL,PAGE_READWRITE,0,Size,NULL);\
-    Pointer = MapViewOfFile(Map,FILE_MAP_ALL_ACCESS,0,0,Size);\
+    Pointer = MapViewOfFile(Map,FILE_MAP_ALL_ACCESS,0,Offset,Size);\
     CloseHandle(Map);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
@@ -43,8 +43,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 #define m_Fsize(File) lseek(File,0,SEEK_END)
 #define m_Lock(File)   flock(File,LOCK_EX)
 #define m_Unlock(File) flock(File,LOCK_UN)
-#define m_Mmap(File,Pointer,Size) do{\
-    Pointer=mmap(NULL,(Size),PROT_READ|PROT_WRITE,MAP_SHARED,File,0);\
+#define m_Mmap(File,Pointer,Size,Offset) do{\
+    Pointer=mmap(NULL,Size,PROT_READ|PROT_WRITE,MAP_SHARED,File,Offset);\
     mException(Pointer==NULL,EXIT,"error with mmap");\
 }while(0)
 #define m_Munmap(Pointer,Size) munmap((void *)(Pointer),Size);
@@ -56,6 +56,7 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 __thread int morn_log_level=1;
 int morn_log_levelset=-1;
+
 
 struct HandleLog
 {
@@ -70,6 +71,7 @@ struct HandleLog
     
     FHandle file;
     int filesize;
+    int mmapsize;
     int writesize;
     char *filepointer;
 
@@ -84,12 +86,16 @@ void endLog(struct HandleLog *handle)
 {
     if(handle->file_valid)
     {
-        memset((void *)(handle->filepointer+handle->writesize),' ',handle->filesize-handle->writesize-1);
-        m_Munmap(handle->filepointer,handle->filesize);
+        memset((void *)(handle->filepointer+handle->writesize),' ',handle->mmapsize-handle->writesize);
+        m_Munmap(handle->filepointer,handle->mmapsize);
         m_Close(handle->file);
     }
 }
 #define HASH_Log 0x3f37e6f1
+
+struct HandleLog *morn_log_handle = NULL;
+__thread char morn_log_string[1024];
+__thread int morn_log_string_size;
 
 void LogFile(char *filename)
 {
@@ -101,8 +107,8 @@ void LogFile(char *filename)
     {
         if(handle->file_valid)
         {
-            memset((void *)(handle->filepointer+handle->writesize),' ',handle->filesize-handle->writesize-1);
-            m_Munmap(handle->filepointer,handle->filesize);
+            memset((void *)(handle->filepointer+handle->writesize),' ',handle->mmapsize-handle->writesize-1);
+            m_Munmap(handle->filepointer,handle->mmapsize);
             m_Close(handle->file);
         }
     
@@ -111,7 +117,7 @@ void LogFile(char *filename)
         handle->console_valid = handle->console_valid0||(!(handle->func_valid));
         return;
     }
-        
+    
     if(handle->filebyte>0)
     {
         char name0[128];char name1[128];
@@ -122,7 +128,7 @@ void LogFile(char *filename)
             handle->fileorder=0;
             handle->fileprefix[0]=0;
         }
-        else if(handle->filesize-handle->writesize>=1024) return;
+        else if(handle->mmapsize-handle->writesize>=1024) return;
         else endLog(handle);
         
         if(handle->fileprefix[0]==0)
@@ -172,32 +178,39 @@ void LogFile(char *filename)
             rename(handle->filename,name0);
         }
         handle->file=m_Open(handle->filename);
-        handle->writesize= 0;
+        handle->filesize = 0;
+    }
+    else if(strcmp(handle->filename,filename)!=0)
+    {
+        endLog(handle);
+        strcpy(handle->filename,filename);
+        if(access(handle->filename,F_OK)>=0) remove(handle->filename);
+        handle->file=m_Open(handle->filename);
         handle->filesize = 0;
     }
     else
     {
-        if(strcmp(handle->filename,filename)!=0)
-        {
-            endLog(handle);
-            strcpy(handle->filename,filename);
-            if(access(handle->filename,F_OK)>=0) remove(handle->filename);
-            handle->file=m_Open(handle->filename);
-            handle->writesize= 0;
-            handle->filesize = 0;
-        }
-        else if(handle->filesize-handle->writesize>=1024) return;
+        int m=handle->mmapsize-handle->writesize;if(m>=1024) return;
+        memcpy((void *)(handle->filepointer+handle->writesize),morn_log_string,m);
+        morn_log_string_size-=m;
+        memmove(morn_log_string,morn_log_string+m,morn_log_string_size);
     }
     
-    int byte=handle->filebyte;if(byte==0) byte=64*1024;
-    int filesize = handle->filesize+byte;
-    char a=' ';m_Write(handle->file,filesize-1,&a,1);
-
-//     char *filepointer0=handle->filepointer;
-    m_Mmap(handle->file,handle->filepointer,filesize);
-//     if(filepointer0) m_Munmap(filepointer0,handle->filesize);
+//     printf("handle->filebyte=%d\n",handle->filebyte);
+//     printf("handle->filesize=%d\n",handle->filesize);
+//     printf("handle->writesize=%d\n",handle->writesize);
+//     printf("handle->mmapsize=%d\n\n",handle->mmapsize);
     
-    handle->filesize=filesize;
+    if(handle->filepointer) m_Munmap(handle->filepointer,handle->mmapsize);
+    
+    if(handle->filebyte==0) handle->mmapsize=64*1024;
+    else                    handle->mmapsize=((handle->filebyte-1)/4096+1)*4096;
+    char a=0;m_Write(handle->file,handle->filesize+handle->mmapsize-1,&a,1);
+
+    m_Mmap(handle->file,handle->filepointer,handle->mmapsize,handle->filesize);
+    
+    handle->filesize+=handle->mmapsize;
+    handle->writesize=0;
     
     handle->file_valid = 1;
     handle->console_valid = handle->console_valid0;
@@ -226,9 +239,6 @@ void LogConsole(int *valid)
         mLog(MORN_WARNING,mLogFormat1("connot disable log_console"));
 }
 
-struct HandleLog *morn_log_handle = NULL;
-__thread char morn_log_string[1024];
-
 struct HandleLog *LogInit()
 {
     if(morn_log_handle!=NULL) return morn_log_handle;
@@ -256,26 +266,27 @@ struct HandleLog *LogInit()
     return handle;
 }
 
-volatile int morn_file_writable=1;
+// volatile int morn_file_writable=1;
 void m_Log(int level,const char *format,...)
 {
     struct HandleLog *handle = LogInit();
     
-    int n=0;
     va_list args;va_start(args,format);
-    n=vsnprintf(morn_log_string,1024,format,args);
+    morn_log_string_size=vsnprintf(morn_log_string,1024,format,args);
     va_end(args);
     
     if(handle->console_valid) printf(morn_log_string);
     if(handle->file_valid)
     {
         mThreadLockBegin(handle->sgn);
-        if(handle->filesize-handle->writesize<=n) LogFile(handle->filename);
-        int l=handle->writesize;handle->writesize+=n;
-        memcpy((void *)(handle->filepointer+l),morn_log_string,n);
+        
+        if(handle->mmapsize-handle->writesize<=morn_log_string_size) LogFile(handle->filename);
+        
+        int l=handle->writesize;handle->writesize+=morn_log_string_size;
+        memcpy((void *)(handle->filepointer+l),morn_log_string,morn_log_string_size);
         mThreadLockEnd(handle->sgn);
     }
-    if(handle->func_valid)handle->func(morn_log_string,n,handle->func_para);
+    if(handle->func_valid)handle->func(morn_log_string,morn_log_string_size,handle->func_para);
 }
 
 static const char *morn_log_levelname[6]={"\0","Debug","Info","Warning","Error","\0"};
@@ -289,55 +300,67 @@ const char *mLogLevel()
 
 void LogTail(const char *filename)
 {
-    int locate,size,cnt;
-    char *filepointer;
+    char buff[257];
+    int locate=-1,size;
+    char *filepointer=NULL;
+    FHandle file=0;
+    int cnt=0,locate0=-1;
     
     LogTail_begin:
-    locate=-1;
-    while(1){if(access(filename,F_OK)>=0) break; locate=0;mSleep(10);}
-    FHandle file=m_Open(filename);
-    size=m_Fsize(file);
-    filepointer=NULL;
-    m_Mmap(file,filepointer,size);
-    if(locate<0) {for(int i=0;i<size;i++) {if(filepointer[i]==0) {locate=i;break;}}}
-    if(locate<0) locate=size;
+    while(1)
+    {
+        if(access(filename,F_OK)>=0) break; 
+        locate=0;mSleep(10);
+    }
     
-    cnt=0;
+//     printf("locate=%d\n",locate);
+    if(filepointer!=NULL) {m_Munmap(filepointer,size);m_Close(file);filepointer=NULL;mSleep(10);}
+    
+    file=m_Open(filename);
+    size=m_Fsize(file);
+    m_Mmap(file,filepointer,size,0);
+    
+    if(filepointer[size-1]!=0) goto LogTail_begin;
+         if(locate<0) locate=strlen(filepointer);
+    else if(locate>0) {if(filepointer[locate-1]==0) locate=0;}
+    
+    if((locate!=locate0)&&(locate0>0)) 
+    {
+        char *p=filepointer;
+        int s=strlen(p);locate=s;
+        while(s>0)
+        {
+            int ss=MIN(s,256);s-=ss;
+            memcpy(buff,p,ss);p+=ss;
+            buff[ss]=0;printf(buff);
+        }
+    }
+    
     while(1)
     {
         mSleep(10);
-        if(filepointer!=NULL) if(filepointer[locate]==' ') locate=size;
-        if((access(filename,F_OK)<0)||(locate>=size))
-        {
-            if(filepointer!=NULL) {m_Munmap(filepointer,size);m_Close(file);filepointer=NULL;}
-            locate=0;continue;
-        }
-        
-        if(filepointer==NULL)
-        {
-            file=m_Open(filename);
-            size=m_Fsize(file);
-            m_Mmap(file,filepointer,size);
-        }
-        
+
         char *p=filepointer+locate;
         if(p[0])
         {
             cnt=0;
-            int s=strlen(p);
-            locate+=s;
-            if(s==size) continue;
-            printf("%s",p);
+            int s=strlen(p);locate+=s;
+            
+            if(locate==size)
+            {
+                int i;for(i=s-1;i>=0;i--){if(p[i]!=' ') {s=i+1;break;}}
+                if(i<0) s=0;
+            }
+            
+            while(s>0)
+            {
+                int ss=MIN(s,256);s-=ss;
+                memcpy(buff,p,ss);p+=ss;
+                buff[ss]=0;printf(buff);
+            }
+            
+            if(locate==size) goto LogTail_begin;
         }
-        else
-        {
-            cnt++;if(cnt<100) continue;
-            m_Munmap(filepointer,size);m_Close(file);
-            cnt=0;goto LogTail_begin;
-        }
+        else {cnt++;if(cnt==128) {locate0=locate;cnt=0;goto LogTail_begin;}}
     }
 }
-
-
-
-

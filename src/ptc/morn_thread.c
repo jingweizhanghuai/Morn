@@ -16,6 +16,21 @@ int mThreadID()
     return ID;
 }
 
+static __thread int morn_thread_order = -1;
+static int morn_thread_count = 0;
+static MThreadSignal morn_thread_signal = MORN_THREAD_SIGNAL;
+int mThreadOrder()
+{
+    if(morn_thread_order==-1)
+    {
+        mThreadLockBegin(morn_thread_signal);
+        morn_thread_count +=1;
+        morn_thread_order = morn_thread_count;
+        mThreadLockEnd(morn_thread_signal);
+    }
+    return morn_thread_order;
+}
+
 struct ThreadInfo
 {
     int ID;
@@ -42,7 +57,7 @@ MList *ThreadList()
 {
     struct HandleThread *handle=morn_thread_handle;
     if(handle!=NULL) return handle->list;
-    MHandle *hdl=mHandle("Morn",Thread);
+    MHandle *hdl=mHandle("Thread",Thread);
     if(!mHandleValid(hdl))
     {
         handle=hdl->handle;

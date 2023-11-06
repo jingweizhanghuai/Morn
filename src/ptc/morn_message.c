@@ -72,6 +72,8 @@ Licensed under the Apache License, Version 2.0; you may not use this file except
 
 #define WAIT {if(handle->wait_time>0) {if(mTime()-t0>handle->wait_time) return NULL;}}
 
+int mThreadOrder();
+
 struct ProcCommunicateState
 {
     int locate;
@@ -118,7 +120,7 @@ void endProcTopic(struct HandleProcTopic *handle)
     user_num--;     m_Write(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
     info->user_num =user_num;
     m_Unlock(handle->file);
-
+    
     m_Munmap(info,handle->filesize+sizeof(struct ProcTopicInfo));
     
     m_Close(handle->file);
@@ -139,7 +141,7 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
     struct HandleProcTopic *handle = (struct HandleProcTopic *)(hdl->handle);
     if(!mHandleValid(hdl))
     {
-        handle->ID= getpid()*1000+mThreadID();
+        handle->ID= getpid()*1000+mThreadOrder();
         // printf("handle->ID=%d\n",handle->ID);
         mPropertyFunction(topicname,"exit",mornObjectRemove,topicname);
         mPropertyVariate(topicname,"topic_size",&(handle->topicsize),sizeof(int));
@@ -168,6 +170,7 @@ void *m_ProcTopicWrite(const char *topicname,void *data,int write_size)
             handle->filesize = handle->topicsize*16;
             m_Write(handle->file,handle->filesize+sizeof(struct ProcTopicInfo),&ID,sizeof(int));
         }
+        
         m_Mmap(handle->file,handle->info,handle->filesize+sizeof(struct ProcTopicInfo));
         
         if(flag<0)
@@ -272,7 +275,7 @@ void *m_ProcTopicRead(const char *topicname,void *data,int *read_size)
         int64_t write_order;m_Read(handle->file,6*sizeof(int),&write_order,sizeof(int64_t));
         if(write_order==0) {hdl->valid=0;return NULL;}
 
-        m_Mmap(handle->file,handle->info,handle->filesize);
+        m_Mmap(handle->file,handle->info,handle->filesize+sizeof(struct ProcTopicInfo));
         
         m_Lock(handle->file);
         int32_t user_num;m_Read(handle->file,sizeof(int32_t),&user_num,sizeof(int32_t));
@@ -290,11 +293,15 @@ void *m_ProcTopicRead(const char *topicname,void *data,int *read_size)
     int locate= info->topic[order].locate;
     int size  = info->topic[order].size;
 
-    if(read_size!=NULL) {if(*read_size>0) {size=MIN(*read_size,size);} *read_size=size;}
-    if(data!=NULL) memcpy(data,info->ptr+locate,size);
-
     // printf("order_read=%d,handle->order_read=%d\n",order_read,handle->order_read);
     char *p =(order_read>handle->order_read)?(info->ptr+locate):NULL;
+    if(p==NULL) {if(read_size!=NULL) *read_size=0;}
+    else
+    {
+        if(read_size!=NULL) {if(*read_size>0) {size=MIN(*read_size,size);} *read_size=size;}
+        if(data!=NULL) memcpy(data,info->ptr+locate,size);
+    }
+    
     handle->order_read = order_read;
     return p;
 }
@@ -378,7 +385,7 @@ void *m_ProcMessageWrite(const char *messagename,void *data,int write_size)
     struct HandleProcMessage *handle = (struct HandleProcMessage *)(hdl->handle);
     if(!mHandleValid(hdl))
     {
-        handle->ID= getpid()*1000+mThreadID();
+        handle->ID= getpid()*1000+mThreadOrder();
         mPropertyFunction(messagename,"exit",mornObjectRemove,messagename);
         mPropertyVariate(messagename,"message_size",&(handle->messagesize),sizeof(int));
         
@@ -467,10 +474,16 @@ void *m_ProcMessageWrite(const char *messagename,void *data,int write_size)
     while(((info->write_locate<info->read_locate)&&(info->write_locate+size>info->read_locate))||(info->write_order-info->read_order>=128))
     {
         if(info->reader_num==0) break;
-        int order_min=-1;
+        int order_min=info->read_order+128;
+        int idx_max=0;
         for(int i=0;i<info->reader_num;i++)
+        {
+            if(info->rorder[i]==-1) continue;
+            if(m_Exist(info->rID[i])==0) {info->rorder[i]=-1;continue;}
             order_min = MIN(info->rorder[i],order_min);
-        
+            idx_max   = MAX(i,idx_max);
+        }
+        info->reader_num = idx_max+1;
         info->read_order = order_min;
         info->read_locate = info->message[order_min%128].locate;
         mSleep(1);
@@ -501,8 +514,8 @@ void *m_ProcMessageRead(const char *messagename,void *data,int *read_size)
 
         if(read_size!=NULL) *read_size = 0;
         
-        handle->ID = getpid()*1000+mThreadID();
-
+        handle->ID = getpid()*1000+mThreadOrder();
+        int no_writer=0;
         if(handle->filesize==0)
         {
             char dirname[128];
@@ -515,8 +528,7 @@ void *m_ProcMessageRead(const char *messagename,void *data,int *read_size)
             #endif
             sprintf(handle->filename,"%s/.%s.bin",dirname,messagename);
 
-            int flag=-1;
-            while(flag<0) {flag= access(handle->filename,F_OK);}
+            while(access(handle->filename,F_OK)<0) no_writer=1;
             handle->file = m_Open(handle->filename);
      
             int filesize=0;
@@ -525,7 +537,7 @@ void *m_ProcMessageRead(const char *messagename,void *data,int *read_size)
             handle->filesize=filesize;
         }
         int wID;m_Read(handle->file,0,&wID,sizeof(int));
-        while(m_Exist(wID)==0) m_Read(handle->file,0,&wID,sizeof(int));
+        while(m_Exist(wID)==0) {no_writer=1;m_Read(handle->file,0,&wID,sizeof(int));}
 
         int64_t write_order=0;
         while(write_order==0) m_Read(handle->file,6*sizeof(int),&write_order,sizeof(int64_t));
@@ -540,10 +552,10 @@ void *m_ProcMessageRead(const char *messagename,void *data,int *read_size)
             {
                 if(i==handle->info->reader_num)
                 {
-                    mException(i==256,EXIT,"too many readers");
+                    mException(i==255,EXIT,"too many readers");
                     handle->info->reader_num=i+1;
                 }
-                handle->info->rorder[i]=handle->info->write_order;
+                handle->info->rorder[i]=handle->info->write_order-no_writer;
                 handle->info->rID[i]=handle->ID;
                 handle->reader_idx=i;
                 break;
@@ -623,7 +635,7 @@ void *m_ProcVariate(const char *name,int size,int type)
     if(!mHandleValid(hdl))
     {
         mPropertyFunction("ProcVariate","exit",mornObjectRemove,"ProcVariate");
-        handle->ID= getpid()*1000+mThreadID();
+        handle->ID= getpid()*1000+mThreadOrder();
 
         #if defined(_WIN64)||defined(_WIN32)
         char *dirname=getenv("TEMP");
@@ -670,7 +682,6 @@ void *m_ProcVariate(const char *name,int size,int type)
         if(handle->map==NULL) handle->map = mMapCreate();
         hdl->valid = 1;
     }
-
     void *p_data=(type==DFLT)?handle->master_data:handle->slave_data;
     
     uint8_t *pvalue=NULL;
@@ -732,11 +743,11 @@ void *m_ProcVariate(const char *name,int size,int type)
     *((uint16_t *)(p+2))=keysize;
     *(( int32_t *)(p+4))=(type==DFLT)?handle->ID:0;
     memcpy((char *)(p+8),name,keysize);
+    
     offset = size_data;
     pvalue = p_data+offset;
-    memset(pvalue,DFLT,valuesize);
+    memset(handle->master_data+offset,0,valuesize);
     size_data += valuesize;
-    
     p_idx[0] =handle->size_idx;
     *((int *)(handle->master_data)) = size_data;
 
@@ -744,7 +755,7 @@ void *m_ProcVariate(const char *name,int size,int type)
     m_Unlock(handle->file_idx);
     p_idx[1]=0;
 
-    mMapWrite(handle->map,p+4,DFLT,&offset,sizeof(uint16_t));
+    mMapWrite(handle->map,p+8,DFLT,&offset,sizeof(uint16_t));
     return pvalue;
 }
 
@@ -781,7 +792,7 @@ void m_ProcLockBegin(const char *mutexname)
     struct HandleProcLock *handle = (struct HandleProcLock *)(hdl->handle);
     if(hdl->valid == 0)
     {
-        handle->ID=getpid()*1000+mThreadID();
+        handle->ID=getpid()*1000+mThreadOrder();
         if(handle->filename[0]==0)
         {
             char dirname[128];

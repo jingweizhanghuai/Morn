@@ -195,7 +195,7 @@ uint32_t m_CRC(uint8_t* input,int len)
     {
              if(handle->bit==32) rst=Reverse32(rst);
         else if(handle->bit==16) rst=Reverse16(rst);
-        else /*handle->bit== 8*/ rst=Reverse8( rst);
+        else /* handle->bit==8*/ rst=Reverse8( rst);
         if(input!=morn_crc_buff) mFree(input);
     }
     return rst;

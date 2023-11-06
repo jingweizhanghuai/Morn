@@ -54,7 +54,9 @@ MList *ListCreate(int num,void **data)
 
 void mListRelease(MList *list)
 {
+    
     ObjectFree(list);
+    
 }
 
 void m_ListAppend(MList *list,void **data,int n)
@@ -74,7 +76,6 @@ void m_ListAppend(MList *list,void **data,int n)
         return;
     }
 
-    // printf("aaaaaaaaaaaaaa\n");
     int num = list->num + MAX(MAX(128,n-list->num),(list->num)>>1);
     void **list_data = (void **)mMalloc(num*sizeof(void *));
     if(list->num>0)

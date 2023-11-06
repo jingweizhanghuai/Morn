@@ -159,7 +159,7 @@ int mAtoi(char *str)
     data +=  morn_atoi[6][s[6]-'0'];if((s[7]<'0')||(s[7]>'9')) {data=data/100;      return (flag)?(0-data):data;}
     data +=  morn_atoi[7][s[7]-'0'];if((s[8]<'0')||(s[8]>'9')) {data=data/10;       return (flag)?(0-data):data;}
     data +=               s[8]-'0' ;if((s[9]<'0')||(s[9]>'9')) {                    return (flag)?(0-data):data;}
-    data=data*10+s[9]-'0';return (flag)?(0-data):data;
+    data  =  data*10+     s[9]-'0' ;                                                return (flag)?(0-data):data;
 }
 
 static double morn_atof[17][10]={

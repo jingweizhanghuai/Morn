@@ -287,14 +287,38 @@ float _mTimerEnd(const char *name,const char *file,int line,const char *function
     #ifdef _MSC_VER
     LARGE_INTEGER cv0 = *(LARGE_INTEGER *)(morn_timer_list->data[n]);
     LARGE_INTEGER freq; QueryPerformanceFrequency(&freq);
-    float Use = (cv1.QuadPart - cv0.QuadPart) *1000.0f/freq.QuadPart;
+    float Use = (cv1.QuadPart - cv0.QuadPart) *1000.0/freq.QuadPart;
     #else
     struct timeval *tv0=(struct timeval *)(morn_timer_list->data[n]);
-    float Use = (tv1.tv_sec - tv0->tv_sec)*1000.0f + (tv1.tv_usec - tv0->tv_usec)/1000.0f;
+    float Use = (tv1.tv_sec - tv0->tv_sec)*1000.0 + (tv1.tv_usec - tv0->tv_usec)/1000.0;
     #endif
     printf("[%s,line %d,function %s]Timer: %s time use %fms\n",file,line,function,name,Use);
     return Use;
 }
+
+#ifdef _MSC_VER
+LARGE_INTEGER morn_timer0={.QuadPart=0};
+LARGE_INTEGER morn_timer_freq={.QuadPart=0};
+double mTimer()
+{
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    if(morn_timer_freq.QuadPart==0)
+    {
+        morn_timer0=t;
+        QueryPerformanceFrequency(&freq);
+    }
+    return (t.QuadPart-morn_time0.QuadPart)*1000.0/morn_timer_freq.QuadPart;
+}
+#else
+struct timeval morn_timer0={.tv_sec=0,.tv_usec=0};
+double mTimer()
+{
+    struct timeval t;gettimeofday(&t,NULL);
+    if(morn_timer0.tv_sec==0) morn_timer0=t;
+    return ((t.tv_sec-morn_timer0.tv_sec)*1000.0 + (t.tv_usec-morn_timer0.tv_usec)/1000.0);
+}
+#endif
 
 char morn_time_now_string[128];
 static int64_t morn_time_now=0;

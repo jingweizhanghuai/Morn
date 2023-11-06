@@ -72,6 +72,11 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size)
     }
 
     if(size<=0) size =(data!=NULL)?(strlen(data)+1):0;
+    for(int i=0;i<handle->node_num;i++)
+    {
+        struct GraphNode *p=handle->node[i];
+        if(memcmp(p->data,data,size)==0) return (MGraphNode *)p;
+    }
     
     struct GraphNode *node = mMemoryWrite(handle->memory,NULL,sizeof(struct GraphNode)+size);
     handle->node[handle->node_num] = node;
@@ -168,6 +173,8 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
     struct HandleGraphCreate *handle0 =(struct HandleGraphCreate *)(hdl->handle);
     int node_num = handle0->node_num;
     struct GraphNode **node = handle0->node;
+    
+//     printf("node_num=%d\n",node_num);
 
     if(linkloss == NULL) linkloss = handle0->linkloss;
     if(para     == NULL) para     = handle0->linkloss_para;
@@ -192,7 +199,7 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
 
     for(int j=0;j<node_num;j++)
     {
-        // printf("j=%d,node[j].data=%s,node[j].node_num=%d\n",j,node[j]->data,node[j]->node_num);
+//         printf("j=%d,node[j].data=%s,node[j].node_num=%d\n",j,node[j]->data,node[j]->node_num);
         for(int i=0;i<node[j]->node_num;i++)
         {
             struct GraphNode *p = node[j]->node[i];
@@ -214,15 +221,23 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
             // printf("\n");
             for(int i=0;i<node_num;i++)
             {
-                // printf("%8.2f,",mat[j][i]);
+//                 if((j==51)&&(i==87)) printf("%8.2f\n",mat[j][i]);
+                
                 if(i==j) continue;
                 if(row_valid0[j]+col_valid0[i]==0) continue;
                 for(int k=0;k<node_num;k++)
                 {
                     if((k==i)||(k==j)) continue;
+//                     if((j==51)&&(i==87)&&(k==17)) printf("mat[j][k]=%f,mat[k][i]=%f\n",mat[j][k],mat[k][i]);
                     float d = mat[j][k]+mat[k][i];
                     if(d>=mat[j][i]) continue;
-                    if(linkloss!=NULL) d+=linkloss(node[j],node[k],node[i],para);
+//                     if((j==51)&&(i==87)&&(k==17)) printf("d=========%f,mat[j][i]=%f\n",d,mat[j][i]);
+                    if(linkloss!=NULL)
+                    {
+                        float link=linkloss(node[j],node[k],node[i],para);
+//                         if((j==51)&&(i==87)&&(k==17)) printf("link=%f\n",link);
+                        d+=link;
+                    }
                     if(d<mat[j][i])
                     {
                         mat[j][i]=d;tab[j][i]=k;
@@ -277,6 +292,7 @@ float m_GraphWay(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,
     struct HandleGraphWay *handle = (struct HandleGraphWay *)(hdl->handle);
 
     int ID0=p0->ID;int ID1=p1->ID;
+//     printf("ID0=%d,ID1=%d\n",ID0,ID1);
     float d = handle->mat->data[ID0][ID1];
     if(list!=NULL) mListClear(list);
     if(mIsSup(d)) return DFLT;

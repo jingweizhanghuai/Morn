@@ -2,18 +2,11 @@
 Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-#ifndef __linux__
-#include "windows.h"
-#else
-#include "unistd.h"
-#include "sys/sysinfo.h"
-#endif
-
 #include "morn_ptc.h"
 
 struct ThreadPoolData
 {
-    MThread tid;
+    MThread thrd;
     MThreadSignal sgn;
     void *handle;
     void (*func)(void *);
@@ -36,7 +29,7 @@ struct HandleThreadPool
     int pool_num;
     
     MList *buff;
-    volatile int buff_num;
+    int buff_num;
 
     int thread_adjust;
     int thread_max;
@@ -44,6 +37,8 @@ struct HandleThreadPool
 
     int tid0;
     MThreadSignal sgn0;
+    
+    MThread *thrd0;
 };
 struct HandleThreadPool *morn_thread_pool_handle=NULL;
 void endThreadPool(struct HandleThreadPool *handle)
@@ -51,14 +46,15 @@ void endThreadPool(struct HandleThreadPool *handle)
     for(int i=0;i<handle->pool_num;i++)
     {
         struct ThreadPoolData *data = (struct ThreadPoolData *)(handle->pool->data[i]);
-        while(data->state == 1) {mSleep(1);}
-        
+        while(data->state == 1);// {mSleep(1);}
+    
         data->func = NULL;
         data->state = 1;
+        
         mThreadWake(data->sgn,1);
-        mThreadEnd(&(data->tid));
+        mThreadEnd(&(data->thrd));
     }
-    if(handle->pool!=NULL)
+    if(handle==morn_thread_pool_handle)
     {
         mListRelease(handle->pool);
         morn_thread_pool_handle=NULL;
@@ -76,8 +72,7 @@ void ThreadFunc(struct ThreadPoolData *data)
     while(1)
     {
         mThreadWait(data->sgn,data->state==1);
-        
-        if(data->func==NULL) return;
+        if(data->func==NULL) {return;}
         (data->func)(*(data->para));
         if(data->flag!=NULL) *(data->flag)=1;
         mFree(data->para);
@@ -87,7 +82,6 @@ void ThreadFunc(struct ThreadPoolData *data)
         if(buff->num>0)
         {
             buff->num=buff->num-1;
-            handle->buff_num = buff->num;
             buff_data = (struct ThreadBuffData *)(buff->data[buff->num]);
             data->func = buff_data->func;
             data->para = buff_data->para;
@@ -113,7 +107,7 @@ void ThreadPoolNumber(int *number,struct HandleThreadPool *handle)
             data->func = NULL;
             data->state = 1;
             mThreadWake(data->sgn,1);
-            mThreadEnd(&(data->tid));
+            mThreadEnd(&(data->thrd));
         }
     }
     else
@@ -121,8 +115,9 @@ void ThreadPoolNumber(int *number,struct HandleThreadPool *handle)
         for(int i=handle->pool_num;i<n;i++)
         {
             struct ThreadPoolData *data = mListWrite(handle->pool,DFLT,NULL,sizeof(struct ThreadPoolData));
+            
             data->state=0;
-            mThreadBegin(&(data->tid),ThreadFunc,data);
+            mThreadBegin(&(data->thrd),ThreadFunc,data);
         }
     }
     handle->pool_num = n;
@@ -147,47 +142,52 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
         MObject *object=(pool==NULL)?mMornObject("ThreadPool",DFLT):(MObject *)pool;
         MHandle *hdl=mHandle(object,ThreadPool);
         handle = (struct HandleThreadPool *)(hdl->handle);
-        
-        if(pool!=NULL) {handle->pool_num=pool->num;handle->pool=NULL;}
-        else
+        if(!mHandleValid(hdl))
         {
-            if(handle->pool==NULL) handle->pool = mListCreate();
-            pool=handle->pool;
-            mPropertyFunction(object,"exit",mornObjectRemove,"ThreadPool");
-            morn_thread_pool_handle=handle;
-        }
+            if(pool!=NULL) {handle->pool_num=pool->num;handle->pool=pool;pool->num=0;}
+            else
+            {
+                if(handle->pool==NULL) handle->pool = mListCreate();
+                pool=handle->pool;
+                mPropertyFunction(object,"exit",mornObjectRemove,"ThreadPool");
+                morn_thread_pool_handle=handle;
+            }
+                
+            mPropertyRead(object,"thread_num",&(handle->pool_num));
+            if(handle->pool_num<=0)
+            {
+                #ifdef LINUX
+                handle->pool_num=sysconf(_SC_NPROCESSORS_ONLN);// cpu number
+                #else
+                SYSTEM_INFO sysInfo;GetSystemInfo(&sysInfo);
+                handle->pool_num=sysInfo.dwNumberOfProcessors;// cpu number
+                #endif
+    //             printf("cpu num=%d\n",handle->pool_num);
+            }
+            mListPlace(pool,NULL,handle->pool_num,sizeof(struct ThreadPoolData));
+            m_PropertyVariate(object,"thread_num",&(handle->pool_num),sizeof(int));
             
-        mPropertyRead(object,"thread_num",&(handle->pool_num));
-        if(handle->pool_num<=0)
-        {
-            #ifdef LINUX
-            handle->pool_num=sysconf(_SC_NPROCESSORS_ONLN);// cpu number
-            #else
-            SYSTEM_INFO sysInfo;GetSystemInfo(&sysInfo);
-            handle->pool_num=sysInfo.dwNumberOfProcessors;// cpu number
-            #endif
-//             printf("cpu num=%d\n",handle->pool_num);
+            if(handle->buff==NULL) handle->buff=mListCreate();
+            
+            handle->buff_num=MAX(pool->num*4,16);
+            mPropertyVariate(object,"queue_max"    ,&(handle->buff_num     ),sizeof(int));
+            handle->thread_adjust=0;
+            mPropertyVariate(object,"thread_adjust",&(handle->thread_adjust),sizeof(int));
+            handle->thread_max = handle->pool_num*2;
+            mPropertyVariate(object,"thread_max"   ,&(handle->thread_max   ),sizeof(int));
+            
+            for(i=0;i<pool->num;i++)
+            {
+                data = (struct ThreadPoolData *)(pool->data[i]);
+                data->state=0;data->handle=handle;
+                mThreadBegin(&(data->thrd),ThreadFunc,data);
+            }
+            mPropertyFunction(object,"thread_num",ThreadPoolNumber,handle);
+            
+            hdl->valid =1;
         }
-        mListPlace(pool,NULL,handle->pool_num,sizeof(struct ThreadPoolData));
-        
-        if(handle->buff==NULL) handle->buff=mListCreate();
-
-        handle->thread_adjust=0;
-        mPropertyVariate(object,"thread_adjust",&(handle->thread_adjust),sizeof(int));
-        handle->thread_max = handle->pool_num*2;
-        mPropertyVariate(object,"thread_max"   ,&(handle->thread_max   ),sizeof(int));
-        
-        for(i=0;i<pool->num;i++)
-        {
-            data = (struct ThreadPoolData *)(pool->data[i]);
-            data->state=0;data->handle=handle;
-            mThreadBegin(&(data->tid),ThreadFunc,data);
-        }
-        mPropertyFunction(object,"thread_num",ThreadPoolNumber,handle);
-        
-        hdl->valid =1;
     }
-    if(pool==NULL) pool=handle->pool;
+    pool=handle->pool;
     
     for(i=0;i<handle->pool_num;i++)
     {
@@ -205,38 +205,43 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
     if(i==handle->pool_num-1) {handle->idle_count=0;return;}
     if(i< handle->pool_num-1)
     {
-        data = (struct ThreadPoolData *)(pool->data[handle->pool_num-1]);
-        if(data->state == 0) handle->idle_count++;
-        if((handle->idle_count > MAX(handle->pool_num,4))&&(handle->thread_adjust)&&(handle->pool_num>2))
+        if((handle->thread_adjust)&&(handle->pool_num>2))
         {
-            data->func = NULL;
-            data->state = 1;
-            mThreadWake(data->sgn,1);
-            mThreadEnd(&(data->tid));
-            
-            pool->num = pool->num-1;
-            handle->pool_num = pool->num;
+            data = (struct ThreadPoolData *)(pool->data[handle->pool_num-1]);
+            if(data->state!=0) {handle->idle_count=0;return;}
+            handle->idle_count++;
+            if(handle->idle_count>MAX(handle->pool_num,8))
+            {
+                if(handle->thrd0) mThreadEnd(handle->thrd0);
+                data->func = NULL;
+                data->state = 1;
+                mThreadWake(data->sgn,1);
+                pool->num = pool->num-1;
+                handle->pool_num = pool->num;
+                handle->thrd0=&(data->thrd);
+            }
         }
         return;
     }
     
     MList *buff = handle->buff;
-    if((handle->buff_num == MAX(pool->num,4))&&(handle->thread_adjust)&&(handle->pool_num<handle->thread_max))
+    if((buff->num==handle->buff_num)&&(handle->thread_adjust)&&(handle->pool_num<handle->thread_max))
     {
         data = (struct ThreadPoolData *)mListWrite(pool,DFLT,NULL,sizeof(struct ThreadPoolData));
         handle->pool_num = pool->num;
+        if(handle->thrd0) mThreadEnd(handle->thrd0);
+        handle->thrd0=NULL;
         data->handle=handle;
         data->func = func;
         data->para = para;
         data->flag = flag;
         data->state = 1;
-        mThreadBegin(&(data->tid),ThreadFunc,data);
+        mThreadBegin(&(data->thrd),ThreadFunc,data);
         mThreadWake(data->sgn,1);
         return;
     }
     
-    while(handle->buff_num > MAX(pool->num,4));
-    
+    while(buff->num >= handle->buff_num);
     struct ThreadBuffData buff_data;
     buff_data.func = func;
     buff_data.para = para;
@@ -254,9 +259,9 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
         }
     }
     if(i==buff->num) mListWrite(buff,i,&buff_data,sizeof(struct ThreadBuffData));
-    handle->buff_num=buff->num;
     mThreadLockEnd(handle->sgn0);
 }
+
 
 
 /*
@@ -271,7 +276,7 @@ struct HandleEvent
     MChain *chain;
     MChainNode *node;
     MList *pool;
-    pthread_t tid;
+    pthread_t thrd;
     pthread_mutex_t mutex;
 };
 void EventFunc(struct HandleEvent *handle)
@@ -297,7 +302,7 @@ void endEvent(struct HandleEvent *handle)
     pthread_mutex_lock(&(handle->mutex));
     mChainNodeInsert(handle->node,node,NULL);
     pthread_mutex_unlock(&(handle->mutex));
-    pthread_join(handle->tid,NULL);
+    pthread_join(handle->thrd,NULL);
     
     if(handle->chain!=NULL) mChainRelease(handle->chain);
     if(handle->pool !=NULL) mListRelease (handle->pool );
@@ -324,7 +329,7 @@ void mEvent(void (*func)(void *),void *para)
     {
         handle->chain->chainnode=node;
         handle->node=node;
-        mException((pthread_create(&(handle->tid),NULL,(void* (*)(void*))EventFunc,(void *)handle)!=0),EXIT,"error with create thread");
+        mException((pthread_create(&(handle->thrd),NULL,(void* (*)(void*))EventFunc,(void *)handle)!=0),EXIT,"error with create thread");
         hdl->valid =1;
     }
     else mChainNodeInsert(handle->node,node,NULL);

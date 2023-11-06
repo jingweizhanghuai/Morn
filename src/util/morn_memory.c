@@ -304,6 +304,77 @@ void endMAF()
     morn_alloc_free_info_num=0;
 }
 
+struct HandleMemoryAlloc
+{
+    MMap *map;
+    int buff[256];
+};
+struct HandleMemoryAlloc *morn_memory_handle=NULL;
+
+void MemoryCheck(void *ptr,int nouse,int *info,int l)
+{
+    char *str=(char *)(info+2);
+    if(str[info[1]]==0) mLog(MORN_ERROR,mLogFormat5("error with pointer 0x%p, which is not released, that is %s."),ptr,info+2);
+}
+
+void endMemoryAlloc(struct HandleMemoryAlloc *handle)
+{
+    if(handle->map!=NULL)
+    {
+        mMapNodeOperate(handle->map,MemoryCheck,NULL);
+        mMapRelease(handle->map);
+    }
+    morn_memory_handle=NULL;
+}
+#define HASH_MemoryAlloc 0xec8a1485
+void *MemoryAlloc( int  size,const char *file,int line,const char *func)
+{
+    if(morn_memory_handle==NULL)
+    {
+        MHandle *hdl = mHandle("Memory",MemoryAlloc);
+        struct HandleMemoryAlloc *handle = hdl->handle;
+        if(!mHandleValid(hdl))
+        {
+            if(handle->map==NULL) handle->map=mMapCreate();
+            morn_memory_handle=handle;
+            hdl->valid=1;
+        }
+    }
+    struct HandleMemoryAlloc *handle=morn_memory_handle;
+    
+    int n=sprintf((char *)(handle->buff+2),"mMalloc at file %s, line%d function %s",file,line,func);
+    size=(size+7)/8;
+    uint64_t *ptr=m_Malloc(size*8+2*sizeof(uint64_t))+1;
+    ptr[-1]=size;ptr[size]=size;
+    handle->buff[0]=size;
+    handle->buff[1]=n;
+    mMapWrite(handle->map,&ptr,sizeof(void *),handle->buff,sizeof(int)*3+n+n+32);
+    return ptr;
+}
+
+void MemoryFree(void *ptr,const char *file,int line,const char *func)
+{
+    struct HandleMemoryAlloc *handle=morn_memory_handle;
+    mException(handle==NULL,EXIT,"mFree error with mFree pointer 0x%p, which is not alloc by mMalloc",ptr);
+    int *info=mMapRead(handle->map,&ptr,sizeof(void *));
+    mException(info == NULL,EXIT,"mFree error with mFree pointer 0x%p, which is not alloc by mMalloc",ptr);
+    char *str=(char *)(info+2);
+    mException(str[info[1]],EXIT,"mFree error with mFree pointer 0x%p, which is double released, that is %s.",ptr,info+2);
+    
+    uint64_t *p=ptr;
+    mException(p[  -1   ]!=info[0],EXIT,"mFree error with pointer 0x%p, which is overwrite the pointer 0x%p",p,p-1);
+    mException(p[info[0]]!=info[0],EXIT,"mFree error with pointer 0x%p, which is overwrite the pointer 0x%p",p,p+info[0]);
+    
+    sprintf(str+info[1],", and mFree at file %s, line %d function %s",file,line,func);
+    mFree(p-1);
+}
+    
+    
+    
+    
+
+    
+    
 /*
 struct AFMessage
 {

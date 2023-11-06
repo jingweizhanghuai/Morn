@@ -75,14 +75,19 @@ struct HandleMORNFile *MORNInit(MFile *file)
             {
                 fread(&(chunk.ID  ),1,4,handle->f);
                 fread(&(chunk.size),1,4,handle->f);
+                if(locate+8+chunk.size>filesize) break;
                 
                 locate = locate + 4+4;chunk.locate = locate;
-                mListWrite(handle->list,DFLT,&chunk,sizeof(struct Chunk));
                 
+                mListWrite(handle->list,DFLT,&chunk,sizeof(struct Chunk));
                 locate = locate + chunk.size;
-                if(locate>=filesize)break;
+                if(locate==filesize) break;
+                
                 if(fseek(handle->f,chunk.size,SEEK_CUR)!=0)break;
             }
+            handle->filesize=locate-8;
+            fseek(handle->f,4,SEEK_SET);
+            fwrite(&(handle->filesize),4,1,handle->f);
         }
 
         hdl->valid = 1;
@@ -105,7 +110,12 @@ int mMORNSize(MFile *file,int ID)
 {
     struct HandleMORNFile *handle = MORNInit(file);
     struct Chunk *ck=MornChunk(handle,ID);
+//     printf("ck->size=%d\n",ck->size);
     if(ck==NULL) return 0;
+//     printf("handle->filesize=%d,ck->locate=%d\n",handle->filesize,ck->locate);
+//     printf("ck->size=%d\n",ck->size);
+    if(ck->locate+ck->size>handle->filesize+8) return 0;
+    
     return ck->size;
 }
 

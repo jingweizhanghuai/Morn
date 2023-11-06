@@ -9,7 +9,6 @@ inline int _Compare(const void *mem1,int size1,const void *mem2,int size2)
 {
     if(size1!=size2) {return (size1-size2);                                }
     if(size1==4    ) {return ((*((uint32_t *)mem1))-(*((uint32_t *)mem2)));}
-    if(size1==8    ) {return ((*((uint64_t *)mem1))-(*((uint64_t *)mem2)));}
     if(size1==1    ) {return ((*(( uint8_t *)mem1))-(*(( uint8_t *)mem2)));}
     if(size1==2    ) {return ((*((uint16_t *)mem1))-(*((uint16_t *)mem2)));}
                       return memcmp(mem1,mem2,size1);
@@ -25,7 +24,7 @@ struct HandleMornMap
 };
 void endMornMap(struct HandleMornMap *handle)
 {
-    if(handle->list!=NULL) mFree(handle->list);
+    if(handle->list!=NULL) m_Free(handle->list);
     if(handle->memory!=NULL) mMemoryRelease(handle->memory);
 }
 #define HASH_MornMap 0x197e7023
@@ -46,8 +45,8 @@ void _MapListAppend(struct HandleMornMap *handle)
         list_num=handle->list_num;
         if(list_num>128)
         {
-            mFree(handle->list);
-            handle->list = (MChainNode **)mMalloc((list_num+1)*sizeof(MChainNode *));
+            m_Free(handle->list);
+            handle->list = (MChainNode **)m_Malloc((list_num+1)*sizeof(MChainNode *));
         }
     }
     MChainNode **list = handle->list;
@@ -147,7 +146,7 @@ void *mornMapWrite(MChain *map,const void *key,int key_size,const void *value,in
     {
         if(handle->list==NULL)
         {
-            handle->list=(MChainNode **)mMalloc(129*sizeof(MChainNode *));
+            handle->list=(MChainNode **)m_Malloc(129*sizeof(MChainNode *));
             node = mChainNode(map,NULL,2*sizeof(int)+8+8);
             data = (int *)(node->data);
             memset(data,0,2*sizeof(int)+8+8);data[0]=0;data[1]=0;
@@ -405,8 +404,8 @@ void mMapCopy(MChain *src,MChain *dst)
     
     handle->num = num;
     handle->list_num=mBinaryFloor(num);
-    if(handle->list!=NULL) mFree(handle->list);
-    handle->list=(MChainNode **)mMalloc((MAX(handle->list_num,128)+1)*sizeof(MChainNode *));
+    if(handle->list!=NULL) m_Free(handle->list);
+    handle->list=(MChainNode **)m_Malloc((MAX(handle->list_num,128)+1)*sizeof(MChainNode *));
     _MapListAppend(handle);
 }
 
@@ -426,7 +425,7 @@ void MapOverWrite(int *overwrite,MMap *map)
 
 MMap *mMapCreate()
 {
-    MChain **amap = mMalloc(256*sizeof(MChain *));
+    MChain **amap = m_Malloc(256*sizeof(MChain *));
     memset(amap,0,256*sizeof(MChain *));
     MMap *map=mObjectCreate(amap);
     mObjectType(map)=HASH_MornMap;
@@ -437,7 +436,7 @@ void mMapRelease(MMap *map)
 {
     MChain **amap = (MChain **)(map->object);
     for(int i=0;i<256;i++) {if(amap[i]!=NULL) mChainRelease(amap[i]);}
-    mFree(amap);
+    m_Free(amap);
     mObjectRelease(map);
 }
 void *m_MapWrite(MMap *map,const void *key,int key_size,const void *value,int value_size)
@@ -564,7 +563,7 @@ struct HandleBimap
 };
 void endBimap(struct HandleBimap *handle)
 {
-    if(handle->list  !=NULL) mFree(handle->list);
+    if(handle->list  !=NULL) m_Free(handle->list);
     if(handle->memory!=NULL) mMemoryRelease(handle->memory);
 }
 #define HASH_Bimap 0x23b738fa
@@ -696,7 +695,7 @@ void *mBimapWrite(MChain *map,const void *key,int key_size,const void *value,int
         mObjectType(map)=HASH_Bimap;
         if(handle->list==NULL)
         {
-            handle->list=(MChainNode **)mMalloc(129*sizeof(MChainNode *));
+            handle->list=(MChainNode **)m_Malloc(129*sizeof(MChainNode *));
             node = mChainNode(map,NULL,2*sizeof(int)+8+8);
             int *data = (int *)(node->data);
             memset(data,0,2*sizeof(int)+8+8);data[0]=0;data[1]=0;

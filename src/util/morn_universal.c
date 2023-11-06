@@ -112,7 +112,7 @@ struct HandleObjectCreate
 void endObjectCreate(struct HandleObjectCreate *handle)
 {
     mException((handle->object == NULL),EXIT,"invalid object");
-    if(handle->buff2!=NULL) mFree(handle->buff2);
+    if(handle->buff2!=NULL) m_Free(handle->buff2);
     if(handle->property!=NULL) mChainRelease(handle->property);
     memset(handle->object,0,sizeof(MObject));
     // ObjectFree(handle->object);
@@ -130,7 +130,7 @@ MObject *m_ObjectCreate(void *p,int size)
     if((p==NULL)&&(size>0)) 
     {
         if(size<=sizeof(uint64_t)) p=&(handle->buff1);
-        else {handle->buff2=mMalloc(size);p=handle->buff2;handle->buff_size=size;}
+        else {handle->buff2=m_Malloc(size);p=handle->buff2;handle->buff_size=size;}
         object->object=p;
     }
     else if((p!=NULL)&&(size<=0))
@@ -149,7 +149,7 @@ void m_ObjectRedefine(MObject *object,void *p,int size)
     if(p==NULL)
     {
         struct HandleObjectCreate *handle= (struct HandleObjectCreate *)(ObjHandle(object,0)->handle);
-        if(handle->buff_size<size) {if(handle->buff2!=NULL) {mFree(handle->buff2);} handle->buff2=mMalloc(size);handle->buff_size = size;}
+        if(handle->buff_size<size) {if(handle->buff2!=NULL) {m_Free(handle->buff2);} handle->buff2=m_Malloc(size);handle->buff_size = size;}
         object->object = handle->buff2;
         p=object->object;
     }
@@ -253,7 +253,13 @@ void m_PropertyVariate(MObject *obj,const char *key,void *var,int var_size)
     struct Property *p = mornMapRead(handle->property,key,DFLT,NULL,&vsize);
     
     if(p!=NULL) memcpy(var,p->value,vsize-sizeof(struct Property));
-    else {p=mornMapWrite(handle->property,key,DFLT,NULL,vsize);p->func=NULL;p->para=NULL;}
+    else 
+    {
+        p=mornMapWrite(handle->property,key,DFLT,NULL,vsize);
+        memcpy(p->value,var,vsize-sizeof(struct Property));
+        p->func=NULL;p->para=NULL;
+    }
+    
     p->var = var;
 }
 
@@ -428,6 +434,8 @@ void mFile(MObject *object,const char *file_name,...)
     fclose(f);
 }
 
+
+
 // MList *mHandleCreate(void)
 // {
 //     MList *handle = (MList *)mMalloc(sizeof(MList));
@@ -465,7 +473,7 @@ void mFile(MObject *object,const char *file_name,...)
  
 void *ObjectAlloc(int size)
 {
-    struct HandleList *hl = mMalloc(sizeof(struct HandleList)+size);
+    struct HandleList *hl = m_Malloc(sizeof(struct HandleList)+size);
     hl->list.num = 0;
     hl->list.data = NULL;
     hl->latest_flag = DFLT;
@@ -483,10 +491,10 @@ void ObjectFree(void *obj)
     {
         MHandle *hdl = (MHandle *)(hl->list.data[i]);
         (hdl->destruct)(hdl->handle);
-        mFree(hdl);
+        m_Free(hdl);
     }
-    mFree(hl->list.data);
-    mFree(hl);
+    m_Free(hl->list.data);
+    m_Free(hl);
 }
 
 void mHandleReset(void *obj) 
@@ -527,18 +535,18 @@ MHandle *GetHandle(void *obj,int size,unsigned int hash,void (*end)(void *))
         }
     }
     
-    MHandle *Handle_context = (MHandle *)mMalloc(sizeof(MHandle)+size);
+    MHandle *Handle_context = (MHandle *)m_Malloc(sizeof(MHandle)+size);
     Handle_context->flag    = hash;
     Handle_context->valid   = 0;
     Handle_context->handle  =Handle_context+1;memset(Handle_context->handle,0,size);
     Handle_context->destruct= end;
     if(num%16 == 0)
     {
-        void **handle_buff = (void **)mMalloc((num+16)*sizeof(void *));
+        void **handle_buff = (void **)m_Malloc((num+16)*sizeof(void *));
         if(num>0)
         {
             memcpy(handle_buff,hlist->data,num*sizeof(void *));
-            mFree(hlist->data);
+            m_Free(hlist->data);
         }
         hlist->data = handle_buff;
     }

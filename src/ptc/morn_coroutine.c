@@ -47,7 +47,7 @@ void *m_CoroutineInfo(void *func,void *para,int *flag)
 {
     if((intptr_t)flag==DFLT) flag=NULL;
     if((intptr_t)func==DFLT) func=NULL;
-    __thread struct HandleCoroutine *handle=morn_coroutine_handle;
+    struct HandleCoroutine *handle=morn_coroutine_handle;
     struct CoroutineInfo *info0=NULL;
     void *key[2];
     if(handle==NULL)
