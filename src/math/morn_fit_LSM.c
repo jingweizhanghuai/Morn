@@ -3,11 +3,6 @@ Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "morn_image.h"
 
 void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
@@ -35,26 +30,45 @@ void mLinearFitLSM(float *XIn,float *YIn,int N,float *A)
     A[1] = ((sumx2*sumy)-(sumx*sumxy))/((((float)N)*sumx2)-(sumx*sumx));
 }
 
-void mLinearLSMFit(MList *list,MImagePoint *p1,MImagePoint *p2)
+void m_LinearLSMFit(MList *list,MImagePoint *p1,MImagePoint *p2,double *a)
 {
-    mException((list==NULL)||(p1==NULL)||(p2==NULL),EXIT,"invalid input list");
+    mException((list==NULL ),EXIT,"invalid input list");
     mException((list->num<2),EXIT,"sample number (which <2) is not enough.");
+    MImagePoint begin,end;if(p1==NULL) {p1=&begin;} if(p2==NULL) {p2=&end;}
+    double answer[3];if(a==NULL) a=answer;
 
-    float **p = (float **)list->data;
+    MImagePoint **p = (MImagePoint **)(list->data);
     double sumx = 0.0f;double sumy = 0.0f;
-    double sumxy= 0.0f;double sumx2= 0.0f;
-    float min=p[0][0];float max=p[0][0];
+    double sumxy= 0.0f;
+    double sumx2= 0.0f;double sumy2= 0.0f;
+    float xmin=p[0]->x;float xmax=p[0]->x;
+    float ymin=p[0]->y;float ymax=p[0]->y;
     for(int i=0;i<list->num;i++)
     {
-        sumx = sumx + p[i][0];sumx2 = sumx2 + p[i][0]*p[i][0];
-        sumy = sumy + p[i][1];sumxy = sumxy + p[i][0]*p[i][1];
-        min=MIN(p[i][0],min);max=MAX(p[i][0],max);
+        sumx = sumx + p[i]->x;sumx2 = sumx2 + p[i]->x*p[i]->x;
+        sumy = sumy + p[i]->y;sumy2 = sumy2 + p[i]->y*p[i]->y;
+        sumxy = sumxy + p[i]->x*p[i]->y;
+        xmin=MIN(p[i]->x,xmin);xmax=MAX(p[i]->x,xmax);
+        ymin=MIN(p[i]->y,ymin);ymax=MAX(p[i]->y,ymax);
     }
     double N = (double)(list->num);
-    double k = ((N*sumxy)-(sumx*sumy))/((N*sumx2)-(sumx*sumx));
-    double b = ((sumx2*sumy)-(sumx*sumxy))/((N*sumx2)-(sumx*sumx));
-    p1->x=min;p1->y=k*min+b;
-    p2->x=max;p2->y=k*max+b;
+    
+    if(xmax-xmin>ymax-ymin)
+    {
+        double k = ((N*sumxy)-(sumx*sumy))/((N*sumx2)-(sumx*sumx));
+        double b = ((sumx2*sumy)-(sumx*sumxy))/((N*sumx2)-(sumx*sumx));
+        p1->x=xmin;p1->y=k*xmin+b;
+        p2->x=xmax;p2->y=k*xmax+b;
+        a[0]=k;a[1]=-1.0;a[2]=b;
+    }
+    else
+    {
+        double k = ((N*sumxy)-(sumx*sumy))/((N*sumy2)-(sumy*sumy));
+        double b = ((sumy2*sumx)-(sumy*sumxy))/((N*sumy2)-(sumy*sumy));
+        p1->y=ymin;p1->x=k*ymin+b;
+        p2->y=ymax;p2->x=k*ymax+b;
+        a[0]=-1.0;a[1]=k;a[2]=b;
+    }
 }
 
 

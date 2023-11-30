@@ -309,21 +309,24 @@ int TCPClientConnect(const char *server_address)
             #else
             int flag = select(handle->tcp+1,&rfds,&wfds,NULL,&wait_time);
             #endif
-//             printf("flag========%d\n",flag);
+//             printf("handle->tcp==%d,flag========%d\n",handle->tcp,flag);
 //             printf("rfds=%d,wfds=%d\n",FD_ISSET(handle->tcp,&rfds),FD_ISSET(handle->tcp,&wfds));
             if(flag<=0) return MORN_FAIL;
             
             if((FD_ISSET(handle->tcp,&rfds))||(FD_ISSET(handle->tcp,&wfds)))
             {
                 int error=0;unsigned int size=sizeof(int);
-                getsockopt(handle->tcp,SOL_SOCKET,SO_ERROR,&error,&size);
-                if(handle->connect_error==DFLT)
+                int ret=getsockopt(handle->tcp,SOL_SOCKET,SO_ERROR,&error,&size);
+
+                if(ret==0)
                 {
-                    handle->connect_error=error;
-                    mLog(MORN_INFO,"%s reconnect: %s\n\n",handle->addr_str,strerror(error));
+                    if(handle->connect_error==DFLT)
+                    {
+                        handle->connect_error=error;
+                        mLog(MORN_INFO,"tcp %s connect: %s\n\n\n",handle->addr_str,strerror(error));
+                    }
+                    if(error==0) {handle->time=DFLT;return MORN_SUCCESS;}
                 }
-                
-                if(error==0) {handle->time=DFLT;return MORN_SUCCESS;}
                 handle->time=mTimer();return MORN_FAIL;
             }
             return MORN_FAIL;
@@ -335,14 +338,13 @@ int TCPClientConnect(const char *server_address)
         
         if(dt<reconnect) return (handle->connect_error)?MORN_FAIL:MORN_SUCCESS;
         
+        mLog(MORN_INFO,"tcp %s reconnect...\n\n\n",handle->addr_str);
         if(handle->tcp!=0) closesocket(handle->tcp);handle->tcp=0;
     }
     
     handle->tcp = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
     if(handle->tcp<0) {handle->tcp=0;return MORN_FAIL;}
 
-    mLog(MORN_INFO,"%s reconnect...\n\n",handle->addr_str);
-    
     if(handle->wait_time>=0)
     {
         #if defined(_WIN64)||defined(_WIN32)
@@ -361,10 +363,10 @@ int TCPClientConnect(const char *server_address)
         ret=connect(handle->tcp,(struct sockaddr*)&server_addr,sizeof(struct sockaddr));
         if(ret<0) 
         {
-            mLog(MORN_ERROR,"tcp %s client connect error:%s\n",handle->addr_str,strerror(errno));
-            handle->connect_error=DFLT; return MORN_FAIL;
+            mLog(MORN_ERROR,"Tcp %s connect: %s\n\n\n",handle->addr_str,strerror(errno));
+            handle->connect_error=DFLT; /*handle->time=Timer();*/return MORN_FAIL;
         }
-        handle->time=DFLT;return MORN_SUCCESS;
+        handle->connect_error=0;handle->time=DFLT;return MORN_SUCCESS;
     }
     else
     {
@@ -375,10 +377,10 @@ int TCPClientConnect(const char *server_address)
         int ret = connect(handle->tcp,(struct sockaddr*)&server_addr,sizeof(struct sockaddr));
         if(ret<0) 
         {
-            mLog(MORN_ERROR,"tcp %s client connect error:%s\n",handle->addr_str,strerror(errno));
+            mLog(MORN_ERROR,"tcp %s connect error:%s\n\n\n",handle->addr_str,strerror(errno));
             handle->time=mTimer();return MORN_FAIL;
         }
-        handle->time=DFLT;return MORN_SUCCESS;
+        handle->connect_error=0;handle->time=DFLT;return MORN_SUCCESS;
     }
 }
 
@@ -391,10 +393,13 @@ char *m_TCPClientWrite(const char *server_address,void *data,int size)
     char *ip=NULL;
     
     if((handle->long_connect==0)||(handle->addr==0))
-        {if(TCPClientConnect(server_address)==MORN_FAIL) goto tcp_client_send_end;}
+        {if(TCPClientConnect(server_address)==MORN_FAIL) {handle->addr=0;goto tcp_client_send_end;}}
 
-//     printf("22222222222 handle->tcp=%d\n",handle->tcp);
+    #if defined(_WIN64)||defined(_WIN32)
     int ret = send(handle->tcp,data,size,0);
+    #else
+    int ret = send(handle->tcp,data,size,MSG_NOSIGNAL);
+    #endif
     if(ret>0) ip=handle->addr_str;
     
     tcp_client_send_end:
@@ -412,7 +417,7 @@ char *m_TCPClientRead(const char *server_address,void *data,int *size)
     
     int ret;
     if((handle->long_connect==0)||(handle->addr==0))
-        {if(TCPClientConnect(server_address)==MORN_FAIL) goto tcp_client_recv_end;}
+        {if(TCPClientConnect(server_address)==MORN_FAIL) {handle->addr=0;goto tcp_client_recv_end;}}
     
     if(handle->wait_time>=0)
     {
@@ -440,11 +445,7 @@ char *m_TCPClientRead(const char *server_address,void *data,int *size)
     else if(handle->reconnect>0)
     {
         if(ip!=NULL) handle->time=DFLT;
-        else
-        {
-            if(handle->time<0) handle->time=mTimer();
-            handle->addr=0;
-        }
+        else {handle->addr=0;if(handle->time<0) handle->time=mTimer();}
     }
     return ip;
 }
@@ -634,8 +635,11 @@ char *m_TCPServerWrite(const char *address,void *data,int size)
         struct ClientInfo *info = list->data[i];
         if(info->addr==addr)
         {
-//             printf("sssssssssssssend info->client=%d\n",info->client);
+            #if defined(_WIN64)||defined(_WIN32)
             send(info->client,data,size,0);
+            #else
+            send(info->client,data,size,MSG_NOSIGNAL);
+            #endif
             return info->name;
         }
     }

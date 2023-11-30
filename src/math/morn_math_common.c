@@ -273,6 +273,7 @@ double mCurt(double a)
 double m_Gaussian(double a,double mean,double variance)
 {
     double b = (a-mean);b=0-b*b/(variance+variance);
+//     if((b>700.0)||(b<-700.0)) return 0.0;
     return mExp(b)/(mSqrt(variance)*2.506628274631000502415765284811);
 }
 

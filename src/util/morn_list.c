@@ -63,7 +63,7 @@ void m_ListAppend(MList *list,void **data,int n)
 {
     mException(INVALID_POINTER(list),EXIT,"invalid input source list");
     if(n<0) n=list->num+1;
-    else mException(n<list->num,EXIT,"invalid list append number");
+//     else mException(n<list->num,EXIT,"invalid list append number");
     
     struct HandleListCreate *handle= (struct HandleListCreate *)(ObjHandle(list,0)->handle);
     if(n<=handle->num) 

@@ -64,7 +64,7 @@ struct HandleLog
     char filename[128];
     char fileprefix[128];
     char filetype[16];
-    int fileorder;
+    int64_t fileorder;
     int filerotate;
     int filebyte;
     MThreadSignal sgn;
@@ -118,14 +118,13 @@ void LogFile(char *filename)
         return;
     }
     
+    char buff[256];
     if(handle->filebyte>0)
     {
-        char name0[128];char name1[128];
         if(strcmp(handle->filename,filename)!=0)
         {
             endLog(handle);
             strcpy(handle->filename,filename);
-            handle->fileorder=0;
             handle->fileprefix[0]=0;
         }
         else if(handle->mmapsize-handle->writesize>=1024) return;
@@ -144,39 +143,26 @@ void LogFile(char *filename)
                     break;
                 }
             }
-        }
-        
-        if(handle->fileorder==0)
-        {
-            if(access(handle->filename,F_OK)>=0) remove(handle->filename);
-            handle->fileorder++;
-        }
-        else if(handle->fileorder<=handle->filerotate)
-        {
-            snprintf(name0,128,"%s%d.%s",handle->fileprefix,handle->fileorder,handle->filetype);
-            if(access(name0,F_OK)>=0) remove(name0);
-            rename(handle->filename,name0);
-            handle->fileorder++;
+            
+            handle->fileorder=0;
+            if(access(handle->filename,F_OK)>=0)
+            {
+                FILE *f=fopen(handle->filename,"r");
+                if(fgets(buff,256,f)!=NULL)
+                    sscanf(buff,"[Morn Log %d]\n",&(handle->fileorder));
+                fclose(f);
+                snprintf(buff,256,"%s%d.%s",handle->fileprefix,handle->fileorder%handle->filerotate,handle->filetype);
+                rename(handle->filename,buff);
+                handle->fileorder++;
+            }
         }
         else
         {
-            snprintf(name0,128,"%s1.%s",handle->fileprefix,handle->filetype);
-            remove(name0);
-            int i=1;for(;i<handle->filerotate-1;i+=2)
-            {
-                snprintf(name1,128,"%s%d.%s",handle->fileprefix,i+1,handle->filetype);
-                rename(name1,name0);
-                snprintf(name0,128,"%s%d.%s",handle->fileprefix,i+2,handle->filetype);
-                rename(name0,name1);
-            }
-            if(i<handle->filerotate)
-            {
-                snprintf(name1,128,"%s%d.%s",handle->fileprefix,i+1,handle->filetype);
-                rename(name1,name0);
-                strcpy(name0,name1);
-            }
-            rename(handle->filename,name0);
+            snprintf(buff,256,"%s%d.%s",handle->fileprefix,handle->fileorder%handle->filerotate,handle->filetype);
+            rename(handle->filename,buff);
+            handle->fileorder++;
         }
+        
         handle->file=m_Open(handle->filename);
         handle->filesize = 0;
     }
@@ -184,16 +170,15 @@ void LogFile(char *filename)
     {
         endLog(handle);
         strcpy(handle->filename,filename);
-        if(access(handle->filename,F_OK)>=0) remove(handle->filename);
-        handle->file=m_Open(handle->filename);
+        handle->fileorder= 0;
         handle->filesize = 0;
-    }
+    } 
     else
     {
         int m=handle->mmapsize-handle->writesize;if(m>=1024) return;
-        memcpy((void *)(handle->filepointer+handle->writesize),morn_log_string,m);
-        morn_log_string_size-=m;
-        memmove(morn_log_string,morn_log_string+m,morn_log_string_size);
+//         memcpy((void *)(handle->filepointer+handle->writesize),morn_log_string,m);
+//         morn_log_string_size-=m;
+//         memmove(morn_log_string,morn_log_string+m,morn_log_string_size);
     }
     
 //     printf("handle->filebyte=%d\n",handle->filebyte);
@@ -208,9 +193,16 @@ void LogFile(char *filename)
     char a=0;m_Write(handle->file,handle->filesize+handle->mmapsize-1,&a,1);
 
     m_Mmap(handle->file,handle->filepointer,handle->mmapsize,handle->filesize);
+
+    if(handle->filesize==0)
+    {
+        int l=snprintf(buff,256,"[Morn Log %d]\n\n",handle->fileorder);
+        memcpy(handle->filepointer,buff,l);
+        handle->writesize=l;
+    }
+    else handle->writesize=0;
     
     handle->filesize+=handle->mmapsize;
-    handle->writesize=0;
     
     handle->file_valid = 1;
     handle->console_valid = handle->console_valid0;
@@ -251,6 +243,7 @@ struct HandleLog *LogInit()
                                                 
         mPropertyVariate( "Log","log_filesize"  ,&handle->filebyte,sizeof(int));
         mPropertyVariate( "Log","log_filerotate",&handle->filerotate,sizeof(int));
+        
         mPropertyFunction("Log","log_file"      ,LogFile);
         
         mPropertyFunction("Log","log_function"  ,LogFunction);
@@ -259,7 +252,7 @@ struct HandleLog *LogInit()
         mPropertyFunction("Log","log_console"   ,LogConsole);
         
         handle->console_valid = handle->console_valid0||(!((handle->file_valid)||(handle->func_valid)));
-        if(handle->filerotate==0) handle->filerotate=0x7fffffff;
+        
         hdl->valid=1;
     }
     morn_log_handle = handle;

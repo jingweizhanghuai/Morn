@@ -254,6 +254,7 @@ int64_t m_StringTime(char *in,const char *format);
     (VANumber(__VA_ARGS__)==2)?m_StringTime((char *)(VA0(__VA_ARGS__)),(const char *)(VA1(__VA_ARGS__))):\
     DFLT\
 )
+void mCalendar(int year);
 
 #ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN 1234
@@ -320,7 +321,7 @@ extern __thread int morn_layer_order;//=-1;
 // #define mSleep(T) _sleep(T)
 #endif
 
-double mTime();
+double mTimer();
 void _mTimerBegin(const char *name);
 float _mTimerEnd(const char *name,const char *file,int line,const char *function);
 #define mTimerBegin(...) _mTimerBegin((const char *)VA0(__VA_ARGS__))
@@ -514,7 +515,6 @@ void mTableWipe(MTable *tab);
 #define MORN_BIT7  1
 #define MORN_BIT8  1
 typedef struct MArray{
-    // Morn;
     int num;
     short element_size;
     union
@@ -586,6 +586,8 @@ void *m_ArrayRead(MArray *array,int n,void *data,int num);
 int mStreamRead(MArray *buff,void *data,int num);
 int mStreamWrite(MArray *buff,void *data,int num);
 
+
+
 #define MText MArray
 #define mTextCreate mArrayCreate
 #define mTextRelease mArrayRelease
@@ -646,6 +648,8 @@ typedef struct MGraphNode
     float *length;
     int node_num;
 }MGraphNode;
+
+
 
 
 // typedef struct MObject
@@ -789,7 +793,19 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size);
     (VANumber(__VA_ARGS__)==2)?m_GraphNode(VA0(__VA_ARGS__,DFLT),(void *)(VA1(__VA_ARGS__,DFLT)),DFLT):\
     (VANumber(__VA_ARGS__)==1)?m_GraphNode(VA0(__VA_ARGS__,DFLT),NULL,DFLT):\
     NULL)
-void mGraphNodeInsert(MGraphNode *node0,MGraphNode *node,float length);
+void mGraphLink(MGraphNode *node0,MGraphNode *node,float length);
+void mGraphDelink(MGraphNode *node0,MGraphNode *node);
+
+#define MORN_BREADTH_FIRST 0
+#define MORN_DEPTH_FIRST   1
+MGraph *m_GraphTraversal(MGraph *graph,int mode,void *function,void *para);
+#define mGraphTraversal(Graph,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_GraphTraversal(Graph,DFLT,(void *)((intptr_t)VA0(__VA_ARGS__)),NULL):\
+    (VANumber(__VA_ARGS__)==3)?m_GraphTraversal(Graph,(intptr_t)VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__)):\
+    ((intptr_t)VA0(__VA_ARGS__)<2)?m_GraphTraversal(Graph,(intptr_t)VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL):\
+                                   m_GraphTraversal(Graph,DFLT,VA0(__VA_ARGS__),VA1(__VA_ARGS__))\
+)
+    
 float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
 #define _GraphPath(P0,P1,P2,P3,P4) m_GraphPath((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
 #define mGraphPath(...) (\
@@ -799,6 +815,46 @@ float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss
     (VANumber(__VA_ARGS__)==5)?_GraphPath(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
 DFLT)
 
+float m_GraphWay(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
+#define _GraphWay(P0,P1,P2,P3,P4) m_GraphWay((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
+#define mGraphWay(...) (\
+    (VANumber(__VA_ARGS__)==2)?_GraphWay(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==3)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL,NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL)):\
+    (VANumber(__VA_ARGS__)==4)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==5)?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
+DFLT)
+
+MObject *m_ContainerCreate(int num,int element_size,void *data);
+#define mContainerCreate(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ContainerCreate(0,(intptr_t)VA0(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)VA1(__VA_ARGS__)<65536)?m_ContainerCreate((intptr_t)VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),NULL):m_ContainerCreate(1,(intptr_t)VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)))):\
+    (VANumber(__VA_ARGS__)==3)?m_ContainerCreate((intptr_t)VA0(__VA_ARGS__),(intptr_t)VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__))):\
+    NULL\
+)
+void mContainerRelease(MObject *container);
+void mContainerClear(MObject *container);
+
+void *mContainerPushBack(MObject *container,void *data);
+void *m_ContainerWrite(MObject *container,intptr_t n,void *data);
+#define mContainerWrite(Container,...) (\
+    (VANumber(__VA_ARGS__)==1)?mContainerPushBack(Container,(void *)((intptr_t)VA0(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==2)?m_ContainerWrite(Container,(intptr_t)VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__))):\
+    NULL\
+)
+void *m_ContainerRead(MObject *container,intptr_t n,void *data);
+#define mContainerRead(...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ContainerRead((MObject *)((intptr_t)VA0(__VA_ARGS__)),DFLT,NULL):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)VA1(__VA_ARGS__)<65536)?m_ContainerRead((MObject *)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__),NULL):m_ContainerRead((MObject *)((intptr_t)VA0(__VA_ARGS__)),DFLT,(void *)((intptr_t)VA1(__VA_ARGS__)))):\
+    (VANumber(__VA_ARGS__)==3)?m_ContainerRead((MObject *)((intptr_t)VA0(__VA_ARGS__)),(intptr_t)VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__))):\
+    NULL\
+)
+void mContainerDelete(MObject *container,intptr_t n);
+void *m_ContainerInsert(MObject *container,intptr_t n,void *data);
+#define mContainerInsert(Container,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_ContainerInsert(container,(intptr_t)VA0(__VA_ARGS__),NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_ContainerInsert(container,(intptr_t)VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__))):\
+    NULL\
+)
 
 void  m_PropertyVariate(MObject *obj,const char *key,void *var,int var_size);
 void  m_PropertyFunction(MObject *obj,const char *key,void *function,void *para);
@@ -1192,31 +1248,33 @@ int mMORNWrite(MFile *file,int ID,void **data,int num,int size);
 char *mUDPWrite(const char *address,void *data,int  size);
 char *mUDPRead( const char *address,void *data,int *size);
 
-char *m_TCPClientWrite(MObject *obj,const char *server_address,void *data,int size);
-char *m_TCPClientRead(MObject *obj,const char *server_address,void *data,int *size);
+
+char *m_TCPClientWrite(const char *server_address,void *data,int size);
+char *m_TCPClientRead(const char *server_address,void *data,int *size);
 #define mTCPClientWrite(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_TCPClientWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
-    (VANumber(__VA_ARGS__)==4)?m_TCPClientWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==2)?m_TCPClientWrite((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),DFLT):\
+    (VANumber(__VA_ARGS__)==3)?m_TCPClientWrite((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
     NULL\
 )
 #define mTCPClientRead(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_TCPClientRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
-    (VANumber(__VA_ARGS__)==4)?m_TCPClientRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==2)?m_TCPClientRead((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),NULL):\
+    (VANumber(__VA_ARGS__)==3)?m_TCPClientRead((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
     NULL\
 )
 
-char *m_TCPServerRead(MObject *obj,const char *address,void *data,int *size);
-char *m_TCPServerWrite(MObject *obj,const char *address,void *data,int size);
+char *m_TCPServerWrite(const char *address,void *data,int size);
+char *m_TCPServerRead(const char *address,void *data,int *size);
 #define mTCPServerWrite(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_TCPServerWrite(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
-    (VANumber(__VA_ARGS__)==4)?m_TCPServerWrite((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(intptr_t)VA3(__VA_ARGS__)):\
+    (VANumber(__VA_ARGS__)==2)?m_TCPServerWrite((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),DFLT):\
+    (VANumber(__VA_ARGS__)==3)?m_TCPServerWrite((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(intptr_t)VA2(__VA_ARGS__)):\
     NULL\
 )
 #define mTCPServerRead(...) (\
-    (VANumber(__VA_ARGS__)==3)?m_TCPServerRead(     mMornObject("UDP",DFLT),(const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
-    (VANumber(__VA_ARGS__)==4)?m_TCPServerRead((MObject *)_VA0(__VA_ARGS__),(const char *) VA1(__VA_ARGS__),(void *)((intptr_t)VA2(__VA_ARGS__)),(int *)((intptr_t)VA3(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==2)?m_TCPServerRead((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),NULL):\
+    (VANumber(__VA_ARGS__)==3)?m_TCPServerRead((const char *)_VA0(__VA_ARGS__),(void *)((intptr_t)VA1(__VA_ARGS__)),(int *)((intptr_t)VA2(__VA_ARGS__))):\
     NULL\
 )
+
 
 #ifdef __cplusplus
 }

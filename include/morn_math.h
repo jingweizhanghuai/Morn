@@ -189,10 +189,64 @@ void mMATRead(MFile *file,char *matname,MMatrix *mat);
     if(Dev!=MORN_HOST) mPropertyWrite(Mat,"device",&Dev);\
 }while(0)
 
-void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst);
+void m_VectorAdd(MVector *vec1,MVector *vec2,MVector *dst);
+#define mVectorAdd(Vec,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_VectorAdd(Vec,VA0(__VA_ARGS__),(MVector *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_VectorAdd(Vec,VA0(__VA_ARGS__),Vec);\
+}while(0)
+
+void m_VectorSub(MVector *vec1,MVector *vec2,MVector *dst);
+#define mVectorSub(Vec,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_VectorSub(Vec,VA0(__VA_ARGS__),(MVector *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_VectorSub(Vec,VA0(__VA_ARGS__),Vec);\
+}while(0)
+
+void m_VectorScale(MVector *src,MVector *dst,float k,float b);
+#define mVectorScale(Src,...) do{\
+    float K=*((float *)(&(VA0(__VA_ARGS__))));\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==1) m_VectorScale(Src,Src,K,0);\
+    else if(VAN==3) m_VectorScale(Src,(MVector *)((intptr_t)VA0(__VA_ARGS__)),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
+    else if(VAN==2)\
+    {\
+        if((intptr_t)(VA0(__VA_ARGS__)+1.0)-(intptr_t)VA0(__VA_ARGS__)<3)\
+             m_VectorScale(Src,Src,K,VA1(__VA_ARGS__));\
+        else m_VectorScale(Src,(MVector *)((intptr_t)VA0(__VA_ARGS__)),VA1(__VA_ARGS__),0.0);\
+    }\
+    else mException(1,EXIT,"invalid input para");\
+}
+
 float mVectorMul(MVector *vec1,MVector *vec2);
 void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst);
 void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst);
+
+void m_MatrixScale(MMatrix *src,MMatrix *dst,float k,float b);
+#define mMatrixScale(Src,...) do{\
+    float K=*((float *)(&(VA0(__VA_ARGS__))));\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==1) m_MatrixScale(Src,Src,K,0);\
+    else if(VAN==3) m_MatrixScale(Src,(MMatrix *)((intptr_t)VA0(__VA_ARGS__)),VA1(__VA_ARGS__),VA2(__VA_ARGS__));\
+    else if(VAN==2)\
+    {\
+        if((intptr_t)(VA0(__VA_ARGS__)+1.0)-(intptr_t)VA0(__VA_ARGS__)<3)\
+             m_MatrixScale(Src,Src,K,VA1(__VA_ARGS__));\
+        else m_MatrixScale(Src,(MMatrix *)((intptr_t)VA0(__VA_ARGS__)),VA1(__VA_ARGS__),0.0);\
+    }\
+    else mException(1,EXIT,"invalid input para");\
+}
+
+void m_MatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
+#define mMatrixAdd(Mat,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_MatrixAdd(Mat,VA0(__VA_ARGS__),(MMatrix *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_MatrixAdd(Mat,VA0(__VA_ARGS__),Mat);\
+}while(0)
+
+void m_MatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
+#define mMatrixSub(Mat,...) do{\
+    if(VANumber(__VA_ARGS__)==2) m_MatrixSub(Mat,VA0(__VA_ARGS__),(MMatrix *)((intptr_t)VA1(__VA_ARGS__)));\
+    else                         m_MatrixSub(Mat,VA0(__VA_ARGS__),Mat);\
+}while(0)
+
 void m_MatrixMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst);
 #define mMatrixMul(Mat,...) do{\
     if(VANumber(__VA_ARGS__)==2) m_MatrixMul(Mat,VA0(__VA_ARGS__),(MMatrix *)((intptr_t)VA1(__VA_ARGS__)));\
@@ -410,8 +464,8 @@ void mPointInterpolation(MList *curve,MList *list,float k1,float k2);
 
 #define MORN_NO_TRANS 0
 #define MORN_TRANS    1
-void mSgemm(int device,int a_trans,int b_trans,int m,int n,int k,float alpha,MMemoryBlock *a,int sa,MMemoryBlock *b,int sb,float beta,MMemoryBlock *c,int sc);
-void mSaxpby(int device,int n,float alpha,MMemoryBlock *a,int sa,float beta,MMemoryBlock *b,int sb);
+void mSgemm(int a_trans,int b_trans,int m,int n,int k,float alpha,MMemoryBlock *a,int sa,MMemoryBlock *b,int sb,float beta,MMemoryBlock *c,int sc);
+void mSaxpby(int n,float alpha,MMemoryBlock *a,float beta,MMemoryBlock *b);
 
 #ifdef __cplusplus
 }

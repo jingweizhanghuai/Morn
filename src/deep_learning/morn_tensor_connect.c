@@ -106,7 +106,6 @@ void mTensorConnectForward(MLayer *layer)
     struct TensorConnectPara *para = (struct TensorConnectPara *)(layer->para);
     MTensor *in = para->prev->tns;
     MTensor *out= layer->tns;
-    int device = out->device;
     
     struct HandleTensorConnect *handle = TensorConnectSet(layer);
     
@@ -114,7 +113,7 @@ void mTensorConnectForward(MLayer *layer)
     int weight_width =  in->height* in->width* in->channel +1;
     for(int b=0;b<in->batch;b++)
     {
-        mSgemm(device,MORN_NO_TRANS,MORN_NO_TRANS,weight_height,1,weight_width,1.0f,handle->weight,weight_width,mTensorMemory(in,b),1,0.0f,mTensorMemory(out,b),1);
+        mSgemm(MORN_NO_TRANS,MORN_NO_TRANS,weight_height,1,weight_width,1.0f,handle->weight,weight_width,mTensorMemory(in,b),1,0.0f,mTensorMemory(out,b),1);
         printf("out_data[8]=%f\n",((float *)(out->data[b]))[8]);
     }
 
@@ -129,7 +128,7 @@ void mTensorConnectBackward(MLayer *layer)
     MTensor *in  = para->prev->tns;
     MTensor *res = para->prev->res;
     MTensor *out = layer->res;
-    int device = out->device;
+//     int device = out->device;
     
     MHandle *hdl=mHandle(layer->tns,TensorConnect);
     struct HandleTensorConnect *handle = (struct HandleTensorConnect *)(hdl->handle);
@@ -137,24 +136,24 @@ void mTensorConnectBackward(MLayer *layer)
     
     int weight_height= out->height*out->width*out->channel;
     int weight_width =  in->height* in->width* in->channel +1;
-    float *update_data = (float*)(handle->update->data);
+//     float *update_data = (float*)(handle->update->data);
     
     mNetworkParaWrite(layer,"weight",handle->weight->data,weight_height*weight_width*sizeof(float));
     
     float beta = para->momentum;
     for(int b=0;b<in->batch;b++)
     {
-        mSgemm(device,MORN_NO_TRANS,MORN_TRANS,weight_height,weight_width,1,1.0f,mTensorMemory(out,b),1,mTensorMemory(in,b),1,beta,handle->update,weight_width);
+        mSgemm(MORN_NO_TRANS,MORN_TRANS,weight_height,weight_width,1,1.0f,mTensorMemory(out,b),1,mTensorMemory(in,b),1,beta,handle->update,weight_width);
         printf("update_data[8]=%f\n",((float*)(handle->update->data))[8]);
         beta = 1.0;
     }
     
     if(para->res_valid) for(int b=0;b<in->batch;b++)
     {
-        mSgemm(device,MORN_TRANS,MORN_NO_TRANS,weight_width,1,weight_height,1.0f,handle->weight,weight_width,mTensorMemory(out,b),1,((para->prev->state==MORN_FORWARD)?0.0f:1.0f),mTensorMemory(res,b),1);
+        mSgemm(MORN_TRANS,MORN_NO_TRANS,weight_width,1,weight_height,1.0f,handle->weight,weight_width,mTensorMemory(out,b),1,((para->prev->state==MORN_FORWARD)?0.0f:1.0f),mTensorMemory(res,b),1);
         printf("res_data[8]=%f\n",((float *)(res->data[b]))[8]);
     }
-    mSaxpby(device,weight_height*weight_width,(0.0f-(para->rate/(float)(in->batch))),handle->update,1,(1.0f-(para->decay*para->rate)),handle->weight,1);
+    mSaxpby(weight_height*weight_width,(0.0f-(para->rate/(float)(in->batch))),handle->update,(1.0f-(para->decay*para->rate)),handle->weight);
 
     para->prev->state = MORN_BACKWARD;
 }

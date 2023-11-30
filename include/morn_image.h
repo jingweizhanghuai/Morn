@@ -542,6 +542,15 @@ int mImageBinaryArea(MImage *src,MList *list,MImagePoint *point);
 void mImageBinaryDenoise(MImage *src,MImage *dst,int num_thresh);
 void mImageBinaryBurrRemove(MImage *src,MImage *dst);
 
+void m_LinearLSMFit(MList *list,MImagePoint *p1,MImagePoint *p2,double *a);
+#define mLinearLSMFit(List,...) do{\
+    int VAN=VANumber(__VA_ARGS__);\
+         if(VAN==2) m_LinearLSMFit(List,(MImagePoint *)VA0(__VA_ARGS__),(MImagePoint *)VA1(__VA_ARGS__),NULL);\
+    else if(VAN==1) m_LinearLSMFit(List,NULL,NULL,(double *)VA0(__VA_ARGS__));\
+    else if(VAN==3) m_LinearLSMFit(List,(MImagePoint *)VA0(__VA_ARGS__),(MImagePoint *)VA1(__VA_ARGS__),(double *)VA2(__VA_ARGS__));\
+    else mException(1,EXIT,"invalid input");\
+}while(0)
+
 void ImageIntegration(MImage *src,MTable **dst);
 void m_ImageIntegration(MImage *src,MTable **sum,MTable **sqsum);
 #define mImageIntegration(src,...) do{\

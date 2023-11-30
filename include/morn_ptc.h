@@ -79,7 +79,6 @@ typedef struct MThreadSignal
         if(mAtomicSet(&((Sgn).valid),HASH_Thread)!=HASH_Thread)\
         {\
             pthread_mutex_init( &((Sgn).mutex    ),PTHREAD_PROCESS_PRIVATE);\
-            pthread_cond_init(  &((Sgn).condition),PTHREAD_PROCESS_PRIVATE);\
             pthread_rwlock_init(&((Sgn).rwlock   ),NULL);\
         }\
         Sgn_valid=1;\

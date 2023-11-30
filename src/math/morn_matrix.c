@@ -313,82 +313,194 @@ void m_MatrixTranspose(MMatrix *mat,MMatrix *dst)
     }
 }
 
-void VectorAdd(float *vec1,float *vec2,float *dst,int num)
+void m_MatrixScale(MMatrix *src,MMatrix *dst,float k,float b)
 {
-    int i;
-    for(i=0;i<num;i++)
-        dst[i] = vec1[i]+vec2[i];
+    mException((INVALID_MAT(src)),EXIT,"invalid input");
+    if(dst!=src) mMatrixRedefine(dst,src->row,src->col,NULL);
+    
+    float **s=src->data;
+    float **d=dst->data;
+    if(b!=0.0f)
+    {
+        for(int j=0;j<src->row;j++)
+        {
+            int i;for(i=0;i<src->col-3;i+=4)
+            {
+                d[j][i  ]=s[j][i  ]*k+b;
+                d[j][i+1]=s[j][i+1]*k+b;
+                d[j][i+2]=s[j][i+2]*k+b;
+                d[j][i+3]=s[j][i+3]*k+b;
+            }
+            for(;i<src->col;i++) d[j][i]=s[j][i]*k+b;
+        }
+    }
+    else
+    {
+        for(int j=0;j<src->row;j++)
+        {
+            int i;for(i=0;i<src->col-3;i+=4)
+            {
+                d[j][i  ]=s[j][i  ]*k;
+                d[j][i+1]=s[j][i+1]*k;
+                d[j][i+2]=s[j][i+2]*k;
+                d[j][i+3]=s[j][i+3]*k;
+            }
+            for(;i<src->col;i++) d[j][i]=s[j][i]*k;
+        }
+    }
 }
 
-void mVectorAdd(MVector *vec1,MVector *vec2,MVector *dst)
+void m_VectorScale(MVector *src,MVector *dst,float k,float b)
 {
-    int i;
+    if(dst!=src) mVectorRedefine(dst,src->size,NULL);
+    
+    float *s=src->data;
+    float *d=dst->data;
+    if(b!=0.0f)
+    {
+        int i;for(i=0;i<src->size-3;i+=4)
+        {
+            d[i  ]=s[i  ]*k+b;
+            d[i+1]=s[i+1]*k+b;
+            d[i+2]=s[i+2]*k+b;
+            d[i+3]=s[i+3]*k+b;
+        }
+        for(;i<src->size;i++) d[i]=s[i]*k+b;
+    }
+    else
+    {
+        int i;for(i=0;i<src->size-3;i+=4)
+        {
+            d[i  ]=s[i  ]*k;
+            d[i+1]=s[i+1]*k;
+            d[i+2]=s[i+2]*k;
+            d[i+3]=s[i+3]*k;
+        }
+        for(;i<src->size;i++) d[i]=s[i]*k;
+    }
+}
+
+void m_VectorAdd(MVector *vec1,MVector *vec2,MVector *dst)
+{
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
     if(INVALID_POINTER(dst)) dst = vec1;
     else mVectorRedefine(dst,vec1->size,dst->data,vec1->device);
     
-    for(i=0;i<vec1->size;i++)
-        dst->data[i] = vec1->data[i] + vec2->data[i];
+    float * d=dst ->data;
+    float *v1=vec1->data;
+    float *v2=vec2->data;
+    int i;for(i=0;i<vec1->size-3;i+=4)
+    {
+        d[i  ]=v1[i  ]+v2[i  ];
+        d[i+1]=v1[i+1]+v2[i+1];
+        d[i+2]=v1[i+2]+v2[i+2];
+        d[i+3]=v1[i+3]+v2[i+3];
+    }
+    for(;i<vec1->size;i++) d[i]=v1[i]+v2[i];
 }
 
-void mMatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
+void m_VectorSub(MVector *vec1,MVector *vec2,MVector *dst)
+{
+    mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
+
+    if(INVALID_POINTER(dst)) dst = vec1;
+    else mVectorRedefine(dst,vec1->size,dst->data,vec1->device);
+    
+    float * d=dst ->data;
+    float *v1=vec1->data;
+    float *v2=vec2->data;
+    int i;for(i=0;i<vec1->size-3;i+=4)
+    {
+        d[i  ]=v1[i  ]-v2[i  ];
+        d[i+1]=v1[i+1]-v2[i+1];
+        d[i+2]=v1[i+2]-v2[i+2];
+        d[i+3]=v1[i+3]-v2[i+3];
+    }
+    for(;i<vec1->size;i++) d[i]=v1[i]-v2[i];
+}
+
+void m_MatrixAdd(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
     int j;
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
+    
     // #pragma omp parallel for
     for(j=0;j<dst->row;j++)
-        for(int i=0;i<dst->col;i++)
-            dst->data[j][i] = mat1->data[j][i]+mat2->data[j][i];
+    {
+        int i;for(i=0;i<dst->col-3;i+=4)
+        {
+            dst->data[j][i  ] = mat1->data[j][i  ]+mat2->data[j][i  ];
+            dst->data[j][i+1] = mat1->data[j][i+1]+mat2->data[j][i+1];
+            dst->data[j][i+2] = mat1->data[j][i+2]+mat2->data[j][i+2];
+            dst->data[j][i+3] = mat1->data[j][i+3]+mat2->data[j][i+3];
+        }
+        for(;i<dst->col;i++)dst->data[j][i]=mat1->data[j][i]+mat2->data[j][i];
+    }
 }
 
-void mMatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
+void m_MatrixSub(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
     int j;
     mException(INVALID_MAT(mat1)||INVALID_MAT(mat2),EXIT,"invalid input");
     mException((mat1->row!=mat2->row)||(mat1->col!=mat2->col),EXIT,"invalid input");
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
     // #pragma omp parallel for
     for(j=0;j<dst->row;j++)
-        for(int i=0;i<dst->col;i++)
-            dst->data[j][i] = mat1->data[j][i]+mat2->data[j][i];
+    {
+        int i;for(i=0;i<dst->col-3;i+=4)
+        {
+            dst->data[j][i  ] = mat1->data[j][i  ]+mat2->data[j][i  ];
+            dst->data[j][i+1] = mat1->data[j][i+1]+mat2->data[j][i+1];
+            dst->data[j][i+2] = mat1->data[j][i+2]+mat2->data[j][i+2];
+            dst->data[j][i+3] = mat1->data[j][i+3]+mat2->data[j][i+3];
+        }
+        for(;i<dst->col;i++) dst->data[j][i]=mat1->data[j][i]+mat2->data[j][i];
+    }
 }
 
-float VectorMul(float *vec1,float *vec2,int num)
-{
-    int i;
-    float sum;
-    
-    sum = 0.0f;
-    for(i=0;i<num;i++)
-        sum = sum + vec1[i]*vec2[i];
-    
-    return sum;
-}
+// float VectorMul(float *vec1,float *vec2,int num)
+// {
+//     int i;
+//     float sum;
+//     
+//     sum = 0.0f;
+//     for(i=0;i<num;i++)
+//         sum = sum + vec1[i]*vec2[i];
+//     
+//     return sum;
+// }
 
 float mVectorMul(MVector *vec1,MVector *vec2)
 {
-    int i;
-    float result;
     mException((INVALID_VEC(vec1)||INVALID_VEC(vec2)||(vec1->size !=vec2->size)),EXIT,"invalid input");
 
-    result = 0.0f;
-    for(i=0;i<vec1->size;i++)
-        result = result + vec1->data[i]*vec2->data[i];
+    float *v1=vec1->data;
+    float *v2=vec2->data;
+    float result1 = 0.0f,result2 = 0.0f,result3 = 0.0f,result4 = 0.0f;
+    int i;for(i=0;i<vec1->size-3;i+=4)
+    {
+        result1 = result1 +v1[i  ]*v2[i  ];
+        result2 = result2 +v1[i+1]*v2[i+1];
+        result3 = result3 +v1[i+2]*v2[i+2];
+        result4 = result4 +v1[i+3]*v2[i+3];
+    }
+    for(;i<vec1->size;i++)
+        result1 = result1 +v1[i  ]*v2[i  ];
 
-    return result;
+    return (result1+result2+result3+result4);
 }
 
-void VectorScalarMul(float *vec1,float *vec2,float *dst,int num)
-{
-    int i;
-    for(i=0;i<num;i++)
-        dst[i] = vec1[i]*vec2[i];
-}
+// void VectorScalarMul(float *vec1,float *vec2,float *dst,int num)
+// {
+//     int i;
+//     for(i=0;i<num;i++)
+//         dst[i] = vec1[i]*vec2[i];
+// }
 
 void mVectorScalarMul(MVector *vec1,MVector *vec2,MVector *dst)
 {
@@ -398,46 +510,59 @@ void mVectorScalarMul(MVector *vec1,MVector *vec2,MVector *dst)
     if(INVALID_POINTER(dst)) dst = vec1;
     else mVectorRedefine(dst,vec1->size,dst->data,vec1->device);
     
-    for(i=0;i<vec1->size;i++)
-        dst->data[i] = vec1->data[i] * vec2->data[i];
+    float * d=dst ->data;
+    float *v1=vec1->data;
+    float *v2=vec2->data;
+    for(i=0;i<vec1->size-3;i+=4)
+    {
+        d[i  ]=v1[i  ]*v2[i  ];
+        d[i+1]=v1[i+1]*v2[i+1];
+        d[i+2]=v1[i+2]*v2[i+2];
+        d[i+3]=v1[i+3]*v2[i+3];
+    }
+    for(;i<vec1->size;i++)d[i]=v1[i]*v2[i];
 }
 
-void MatrixVectorMul(MMatrix *mat,float *vec,float *dst)
-{
-    int i,j;
-    int num_in,num_out;
-    
-    num_in = mat->col;
-    num_out = mat->row;
-    memset(dst,0,num_out*sizeof(float));
-    for(i=0;i<num_out;i++)
-        for(j=0;j<num_in;j++)
-            dst[i] = dst[i] + vec[j]*mat->data[i][j];
-}
+// void MatrixVectorMul(MMatrix *mat,float *vec,float *dst)
+// {
+//     int i,j;
+//     int num_in,num_out;
+//     
+//     num_in = mat->col;
+//     num_out = mat->row;
+//     memset(dst,0,num_out*sizeof(float));
+//     for(i=0;i<num_out;i++)
+//         for(j=0;j<num_in;j++)
+//             dst[i] = dst[i] + vec[j]*mat->data[i][j];
+// }
 
 void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
-{
-    int i,j;
-    int num_in;
-    int num_out;
-    
+{   
     MVector *p= dst;
-    
     mException((INVALID_MAT(mat)||INVALID_VEC(vec)),EXIT,"invalid input");
     
-    num_in = mat->col;
+    int num_in = mat->col;
     mException((vec->size != num_in),EXIT,"invalid input");
     
-    num_out = mat->row;
+    int num_out = mat->row;
     if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL,vec->device);
     else mVectorRedefine(dst,num_out,dst->data,vec->device);
-       
     
-    for(i=0;i<num_out;i++)
+    float  *d=dst->data;
+    float  *v=vec->data;
+    float **m=mat->data;
+    for(int i=0;i<num_out;i++)
     {
-        dst->data[i] = 0.0f;
-        for(j=0;j<num_in;j++)
-            dst->data[i] = dst->data[i] + vec->data[j]*mat->data[i][j];
+        float sum1=0.0,sum2=0.0,sum3=0.0,sum4=0.0;
+        int j;for(j=0;j<num_in-3;j+=4)
+        {
+            sum1+= v[j  ]*m[i][j  ];
+            sum2+= v[j+1]*m[i][j+1];
+            sum3+= v[j+1]*m[i][j+1];
+            sum4+= v[j+1]*m[i][j+1];
+        }
+        for(;j<num_in;j++) sum1+= v[j]*m[i][j];
+        d[i]=sum1+sum2+sum3+sum4;
     }
     
     if(p!=dst)
@@ -447,43 +572,36 @@ void mMatrixVectorMul(MMatrix *mat,MVector *vec,MVector *dst)
     }
 }
 
-void VectorMatrixMul(float *vec,MMatrix *mat,float *dst)
-{
-    int i,j;
-    int num_in,num_out;
-    
-    num_in = mat->row;
-    num_out = mat->col;
-    
-    memset(dst,0,num_out*sizeof(float));
-    for(j=0;j<num_in;j++)
-        for(i=0;i<num_out;i++)
-            dst[i] = dst[i] + vec[j]*mat->data[j][i];
-}
+// void VectorMatrixMul(float *vec,MMatrix *mat,float *dst)
+// {
+//     int i,j;
+//     int num_in,num_out;
+//     
+//     num_in = mat->row;
+//     num_out = mat->col;
+//     
+//     memset(dst,0,num_out*sizeof(float));
+//     for(j=0;j<num_in;j++)
+//         for(i=0;i<num_out;i++)
+//             dst[i] = dst[i] + vec[j]*mat->data[j][i];
+// }
 
 void mVectorMatrixMul(MVector *vec,MMatrix *mat,MVector *dst)
 {
-    int i,j;
-    int num_in;
-    int num_out;
-    
-    MVector *p;
-    
+    MVector *p = dst;
     mException(((INVALID_MAT(mat))||(INVALID_VEC(vec))),EXIT,"invalid input");
-
-    p = dst;
     
-    num_in = mat->row;
+    int num_in = mat->row;
     mException((vec->size != num_in),EXIT,"invalid input");
     
-    num_out = mat->col;
+    int num_out = mat->col;
     if(INVALID_POINTER(dst)||(dst == vec)) dst = mVectorCreate(num_out,NULL,vec->device);
     else mVectorRedefine(dst,num_out,dst->data,vec->device);
     
-    for(i=0;i<num_out;i++)
+    for(int i=0;i<num_out;i++)
     {
         dst->data[i] = 0.0f;
-        for(j=0;j<num_in;j++)
+        int j;for(j=0;j<num_in;j++)
             dst->data[i] = dst->data[i] + vec->data[j]*mat->data[j][i];
     }
     
@@ -504,17 +622,23 @@ void mMatrixScalar(MMatrix *src,MMatrix *dst,float k,float b)
 
 void mMatrixScalarMul(MMatrix *mat1,MMatrix *mat2,MMatrix *dst)
 {
-    int i,j;
-    
     mException((INVALID_MAT(mat1)||INVALID_MAT(mat2)),EXIT,"invalid input");
     mException((mat1->row != mat2->row)||(mat1->col != mat2->col),EXIT,"invalid input");
 
     if(INVALID_POINTER(dst)) dst = mat1;
-    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data,DFLT);
+    else mMatrixRedefine(dst,mat1->row,mat1->col,dst->data);
     
-    for(j=0;j<mat1->row;j++)
-        for(i=0;i<mat1->col;i++)
-            dst->data[j][i] = mat1->data[j][i]*mat2->data[j][i];
+    for(int j=0;j<mat1->row;j++)
+    {
+        int i;for(i=0;i<mat1->col-3;i+=4)
+        {
+            dst->data[j][i  ] = mat1->data[j][i  ]*mat2->data[j][i  ];
+            dst->data[j][i+1] = mat1->data[j][i+1]*mat2->data[j][i+1];
+            dst->data[j][i+2] = mat1->data[j][i+2]*mat2->data[j][i+2];
+            dst->data[j][i+3] = mat1->data[j][i+3]*mat2->data[j][i+3];
+        }
+        for(;i<mat1->col;i++) dst->data[j][i]=mat1->data[j][i]*mat2->data[j][i];
+    }
 }
     
 /*

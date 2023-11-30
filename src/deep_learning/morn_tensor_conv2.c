@@ -2,13 +2,7 @@
 Copyright (C) 2019-2020 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
- 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
 
-#include <cblas.h>
 #include "morn_tensor.h"
 
 void ConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_height,int knl_width,int y_stride,int x_stride);
@@ -91,22 +85,22 @@ void *mTensorSampleConvPara(MSheet *ini,char *name)
 
     return para;
 }
-
+/*
 struct HandleTensorSampleConv
 {
-    float *mat;
-    float *data;
-    float *kernel;
-    float *update;
+    MMemoryBlock *mat;
+    MMemoryBlock *buff;
+    MMemoryBlock *kernel;
+    MMemoryBlock *update;
     int   *locate;
 };
 void endTensorSampleConv(void *info)
 {
     struct HandleTensorSampleConv *handle = (struct HandleTensorSampleConv *)info;
-    if(handle->mat   != NULL) mFree(handle->mat   );
-    if(handle->data  != NULL) mFree(handle->data  );
-    if(handle->kernel!= NULL) mFree(handle->kernel);
-    if(handle->update!= NULL) mFree(handle->update);
+    if(handle->mat   != NULL) mMemoryBlockRelease(handle->mat   );
+    if(handle->buff  != NULL) mMemoryBlockRelease(handle->buff  );
+    if(handle->kernel!= NULL) mMemoryBlockRelease(handle->kernel);
+    if(handle->update!= NULL) mMemoryBlockRelease(handle->update);
     if(handle->locate!= NULL) mFree(handle->locate);
 }
 #define HASH_TensorSampleConv 0x8a31af2
@@ -135,31 +129,31 @@ void TensorSampleConvSet(MLayer *layer)
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
-        if(handle->update != NULL) mFree(handle->update);
-        handle->update =(float *)mMalloc(data_size*sizeof(float));
-        memset(handle->update,0,data_size*sizeof(float));
+        if(handle->update != NULL) mMemoryBlockRelease(handle->update);
+        handle->update =mMemoryBlockCreate(data_size*sizeof(float),MORN_HOST);
+        memset(handle->update->data,0,data_size*sizeof(float));
     }
     
-    if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
-    
+    if(handle->kernel !=NULL) mMemoryBlockRelease(handle->kernel);
+    handle->kernel = mMemoryBlockCreate(data_size*sizeof(float));
+    float *kernel_data=handle->kernel->data;
     if(morn_network_parafile==NULL)
     {
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
-            handle->kernel[i] = mNormalRand(0.0f,1.0f)*scale;
+            kernel_data[i] = mNormalRand(0.0f,1.0f)*scale;
     }
     else
     {
-        mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
+        mNetworkParaRead(layer,"kernel",kernel_data,data_size*sizeof(float));
     }
     
     int matwidth = para->knl_height*para->knl_width*in->channel+1;
-    if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = (float *)mMalloc(mheight*matwidth*sizeof(float));
+    if(handle->mat!=NULL) mMemoryBlockRelease(handle->mat);
+    handle->mat = mMemoryBlockCreate(mheight*matwidth*sizeof(float),MORN_HOST);
     
-    if(handle->data!=NULL) mFree(handle->data);
-    handle->data= (float *)mMalloc(mheight*(mwidth+1)*sizeof(float));
+    if(handle->buff!=NULL) mMemoryBlockRelease(handle->buff);
+    handle->buff= mMemoryBlockCreate(mheight*(mwidth+1)*sizeof(float),MORN_HOST);
     
     if(handle->locate!=NULL) mFree(handle->locate);
     handle->locate = (int *)mMalloc(mwidth*para->knl_num*sizeof(int));
@@ -209,7 +203,7 @@ void mTensorSampleConvForward(MLayer *layer)
     int matwidth = para->knl_height*para->knl_width*in->channel+1;
     
     float *mat_data = handle->mat;
-    float *in_data = handle->data;
+    float *in_data = handle->buff;
     
     for(int b=0;b<in->batch;b++)
     {
@@ -230,7 +224,7 @@ void mTensorSampleConvForward(MLayer *layer)
                         1,mheight,mwidth+1,
                         1.0f,
                           kernel,mwidth+1,
-                         in_data,mwidth+1,
+                         handle->buff,mwidth+1,
                    0.0f,out_data,mheight);
         }
     }
@@ -327,6 +321,7 @@ void mTensorSampleConvBackward(MLayer *layer)
         ConvMatDataToTensor(mat_data,res,b,para->knl_height,para->knl_width,para->y_stride,para->x_stride);
     }
 }
+*/
 
 void DirConvTensorToMatData(MTensor *tns,int bc,float *mdata,int knl_r,int knl_dir,int y_stride,int x_stride)
 {
@@ -486,16 +481,15 @@ void *mTensorDirConvPara(MSheet *ini,char *name)
 
 struct HandleTensorDirConv
 {
-    float *mat;
-    float *kernel;
-    float *update;
+    MMemoryBlock *mat;
+    MMemoryBlock *kernel;
+    MMemoryBlock *update;
 };
-void endTensorDirConv(void *info)
+void endTensorDirConv(struct HandleTensorDirConv *handle)
 {
-    struct HandleTensorDirConv *handle = (struct HandleTensorDirConv *)info;
-    if(handle->mat   != NULL) mFree(handle->mat);
-    if(handle->kernel!= NULL) mFree(handle->kernel);
-    if(handle->update!= NULL) mFree(handle->update);
+    if(handle->mat   != NULL) mMemoryBlockRelease(handle->mat);
+    if(handle->kernel!= NULL) mMemoryBlockRelease(handle->kernel);
+    if(handle->update!= NULL) mMemoryBlockRelease(handle->update);
 }
 #define HASH_TensorDirConv 0x9e2674b3
 void TensorDirConvSet(MLayer *layer)
@@ -522,27 +516,27 @@ void TensorDirConvSet(MLayer *layer)
         if(INVALID_TENSOR(res)) mTensorRedefine(res,in->batch,in->channel,in->height,in->width,in->data);
         else                    mTensorRedefine(res,in->batch,in->channel,in->height,in->width,NULL);
    
-        if(handle->update != NULL) mFree(handle->update);
-        handle->update =(float *)mMalloc(data_size*sizeof(float));
-        memset(handle->update,0,data_size*sizeof(float));
+        if(handle->update != NULL) mMemoryBlockRelease(handle->update);
+        handle->update =mMemoryBlockCreate(data_size*sizeof(float),MORN_HOST);
+        memset(handle->update->data,0,data_size*sizeof(float));
     }
     
-    if(handle->kernel !=NULL) mFree(handle->kernel);
-    handle->kernel = (float *)mMalloc(data_size*sizeof(float));
-    
+    if(handle->kernel !=NULL) mMemoryBlockRelease(handle->kernel);
+    handle->kernel = mMemoryBlockCreate(data_size*sizeof(float),MORN_HOST);
+    float *kernel_data=handle->kernel->data;
     if(morn_network_parafile==NULL)
     {
         float scale = sqrt(2.0f/mwidth);
         for(int i=0;i<data_size;i++)
-            handle->kernel[i] = mNormalRand(0.0f,1.0f)*scale;
+            kernel_data[i] = mNormalRand(0.0f,1.0f)*scale;
     }
     else
     {
-        mNetworkParaRead(layer,"kernel",handle->kernel,data_size*sizeof(float));
+        mNetworkParaRead(layer,"kernel",kernel_data,data_size*sizeof(float));
     }
     
-    if(handle->mat!=NULL) mFree(handle->mat);
-    handle->mat = (float *)mMalloc(mheight*mwidth*sizeof(float));
+    if(handle->mat!=NULL) mMemoryBlockRelease(handle->mat);
+    handle->mat = mMemoryBlockCreate(mheight*mwidth*sizeof(float),MORN_HOST);
     
     hdl->valid = 1;
 }
@@ -564,20 +558,14 @@ void mTensorDirConvForward(MLayer *layer)
     int mheight = (out->height*out->width);
     int mwidth = (para->knl_r+para->knl_r+1)*in->channel+1;
     
-    float *kernel_data= handle->kernel;
-    float *in_data = handle->mat;
-    
     for(int b=0;b<in->batch;b++)
     {
-        DirConvTensorToMatData(in,b,in_data,para->knl_r,para->dir,para->y_stride,para->x_stride);
-        float *out_data = out->data[b];
+        DirConvTensorToMatData(in,b,handle->mat->data,para->knl_r,para->dir,para->y_stride,para->x_stride);
         
-        cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasTrans,
-                    para->knl_num,mheight,mwidth,
-                    1.0f,
-                    kernel_data,mwidth,
-                        in_data,mwidth,
-               0.0f,   out_data,mheight);
+        mSgemm(MORN_NO_TRANS,MORN_TRANS,para->knl_num,mheight,mwidth,
+                1.0f,  handle->kernel,mwidth ,
+                       handle->mat   ,mwidth ,
+            0.0f,mTensorMemory(out,b),mheight);
     }
     
     layer->state = MORN_FORWARD;
@@ -598,31 +586,20 @@ void mTensorDirConvBackward(MLayer *layer)
     
     int mheight = (out->height*out->width);
     int mwidth = (para->knl_r+para->knl_r+1)*in->channel+1;
-    
-    float *kernel_data= handle->kernel;
-    float *update_data= handle->update;
-    float *    in_data= handle->mat;
-    float *   res_data= handle->mat;
-    
-    mNetworkParaWrite(layer,"kernel",kernel_data,para->knl_num*mwidth*sizeof(float));
+    mNetworkParaWrite(layer,"kernel",handle->kernel->data,para->knl_num*mwidth*sizeof(float));
     
     for(int b=0;b<out->batch;b++)
     {
-        DirConvTensorToMatData(in,b,in_data,para->knl_r,para->dir,para->y_stride,para->x_stride);
-        float *out_data = out->data[b];
+        DirConvTensorToMatData(in,b,handle->mat->data,para->knl_r,para->dir,para->y_stride,para->x_stride);
         
-        cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,
-                    para->knl_num,mwidth,mheight,
-                    1.0f/mheight,
-                       out_data,mheight,
-                        in_data,mwidth,
-                    (b==0)?para->momentum:1.0f,
-                    update_data,mwidth);
+        mSgemm(MORN_NO_TRANS,MORN_NO_TRANS,para->knl_num,mwidth,mheight,
+                1.0f/mheight,mTensorMemory(out,b),mheight,
+                                   handle->mat   ,mwidth ,
+        (b==0)?para->momentum:1.0f,handle->update,mwidth );
     }
     
-    cblas_saxpby(para->knl_num*mwidth,
-                 (0.0f-(para->rate/(float)(in->batch))),update_data,1, 
-                 (1.0f-(para->decay*para->rate))       ,kernel_data,1);
+    mSaxpby(para->knl_num*mwidth,(0.0f-(para->rate/(float)(in->batch))),handle->update, 
+                                 (1.0f-(para->decay*para->rate))       ,handle->kernel);
     
     if(para->res_valid==0) return;
     
@@ -635,15 +612,11 @@ void mTensorDirConvBackward(MLayer *layer)
     
     for(int b=0;b<in->batch;b++)
     {
-        float *out_data = out->data[b];
+        mSgemm(MORN_TRANS,MORN_NO_TRANS,mheight,mwidth,para->knl_num,
+         1.0f,mTensorMemory(out,b),mheight,
+                    handle->kernel,mwidth ,
+                0.0,handle->mat   ,mwidth );
         
-        cblas_sgemm(CblasRowMajor,CblasTrans,CblasNoTrans,
-                    mheight,mwidth,para->knl_num,
-                    1.0f,
-                       out_data,mheight,
-                    kernel_data,mwidth,
-                0.0,   res_data,mwidth);
-        
-        DirConvMatDataToTensor(res_data,res,b,para->knl_r,para->dir,para->y_stride,para->x_stride);
+        DirConvMatDataToTensor(handle->mat->data,res,b,para->knl_r,para->dir,para->y_stride,para->x_stride);
     }
 }

@@ -22,6 +22,7 @@ struct HandleGraphCreate
     int node_num;
     int node_cap;
     MMemory *memory;
+    int edition;
 
     float (*linkloss)(struct GraphNode *,struct GraphNode *,struct GraphNode *,void *);
     void *linkloss_para;
@@ -72,10 +73,13 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size)
     }
 
     if(size<=0) size =(data!=NULL)?(strlen(data)+1):0;
-    for(int i=0;i<handle->node_num;i++)
+    if(data!=NULL)
     {
-        struct GraphNode *p=handle->node[i];
-        if(memcmp(p->data,data,size)==0) return (MGraphNode *)p;
+        for(int i=0;i<handle->node_num;i++)
+        {
+            struct GraphNode *p=handle->node[i];
+            if(memcmp(p->data,data,size)==0) return (MGraphNode *)p;
+        }
     }
     
     struct GraphNode *node = mMemoryWrite(handle->memory,NULL,sizeof(struct GraphNode)+size);
@@ -88,14 +92,24 @@ MGraphNode *m_GraphNode(MGraph *graph,void *data,int size)
     if(graph->graphnode==NULL) graph->graphnode = (MGraphNode *)node;
 
     if(data!=NULL) memcpy(node->data,data,size);
-    
+    handle->edition++;
     return (MGraphNode *)node;
 }
 
-void mGraphNodeInsert(MGraphNode *node0,MGraphNode *node,float length)
+void mGraphLink(MGraphNode *node0,MGraphNode *node,float length)
 {
     struct GraphNode *graph = (struct GraphNode *)node0;
     mException(graph->graph!=((struct GraphNode *)node)->graph,EXIT,"invalid input graph node");
+    
+    MHandle *hdl = ObjHandle(graph->graph,1);
+    struct HandleGraphCreate *handle =(struct HandleGraphCreate *)(hdl->handle);
+    handle->edition++;
+    
+    for(int i=0;i<graph->node_num;i++)
+    {
+        if(graph->node[i]==(struct GraphNode *)node){graph->length[i] = length;return;}
+    }
+    
     if(graph->node_cap == graph->node_num)
     {
         graph->node_cap = graph->node_cap + MAX(graph->node_cap/2,2);
@@ -115,48 +129,115 @@ void mGraphNodeInsert(MGraphNode *node0,MGraphNode *node,float length)
     graph->node_num+=1;
 }
 
-struct GraphNode *depth_first(struct GraphNode *node,int (*func)(void *,void *),void *para)
+void mGraphDelink(MGraphNode *node0,MGraphNode *node)
 {
-    int flag = func(node->data,para);
-    if(flag == 1) return node;
-    node->ID=0-node->ID;
-    for(int i=0;i<node->node_num;i++)
+    struct GraphNode *graph = (struct GraphNode *)node0;
+    mException(graph->graph!=((struct GraphNode *)node)->graph,EXIT,"invalid input graph node");
+    
+    int num=graph->node_num;
+    for(int i=0;i<num;i++)
     {
-        if(node->node[i]->ID<0) continue;
-        depth_first(node,func,para);
+        if(graph->node[i]==(struct GraphNode *)node)
+        {
+            memmove(graph->node  +i,graph->node  +i+1,(num-i-1)*sizeof(struct GraphNode **));
+            memmove(graph->length+i,graph->length+i+1,(num-i-1)*sizeof(float              ));
+            graph->node_num=num-1;
+            break;
+        }
     }
-    return NULL;
+    
+    if(num!=graph->node_num)
+    {
+        MHandle *hdl = ObjHandle(graph->graph,1);
+        struct HandleGraphCreate *handle =(struct HandleGraphCreate *)(hdl->handle);
+        handle->edition++;
+    }
 }
-struct GraphNode *breadth_first(struct GraphNode *node,int (*func)(void *,void *),void *para)
+
+struct HandleGraphTraversal
 {
-    node->ID=0-node->ID;
+    MArray *array;
+    int *flag;
+    struct GraphNode **node;
+    int node_num;
+};
+#define HASH_GraphTraversal 0xcb46155
+void endGraphTraversal(struct HandleGraphTraversal *handle)
+{
+    if(handle->array!=NULL) mArrayRelease(handle->array);
+    if(handle->flag !=NULL)         mFree(handle->flag);
+}
+void *GraphDFTraversal(struct HandleGraphTraversal *handle,struct GraphNode *node,int (*func)(struct GraphNode *,void *),void *para)
+{
+    handle->flag[node->ID]=1;
+    if(func(node,para)) return node;
     for(int i=0;i<node->node_num;i++)
     {
-        if(node->node[i]->ID<0) continue;
-        int flag=func(node->node[i]->data,para);
-        if(flag == 1) return node->node[i];
-    }
-    for(int i=0;i<node->node_num;i++)
-    {
-        if(node->node[i]->ID<0) continue;
-        breadth_first(node,func,para);
+        struct GraphNode *p=node->node[i];
+        if(handle->flag[p->ID]==1) continue;
+        void *rst=GraphDFTraversal(handle,p,func,para);
+        if(rst) return rst;
     }
     return NULL;
 }
 
-void mGraphTraversal(MGraph *graph,void (*func)(void *,void *),void *para)
+void *GraphBFTraversal(struct HandleGraphTraversal *handle,struct GraphNode *node,int (*func)(struct GraphNode *,void *),void *para)
 {
+    if(handle->array==NULL) handle->array=mArrayCreate(sizeof(int));
+    mArrayClear(handle->array);
+    mArrayWrite(handle->array,&(node->ID));
+    for(int n=0;n<handle->array->num;n++)
+    {
+        node=handle->node[handle->array->dataS32[n]];
+        handle->flag[node->ID]=1;
+        int rst=func(node,para);
+        if(rst) return node;
+        for(int i=0;i<node->node_num;i++)
+        {
+            struct GraphNode *p=node->node[i];
+            if(handle->flag[p->ID]==1) continue;
+            mArrayWrite(handle->array,&(p->ID));
+        }
+    }
+    return NULL;
+}
+
+MGraph *m_GraphTraversal(MGraph *graph,int mode,void *function,void *para)
+{
+    int (*func)(struct GraphNode *,void *) = function;
+    
     MHandle *hdl = ObjHandle(graph,1);
     mException((hdl->flag != HASH_GraphCreate),EXIT,"invalid input graph");
-    struct HandleGraphCreate *handle =(struct HandleGraphCreate *)(hdl->handle);
-    for(int i=0;i<handle->node_num;i++)
-        func(handle->node[i],para);
+    struct HandleGraphCreate *handle0 =(struct HandleGraphCreate *)(hdl->handle);
+    if(mode<0)
+    {
+        for(int i=0;i<handle0->node_num;i++) {if(func(handle0->node[i],para)) return (MGraph *)(handle0->node[i]);}
+        return NULL;
+    }
+    
+    hdl=mHandle(graph,GraphTraversal);
+    struct HandleGraphTraversal *handle=hdl->handle;
+    if(handle->node_num==handle0->node_num)
+    {
+        handle->node    =handle0->node;
+        handle->node_num=handle0->node_num;
+        if(handle->flag!=NULL) mFree(handle->flag);
+        handle->flag=mMalloc(handle->node_num*sizeof(int));
+        hdl->valid=1;
+    }
+    memset(handle->flag,0,handle->node_num*sizeof(int));
+    
+    struct GraphNode *node=(struct GraphNode *)(graph->graphnode);
+    if(mode ==MORN_BREADTH_FIRST) return GraphBFTraversal(handle,node,func,para);
+    else/*mode==MORN_DEPTH_FIRST*/return GraphDFTraversal(handle,node,func,para);
 }
 
 struct HandleGraphWay
 {
     MMatrix *mat;
     MTable *tab;
+    int graph_edition;
+    void *linkloss;
 };
 void endGraphWay(struct HandleGraphWay *handle)
 {
@@ -164,6 +245,7 @@ void endGraphWay(struct HandleGraphWay *handle)
     if(handle->tab!=NULL) mTableRelease( handle->tab);
 }
 #define HASH_GraphWay 0xe1f142fc
+
 void GraphWay(MGraph *graph,void *link_loss,void *para)
 {
     float (*linkloss)(struct GraphNode *,struct GraphNode *,struct GraphNode *,void *) = link_loss;
@@ -173,7 +255,6 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
     struct HandleGraphCreate *handle0 =(struct HandleGraphCreate *)(hdl->handle);
     int node_num = handle0->node_num;
     struct GraphNode **node = handle0->node;
-    
 //     printf("node_num=%d\n",node_num);
 
     if(linkloss == NULL) linkloss = handle0->linkloss;
@@ -203,7 +284,7 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
         for(int i=0;i<node[j]->node_num;i++)
         {
             struct GraphNode *p = node[j]->node[i];
-            mat[j][p->ID] = node[j]->length[i];
+            mat[j][p->ID]=node[j]->length[i];
         }
     }
 
@@ -216,39 +297,28 @@ void GraphWay(MGraph *graph,void *link_loss,void *para)
     int flag=0; do
     {
         flag=0;
-        for(int j=0;j<node_num;j++)
+        for(int j=0;j<node_num;j++)for(int i=0;i<node_num;i++)
         {
-            // printf("\n");
-            for(int i=0;i<node_num;i++)
+            if(i==j) continue;
+            if(row_valid0[j]+col_valid0[i]==0) continue;
+            for(int k=0;k<node_num;k++)
             {
-//                 if((j==51)&&(i==87)) printf("%8.2f\n",mat[j][i]);
-                
-                if(i==j) continue;
-                if(row_valid0[j]+col_valid0[i]==0) continue;
-                for(int k=0;k<node_num;k++)
+                if((k==i)||(k==j)) continue;
+                float d = mat[j][k]+mat[k][i];
+                if(d>=mat[j][i]) continue;
+                if(linkloss!=NULL)
                 {
-                    if((k==i)||(k==j)) continue;
-//                     if((j==51)&&(i==87)&&(k==17)) printf("mat[j][k]=%f,mat[k][i]=%f\n",mat[j][k],mat[k][i]);
-                    float d = mat[j][k]+mat[k][i];
+                    int jj=j;while(tab[jj][k]>=0) jj=tab[jj][k];
+                    int ii=i;while(tab[k][ii]>=0) ii=tab[k][ii];
+                    d+=linkloss(node[jj],node[k],node[ii],para);
                     if(d>=mat[j][i]) continue;
-//                     if((j==51)&&(i==87)&&(k==17)) printf("d=========%f,mat[j][i]=%f\n",d,mat[j][i]);
-                    if(linkloss!=NULL)
-                    {
-                        float link=linkloss(node[j],node[k],node[i],para);
-//                         if((j==51)&&(i==87)&&(k==17)) printf("link=%f\n",link);
-                        d+=link;
-                    }
-                    if(d<mat[j][i])
-                    {
-                        mat[j][i]=d;tab[j][i]=k;
-                        row_valid[j]=1;
-                        col_valid[i]=1;
-                        flag=1;
-                    }
                 }
+                mat[j][i]=d;tab[j][i]=k;
+                row_valid[j]=1;
+                col_valid[i]=1;
+                flag=1;
             }
         }
-        // printf("\nflag=%d\n",flag);
         char *buff;
         buff=col_valid;col_valid=col_valid0;col_valid0=buff;memset(col_valid,0,node_num*sizeof(char));
         buff=row_valid;row_valid=row_valid0;row_valid0=buff;memset(row_valid,0,node_num*sizeof(char));
@@ -282,17 +352,18 @@ float m_GraphWay(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,
     struct GraphNode **node = handle0->node;
     
     hdl = mHandle(graph,GraphWay);
-    
+    struct HandleGraphWay *handle = (struct HandleGraphWay *)(hdl->handle);
+    if(handle->graph_edition!=handle0->edition) hdl->valid=0;
+    if(handle->linkloss!=linkloss) hdl->valid=0;
     if(hdl->valid == 0)
     {
+        handle->graph_edition=handle0->edition;
+        handle->linkloss=linkloss;
         GraphWay(graph,linkloss,para);
         hdl->valid = 1;
     }
-    
-    struct HandleGraphWay *handle = (struct HandleGraphWay *)(hdl->handle);
 
     int ID0=p0->ID;int ID1=p1->ID;
-//     printf("ID0=%d,ID1=%d\n",ID0,ID1);
     float d = handle->mat->data[ID0][ID1];
     if(list!=NULL) mListClear(list);
     if(mIsSup(d)) return DFLT;
@@ -309,44 +380,28 @@ float m_GraphWay(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,
     return d;
 }
 
-
-// float _GraphWay(MGraphNode *node0,MGraphNode *node1,MMatrix *mat)
-// {
-//     float dmin=d;
-//     for(int i=0;i<node0->node_num;i++)
-//     {
-//         d = _GraphWay(node0->node[i],node1,linkloss,para);
-//         if(d<dmin) dmin=d;
-//     }
-//     return dmin;
-// }
-
-
-
-void GraphPath(struct GraphNode **node,struct GraphNode *src,int dst,float pre,int order,float *dis,int *path,int *rst,void *link_loss,void *para)
+struct HandleGraphPath
 {
-    float (*linkloss)(struct GraphNode *,struct GraphNode *,struct GraphNode *,void *) = link_loss;
-    for(int i=0;i<src->node_num;i++)
-    {
-        int ID = src->node[i]->ID;
-        float d = pre+src->length[i];
-        if(d>=dis[ID]) continue;
-        // printf("src=%s,ID=%d,order=%d,path[0]=%d\n",src->data,ID,order,path[0]);
-        if((order>1)&&(linkloss!=NULL))
-        {
-            d=d+linkloss(node[path[order-2]],src,src->node[i],para);
-            if(d>=dis[ID]) continue;
-        }
-        
-        dis[ID]=d;
-        path[order] = ID;
-        if(ID==dst) memcpy(rst,path,(order+1)*sizeof(int));
-        else GraphPath(node,src->node[i],dst,d,order+1,dis,path,rst,link_loss,para);
-    }
+    int *index;
+    float *distance;
+    float *length;
+    MArray *array;
+    
+    int node_num;
+    int edition;
+    void *linkloss;
+};
+#define HASH_GraphPath 0xe1f142fc
+void endGraphPath(struct HandleGraphPath *handle)
+{
+    if(handle->index   !=NULL) mFree(handle->index   );
+    if(handle->length  !=NULL) mFree(handle->length  );
+    if(handle->distance!=NULL) mFree(handle->distance);
+    if(handle->array   !=NULL) mArrayRelease(handle->array);
 }
 float m_GraphPath(MList *list,MGraphNode *src,MGraphNode *dst,void *linkloss,void *para)
 {
-    // printf("src=%s,dst=%s\n",src->data,dst->data);
+    if(src==dst) return 0.0f;
     struct GraphNode *p0 = (struct GraphNode *)src;
     struct GraphNode *p1 = (struct GraphNode *)dst;
 
@@ -357,33 +412,94 @@ float m_GraphPath(MList *list,MGraphNode *src,MGraphNode *dst,void *linkloss,voi
     mException((hdl->flag != HASH_GraphCreate),EXIT,"invalid input graph");
     struct HandleGraphCreate *handle0 =(struct HandleGraphCreate *)(hdl->handle);
     int node_num = handle0->node_num;
-    struct GraphNode **node = handle0->node;
-
-    if(linkloss == NULL) linkloss = handle0->linkloss;
-    if(para     == NULL) para     = handle0->linkloss_para;
-
-    int *path=mMalloc(node_num*sizeof(int));
-    int *rst =mMalloc(node_num*sizeof(int));
-    float *distance = mMalloc(node_num*sizeof(float));
-    for(int i=0;i<node_num;i++) distance[i]=mSup();
-    distance[p0->ID] = 0;
-    path[0]=p0->ID;
-
-    GraphPath(node,p0,p1->ID,0,1,distance,path,rst,linkloss,para);
-    float d = distance[p1->ID];
-    // printf("distance[p1->ID]=%f\n",d);
-
-    if(list!=NULL)
+    
+    hdl=mHandle(graph,GraphPath);
+    struct HandleGraphPath *handle=hdl->handle;
+    if((handle->edition!=handle0->edition)||(handle->linkloss!=linkloss))
     {
-        mListClear(list);
-        // mListAppend(list);list->data[0]=p0;
-        for(int i=0;i<node_num;i++)
+        handle->edition=handle0->edition;
+        handle->linkloss=linkloss;
+        
+        if(handle->array==NULL) handle->array=mArrayCreate(sizeof(int));
+        
+        if(handle->node_num!=node_num)
         {
-            mListAppend(list);list->data[i]=node[rst[i]];
-            // printf("%s>>",node[rst[i]]->data);
-            if(rst[i]==p1->ID) break;
+            if(handle->index   !=NULL) mFree(handle->index   );handle->index   =mMalloc(node_num*sizeof(int  ));
+            if(handle->distance!=NULL) mFree(handle->distance);handle->distance=mMalloc(node_num*sizeof(float));
+            if(handle->length  !=NULL) mFree(handle->length  );handle->length  =mMalloc(node_num*sizeof(float));
         }
+        hdl->valid=1;
     }
-    return d;
-}
+    
+    float (*link_loss)(struct GraphNode *,struct GraphNode *,struct GraphNode *,void *) = linkloss;
+    
+    mArrayClear(handle->array);mArrayWrite(handle->array,&(p0->ID));
+    memset(handle->index   ,0xff,node_num*sizeof(int));handle->index[   p0->ID]=p0->ID;
+    memset(handle->distance,0x7f,node_num*sizeof(int));handle->distance[p0->ID]=0;
+                                                       handle->length[  p0->ID]=0;
+    float target_distance=mSup();
+    for(int n=0;n<handle->array->num;n++)
+    {
+        struct GraphNode *node=handle0->node[handle->array->dataS32[n]];
+        int ID0=node->ID;
+        
+        float d0=0;int idx=ID0;do
+        {
+//             if(d0>1000000) 
+//             {
+//                 printf("ID0=%d,idx=%d,d0=%f,length=%f\n",ID0,idx,d0,handle->length[idx]);
+//                 if(d0>5000000)
+//                 {
+//                     int iidd=handle->index[ID0 ];printf("iidd=%d\n",iidd);
+//                         iidd=handle->index[iidd];printf("iidd=%d\n",iidd);
+//                         iidd=handle->index[iidd];printf("iidd=%d\n",iidd);
+//                         iidd=handle->index[iidd];printf("iidd=%d\n",iidd);
+//                         iidd=handle->index[iidd];printf("iidd=%d\n",iidd);
+//                         iidd=handle->index[iidd];printf("iidd=%d\n",iidd);
+//                     exit(0);
+//                 }
+//             }
+            d0+=handle->length[idx];
+            idx=handle->index[ idx];
+        }while(idx!=p0->ID);
+        
+        handle->distance[ID0]=d0;
+        if(d0>=target_distance) continue;
+        
+        for(int i=0;i<node->node_num;i++)
+        {
+            struct GraphNode *p=node->node[i];
+            int ID=p->ID;
+            if(ID==handle->index[ID0]) continue;
+            
+            float node_length=node->length[i];
+            float l=d0+node_length;
+            if(l>=target_distance     ) continue;
+            if(l>=handle->distance[ID]) continue;
+            
+            if(link_loss!=NULL)
+            {
+                struct GraphNode *pp=handle0->node[handle->index[ID0]];
+                if(pp!=node)
+                {
+                    node_length+=link_loss(handle0->node[handle->index[ID0]],node,p,para);
+                    l=d0+node_length;
+                    if(l>=target_distance     ) continue;
+                    if(l>=handle->distance[ID]) continue;
+                }
+            }
+//             printf("ID0=%d,ID=%d,length=%f,l=%f\n",ID0,ID,node_length,l);
 
+            handle->index[ID]=ID0;handle->distance[ID]=l;handle->length[ID]=node_length;
+            if(ID==p1->ID) {target_distance=l;/*printf("\n");*/}
+            else mArrayWrite(handle->array,&ID);
+        }
+    }    
+    
+    if(list==NULL) return target_distance;
+    
+    int *array=handle->array->dataS32;int idx=p1->ID;
+    int n;for(n=0;idx!=p0->ID;n++) {array[n]=idx;idx=handle->index[idx];}
+    mListAppend(list,n+1);for(int i=0;i<=n;i++) list->data[i]=handle0->node[array[n-i]];
+    return target_distance;
+}
