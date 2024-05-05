@@ -519,19 +519,19 @@ typedef struct MArray{
     short element_size;
     union
     {
-        void *data;
-        unsigned char *dataU8;
-        char *dataS8;
-        char *text;
-        unsigned short *dataU16;
-        short *dataS16;
-        unsigned int *dataU32;
-        int *dataS32;
-        int64_t *dataS64;
+        void     *data;
+        char     *string;
+        uint8_t  *dataU8;
+        int8_t   *dataS8;
+        uint16_t *dataU16;
+        int16_t  *dataS16;
+        uint32_t *dataU32;
+        int32_t  *dataS32;
+        int64_t  *dataS64;
         uint64_t *dataU64;
-        float *dataF32;
-        double *dataD64;
-        void **dataptr;
+        float    *dataF32;
+        double   *dataD64;
+        void    **dataptr;
     };
 }MArray;
 MArray *ArrayCreate(int num,int element_size,void *data);
@@ -562,7 +562,7 @@ void m_ArrayAppend(MArray *array,void *data,int n);
 }while(0)
     
 
-#define mArrayClear(Array) do{Array->num=0;}while(0)
+#define mArrayClear(Array) do{(Array)->num=0;}while(0)
 void mArrayElementDelete(MArray *array,int n);
 void mArrayDataExchange(MArray *arr1,MArray *arr2);
 // void ArrayExpand(MArray *array,int n);
@@ -586,15 +586,6 @@ void *m_ArrayRead(MArray *array,int n,void *data,int num);
 int mStreamRead(MArray *buff,void *data,int num);
 int mStreamWrite(MArray *buff,void *data,int num);
 
-
-
-#define MText MArray
-#define mTextCreate mArrayCreate
-#define mTextRelease mArrayRelease
-#define mText(Arr,Data) mArrayRedefine(Arr,strlen(Data),1,Data)
-void mFileText(MArray *text,const char *file_name,...);
-int mTextFind(MArray *text,MArray *str,int pos);
-
 int m_Rand(int floor,int ceiling);
 #define mRand(...) ((VANumber(__VA_ARGS__)==2)?m_Rand((int)VA0(__VA_ARGS__),(int)VA1(__VA_ARGS__)):m_Rand(DFLT,DFLT))
 float mNormalRand(float mean,float delta);
@@ -606,13 +597,63 @@ int m_RandString(char *str,int l1,int l2);
     DFLT\
 )
 
-#define MString MObject
+#define MString MArray
 
-#define mString(a) #a
-// int mStringRegular(const char *str1,const char *str2);
-// MList *mStringSplit(const char *str_in,const char *flag);
-void mStringSplit(MList *list,const char *in,const char *flag);
-void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out);
+MString *m_StringCreate(const char *data,int len);
+#define mStringCreate(...) (\
+    (VANumber(__VA_ARGS__)==0)?ArrayCreate(0,1,NULL):\
+    (VANumber(__VA_ARGS__)==2)?m_StringCreate((const char *)VA0(__VA_ARGS__),VA1(__VA_ARGS__)):\
+    m_StringCreate((const char *)VA0(__VA_ARGS__),strlen((const char *)VA0(__VA_ARGS__)))\
+)
+#define mStringRelease(S) mArrayRelease(S)
+
+MString *_DefaultString(const char *data);
+#define SOT "\002"
+char *m_String(MString *string,int n,const char *format,...);
+#define _mString(S,N,P,...) (\
+    (((intptr_t)(S+1))!=((intptr_t)S)+1)?(((intptr_t)N<1024)?m_String((MString *)((intptr_t)S),(intptr_t)N,(const char *)((intptr_t)P),__VA_ARGS__):\
+                                                             m_String((MString *)((intptr_t)S),DFLT,(const char *)((intptr_t)N),P,__VA_ARGS__)):\
+                                          ((intptr_t)S<1024)?m_String(NULL,(intptr_t)S,(const char *)((intptr_t)N),P,__VA_ARGS__):\
+                                                             m_String(NULL,DFLT,(const char *)((intptr_t)S),N,P,__VA_ARGS__)\
+)
+#define mString(...) ((VANumber(__VA_ARGS__)==0)?m_String(NULL,DFLT,NULL):_mString(__VA_ARGS__+0,NULL,NULL,NULL))
+/*
+#define _String(S,N,P,...) m_String((MString *)((intptr_t)S+0),((intptr_t)N+0),(const char *)((intptr_t)P+0),__VA_ARGS__)
+#define mString(...) (\
+    (VANumber(__VA_ARGS__)==0)?m_String(NULL,DFLT,NULL):\
+    (((intptr_t)(VA0(__VA_ARGS__)+1))==((intptr_t)VA0(__VA_ARGS__))+1)?_String(NULL,__VA_ARGS__,NULL,NULL):\
+    _String(__VA_ARGS__,NULL,NULL,NULL)\
+)
+*/
+
+char *m_Text(MArray *text,const char *file_name,...);
+#define mText(T,...) ((((intptr_t)(T+1))!=((intptr_t)T)+1)?m_Text((MString *)T,__VA_ARGS__):m_Text(_DefaultString((char *)(T)),__VA_ARGS__))
+
+MList *m_StringSplit0(MString *str_in,int pos,const char *flag);
+MList *m_StringSplit(MString *src,int num,int pos,const char *flag,...);
+#define __mStringSplit(S,N,P,...) m_StringSplit(S,(intptr_t)(N),(intptr_t)(P),(const char *)(intptr_t)__VA_ARGS__)
+#define _mStringSplit(S,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_StringSplit0(S,0,(const char *)((intptr_t)VA0(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==2)?(((intptr_t)VA0(__VA_ARGS__)<S->num)?m_StringSplit0(S,(intptr_t)VA0(__VA_ARGS__),(const char *)(VA1(__VA_ARGS__)+0)):__mStringSplit(S,2,0,__VA_ARGS__)):\
+    ((intptr_t)VA0(__VA_ARGS__)<S->num)?__mStringSplit(S,VANumber(__VA_ARGS__)-1,__VA_ARGS__,NULL):\
+                                        __mStringSplit(S,VANumber(__VA_ARGS__),0,__VA_ARGS__)\
+)
+#define mStringSplit(S,...) ((((intptr_t)(S+1))==((intptr_t)S)+1)?_mStringSplit(_DefaultString((char *)(S)),__VA_ARGS__):_mStringSplit(((MString *)(S)),__VA_ARGS__))
+
+char *m_StringReplace(MString *src,MString *dst,const char *replace_in,const char *replace_out,int pos,int num);
+#define mStringReplace(S,P,...) (\
+    (VANumber(__VA_ARGS__)==1)?m_StringReplace(S,NULL,(const char *)(P),(const char *)VA0(__VA_ARGS__),DFLT,DFLT):\
+    (VANumber(__VA_ARGS__)==2)?((((intptr_t)(P+1))==((intptr_t)P)+1)?m_StringReplace(S,NULL,(const char *)(P),(const char *)VA0(__VA_ARGS__), (intptr_t)VA1(__VA_ARGS__),DFLT):\
+                                                                     m_StringReplace(S,(MString *)(P),(const char *)VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__),DFLT,DFLT)):\
+    (VANumber(__VA_ARGS__)==3)?((((intptr_t)(P+1))==((intptr_t)P)+1)?m_StringReplace(S,NULL,(const char *)(P),(const char *)VA0(__VA_ARGS__), (intptr_t)VA1(__VA_ARGS__), (intptr_t)VA2(__VA_ARGS__)):\
+                                                                     m_StringReplace(S,(MString *)(P),(const char *)VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__),DFLT)):\
+    (VANumber(__VA_ARGS__)==4)?m_StringReplace(S,(MString *)(P),(const char *)VA0(__VA_ARGS__),(const char *)VA1(__VA_ARGS__),(intptr_t)VA2(__VA_ARGS__),(intptr_t)VA3(__VA_ARGS__)):\
+    NULL\
+)
+
+char *m_StringSearch(MArray *text,char *pstr,int pos);
+#define mStringSearch(S,...) m_StringSearch((MString *)(S),(char *)VA0(__VA_ARGS__),(VANumber(__VA_ARGS__)==1)?DFLT:(int)VA1(__VA_ARGS__))
+
 char *m_StringArgument(int argc,char **argv,const char *flag,const char *format,...);
 #define mStringArgument(...) m_StringArgument(__VA_ARGS__,NULL)
 
@@ -815,13 +856,13 @@ float m_GraphPath(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss
     (VANumber(__VA_ARGS__)==5)?_GraphPath(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
 DFLT)
 
-float m_GraphWay(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
-#define _GraphWay(P0,P1,P2,P3,P4) m_GraphWay((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
-#define mGraphWay(...) (\
-    (VANumber(__VA_ARGS__)==2)?_GraphWay(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL,NULL):\
-    (VANumber(__VA_ARGS__)==3)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL,NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL)):\
-    (VANumber(__VA_ARGS__)==4)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__))):\
-    (VANumber(__VA_ARGS__)==5)?_GraphWay(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
+float m_GraphRoute(MList *list,MGraphNode *node0,MGraphNode *node1,void *linkloss,void *para);
+#define _GraphRoute(P0,P1,P2,P3,P4) m_GraphRoute((MList *)(P0),(MGraphNode *)(P1),(MGraphNode *)(P2),(void *)(P3),(void *)(P4))
+#define mGraphRoute(...) (\
+    (VANumber(__VA_ARGS__)==2)?_GraphRoute(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),NULL,NULL):\
+    (VANumber(__VA_ARGS__)==3)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphRoute(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL,NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),NULL)):\
+    (VANumber(__VA_ARGS__)==4)?((sizeof(_VA0(__VA_ARGS__)[0])==sizeof(MList))?_GraphRoute(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),NULL):_GraphPath(NULL,VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__))):\
+    (VANumber(__VA_ARGS__)==5)?_GraphRoute(VA0(__VA_ARGS__),VA1(__VA_ARGS__),VA2(__VA_ARGS__),VA3(__VA_ARGS__),VA4(__VA_ARGS__)):\
 DFLT)
 
 MObject *m_ContainerCreate(int num,int element_size,void *data);
@@ -929,7 +970,7 @@ int CLSize(int n,int s1,int s2,int s3,int s4);
     if(Para_Num>10) {N+=VA10(__VA_ARGS__);}if(Para_Num>11) {N+=VA11(__VA_ARGS__);}if(Para_Num>12) {N+=VA12(__VA_ARGS__);}\
     if(Para_Num>13) {N+=VA13(__VA_ARGS__);}if(Para_Num>14) {N+=VA14(__VA_ARGS__);}if(Para_Num>15) {N+=VA15(__VA_ARGS__);}\
     mException((N!=DFLT-Para_Num)||(morn_cl_function_para_num!=DFLT+Para_Num),EXIT,"invalid input");\
-    CLFunction(Source,mString(Source),morn_cl_function_para_num,morn_cl_function_para,morn_cl_function_para_size);\
+    CLFunction(Source,#Source,morn_cl_function_para_num,morn_cl_function_para,morn_cl_function_para_size);\
     morn_cl_function_para_num =0;\
 }while(0)
 
@@ -1201,7 +1242,7 @@ struct JSONNode
         char    *string;
         uint16_t num;
     };
-    char type;
+    uint8_t type;
     char *key;
 };
 struct JSONNode *mJSONLoad(MFile *jsonfile);

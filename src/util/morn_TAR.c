@@ -62,8 +62,11 @@ void TARFileList(FILE *f,MList *list)
         locate = locate + 512;
         if(strcmp(magic,"ustar  ")==0)
         {
-            mStringSplit(name,info.filename,"/");
-            strncpy(info.name,(char *)(name->data[name->num-1]),59);
+            for(int i=strlen(info.filename);i>0;i--)
+            {
+                if((info.filename[i]=='/')||(info.filename[i]=='\\'))
+                    {strncpy(info.name,info.filename+i+1,59);break;}
+            }
             // printf("info->name is %s\n",info.name);
             
             info.locate = locate;

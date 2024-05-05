@@ -31,15 +31,19 @@ void test(int node_num,int edge_num)
     for(int j=0;j<node_num;j++)
     {
         memset(mat[j],0,node_num*sizeof(float));
-        if(j+1<node_num) mat[j][j+1]=mRand(10000,100000);
+        if(j+1<node_num) mat[j][j+1]=mRand(1000,100000);
     }
     mat[node_num-1][0]=mRand(10000,100000);
     for(i=node_num;i<edge_num;i++)
     {
         int n=mRand(0,node_num);
         int m=mRand(0,node_num);
-        mat[m][n]=mRand(10000,100000);
+        mat[m][n]=mRand(1000,100000);
     }
+    
+//     MFile *file=mFileCreate("./mat.morn");
+//     mMORNRead(file,1,(void **)mat,node_num,node_num*sizeof(float));
+//     mFileRelease(file);
     
     int idx[101];for(i=0;i<101;i++) idx[i]=mRand(0,node_num);
     
@@ -148,10 +152,7 @@ void test(int node_num,int edge_num)
     float morn_result[100];
     mTimerBegin("Morn");
     for(i=0;i<100;i++)
-    {
-//         printf("from %d to %d\n",idx[i],idx[i+1]);
-        morn_result[i]=mGraphPath(morn_node[idx[i]],morn_node[idx[i+1]]);
-    }
+        morn_result[i]=mGraphRoute(morn_node[idx[i]],morn_node[idx[i+1]]);
     mTimerEnd("Morn");
     
     mFree(morn_node);

@@ -32,6 +32,32 @@ void mFileList(MList *list,const char *directory,const char *regular)
     }
 }
 
+void mDirList(MList *list,const char *directory,const char *regular)
+{
+    mException(INVALID_POINTER(list)||INVALID_POINTER(directory),EXIT,"invalid input");
+    int len=strlen(directory);if(directory[len-1]=='\\') len-=1;
+    char dir[256];memcpy(dir,directory,len);dir[len]=0;
+
+    char name[512];
+    if(regular == NULL) sprintf(name,"%s\\*",dir);
+    else                sprintf(name,"%s\\%s",dir,regular);
+
+    mListClear(list);
+
+    WIN32_FIND_DATA p;HANDLE h = FindFirstFile(name,&p);
+    sprintf(name,"%s\\%s",dir,p.cFileName);
+    int len = strlen(name);
+    mListWrite(list,0,name,len+1);
+
+    for(int n=1;;n++)
+    {
+        if(FindNextFile(h,&p)==0) break;
+        sprintf(name,"%s\\%s",dir,p.cFileName);
+        int len = strlen(name);
+        mListWrite(list,n,name,len+1);
+    }
+}
+
 #elif defined __GNUC__
 
 #include <sys/types.h>
@@ -76,6 +102,53 @@ void mFileList(MList *list,const char *directory,const char *regular)
         n=n+1;
     }
     
+    list->num = n;
+    closedir(dir);
+}
+
+void mDirList(MList *list,const char *directory,const char *regular)
+{
+    mException(INVALID_POINTER(list)||INVALID_POINTER(directory),EXIT,"invalid input");
+    int len=strlen(directory);if(directory[len-1]=='/') len-=1;
+    char d[256];strcpy(d,directory);d[len]=0;
+
+    if(regular!=NULL)
+    {
+        if((regular[0]=='*')&&(regular[1] == 0))
+            regular = NULL;
+    }
+
+    DIR *dir = opendir(directory);
+
+    char name[512];
+    int flag = 0;
+    int n = 0;
+    while(1)
+    {
+        struct dirent *pf = readdir(dir);
+        if(pf == NULL) break;
+
+        if(flag<2)
+        {
+            if((strcmp(pf->d_name,".")==0)||(strcmp(pf->d_name,"..")==0))
+            {
+                flag = flag+1;
+                continue;
+            }
+        }
+        // printf("%d: %s\n",n,pf->d_name);
+
+        if(!INVALID_POINTER(regular))
+            if(!mStringRegular(regular,pf->d_name))
+                continue;
+
+
+        sprintf(name,"%s/%s",d,pf->d_name);
+        int len = strlen(name);
+        mListWrite(list,n,name,len+1);
+        n=n+1;
+    }
+
     list->num = n;
     closedir(dir);
 }

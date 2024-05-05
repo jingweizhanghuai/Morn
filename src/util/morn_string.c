@@ -2,7 +2,7 @@
 Copyright (C) 2019-2023 JingWeiZhangHuai <jingweizhanghuai@163.com>
 Licensed under the Apache License, Version 2.0; you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 */
-#include "morn_util.h"
+#include "morn_ptc.h"
 
 int mStringRegular(const char *str1,const char *str2)
 {
@@ -55,36 +55,217 @@ int mStringRegular(const char *str1,const char *str2)
     }
 }
 
-void mStringSplit(MList *list,const char *in,const char *flag)
+// void mStringSplit(MList *list,const char *in,const char *flag)
+// {
+//     int len=strlen(flag);
+//     mListClear(list);
+//     while(1)
+//     {
+//         char *p=strstr(in,flag);
+//         if(p==NULL) break;
+//         int size=p-in;
+//         char *buff=mListWrite(list,DFLT,NULL,size+1);
+//         memcpy(buff,in,size);buff[size]=0;
+//         in=p+len;
+//     }
+//     mListWrite(list,DFLT,(void *)in,DFLT);
+// }
+
+MString *m_StringCreate(const char *data,int len)
 {
-    int len=strlen(flag);
-    mListClear(list);
-    while(1)
-    {
-        char *p=strstr(in,flag);
-        if(p==NULL) break;
-        int size=p-in;
-        char *buff=mListWrite(list,DFLT,NULL,size+1);
-        memcpy(buff,in,size);buff[size]=0;
-        in=p+len;
-    }
-    mListWrite(list,DFLT,(void *)in,DFLT);
+    if(len<0) len=strlen(data);
+    MString *s=mArrayCreate(0,1,NULL);
+    mArrayWrite(s,0,data,len);
+    return s;
 }
 
-void mStringReplace(char *src,char *dst,const char *replace_in,const char *replace_out)
+struct HandleDefaultString
 {
-    int num_in = strlen(replace_in);
-    int num_out= strlen(replace_out);
+    MString *string[128];
+};
+__thread MString *morn_default_string=NULL;
+void endDefaultString(struct HandleDefaultString *handle)
+{
+    for(int i=0;i<128;i++) {if(handle->string[i]!=NULL) mArrayRelease(handle->string[i]);}
+    morn_default_string=NULL;
+}
+#define HASH_DefaultString 0xb177931b
+MString *_DefaultString(const char *data)
+{
+    if(morn_default_string==NULL)
+    {
+        MHandle *hdl=mHandle("Morn",DefaultString);
+        struct HandleDefaultString *handle=hdl->handle;
+        if(!mHandleValid(hdl))
+        {
+            int t=mThreadOrder();
+            if(handle->string[t]==NULL)
+                handle->string[t]=m_StringCreate(NULL,1024);
+            morn_default_string=handle->string[t];
+            morn_default_string->num=0;
+            hdl->valid=1;
+        }
+    }
+
+    if(data!=NULL)
+    {
+        int s=strlen(data);
+        mArrayWrite(morn_default_string,0,data,s+1);
+        morn_default_string->num=s;
+    }
+    return morn_default_string;
+}
+
+char *m_String(MString *string,int n,const char *format,...)
+{
+    if(string==NULL) string=_DefaultString(NULL);
+
+    if(n<0) n=string->num;
+    else if(n<=string->num){string->num=n;string->string[n]=0;}
+    else mException(1,EXIT,"invalid string locate");
+    // printf("string=%p,n=%d,format=%s\n",string,n,format);
+
+    if(format==NULL) return string->string;
+
+    if(format[0]==  2 ){string->num=0;format++;}
+    if(format[0]=='\0') return string->string;
+
+    if(string!=morn_default_string) mHandleReset(string);
+
+    char buff[1024];
+    va_list argpara;
+    va_start(argpara,format);
+    vsprintf(buff,format,argpara);
+    va_end(argpara);
+
+    int len=strlen(buff);
+    mArrayWrite(string,DFLT,buff,len+1);
+    string->num--;
+    return string->string;
+}
+
+struct HandleStringSplit
+{
+    MList *list;
+    int pos;
+};
+void endStringSplit(struct HandleStringSplit *handle)
+{
+    if(handle->list!=NULL) mListRelease(handle->list);
+}
+#define HASH_StringSplit 0xecdfe96e
+MList *m_StringSplit0(MString *src,int pos,const char *flag)
+{
+    pos=MAX(pos,0);mException(pos>=src->num,EXIT,"invalid string position %d",pos);
+
+    MHandle *hdl=mHandle(src,StringSplit);
+    struct HandleStringSplit *handle=hdl->handle;
+    if(!mHandleValid(hdl)) {if(handle->list==NULL) handle->list=mListCreate();hdl->valid=1;}
+    mListClear(handle->list);
+    mListWrite(handle->list,0,src->string,src->num+1);
+    char *in=handle->list->data[0]+pos;
+
+    int len=strlen(flag);
+    int n=1;
     while(1)
     {
-        char *p=strstr(src,replace_in);
-        if(p==NULL) break;
-        int size=p-src;
-        memcpy(dst,        src,   size);dst+=size;
-        memcpy(dst,replace_out,num_out);dst+=num_out;
-        src=p+num_in;
+        char *p=strstr(in,flag);if(p==NULL) break;
+        *p=0;mListAppend(handle->list);
+        // printf("handle->list->num=%d\n",handle->list->num);
+        in=p+len;handle->list->data[n]=in;n++;
     }
-    strcpy(dst,src);
+    return handle->list;
+}
+
+MList *m_StringSplit(MString *src,int num,int pos,const char *a,...)
+{
+    pos=MAX(pos,0);mException(pos>=src->num,EXIT,"invalid string position %d",pos);
+
+    MHandle *hdl=mHandle(src,StringSplit);
+    struct HandleStringSplit *handle=hdl->handle;
+    if(!mHandleValid(hdl)) {if(handle->list==NULL) handle->list=mListCreate();hdl->valid=1;}
+    mListClear(handle->list);
+    mListWrite(handle->list,0,src->string,src->num+1);
+    char *in=handle->list->data[0]+pos;
+
+    int n=0;const char *flag[64];int len[64];int locate[64];
+    char *p=strstr(in,a);
+    if(p!=NULL) {flag[0]=a;len[0]=strlen(a);locate[0]=p-in;n++;}
+
+    va_list vl;
+    va_start(vl,a);
+    for(int i=1;i<num;i++)
+    {
+        flag[n]=va_arg(vl,const char *);
+        p=strstr(in,flag[n]);if(p==NULL) continue;
+        len[n]=strlen(flag[n]);locate[n]=p-in;n++;
+    }
+    va_end(vl);
+    num=n;if(num==0) return handle->list;
+
+    int l=pos; n=1;
+    while(1)
+    {
+        int min=src->num;int step=0;
+        for(int i=0;i<num;i++)
+        {
+            if(locate[i]<=l) {p=strstr(in+l,flag[i]);if(p==NULL){locate[i]=src->num;}else{locate[i]=p-in;}}
+                 if(locate[i]< min) {min=locate[i];  step=len[i];}
+            else if(locate[i]==min) {if(len[i]>step) step=len[i];}
+        }
+        if(min==src->num) break;
+        in[min]=0;l=min+step;mListAppend(handle->list);handle->list->data[n]=in+l;n++;
+    }
+    return handle->list;
+}
+
+
+struct HandleStringReplace
+{
+    int pos;
+};
+void endStringReplace(struct HandleStringReplace *handle){NULL;}
+#define HASH_StringReplace 0x82b07b8c
+char *m_StringReplace(MString *src,MString *dst,const char *replace_in,const char *replace_out,int pos,int num)
+{
+    if(dst==NULL) dst=src;
+    char *psrc=NULL;
+    char *s=src->string;
+    int num_in = strlen(replace_in);
+    int num_out= strlen(replace_out);
+
+    int src_num=src->num;
+    if((num_out>num_in)&&(src==dst))
+    {
+        psrc=mMalloc(src_num+1);
+        memcpy(psrc,s,src_num+1);
+        s=psrc;
+    }
+
+    if(pos<0)
+    {
+        MHandle *hdl=mHandle(src,StringReplace);
+        struct HandleStringReplace *handle=hdl->handle;
+        if(hdl->valid==0) {handle->pos=0;hdl->valid=1;}
+        pos=handle->pos;
+    }
+    s=s+pos;
+
+    if(num<=0) num=src_num;
+    dst->num=0;
+    for(int i=0;i<num;i++)
+    {
+        char *p=strstr(s,replace_in);
+        if(p==NULL) break;
+        int size=p-s;
+        if(size) mArrayWrite(dst,DFLT,s ,size   );
+        mArrayWrite(dst,DFLT,replace_out,num_out);
+        s=p+num_in;
+    }
+    mArrayWrite(dst,DFLT,s,src_num-(s-src->string)+1);
+
+    if(psrc!=NULL) mFree(psrc);
+    return dst->string;
 }
 
 char morn_string_argument[2]={'?',0};

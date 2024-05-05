@@ -243,31 +243,31 @@ void *mornMapRead(MChain *map,const void *key,int key_size,void *value,int *valu
     return ret;
 }
 
-// void *mornMapNodeKey(MChainNode *node)
-// {
-//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
-//     int *data=(int *)(node->data);
-//     return (void *)(data+2);
-// }
-// void *mornMapNodeValue(MChainNode *node)
-// {
-//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
-//     int *data=(int *)(node->data);
-//     int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
-//     return (void *)(data+2+mkey_size);
-// }
-// int mornMapNodeKeySize(MChainNode *node)
-// {
-//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
-//     int *data=(int *)(node->data);
-//     return data[0];
-// }
-// int mornMapNodeValueSize(MChainNode *node)
-// {
-//     mException(INVALID_POINTER(node),EXIT,"invalid map node");
-//     int *data=(int *)(node->data);
-//     return data[1];
-// }
+void *mornMapNodeKey(MChainNode *node)
+{
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
+    int *data=(int *)(node->data);
+    return (void *)(data+2);
+}
+void *mornMapNodeValue(MChainNode *node)
+{
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
+    int *data=(int *)(node->data);
+    int mkey_size =((data[0]+7)>>3)*(8/sizeof(int));
+    return (void *)(data+2+mkey_size);
+}
+int mornMapNodeKeySize(MChainNode *node)
+{
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
+    int *data=(int *)(node->data);
+    return data[0];
+}
+int mornMapNodeValueSize(MChainNode *node)
+{
+    mException(INVALID_POINTER(node),EXIT,"invalid map node");
+    int *data=(int *)(node->data);
+    return data[1];
+}
 
 // int mornMapNodeNumber(MChain *map)
 // {

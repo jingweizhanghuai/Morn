@@ -10,18 +10,19 @@ struct _MArray{
     unsigned short capacity;
     union
     {
-        void *data;
-        unsigned char *dataU8;
-        char *dataS8;
-        unsigned short *dataU16;
-        short *dataS16;
-        unsigned int *dataU32;
-        int *dataS32;
-        int64_t *dataS64;
+        void     *data;
+        char     *string;
+        uint8_t  *dataU8;
+        int8_t   *dataS8;
+        uint16_t *dataU16;
+        int16_t  *dataS16;
+        uint32_t *dataU32;
+        int32_t  *dataS32;
+        int64_t  *dataS64;
         uint64_t *dataU64;
-        float *dataF32;
-        double *dataD64;
-        void **dataptr;
+        float    *dataF32;
+        double   *dataD64;
+        void    **dataptr;
     };
 };
 
@@ -293,6 +294,7 @@ void *m_ArrayPushBack(MArray *arr,void *data)
 
 void *m_ArrayWrite(MArray *arr,intptr_t n,void *data,int num)
 {
+    if(num==0) return NULL;
     if(num<=1)
     {
         if(n<0) return m_ArrayPushBack(arr,data);
@@ -350,15 +352,15 @@ void *m_ArrayRead(MArray *array,int n,void *data,int num)
     if(n+num>array->num) return NULL;
     handle->read_order=n+num;
     
-    char *p=array->dataS8+n*element_size;
+    int8_t *p=array->dataS8+n*element_size;
     if(data!=NULL) memcpy(data,p,element_size*num);
     return p;
 }
 
 struct HandleStream
 {
-    char *read;
-    char *write;
+    int8_t *read;
+    int8_t *write;
     MThreadSignal sgn;
     // pthread_mutex_t stream_mutex;
 };

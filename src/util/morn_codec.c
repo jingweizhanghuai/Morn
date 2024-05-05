@@ -47,16 +47,16 @@ void m_Base64Encode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=(insize+2)/3*4+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base64Encode(in,insize,out->string,NULL);
 }
 void mornBase64Encode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=(insize+2)/3*4+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base64Encode(data,insize,str->string,NULL);
     mFree(data);
 }
@@ -92,16 +92,16 @@ void m_Base64Decode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=insize/4*3+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base64Decode(in,insize,out->dataU8,NULL);
 }
 void mornBase64Decode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=insize/4*3+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base64Decode(data,insize,str->dataU8,NULL);
     mFree(data);
 }
@@ -166,16 +166,16 @@ void m_Base32Encode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=(insize+4)/5*8+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base32Encode(in,insize,out->string,NULL);
 }
 void mornBase32Encode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=(insize+4)/5*8+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base32Encode(data,insize,str->string,NULL);
     mFree(data);
 }
@@ -220,16 +220,16 @@ void m_Base32Decode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=insize/8*5+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base32Decode(in,insize,out->dataU8,NULL);
 }
 void mornBase32Decode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=insize/8*5+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base32Decode(data,insize,str->dataU8,NULL);
     mFree(data);
 }
@@ -264,16 +264,16 @@ void m_Base16Encode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=insize+insize+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base16Encode(in,insize,out->string,NULL);
 }
 void mornBase16Encode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=insize+insize+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base16Encode(data,insize,str->string,NULL);
     mFree(data);
 }
@@ -308,16 +308,16 @@ void m_Base16Decode(uint8_t *in,int insize,MString *out)
 {
     if(insize<0) insize=strlen((char *)in);
     int size=insize/2+1;
-    mObjectRedefine(out,NULL,size);
+    mArrayRedefine(out,1,size);
     _Base16Decode(in,insize,out->dataU8,NULL);
 }
 void mornBase16Decode(MString *str)
 {
-    int insize=str->size;
+    int insize=str->num;
     uint8_t *data=mMalloc(insize);
     memcpy(data,str->string,insize);
     int outsize=insize/2+1;
-    mObjectRedefine(str,NULL,outsize);
+    mArrayRedefine(str,1,outsize);
     _Base16Decode(data,insize,str->dataU8,NULL);
     mFree(data);
 }

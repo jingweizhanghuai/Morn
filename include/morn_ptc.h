@@ -32,6 +32,7 @@ extern "C"
 void mNULL(void *p);
 
 int mThreadID();
+int mThreadOrder();
 
 #if defined __GNUC__
 #define mAtomicAdd(pA,B) __sync_add_and_fetch(pA,B)
@@ -252,9 +253,10 @@ void *mQueueWrite(MList *queue,void *data,int size);
 void *mQueueRead(MList *queue,void *data,int *size);
 
 void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int priority);
-#define mThreadPool(Ptr,...) do{\
+#define mThreadPool(P,...) do{\
     int VAN=VANumber(__VA_ARGS__);\
-    if((Ptr==NULL)||(mObjectType(Ptr)==0xfa6c59f))\
+    intptr_t Ptr=(intptr_t)P;\
+    if((Ptr==0)||(mObjectType(Ptr)==0xfa6c59f))\
     {\
              if(VAN==1) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),NULL,NULL,0.0f);\
         else if(VAN==2) m_ThreadPool((MList *)Ptr,(void *)_VA0(__VA_ARGS__),(void *)VA1(__VA_ARGS__),NULL,0.0f);\
@@ -269,15 +271,15 @@ void m_ThreadPool(MList *pool,void *function,void *func_para,int *flag,int prior
     }\
     else\
     {\
-             if(VAN==0) m_ThreadPool(NULL,Ptr,NULL,NULL,0.0f);\
-        else if(VAN==1) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
+             if(VAN==0) m_ThreadPool(NULL,(void *)Ptr,NULL,NULL,0.0f);\
+        else if(VAN==1) m_ThreadPool(NULL,(void *)Ptr,(void *)_VA0(__VA_ARGS__),NULL,0.0f);\
         else if(VAN==2)\
         {\
             intptr_t T1=(intptr_t)(VA2(__VA_ARGS__)+1);intptr_t T2=((intptr_t)VA2(__VA_ARGS__))+1;\
-            if(T1!=T2) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),0);\
-            else       m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),NULL,(intptr_t)VA1(__VA_ARGS__));\
+            if(T1!=T2) m_ThreadPool(NULL,(void *)Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),0);\
+            else       m_ThreadPool(NULL,(void *)Ptr,(void *)_VA0(__VA_ARGS__),NULL,(intptr_t)VA1(__VA_ARGS__));\
         }\
-        else if(VAN==3) m_ThreadPool(NULL,Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),(int)VA2(__VA_ARGS__));\
+        else if(VAN==3) m_ThreadPool(NULL,(void *)Ptr,(void *)_VA0(__VA_ARGS__),(int *)((intptr_t)VA1(__VA_ARGS__)),(int)VA2(__VA_ARGS__));\
         else mException(1,EXIT,"invalid input");\
     }\
 }while(0)
