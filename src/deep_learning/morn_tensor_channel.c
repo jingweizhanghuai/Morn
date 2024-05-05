@@ -152,12 +152,8 @@ void *mTensorSplitPara(MSheet *ini,char *name)
     value = mINIRead(ini,name,"channel");
     mException((value == NULL),EXIT,"invalid channel");
     para->begin = atoi(value);para->end = para->begin;
-    MList *list = mListCreate();
-    mStringSplit(list,value,":");
-    mException((list->num>2),EXIT,"invalid channel para");
-    if(list->num>1) para->end = atoi((char *)(list->data[1]));
+    char *str=strchr(value,':');if(str!=NULL) para->end = atoi(str+1);
     if(para->begin>para->end) {int buff=para->begin;para->begin=para->end;para->end=buff;}
-    mListRelease(list);
     return para;
 }
 
